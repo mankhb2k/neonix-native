@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#101827","colorSpace":"srgb"}}'>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
+    body { background: #101827; font-family: Inter, "Noto Sans", Arial, sans-serif; }
+    .stage { position: absolute; inset: 0; background: linear-gradient(135deg, #101827, #24385e); }
+    .frame { position: absolute; left: 180px; top: 150px; width: 1560px; height: 780px; border: 3px solid #68f0bd; border-radius: 28px; background: #16233c; }
+    .rect { position: absolute; left: 120px; top: 150px; width: 360px; height: 250px; background: #68f0bd; border-radius: 22px; }
+    .circle { position: absolute; left: 610px; top: 120px; width: 300px; height: 300px; background: #ff739f; border-radius: 50%; }
+    .rounded { position: absolute; left: 1030px; top: 180px; width: 360px; height: 210px; background: #778bff; border-radius: 70px; }
+    .triangle { position: absolute; left: 420px; top: 500px; width: 360px; height: 160px; background: #ffc867; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+    .outline { position: absolute; left: 940px; top: 480px; width: 320px; height: 180px; border: 12px solid #f5f7ff; border-radius: 24px; }
+  </style>
+</head>
+<body><main class="stage"><div class="frame"><div class="rect"></div><div class="circle"></div><div class="rounded"></div><div class="triangle"></div><div class="outline"></div></div></main></body>
+</html>

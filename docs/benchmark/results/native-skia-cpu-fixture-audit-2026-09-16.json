@@ -1,0 +1,936 @@
+{
+  "benchmark": "native-skia-cpu-fixture-audit",
+  "environment": {
+    "requestedBackend": "skia-native-raster",
+    "cpu": "Cloud Run 4 vCPU",
+    "gpu": false,
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "colorSpace": "srgb"
+    }
+  },
+  "nativeCommandBufferOps": [
+    "beginFrame",
+    "setTransform",
+    "beginGroup",
+    "endGroup",
+    "beginLayer",
+    "endLayer",
+    "drawShape",
+    "drawSolid",
+    "drawPath",
+    "drawText",
+    "endFrame"
+  ],
+  "fixtures": [
+    {
+      "id": "neonix-f0-baseline-shapes-5s",
+      "status": "ready",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "compileMilliseconds": 24.071,
+      "prepareMilliseconds": 16.032,
+      "assets": [],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 30,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 3,
+            "setTransform": 10,
+            "drawPath": 10,
+            "beginLayer": 1,
+            "endLayer": 1,
+            "endGroup": 3,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 74,
+          "commandCount": 30,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 3,
+            "setTransform": 10,
+            "drawPath": 10,
+            "beginLayer": 1,
+            "endLayer": 1,
+            "endGroup": 3,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 149,
+          "commandCount": 30,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 3,
+            "setTransform": 10,
+            "drawPath": 10,
+            "beginLayer": 1,
+            "endLayer": 1,
+            "endGroup": 3,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": true,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "clipPath",
+        "paintFill",
+        "pathLowering"
+      ]
+    },
+    {
+      "id": "neonix-f1-text-fonts-5s",
+      "status": "ready",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "compileMilliseconds": 9.45,
+      "prepareMilliseconds": 88.187,
+      "assets": [
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        },
+        {
+          "id": "preview-font-lora-regular",
+          "kind": "font",
+          "uri": "/preview/font/Lora/Lora-Regular.ttf"
+        },
+        {
+          "id": "preview-font-roboto-bold",
+          "kind": "font",
+          "uri": "/preview/font/Roboto/Roboto-Bold.ttf"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 16,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 6,
+            "drawPath": 2,
+            "drawText": 4,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 74,
+          "commandCount": 16,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 6,
+            "drawPath": 2,
+            "drawText": 4,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 149,
+          "commandCount": 16,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 6,
+            "drawPath": 2,
+            "drawText": 4,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": true,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "paintFill",
+        "pathLowering"
+      ]
+    },
+    {
+      "id": "neonix-f2-image-svg-5s",
+      "status": "ready",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "compileMilliseconds": 3.56,
+      "prepareMilliseconds": 56.328,
+      "assets": [
+        {
+          "id": "dom/html:0/body:1/main:0/img:0-asset",
+          "kind": "image",
+          "uri": "/preview/image/photo-landscape.jpg"
+        },
+        {
+          "id": "dom/html:0/body:1/main:0/img:2-asset",
+          "kind": "image",
+          "uri": "/preview/svg/demo-svg.svg"
+        },
+        {
+          "id": "dom/html:0/body:1/main:0/img:3-asset",
+          "kind": "image",
+          "uri": "/preview/svg/demo-svg-red-stroke.svg"
+        },
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 22,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 7,
+            "drawPath": 3,
+            "beginLayer": 2,
+            "drawImage": 3,
+            "endLayer": 2,
+            "drawText": 1,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "effectProgram",
+            "imageDecode",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 74,
+          "commandCount": 22,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 7,
+            "drawPath": 3,
+            "beginLayer": 2,
+            "drawImage": 3,
+            "endLayer": 2,
+            "drawText": 1,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "effectProgram",
+            "imageDecode",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 149,
+          "commandCount": 22,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 7,
+            "drawPath": 3,
+            "beginLayer": 2,
+            "drawImage": 3,
+            "endLayer": 2,
+            "drawText": 1,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "effectProgram",
+            "imageDecode",
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": false,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "effectProgram",
+        "imageDecode",
+        "paintFill",
+        "pathLowering"
+      ]
+    },
+    {
+      "id": "neonix-f3-animation-transform-10s",
+      "status": "ready",
+      "durationMs": 10000,
+      "frameCount": 300,
+      "compileMilliseconds": 10.045,
+      "prepareMilliseconds": 636.216,
+      "assets": [
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        },
+        {
+          "id": "preview-font-inter-regular",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Regular.ttf"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 22,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 3,
+            "setTransform": 6,
+            "drawPath": 4,
+            "drawText": 2,
+            "beginLayer": 1,
+            "endLayer": 1,
+            "endGroup": 3,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 149,
+          "commandCount": 22,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 3,
+            "setTransform": 6,
+            "drawPath": 4,
+            "drawText": 2,
+            "beginLayer": 1,
+            "endLayer": 1,
+            "endGroup": 3,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 299,
+          "commandCount": 22,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 3,
+            "setTransform": 6,
+            "drawPath": 4,
+            "drawText": 2,
+            "beginLayer": 1,
+            "endLayer": 1,
+            "endGroup": 3,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": true,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "paintFill",
+        "pathLowering"
+      ]
+    },
+    {
+      "id": "neonix-f4-effects-10s",
+      "status": "ready",
+      "durationMs": 10000,
+      "frameCount": 300,
+      "compileMilliseconds": 8.841,
+      "prepareMilliseconds": 46.391,
+      "assets": [
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        },
+        {
+          "id": "preview-font-inter-regular",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Regular.ttf"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 30,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 9,
+            "drawPath": 7,
+            "drawText": 2,
+            "beginLayer": 4,
+            "endLayer": 4,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "mask",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 149,
+          "commandCount": 30,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 9,
+            "drawPath": 7,
+            "drawText": 2,
+            "beginLayer": 4,
+            "endLayer": 4,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "mask",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 299,
+          "commandCount": 30,
+          "ops": {
+            "beginFrame": 1,
+            "beginGroup": 1,
+            "setTransform": 9,
+            "drawPath": 7,
+            "drawText": 2,
+            "beginLayer": 4,
+            "endLayer": 4,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "mask",
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": true,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "clipPath",
+        "effectProgram",
+        "mask",
+        "paintFill",
+        "pathLowering"
+      ]
+    },
+    {
+      "id": "neonix-f5-video-audio-30s",
+      "status": "ready",
+      "durationMs": 30000,
+      "frameCount": 900,
+      "compileMilliseconds": 24.89,
+      "prepareMilliseconds": 6497.022,
+      "assets": [
+        {
+          "id": "video-main-asset",
+          "kind": "video",
+          "uri": "/docs/example-video.mp4"
+        },
+        {
+          "id": "preview-font-inter-regular",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Regular.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        },
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-lora-regular",
+          "kind": "font",
+          "uri": "/preview/font/Lora/Lora-Regular.ttf"
+        },
+        {
+          "id": "music-bed-asset",
+          "kind": "audio",
+          "uri": "/preview/audio/Music-MBB-Island-Tropical_128k.mp3"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 60,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 7,
+            "setTransform": 21,
+            "drawPath": 16,
+            "drawVideo": 1,
+            "endLayer": 7,
+            "drawText": 4,
+            "beginGroup": 1,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawVideo"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "paintFill",
+            "pathLowering",
+            "videoDecode"
+          ]
+        },
+        {
+          "frame": 449,
+          "commandCount": 106,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 7,
+            "setTransform": 38,
+            "drawPath": 27,
+            "drawVideo": 1,
+            "endLayer": 7,
+            "drawText": 10,
+            "beginGroup": 7,
+            "endGroup": 7,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawVideo"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "paintFill",
+            "pathLowering",
+            "videoDecode"
+          ]
+        },
+        {
+          "frame": 899,
+          "commandCount": 60,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 7,
+            "setTransform": 21,
+            "drawPath": 16,
+            "drawVideo": 1,
+            "endLayer": 7,
+            "drawText": 4,
+            "beginGroup": 1,
+            "endGroup": 1,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawVideo"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "paintFill",
+            "pathLowering",
+            "videoDecode"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": false,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "clipPath",
+        "effectProgram",
+        "paintFill",
+        "pathLowering",
+        "videoDecode"
+      ]
+    },
+    {
+      "id": "neonix-f6-text-shape-audio-10s",
+      "status": "ready",
+      "durationMs": 10000,
+      "frameCount": 300,
+      "compileMilliseconds": 24.897,
+      "prepareMilliseconds": 2749.666,
+      "assets": [
+        {
+          "id": "dom/html:0/body:1/main:0/div:0-background-0-0-asset",
+          "kind": "image",
+          "uri": "/preview/image/img-alpha.png"
+        },
+        {
+          "id": "preview-font-inter-regular",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Regular.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        },
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-lora-regular",
+          "kind": "font",
+          "uri": "/preview/font/Lora/Lora-Regular.ttf"
+        },
+        {
+          "id": "audio-bed-asset",
+          "kind": "audio",
+          "uri": "/preview/audio/Music-MBB-Island-Tropical_128k.mp3"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 134,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 5,
+            "setTransform": 38,
+            "drawPath": 34,
+            "drawImage": 1,
+            "endLayer": 5,
+            "drawText": 3,
+            "beginGroup": 23,
+            "endGroup": 23,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "imageDecode",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 149,
+          "commandCount": 150,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 5,
+            "setTransform": 44,
+            "drawPath": 37,
+            "drawImage": 1,
+            "endLayer": 5,
+            "beginGroup": 25,
+            "endGroup": 25,
+            "drawText": 6,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "imageDecode",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 299,
+          "commandCount": 150,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 7,
+            "setTransform": 44,
+            "drawPath": 37,
+            "drawImage": 1,
+            "endLayer": 7,
+            "drawText": 6,
+            "beginGroup": 23,
+            "endGroup": 23,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "imageDecode",
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": false,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "clipPath",
+        "effectProgram",
+        "imageDecode",
+        "paintFill",
+        "pathLowering"
+      ]
+    },
+    {
+      "id": "neonix-f7-full-visual-60s",
+      "status": "ready",
+      "durationMs": 60000,
+      "frameCount": 1800,
+      "compileMilliseconds": 29.591,
+      "prepareMilliseconds": 19950.338,
+      "assets": [
+        {
+          "id": "preview-font-inter-bold",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf"
+        },
+        {
+          "id": "preview-font-noto-sans-regular",
+          "kind": "font",
+          "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf"
+        },
+        {
+          "id": "preview-font-inter-regular",
+          "kind": "font",
+          "uri": "/preview/font/Inter/Inter_18pt-Regular.ttf"
+        },
+        {
+          "id": "preview-font-lora-regular",
+          "kind": "font",
+          "uri": "/preview/font/Lora/Lora-Regular.ttf"
+        },
+        {
+          "id": "dom/html:0/body:1/main:0/section:5/div:0/img:0-asset",
+          "kind": "image",
+          "uri": "/preview/image/photo-landscape.jpg"
+        },
+        {
+          "id": "dom/html:0/body:1/main:0/section:5/div:0/img:3-asset",
+          "kind": "image",
+          "uri": "/preview/svg/demo-svg.svg"
+        }
+      ],
+      "sampledOps": [
+        {
+          "frame": 0,
+          "commandCount": 116,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 16,
+            "setTransform": 40,
+            "drawPath": 29,
+            "endLayer": 16,
+            "drawText": 9,
+            "beginGroup": 1,
+            "endGroup": 1,
+            "drawImage": 2,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "imageDecode",
+            "mask",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 899,
+          "commandCount": 162,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 18,
+            "setTransform": 56,
+            "drawPath": 39,
+            "endLayer": 18,
+            "drawText": 15,
+            "beginGroup": 6,
+            "endGroup": 6,
+            "drawImage": 2,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "imageDecode",
+            "mask",
+            "paintFill",
+            "pathLowering"
+          ]
+        },
+        {
+          "frame": 1799,
+          "commandCount": 124,
+          "ops": {
+            "beginFrame": 1,
+            "beginLayer": 16,
+            "setTransform": 43,
+            "drawPath": 30,
+            "endLayer": 16,
+            "drawText": 11,
+            "beginGroup": 2,
+            "endGroup": 2,
+            "drawImage": 2,
+            "endFrame": 1
+          },
+          "unsupportedOps": [
+            "drawImage"
+          ],
+          "featureGaps": [
+            "blendMode",
+            "clipPath",
+            "effectProgram",
+            "imageDecode",
+            "mask",
+            "paintFill",
+            "pathLowering"
+          ]
+        }
+      ],
+      "nativeReplayOpcodeReady": false,
+      "nativeParityReady": false,
+      "featureGaps": [
+        "blendMode",
+        "clipPath",
+        "effectProgram",
+        "imageDecode",
+        "mask",
+        "paintFill",
+        "pathLowering"
+      ]
+    }
+  ]
+}

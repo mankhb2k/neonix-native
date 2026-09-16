@@ -18,6 +18,7 @@
     "export:emoji-samples": "tsx scripts/export-emoji-samples.ts",
     "export:skia-preview": "tsx scripts/export-skia-preview.ts",
     "benchmark:video-access": "tsx scripts/benchmark-video-access.ts",
+    "benchmark:native-fixture-audit": "tsx scripts/benchmark-native-fixture-audit.ts",
     "e2e:media:phase1": "tsx scripts/phase1-media-e2e.ts",
     "e2e:media:phase2": "tsx scripts/phase2-media-upload-e2e.ts",
     "render:queue-worker": "tsx scripts/render-queue-worker.ts",

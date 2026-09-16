@@ -6,7 +6,12 @@ import { prepareRuntimeProjectV3Text, type RuntimeProjectV3 } from "@motionvideo
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 function repoRoot(): string {
-  return process.cwd().replace(/\\/g, "/").endsWith("/apps/web") ? path.resolve(process.cwd(), "../..") : process.cwd();
+  const cwd = path.resolve(process.cwd());
+  const normalized = cwd.replace(/\\/g, "/");
+  if (normalized.endsWith("/apps/web") || normalized.endsWith("/packages/export-renderer")) {
+    return path.resolve(cwd, "../..");
+  }
+  return cwd;
 }
 
 async function loadFont(uri: string): Promise<Buffer | null> {

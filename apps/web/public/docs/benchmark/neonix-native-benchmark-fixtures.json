@@ -1,0 +1,87 @@
+{
+  "version": 2,
+  "purpose": "Native Skia CPU and FFmpeg benchmark ladder",
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "colorSpace": "srgb"
+  },
+  "fixtures": [
+    {
+      "id": "neonix-f0-baseline-shapes-5s",
+      "source": "neonix-f0-baseline-shapes-5s.html",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "featureSet": ["solid-shapes", "border", "radius", "gradient", "clip-path"]
+    },
+    {
+      "id": "neonix-f1-text-fonts-5s",
+      "source": "neonix-f1-text-fonts-5s.html",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "featureSet": ["text", "inter", "lora", "noto-sans", "roboto", "font-weight", "line-layout"]
+    },
+    {
+      "id": "neonix-f2-image-svg-5s",
+      "source": "neonix-f2-image-svg-5s.html",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "featureSet": ["image", "jpeg", "svg", "object-fit", "image-filter"] ,
+      "assets": ["/preview/image/photo-landscape.jpg", "/preview/svg/demo-svg.svg", "/preview/svg/demo-svg-red-stroke.svg"]
+    },
+    {
+      "id": "neonix-f3-animation-transform-10s",
+      "source": "neonix-f3-animation-transform-10s.html",
+      "durationMs": 10000,
+      "frameCount": 300,
+      "featureSet": ["css-animation", "transform", "opacity", "background-color", "rotation", "scale"]
+    },
+    {
+      "id": "neonix-f4-effects-10s",
+      "source": "neonix-f4-effects-10s.html",
+      "durationMs": 10000,
+      "frameCount": 300,
+      "featureSet": ["blur", "brightness", "contrast", "gradient", "mask", "clip-path", "shadow", "blend-mode"]
+    },
+    {
+      "id": "neonix-f5-video-audio-30s",
+      "source": "neonix-f5-video-audio-30s.html",
+      "durationMs": 30000,
+      "frameCount": 900,
+      "featureSet": ["video", "h264", "object-fit", "video-filter", "embedded-audio", "external-audio", "audio-encode"],
+      "assets": ["/docs/example-video.mp4", "/preview/audio/Music-MBB-Island-Tropical_128k.mp3"],
+      "mediaAssets": [
+        {"uri": "/docs/example-video.mp4", "kind": "video", "width": 1920, "height": 1080, "duration": 60500, "fps": 30, "mimeType": "video/mp4"},
+        {"uri": "/preview/audio/Music-MBB-Island-Tropical_128k.mp3", "kind": "audio", "duration": 124551.837, "sampleRate": 44100, "channels": 2, "mimeType": "audio/mpeg"}
+      ],
+      "sourceMedia": {
+        "video": {"codec": "h264", "durationSeconds": 60.5, "width": 1920, "height": 1080, "fps": 30},
+        "audio": {"codec": "mp3", "durationSeconds": 124.551837, "sampleRate": 44100, "channels": 2}
+      }
+    },
+    {
+      "id": "neonix-f6-text-shape-audio-10s",
+      "source": "neonix-f6-text-shape-audio-10s.html",
+      "durationMs": 10000,
+      "frameCount": 300,
+      "featureSet": ["text", "font", "shape", "image-texture", "audio", "audio-duration", "audio-encode"],
+      "assets": ["/preview/image/img-alpha.png", "/preview/audio/Music-MBB-Island-Tropical_128k.mp3"],
+      "mediaAssets": [
+        {"uri": "/preview/image/img-alpha.png", "kind": "image", "mimeType": "image/png"},
+        {"uri": "/preview/audio/Music-MBB-Island-Tropical_128k.mp3", "kind": "audio", "duration": 124551.837, "sampleRate": 44100, "channels": 2, "mimeType": "audio/mpeg"}
+      ],
+      "sourceMedia": {
+        "audio": {"codec": "mp3", "durationSeconds": 124.551837, "sampleRate": 44100, "channels": 2}
+      }
+    },
+    {
+      "id": "neonix-f7-full-visual-60s",
+      "source": "neonix-f7-full-visual-60s.html",
+      "durationMs": 60000,
+      "frameCount": 1800,
+      "featureSet": ["text", "font", "shape", "gradient", "shadow", "blur", "mask", "clip-path", "blend-mode", "image", "svg", "css-animation"],
+      "assets": ["/preview/image/photo-landscape.jpg", "/preview/svg/demo-svg.svg"]
+    }
+  ]
+}

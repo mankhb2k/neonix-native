@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "purpose": "Native Skia CPU and FFmpeg benchmark ladder",
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "colorSpace": "srgb"
+  },
+  "fixtures": [
+    {
+      "id": "neonix-native-f7-visual-60s",
+      "source": "neonix-native-f7-visual-60s.html",
+      "durationMs": 60000,
+      "featureSet": ["text", "font", "shape", "gradient", "shadow", "blur", "mask", "clip-path", "blend-mode", "image", "svg", "css-animation"],
+      "assets": [
+        "/preview/image/photo-landscape.jpg",
+        "/preview/svg/demo-svg.svg",
+        "/preview/image/img-alpha.png"
+      ]
+    },
+    {
+      "id": "neonix-native-f5-video-audio-30s",
+      "source": "neonix-native-f5-video-audio-30s.html",
+      "durationMs": 30000,
+      "featureSet": ["text", "video", "video-filter", "clip-path", "blend-mode", "audio", "css-animation"],
+      "assets": [
+        "/docs/example-video.mp4",
+        "/preview/audio/Music-MBB-Island-Tropical_128k.mp3"
+      ],
+      "sourceMedia": {
+        "video": {"codec": "h264", "durationSeconds": 60.5, "width": 1920, "height": 1080, "fps": 30},
+        "audio": {"codec": "mp3", "durationSeconds": 124.551837, "sampleRate": 44100, "channels": 2}
+      }
+    },
+    {
+      "id": "neonix-native-f6-text-shape-audio-10s",
+      "source": "neonix-native-f6-text-shape-audio-10s.html",
+      "durationMs": 10000,
+      "featureSet": ["text", "font", "shape", "gradient", "shadow", "blur", "mask-texture", "audio", "css-animation"],
+      "assets": [
+        "/preview/image/img-alpha.png",
+        "/preview/audio/Music-MBB-Island-Tropical_128k.mp3"
+      ],
+      "sourceMedia": {
+        "audio": {"codec": "mp3", "durationSeconds": 124.551837, "sampleRate": 44100, "channels": 2}
+      }
+    }
+  ]
+}

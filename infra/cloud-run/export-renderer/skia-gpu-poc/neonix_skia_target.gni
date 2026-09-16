@@ -29,4 +29,5 @@ test_app("neonix_skia_cpu_backend") {
 test_app("neonix_skia_command_cpu_backend") {
   sources = [ "neonix/skia_command_cpu_backend.cpp" ]
   deps = [ ":skia" ]
+  libs = [ "avcodec", "avformat", "avutil", "swscale" ]
 }

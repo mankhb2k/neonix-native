@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#10111d","colorSpace":"srgb"}}'>
+  <style>
+    @keyframes move-x { 0% { transform: translateX(0) rotate(-8deg); opacity: 0.35; } 50% { transform: translateX(900px) rotate(18deg); opacity: 1; } 100% { transform: translateX(0) rotate(-8deg); opacity: 0.35; } }
+    @keyframes scale-pulse { 0%, 100% { transform: scale(0.72); } 50% { transform: scale(1.22); } }
+    @keyframes color-shift { 0%, 100% { background-color: #62f2b7; } 50% { background-color: #7484ff; } }
+    * { box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
+    body { color: #f6f8ff; background: #10111d; font-family: Inter, "Noto Sans", Arial, sans-serif; }
+    .stage { position: absolute; inset: 0; background: linear-gradient(120deg, #10111d, #20264a); }
+    .moving { position: absolute; left: 120px; top: 280px; width: 260px; height: 260px; border-radius: 50%; background: #62f2b7; animation: move-x 10s ease infinite; }
+    .pulsing { position: absolute; right: 330px; top: 260px; width: 330px; height: 330px; border-radius: 34px; background: #f56cae; animation: scale-pulse 4s ease infinite; }
+    .color { position: absolute; left: 720px; top: 660px; width: 480px; height: 34px; border-radius: 17px; animation: color-shift 3s ease infinite; }
+    h1 { position: absolute; left: 120px; top: 110px; margin: 0; font-size: 78px; letter-spacing: -0.06em; }
+    p { position: absolute; left: 1240px; top: 700px; width: 450px; color: #aab9d5; font-size: 22px; line-height: 1.45; }
+  </style>
+</head>
+<body><main class="stage"><h1>Deterministic<br>frame timing.</h1><div class="moving"></div><div class="pulsing"></div><div class="color"></div><p>Transform, opacity and background-color are sampled across 300 frames.</p></main></body>
+</html>

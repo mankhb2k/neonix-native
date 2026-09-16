@@ -8,7 +8,8 @@ ARG SKIA_REV=00bc6c117cf10d37e02753b014cd5b5df979e67f
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates clang git libfontconfig1-dev libfreetype6-dev \
-    libglu1-mesa-dev libjpeg-dev libpng-dev ninja-build python3 \
+    libavcodec-dev libavformat-dev libavutil-dev libglu1-mesa-dev \
+    libjpeg-dev libpng-dev libswscale-dev ninja-build python3 \
     python3-pip python-is-python3 unzip wget xz-utils zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
@@ -33,6 +34,20 @@ RUN python3 -c "from pathlib import Path; p=Path('/opt/skia/BUILD.gn'); p.write_
 RUN gn gen out/Release --args='is_official_build=true skia_use_vulkan=true skia_enable_ganesh=true skia_enable_tools=true skia_use_gl=false skia_use_egl=false skia_use_x11=false skia_use_freetype=false skia_use_fontconfig=false skia_use_harfbuzz=false skia_use_icu=false skia_use_expat=false skia_use_libjpeg_turbo_decode=false skia_use_libjpeg_turbo_encode=false skia_use_libpng_decode=false skia_use_libpng_encode=false skia_use_libwebp_decode=false skia_use_libwebp_encode=false skia_use_perfetto=false skia_use_wuffs=false skia_enable_pdf=false skia_enable_skottie=false skia_use_partition_alloc=false'
 RUN ninja -C out/Release neonix_skia_command_cpu_backend
 
+# The native binary is linked against the Ubuntu 22 FFmpeg ABI. Keep the
+# exact non-system shared-library closure available to the benchmark runtime;
+# the Node/Debian runtime image has a newer FFmpeg ABI.
+RUN mkdir -p /opt/ffmpeg-compat \
+  && ldd /opt/skia/out/Release/neonix_skia_command_cpu_backend \
+    | awk '/=> \/[^ ]+/ { print $3 } /^\// { print $1 }' \
+    | sort -u \
+    | while read -r library; do \
+        case "$library" in \
+          */libc.so*|*/libm.so*|*/libdl.so*|*/libpthread.so*|*/librt.so*|*/libgcc_s.so*|*/libstdc++.so*|*/ld-linux*) ;; \
+          *) cp -L "$library" /opt/ffmpeg-compat/ ;; \
+        esac; \
+      done
+
 FROM node:22-bookworm-slim
 
 RUN apt-get update \
@@ -43,9 +58,13 @@ WORKDIR /app
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile
 COPY --from=skia-build /opt/skia/out/Release/neonix_skia_command_cpu_backend /usr/local/bin/neonix-skia-command-cpu-backend
+COPY --from=skia-build /opt/ffmpeg-compat /opt/ffmpeg-compat
 
 ENV NODE_ENV=production
+ENV BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat
 ENV BENCHMARK_DURATION_SECONDS=60
 ENV BENCHMARK_FRAMES=1800
 ENV FFMPEG_THREADS=1
+ENV BENCHMARK_PROTOCOL_BATCH_FRAMES=1
+ENV BENCHMARK_PROTOCOL_TRANSPORT=pipe
 CMD ["pnpm", "--filter", "@motionvideo/export-renderer", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"]

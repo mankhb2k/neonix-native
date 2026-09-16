@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, open as openFile, readFile, stat, type FileHandle } from "node:fs/promises";
+import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer } from "@motionvideo/motion-runtime";
+import { compileDocument } from "../../html-compiler/src/index";
+import { compileAndPrepareRuntimeProjectV3 } from "../../../apps/web/lib/server/render/project-runtime";
+import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../../../apps/web/lib/docs/html-compiler-preview";
 import { createNativeExportSmokeProject } from "./testing";
 
 const fps = 30;
@@ -13,6 +17,20 @@ const height = 1080;
 const outputPath = resolve(process.env.BENCHMARK_OUTPUT ?? "/tmp/native-skia-command-cpu.mp4");
 const nativeBinary = process.env.NATIVE_SKIA_BINARY ?? "/usr/local/bin/neonix-skia-command-cpu-backend";
 const ffmpegPath = process.env.FFMPEG_PATH ?? "ffmpeg";
+type BenchmarkMode = "pipe" | "render-only" | "raw-file" | "encode-file" | "in-process";
+const benchmarkMode = (process.env.BENCHMARK_MODE?.trim() || "pipe") as BenchmarkMode;
+if (!["pipe", "render-only", "raw-file", "encode-file", "in-process"].includes(benchmarkMode)) {
+  throw new Error(`Unsupported BENCHMARK_MODE: ${benchmarkMode}`);
+}
+const rawPath = resolve(process.env.BENCHMARK_RAW_OUTPUT ?? "/tmp/native-skia-command-cpu.rgba");
+const fixtureId = process.env.BENCHMARK_FIXTURE_ID?.trim();
+const protocolBatchFrames = positiveInteger(process.env.BENCHMARK_PROTOCOL_BATCH_FRAMES, 1);
+type ProtocolTransport = "pipe" | "file";
+const protocolTransport = (process.env.BENCHMARK_PROTOCOL_TRANSPORT?.trim() || "pipe") as ProtocolTransport;
+if (!["pipe", "file"].includes(protocolTransport)) {
+  throw new Error(`Unsupported BENCHMARK_PROTOCOL_TRANSPORT: ${protocolTransport}`);
+}
+const protocolPath = resolve(process.env.BENCHMARK_PROTOCOL_PATH ?? "/tmp/native-skia-command-cpu.protocol");
 
 function positiveNumber(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
@@ -46,6 +64,12 @@ class BinaryWriter {
 
   bytes(value: Uint8Array): void {
     this.chunks.push(Buffer.from(value));
+  }
+
+  string(value: string): void {
+    const encoded = Buffer.from(value, "utf8");
+    this.u32(encoded.byteLength);
+    this.bytes(encoded);
   }
 
   finish(): Buffer {
@@ -85,6 +109,29 @@ function writeMatrix(writer: BinaryWriter, matrix: readonly number[]): void {
   for (const value of matrix) writer.f64(value);
 }
 
+function writePath(writer: BinaryWriter, contours: Extract<PaintCommand, { op: "drawPath" }>["contours"]): void {
+  writer.u32(contours.length);
+  for (const contour of contours) {
+    writer.f64(contour.start.x);
+    writer.f64(contour.start.y);
+    writer.u32(contour.segments.length);
+    writer.u8(contour.closed ? 1 : 0);
+    for (const segment of contour.segments) {
+      if (segment.kind === "line") {
+        writer.u8(1); writer.f64(segment.to.x); writer.f64(segment.to.y);
+      } else if (segment.kind === "quadratic") {
+        writer.u8(2); writer.f64(segment.control.x); writer.f64(segment.control.y); writer.f64(segment.to.x); writer.f64(segment.to.y);
+      } else if (segment.kind === "cubic") {
+        writer.u8(3); writer.f64(segment.control1.x); writer.f64(segment.control1.y); writer.f64(segment.control2.x); writer.f64(segment.control2.y); writer.f64(segment.to.x); writer.f64(segment.to.y);
+      } else {
+        writer.u8(4); writer.f64(segment.radii.x); writer.f64(segment.radii.y); writer.f64(segment.rotation);
+        writer.u8(segment.largeArc ? 1 : 0); writer.u8(segment.sweep ? 1 : 0);
+        writer.f64(segment.to.x); writer.f64(segment.to.y);
+      }
+    }
+  }
+}
+
 function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
   if (command.op === "beginFrame") {
     writer.u8(1);
@@ -103,9 +150,8 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     return;
   }
   if (command.op === "drawShape") {
-    if (command.shape === "polygon") throw new Error(`Native benchmark protocol does not support polygon ${command.key}`);
     writer.u8(3);
-    writer.u8(command.shape === "rectangle" ? 1 : 2);
+    writer.u8(command.shape === "rectangle" ? 1 : command.shape === "ellipse" ? 2 : 3);
     writer.f64(command.width);
     writer.f64(command.height);
     writer.u8(1);
@@ -117,6 +163,57 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     if (command.stroke !== undefined) writeColor(writer, command.stroke);
     writer.f64(command.strokeWidth ?? 0);
     writer.f64(command.strokeOpacity ?? 1);
+    writer.u32(command.points?.length ?? 0);
+    for (const point of command.points ?? []) { writer.f64(point.x); writer.f64(point.y); }
+    return;
+  }
+  if (command.op === "drawSolid") {
+    writer.u8(10);
+    writeColor(writer, command.fill);
+    writer.f64(command.width);
+    writer.f64(command.height);
+    return;
+  }
+  if (command.op === "drawPath") {
+    writer.u8(5);
+    writePath(writer, command.contours);
+    writer.u8(command.fill === undefined ? 0 : 1);
+    if (command.fill !== undefined) writeColor(writer, command.fill);
+    writer.f64(command.fillOpacity ?? 1);
+    writer.u8(command.stroke === undefined ? 0 : 1);
+    if (command.stroke !== undefined) writeColor(writer, command.stroke);
+    writer.f64(command.strokeWidth ?? 0);
+    writer.f64(command.strokeOpacity ?? 1);
+    writer.u8(command.fillRule === "evenodd" ? 1 : 0);
+    return;
+  }
+  if (command.op === "drawText") {
+    writer.u8(7);
+    writer.u32(command.glyphs?.length ?? 0);
+    writeColor(writer, command.fill);
+    for (const glyph of command.glyphs ?? []) {
+      writer.string(glyph.path);
+      writer.f64(glyph.x); writer.f64(glyph.y); writer.f64(glyph.pathScale);
+      writer.f64(glyph.outline.x); writer.f64(glyph.outline.y);
+      writer.f64(glyph.rotation ?? 0); writer.f64(glyph.scaleX ?? 1);
+      writer.u8(glyph.fill === undefined ? 0 : 1);
+      if (glyph.fill !== undefined) writeColor(writer, glyph.fill);
+      writer.u8(glyph.stroke === undefined ? 0 : 1);
+      if (glyph.stroke !== undefined) writeColor(writer, glyph.stroke);
+      writer.f64(glyph.strokeWidth ?? 0); writer.f64(glyph.strokeOpacity ?? 1);
+    }
+    return;
+  }
+  if (command.op === "beginGroup") { writer.u8(4); return; }
+  if (command.op === "endGroup") { writer.u8(6); return; }
+  if (command.op === "beginLayer") {
+    writer.u8(8);
+    writer.u8(command.offscreen || command.isolation ? 1 : 0);
+    writer.f64(command.compositeAlpha ?? 1);
+    return;
+  }
+  if (command.op === "endLayer") {
+    writer.u8(9);
     return;
   }
   if (command.op === "endFrame") {
@@ -165,39 +262,122 @@ async function writeWithBackpressure(child: ChildProcess, value: Buffer): Promis
 }
 
 await mkdir(dirname(outputPath), { recursive: true });
-const project = createNativeExportSmokeProject(durationSeconds);
+await mkdir(dirname(rawPath), { recursive: true });
+await mkdir(dirname(protocolPath), { recursive: true });
+let project;
+if (fixtureId) {
+  const fixtureRootOverride = process.env.BENCHMARK_FIXTURE_ROOT?.trim();
+  const fixtureRootCandidates = fixtureRootOverride
+    ? [resolve(fixtureRootOverride)]
+    : [
+        resolve(process.cwd(), "apps/web/public/docs/benchmark"),
+        resolve(process.cwd(), "../../apps/web/public/docs/benchmark"),
+        resolve(process.cwd(), "../../../apps/web/public/docs/benchmark"),
+      ];
+  const fixtureRoot = fixtureRootCandidates.find((candidate) =>
+    existsSync(resolve(candidate, "neonix-native-benchmark-fixtures.json")));
+  if (!fixtureRoot) {
+    throw new Error(`Fixture manifest not found. Checked: ${fixtureRootCandidates.join(", ")}`);
+  }
+  const manifest = JSON.parse(await readFile(resolve(fixtureRoot, "neonix-native-benchmark-fixtures.json"), "utf8")) as {
+    fixtures: Array<{ id: string; source: string; durationMs: number; mediaAssets?: Array<{ uri: string; kind: "image" | "video" | "audio"; width?: number; height?: number; duration?: number; fps?: number; sampleRate?: number; channels?: number; mimeType?: string }> }>;
+  };
+  const fixture = manifest.fixtures.find((candidate) => candidate.id === fixtureId);
+  if (!fixture) throw new Error(`Unknown BENCHMARK_FIXTURE_ID: ${fixtureId}`);
+  const html = await readFile(resolve(fixtureRoot, fixture.source), "utf8");
+  const compiled = compileDocument(
+    { html, fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: fixture.mediaAssets },
+    { composition: { durationMs: fixture.durationMs, id: fixture.id } },
+  );
+  if (compiled.status !== "success" || !compiled.protocol || compiled.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+    throw new Error(`Fixture compile failed: ${JSON.stringify(compiled.diagnostics)}`);
+  }
+  project = await compileAndPrepareRuntimeProjectV3(compiled.protocol);
+} else {
+  project = createNativeExportSmokeProject(durationSeconds);
+}
 const appStarted = performance.now();
-const native = spawn(nativeBinary, ["--raw"], { stdio: ["pipe", "pipe", "pipe"] });
-const ffmpeg = spawn(ffmpegPath, [
-  "-y", "-hide_banner", "-loglevel", process.env.FFMPEG_LOG_LEVEL ?? "error",
-  "-f", "rawvideo", "-pix_fmt", "rgba", "-s", `${width}x${height}`,
-  "-r", String(fps), "-i", "pipe:0",
-  "-map", "0:v:0", "-an",
-  "-c:v", "libx264", "-preset", process.env.FFMPEG_PRESET ?? "veryfast",
-  "-threads", process.env.FFMPEG_THREADS ?? "1",
-  "-pix_fmt", "yuv420p", "-t", String(durationSeconds), "-movflags", "+faststart", outputPath,
-], { stdio: ["pipe", "ignore", "pipe"] });
+const nativeStdoutMode = benchmarkMode === "pipe" ? "pipe" : benchmarkMode === "raw-file" || benchmarkMode === "encode-file" ? openSync(rawPath, "w") : "ignore";
+let native: ChildProcess | null = null;
+let protocolFile: FileHandle | null = null;
+let nativeExit: Promise<number> | null = null;
+function spawnFfmpeg(input: "pipe" | "file"): ChildProcess {
+  return spawn(ffmpegPath, [
+    "-y", "-hide_banner", "-loglevel", process.env.FFMPEG_LOG_LEVEL ?? "error",
+    "-f", "rawvideo", "-pix_fmt", "rgba", "-s", `${width}x${height}`,
+    "-r", String(fps), "-i", input === "pipe" ? "pipe:0" : rawPath,
+    "-map", "0:v:0", "-an",
+    "-c:v", "libx264", "-preset", process.env.FFMPEG_PRESET ?? "veryfast",
+    "-threads", process.env.FFMPEG_THREADS ?? "1",
+    "-pix_fmt", "yuv420p", "-t", String(durationSeconds), "-movflags", "+faststart", outputPath,
+  ], { stdio: [input === "pipe" ? "pipe" : "ignore", "ignore", "pipe"] });
+}
+let ffmpeg: ChildProcess | null = null;
 
 let nativeStderr = "";
 let ffmpegStderr = "";
-native.stderr?.on("data", (chunk: Buffer) => { nativeStderr += chunk.toString(); });
-ffmpeg.stderr?.on("data", (chunk: Buffer) => { ffmpegStderr += chunk.toString(); });
-native.stdout?.pipe(ffmpeg.stdin!);
-
-const nativeExit = waitForChild(native, "native Skia");
-const ffmpegExit = waitForChild(ffmpeg, "FFmpeg");
+function spawnNative(): void {
+  const args = [benchmarkMode === "render-only" || benchmarkMode === "in-process" ? "--no-raw" : "--raw"];
+  if (benchmarkMode === "in-process") args.push("--in-process", "--output", outputPath);
+  const nativeEnvironment = { ...process.env };
+  const nativeLibraryPath = process.env.BENCHMARK_NATIVE_LD_LIBRARY_PATH?.trim();
+  if (nativeLibraryPath) {
+    nativeEnvironment.LD_LIBRARY_PATH = [nativeLibraryPath, process.env.LD_LIBRARY_PATH].filter(Boolean).join(":");
+  }
+  if (protocolTransport === "file") args.push("--input-file", protocolPath);
+  native = spawn(nativeBinary, args, {
+    stdio: [protocolTransport === "pipe" ? "pipe" : "ignore", nativeStdoutMode, "pipe"],
+    env: nativeEnvironment,
+  });
+  native.stderr?.on("data", (chunk: Buffer) => { nativeStderr += chunk.toString(); });
+  nativeExit = waitForChild(native, "native Skia");
+  if (benchmarkMode === "pipe") {
+    ffmpeg = spawnFfmpeg("pipe");
+    attachFfmpegStderr(ffmpeg);
+    native.stdout?.pipe(ffmpeg.stdin!);
+  }
+}
+function attachFfmpegStderr(process: ChildProcess): void {
+  process.stderr?.on("data", (chunk: Buffer) => { ffmpegStderr += chunk.toString(); });
+}
+if (protocolTransport === "pipe") spawnNative();
 const protocolStarted = performance.now();
 let protocolEncodeMilliseconds = 0;
 let protocolBackpressureMilliseconds = 0;
+let protocolFileWriteMilliseconds = 0;
+let protocolBytes = 0;
+let protocolWrites = 0;
+let protocolFrameBytes = 0;
+let protocolCommandCount = 0;
+const protocolCommandCounts: Record<string, number> = {};
+let protocolMinFrameBytes = Number.POSITIVE_INFINITY;
+let protocolMaxFrameBytes = 0;
 let frameEvaluateMilliseconds = 0;
+
+async function writeProtocolChunk(value: Buffer): Promise<void> {
+  protocolBytes += value.byteLength;
+  protocolWrites += 1;
+  if (protocolTransport === "file") {
+    if (!protocolFile) throw new Error("Protocol file is unavailable");
+    const started = performance.now();
+    await protocolFile.write(value);
+    protocolFileWriteMilliseconds += performance.now() - started;
+    return;
+  }
+  if (!native) throw new Error("Native Skia process is unavailable");
+  protocolBackpressureMilliseconds += await writeWithBackpressure(native, value);
+}
+
+if (protocolTransport === "file") protocolFile = await openFile(protocolPath, "w");
 
 const header = new BinaryWriter();
 header.bytes(Buffer.from("NXSKIA01", "ascii"));
 header.u32(width);
 header.u32(height);
 header.u32(frameCount);
-protocolBackpressureMilliseconds += await writeWithBackpressure(native, header.finish());
+await writeProtocolChunk(header.finish());
 
+let protocolBatch: Buffer[] = [];
 for (let frame = 0; frame < frameCount; frame += 1) {
   const evaluateStarted = performance.now();
   const evaluated = evaluateRuntimeProjectV3(project, frame);
@@ -205,15 +385,39 @@ for (let frame = 0; frame < frameCount; frame += 1) {
   const encodeStarted = performance.now();
   const encoded = encodeFrame(frame, evaluated);
   protocolEncodeMilliseconds += performance.now() - encodeStarted;
-  protocolBackpressureMilliseconds += await writeWithBackpressure(native, encoded);
+  protocolFrameBytes += encoded.byteLength;
+  protocolMinFrameBytes = Math.min(protocolMinFrameBytes, encoded.byteLength);
+  protocolMaxFrameBytes = Math.max(protocolMaxFrameBytes, encoded.byteLength);
+  protocolCommandCount += evaluated.commands.length;
+  for (const command of evaluated.commands) {
+    protocolCommandCounts[command.op] = (protocolCommandCounts[command.op] ?? 0) + 1;
+  }
+  protocolBatch.push(encoded);
+  if (protocolBatch.length >= protocolBatchFrames || frame === frameCount - 1) {
+    await writeProtocolChunk(Buffer.concat(protocolBatch));
+    protocolBatch = [];
+  }
 }
 const endStream = new BinaryWriter();
 endStream.u8(0);
-protocolBackpressureMilliseconds += await writeWithBackpressure(native, endStream.finish());
-native.stdin?.end();
+await writeProtocolChunk(endStream.finish());
+if (protocolFile) {
+  await protocolFile.close();
+  protocolFile = null;
+}
+if (protocolTransport === "file") spawnNative();
+if (protocolTransport === "pipe") native!.stdin?.end();
 
-const [nativeCode, ffmpegCode] = await Promise.all([nativeExit, ffmpegExit]);
-if (nativeCode !== 0 || ffmpegCode !== 0) {
+const nativeCode = await (nativeExit ?? Promise.reject(new Error("Native Skia process was not started")));
+if (typeof nativeStdoutMode === "number") closeSync(nativeStdoutMode);
+const encodeStarted = performance.now();
+if (benchmarkMode === "encode-file") {
+  ffmpeg = spawnFfmpeg("file");
+  attachFfmpegStderr(ffmpeg);
+}
+const ffmpegCode = ffmpeg ? await waitForChild(ffmpeg, "FFmpeg") : null;
+const encodeMilliseconds = ffmpeg ? performance.now() - encodeStarted : 0;
+if (nativeCode !== 0 || ffmpegCode !== null && ffmpegCode !== 0) {
   throw new Error(JSON.stringify({
     nativeCode,
     ffmpegCode,
@@ -222,21 +426,36 @@ if (nativeCode !== 0 || ffmpegCode !== 0) {
   }));
 }
 
-const output = await stat(outputPath);
+const output = ffmpeg || benchmarkMode === "in-process" ? await stat(outputPath) : null;
+const rawOutput = benchmarkMode === "raw-file" || benchmarkMode === "encode-file" ? await stat(rawPath) : null;
 const outputHash = createHash("sha256");
-const file = await import("node:fs").then(({ createReadStream }) => createReadStream(outputPath));
-await new Promise<void>((resolveHash, rejectHash) => {
-  file.on("data", (chunk) => outputHash.update(chunk));
-  file.once("error", rejectHash);
-  file.once("end", () => resolveHash());
-});
+if (output) {
+  const file = await import("node:fs").then(({ createReadStream }) => createReadStream(outputPath));
+  await new Promise<void>((resolveHash, rejectHash) => {
+    file.on("data", (chunk) => outputHash.update(chunk));
+    file.once("error", rejectHash);
+    file.once("end", () => resolveHash());
+  });
+}
 const nativeLines = nativeStderr.trim().split(/\r?\n/).filter(Boolean);
-const nativeMetrics = JSON.parse(nativeLines.at(-1) ?? "{}") as {
+let nativeMetrics: {
   timingsMs?: Record<string, number>;
   [key: string]: unknown;
-};
+} = {};
+for (const line of [...nativeLines].reverse()) {
+  if (!line.trimStart().startsWith("{")) continue;
+  try {
+    nativeMetrics = JSON.parse(line) as typeof nativeMetrics;
+    break;
+  } catch {
+    // FFmpeg/native diagnostic lines can share stderr with the structured record.
+  }
+}
+if (!nativeMetrics.ok) {
+  throw new Error(`Native benchmark did not emit a valid metrics record: ${nativeStderr.trim()}`);
+}
 const finished = performance.now();
-console.log(JSON.stringify({
+const benchmarkResult = {
   benchmark: "native-skia-command-buffer-cpu-cloud-run",
   projectId: project.projectId,
   requestedBackend: "skia-cpu-command-buffer",
@@ -247,20 +466,47 @@ console.log(JSON.stringify({
   fps,
   frames: frameCount,
   durationSeconds,
-  outputPath,
-  outputBytes: output.size,
-  outputSha256: outputHash.digest("hex"),
+  benchmarkMode,
+  protocolTransport,
+  protocolBatchFrames,
+  protocolBytes,
+  protocolWrites,
+  protocolFrameBytes,
+  protocolCommandCount,
+  protocolCommandCounts,
+  protocolMinFrameBytes: Number.isFinite(protocolMinFrameBytes) ? protocolMinFrameBytes : 0,
+  protocolMaxFrameBytes,
+  outputPath: ffmpeg || benchmarkMode === "in-process" ? outputPath : null,
+  outputBytes: output?.size ?? null,
+  outputSha256: output ? outputHash.digest("hex") : null,
+  rawPath: rawOutput ? rawPath : null,
+  rawBytes: rawOutput?.size ?? Number(nativeMetrics.bytesWritten ?? 0),
   timingsMs: {
     applicationWall: finished - appStarted,
     protocolEncode: protocolEncodeMilliseconds,
     protocolBackpressure: protocolBackpressureMilliseconds,
+    protocolFileWrite: protocolFileWriteMilliseconds,
     evaluate: frameEvaluateMilliseconds,
     nativeProcess: nativeMetrics.timingsMs?.totalProcess ?? null,
-    nativeProtocolDecode: nativeMetrics.timingsMs?.protocolDecode ?? null,
+    nativeProtocolOverhead: nativeMetrics.timingsMs?.protocolOverhead ?? null,
     nativeRender: nativeMetrics.timingsMs?.render ?? null,
+    nativeComposite: nativeMetrics.timingsMs?.composite ?? null,
     nativeReadback: nativeMetrics.timingsMs?.readback ?? null,
     nativeRawWrite: nativeMetrics.timingsMs?.rawWrite ?? null,
+    encode: benchmarkMode === "in-process" ? nativeMetrics.timingsMs?.encode ?? null : encodeMilliseconds,
+    colorConvert: nativeMetrics.timingsMs?.colorConvert ?? null,
+    mux: nativeMetrics.timingsMs?.mux ?? null,
+    finalize: nativeMetrics.timingsMs?.finalize ?? null,
     ffmpegPipeline: finished - protocolStarted,
   },
   nativeMetrics,
-}));
+};
+const benchmarkResultJson = JSON.stringify(benchmarkResult);
+console.log(benchmarkResultJson);
+// Keep a plain text copy on stderr as well. Cloud Run's beta log reader can
+// omit structured stdout lines, while stderr remains directly queryable.
+console.error(`BENCHMARK_RESULT ${benchmarkResultJson}`);
+
+if ((process.env.BENCHMARK_KEEP_RAW ?? "false") !== "true" && rawOutput) {
+  try { unlinkSync(rawPath); } catch { /* best-effort cleanup of a benchmark artifact */ }
+}

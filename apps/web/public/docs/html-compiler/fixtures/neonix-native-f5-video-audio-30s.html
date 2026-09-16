@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#090b12","colorSpace":"srgb"}}'>
+  <style>
+    @keyframes video-stage {
+      0% { transform: scale(1.02) translateX(-1%); }
+      50% { transform: scale(1.08) translateX(1%); }
+      100% { transform: scale(1.02) translateX(-1%); }
+    }
+    @keyframes video-card {
+      0%, 10% { opacity: 0; transform: translateY(42px) rotate(-2deg); }
+      22%, 82% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      96%, 100% { opacity: 0; transform: translateY(-30px) rotate(2deg); }
+    }
+    @keyframes audio-meter {
+      0%, 100% { width: 24%; }
+      50% { width: 78%; }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(0.82); opacity: 0.55; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
+    body { color: #f7f9ff; background: #090b12; font-family: Inter, "Noto Sans", Arial, sans-serif; }
+    .stage { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(135deg, #090b12 0%, #161327 56%, #31133e 100%); }
+    .backdrop { position: absolute; inset: 0; background: radial-gradient(circle at 76% 28%, #ff59ab, transparent 30%), radial-gradient(circle at 20% 80%, #4169ff, transparent 34%); opacity: 0.45; }
+    .video-shell {
+      position: absolute; left: 130px; top: 120px; width: 1120px; height: 720px; overflow: hidden;
+      border: 1px solid #697080; border-radius: 28px; background: #171b2b;
+      box-shadow: 0 34px 100px #000000; clip-path: polygon(0 0, 96% 4%, 100% 94%, 4% 100%);
+    }
+    .video-main { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; object-position: center; filter: contrast(1.08) brightness(0.74); animation: video-stage 18s ease infinite; }
+    .video-tint { position: absolute; inset: 0; background: linear-gradient(135deg, #2ed2b1, #2f46cd 48%, #ff3fb0); opacity: 0.28; mix-blend-mode: screen; }
+    .video-vignette { position: absolute; inset: 0; background: radial-gradient(circle at center, transparent 35%, #04060d 100%); opacity: 0.72; }
+    .video-caption { position: absolute; left: 58px; bottom: 48px; font-size: 26px; letter-spacing: 0.2em; }
+    .video-time { position: absolute; right: 54px; bottom: 45px; color: #94ffdc; font-size: 20px; }
+    .side-card { position: absolute; right: 130px; top: 196px; width: 410px; padding: 30px; border: 1px solid #565c70; border-radius: 22px; background: #20243a; opacity: 0.92; animation: video-card 30s ease infinite; }
+    .side-card h1 { margin: 0 0 15px; font-size: 46px; line-height: 1; letter-spacing: -0.05em; }
+    .side-card p { margin: 0; color: #aab6d1; font-family: Lora, Georgia, serif; font-size: 18px; line-height: 1.55; }
+    .specs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; }
+    .spec { padding: 14px; border: 1px solid #4f5568; border-radius: 12px; background: #2a2e43; }
+    .spec strong { display: block; color: #8fffd0; font-size: 20px; }
+    .spec span { color: #8391ad; font-size: 12px; letter-spacing: 0.12em; }
+    .audio-panel { position: absolute; left: 130px; right: 130px; bottom: 100px; height: 110px; display: flex; align-items: center; gap: 28px; padding: 24px 30px; border: 1px solid #4e5364; border-radius: 18px; background: #171b2c; opacity: 0.94; }
+    .audio-dot { width: 18px; height: 18px; border-radius: 50%; background: #ff70c4; box-shadow: 0 0 24px #ff70c4; animation: pulse-dot 1.4s ease infinite; }
+    .audio-label { width: 230px; color: #dce5f6; font-size: 15px; }
+    .audio-track { flex: 1; height: 8px; overflow: hidden; border-radius: 5px; background: #3a3e4c; }
+    .audio-progress { width: 24%; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #65f5bb, #ff70c4); animation: audio-meter 4s ease infinite; }
+    .audio-time { color: #8f9fbd; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="backdrop"></div>
+    <section class="video-shell">
+      <video id="video-main" class="video-main" src="/docs/example-video.mp4" muted playsinline></video>
+      <div class="video-tint"></div>
+      <div class="video-vignette"></div>
+      <div class="video-caption">Neonix reel / 30 sec</div>
+      <div class="video-time">00:30:00</div>
+    </section>
+    <aside class="side-card">
+      <h1>Video<br>in motion.</h1>
+      <p>Native media decoding, layered effects and a detached soundtrack in one export fixture.</p>
+      <div class="specs"><div class="spec"><strong>30</strong><span>seconds</span></div><div class="spec"><strong>30</strong><span>fps</span></div><div class="spec"><strong>H.264</strong><span>source</span></div><div class="spec"><strong>AAC</strong><span>embedded</span></div></div>
+    </aside>
+    <section class="audio-panel">
+      <div class="audio-dot"></div><div class="audio-label">Music / Island Tropical</div><div class="audio-track"><div class="audio-progress"></div></div><div class="audio-time">00:30</div>
+    </section>
+    <audio id="music-bed" src="/preview/audio/Music-MBB-Island-Tropical_128k.mp3"></audio>
+  </main>
+</body>
+</html>

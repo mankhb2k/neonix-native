@@ -294,6 +294,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.787.0
         version: 3.1109.0
+      '@motionvideo/html-compiler':
+        specifier: workspace:*
+        version: link:../html-compiler
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime

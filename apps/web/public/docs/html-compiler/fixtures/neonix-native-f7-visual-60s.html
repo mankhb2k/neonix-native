@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#07111f","colorSpace":"srgb"}}'>
+  <style>
+    @keyframes hero-in {
+      0% { opacity: 0; transform: translateY(72px) scale(0.96); }
+      12% { opacity: 1; transform: translateY(0) scale(1); }
+      84% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-32px) scale(1.02); }
+    }
+
+    @keyframes orb-drift-a {
+      0% { transform: translate(0, 0) scale(0.86); opacity: 0.35; }
+      50% { transform: translate(110px, 52px) scale(1.12); opacity: 0.82; }
+      100% { transform: translate(0, 0) scale(0.86); opacity: 0.35; }
+    }
+
+    @keyframes orb-drift-b {
+      0% { transform: translate(0, 0) rotate(0deg); opacity: 0.3; }
+      50% { transform: translate(-90px, -48px) rotate(180deg); opacity: 0.7; }
+      100% { transform: translate(0, 0) rotate(360deg); opacity: 0.3; }
+    }
+
+    @keyframes feature-in {
+      0%, 14% { opacity: 0; transform: translateY(36px); }
+      25%, 78% { opacity: 1; transform: translateY(0); }
+      90%, 100% { opacity: 0; transform: translateY(-22px); }
+    }
+
+    @keyframes card-float {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-18px) rotate(2deg); }
+    }
+
+    @keyframes image-pan {
+      0% { transform: scale(1.06) translateX(-2%); }
+      50% { transform: scale(1.16) translateX(2%); }
+      100% { transform: scale(1.06) translateX(-2%); }
+    }
+
+    @keyframes svg-spin {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.08); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+
+    @keyframes progress-grow {
+      0%, 12% { width: 8%; }
+      62%, 82% { width: 78%; }
+      100% { width: 92%; }
+    }
+
+    @keyframes outro {
+      0%, 82% { opacity: 0; transform: translateY(24px); }
+      91%, 100% { opacity: 1; transform: translateY(0); }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
+    body {
+      position: relative;
+      color: #f4f8ff;
+      background: #07111f;
+      font-family: Inter, "Noto Sans", Arial, sans-serif;
+    }
+
+    .stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 12%, #36d399, transparent 32%),
+        radial-gradient(circle at 86% 22%, #5969ff, transparent 34%),
+        linear-gradient(135deg, #07111f 0%, #101936 55%, #1a1030 100%);
+    }
+
+    .grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.18;
+      background-image: linear-gradient(#59627a 0%, transparent 0.1%), linear-gradient(90deg, #59627a 0%, transparent 0.1%);
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      mask-image: linear-gradient(to bottom, #000000, transparent 90%);
+      mask-size: 100% 100%;
+      mask-repeat: no-repeat;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      mix-blend-mode: screen;
+    }
+    .orb-a {
+      width: 520px; height: 520px; left: 90px; top: 170px;
+      background: radial-gradient(circle at 35% 35%, #55f2b0, #2a8aff 48%, transparent 72%);
+      animation: orb-drift-a 14s ease infinite;
+    }
+    .orb-b {
+      width: 620px; height: 620px; right: -150px; bottom: -130px;
+      background: radial-gradient(circle at 35% 35%, #d25cff, #5046e5 44%, transparent 70%);
+      animation: orb-drift-b 19s ease infinite;
+    }
+
+    .topbar {
+      position: absolute; left: 90px; right: 90px; top: 62px; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 22px; border: 1px solid #4a5265; border-radius: 27px;
+      background: #0c172f; opacity: 0.9;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; font-size: 22px; letter-spacing: 0.08em; font-weight: 700; }
+    .brand-mark { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(135deg, #61f7b4, #7188ff); transform: rotate(12deg); }
+    .nav { display: flex; gap: 28px; color: #9cafd0; font-size: 14px; }
+    .nav-active { color: #ffffff; }
+
+    .hero {
+      position: absolute; left: 120px; top: 220px; width: 810px;
+      animation: hero-in 60s ease infinite;
+    }
+    .eyebrow { color: #70f5bd; font-size: 16px; letter-spacing: 0.28em; font-weight: 700; }
+    h1 { margin: 22px 0 18px; font-family: Inter, "Noto Sans", sans-serif; font-size: 92px; line-height: 0.98; letter-spacing: -0.06em; }
+    .gradient-text { color: #8fffd0; background: linear-gradient(90deg, #8fffd0, #91a8ff, #f3a4ff); background-clip: text; }
+    .hero-copy { width: 650px; color: #b2c1da; font-family: Lora, Georgia, serif; font-size: 25px; line-height: 1.55; }
+    .cta-row { display: flex; gap: 18px; margin-top: 38px; align-items: center; }
+    .cta { padding: 16px 26px; border-radius: 10px; color: #07111f; background: #8fffd0; font-weight: 800; box-shadow: 0 14px 34px #37f0aa; }
+    .cta-secondary { padding: 15px 24px; border: 1px solid #596579; border-radius: 10px; color: #d7e2f7; background: #182133; opacity: 0.9; }
+
+    .visual-card {
+      position: absolute; right: 120px; top: 188px; width: 650px; height: 600px;
+      padding: 14px; border: 1px solid #697080; border-radius: 30px;
+      background: linear-gradient(145deg, #51607e, #1b253d);
+      opacity: 0.9; box-shadow: 0 30px 90px #000000; animation: card-float 9s ease infinite;
+      clip-path: polygon(0 5%, 94% 0, 100% 92%, 8% 100%);
+    }
+    .visual-inner { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 22px; background: #182541; }
+    .visual-image { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; opacity: 0.62; filter: contrast(1.12) brightness(0.82); animation: image-pan 16s ease infinite; }
+    .visual-wash { position: absolute; inset: 0; background: linear-gradient(145deg, #19ffb4, #6068ff 45%, #ee49ff); opacity: 0.35; mix-blend-mode: screen; }
+    .visual-lines { position: absolute; inset: 42px; border: 1px solid #69758f; border-radius: 18px; opacity: 0.7; }
+    .visual-lines-inner { position: absolute; inset: 34px; border: 1px solid #69758f; border-radius: 12px; opacity: 0.5; }
+    .svg-orbit { position: absolute; right: 34px; top: 38px; width: 170px; height: 170px; opacity: 0.82; animation: svg-spin 12s linear infinite; }
+    .visual-label { position: absolute; left: 42px; bottom: 36px; font-size: 18px; letter-spacing: 0.18em; }
+    .visual-number { position: absolute; right: 42px; bottom: 30px; color: #8fffd0; font-size: 56px; font-weight: 800; }
+
+    .feature-strip {
+      position: absolute; left: 120px; right: 120px; bottom: 82px; height: 130px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+      animation: feature-in 60s ease infinite;
+    }
+    .feature { padding: 24px; border: 1px solid #4a5265; border-radius: 18px; background: #0c172f; opacity: 0.88; }
+    .feature h2 { margin: 0 0 9px; font-size: 19px; }
+    .feature p { margin: 0; color: #92a6c8; font-size: 14px; line-height: 1.45; }
+    .feature-line { width: 78%; height: 4px; margin-top: 15px; border-radius: 3px; background: #72f4bd; animation: progress-grow 8s ease infinite; }
+
+    .outro {
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #07111f; opacity: 0.92; animation: outro 60s ease infinite;
+    }
+    .outro h2 { margin: 0; font-size: 72px; letter-spacing: -0.05em; }
+    .outro p { color: #a9bad7; font-size: 22px; }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="grid"></div>
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark"></span><span>NEONIX</span></div>
+      <nav class="nav"><span class="nav-active">Motion</span><span>Compose</span><span>Export</span><span>API</span></nav>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Creative infrastructure</div>
+      <h1>Build once.<br><span class="gradient-text">Move everywhere.</span></h1>
+      <p class="hero-copy">Neonix turns expressive HTML compositions into deterministic, production-ready motion. Design with familiar primitives, then render every frame with confidence.</p>
+      <div class="cta-row"><div class="cta">Explore the engine</div><div class="cta-secondary">See the workflow&nbsp; →</div></div>
+    </section>
+
+    <section class="visual-card">
+      <div class="visual-inner">
+        <img class="visual-image" src="/preview/image/photo-landscape.jpg" alt="Landscape texture">
+        <div class="visual-wash"></div>
+        <div class="visual-lines"><div class="visual-lines-inner"></div></div>
+        <img class="svg-orbit" src="/preview/svg/demo-svg.svg" alt="Neonix orbit mark">
+        <div class="visual-label">Frame / 001</div>
+        <div class="visual-number">60</div>
+      </div>
+    </section>
+
+    <section class="feature-strip">
+      <article class="feature"><h2>HTML compiler</h2><p>Translate layout, typography and effects into a shared paint command buffer.</p><div class="feature-line"></div></article>
+      <article class="feature"><h2>Native precision</h2><p>Replay frames consistently across preview, benchmark and export environments.</p><div class="feature-line"></div></article>
+      <article class="feature"><h2>Fast feedback</h2><p>Measure render, readback and encode independently on every fixture.</p><div class="feature-line"></div></article>
+    </section>
+
+    <section class="outro"><h2>Neonix / motion, compiled.</h2><p>One composition. Every surface.</p></section>
+  </main>
+</body>
+</html>
