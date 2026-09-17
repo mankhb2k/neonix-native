@@ -82,11 +82,11 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
       </a>
 
       {menu ? (
-        <div ref={menuRef} role="menu" aria-label={`${project.title} actions`} className="fixed z-50 min-w-52 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)]" style={{ left: menu.x, top: menu.y }}>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(appUrl(project.href)); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">Open editor</button>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(previewUrl(`/preview/${project.projectId}`)); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">Open preview</button>
+        <div ref={menuRef} role="menu" aria-label={`${project.title} actions`} className="fixed z-50 min-w-56 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)]" style={{ left: menu.x, top: menu.y }}>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(appUrl(project.href)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">Open editor</button>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(previewUrl(`/preview/${project.projectId}`)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">Open preview</button>
           <div className="my-1 border-t border-[var(--hub-border)]" />
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); setConfirming(true); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50">Remove</button>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); setConfirming(true); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-red-600 hover:bg-red-50">Remove</button>
         </div>
       ) : null}
 
