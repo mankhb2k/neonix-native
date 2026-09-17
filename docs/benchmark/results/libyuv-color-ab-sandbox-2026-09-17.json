@@ -1,0 +1,106 @@
+{
+  "date": "2026-09-17",
+  "scope": "sandbox-only RGBA to YUV420P A/B",
+  "productionPromotion": "blocked-until-color-parity-gate",
+  "cloudRun": {
+    "project": "neonix-506607",
+    "region": "asia-southeast1",
+    "job": "neonix-skia-command-cpu-libyuv-sandbox",
+    "cpu": 4,
+    "memory": "16Gi",
+    "gpu": false,
+    "tasks": 1,
+    "image": "asia-southeast1-docker.pkg.dev/neonix-506607/neonix/skia-command-cpu-libyuv-sandbox@sha256:551cca35bdd7a86305803c31daba29ad1e461e481a2834e5829f7610d5c19c09"
+  },
+  "workload": {
+    "fixture": "native-export-smoke",
+    "fixtureType": "synthetic-static-shapes",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frames": 1800,
+    "durationSeconds": 60,
+    "surface": "opaque-srgb",
+    "videoColorSpace": "bt709",
+    "videoColorRange": "limited",
+    "encoder": "libx264",
+    "pixelFormat": "yuv420p",
+    "protocolTransport": "file",
+    "protocolBatchFrames": 1
+  },
+  "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+  "builds": [
+    { "id": "406f2b3b-10be-4cef-8b58-f369bc95771a", "tag": "r1", "status": "failed", "error": "Ubuntu libyuv-dev missing ARGBToI420Matrix and kAbgrH709Constants" },
+    { "id": "bf5b0c48-4eab-4619-8584-ff70898cdfe6", "tag": "r2", "status": "success" },
+    { "id": "e054702f-1090-4deb-9a98-a5574defac6d", "tag": "r3", "status": "success", "durationSeconds": 502 },
+    { "id": "8cd88d50-e881-4bc3-bb3e-7f57c6e49e6e", "tag": "r4", "status": "success", "durationSeconds": 719 }
+  ],
+  "runtimeFailures": [
+    { "execution": "neonix-skia-command-cpu-libyuv-sandbox-xd2rh", "status": "failed", "error": "BENCHMARK_MODE env comma parsing combined all variables" },
+    { "execution": "neonix-skia-command-cpu-libyuv-sandbox-nl6s6", "status": "failed", "error": "libyuv.so missing from runtime loader bundle" }
+  ],
+  "correctness": {
+    "execution5s": "neonix-skia-command-cpu-libyuv-sandbox-k6f48",
+    "execution60s": "neonix-skia-command-cpu-libyuv-sandbox-fcn2k",
+    "selected": "libyuv",
+    "reference": "libswscale",
+    "sampleFrames": [0, 900, 1799],
+    "samples": 9331200,
+    "exactSamples": 7961706,
+    "exactPercent": 85.3235,
+    "within1Samples": 9304500,
+    "within1Percent": 99.7139,
+    "within2Samples": 9307455,
+    "within2Percent": 99.7455,
+    "meanAbsDiff": 0.153686,
+    "maxAbsDiff": 10,
+    "comparisonMilliseconds": 47.22,
+    "libyuvYuvHash": "3758788d",
+    "libswscaleYuvHash": "5e929f05",
+    "status": "sandbox-pass-production-gate-fail"
+  },
+  "colorCardCorrectness": {
+    "selectedReferenceExecution": "neonix-skia-command-cpu-libyuv-sandbox-n4x5p",
+    "reverseReferenceExecution": "neonix-skia-command-cpu-libyuv-sandbox-tlxch",
+    "scene": "native-color-card",
+    "patches": 24,
+    "durationSeconds": 60,
+    "samples": 9331200,
+    "exactSamples": 5103300,
+    "exactPercent": 54.6907,
+    "within1Samples": 9285180,
+    "within1Percent": 99.5068,
+    "within2Samples": 9288300,
+    "within2Percent": 99.5403,
+    "meanAbsDiff": 0.487365,
+    "maxAbsDiff": 14,
+    "planes": {
+      "Y": { "samples": 6220800, "exactSamples": 2808000, "within1Percent": 100.0, "within2Percent": 100.0, "meanAbsDiff": 0.548611, "maxAbsDiff": 1 },
+      "U": { "samples": 1555200, "exactSamples": 1181580, "within1Percent": 98.5455, "within2Percent": 98.696, "meanAbsDiff": 0.333526, "maxAbsDiff": 14 },
+      "V": { "samples": 1555200, "exactSamples": 1113720, "within1Percent": 98.4954, "within2Percent": 98.5455, "meanAbsDiff": 0.396219, "maxAbsDiff": 14 }
+    },
+    "reverseComparisonSymmetric": true,
+    "status": "sandbox-pass-production-gate-fail"
+  },
+  "performanceRuns": [
+    { "converter": "libswscale", "execution": "neonix-skia-command-cpu-libyuv-sandbox-zbmcz", "wallMs": 27300.401, "nativeMs": 26299.121, "renderMs": 6841.544, "readbackMs": 1783.625, "colorConvertMs": 13689.395, "encodeMs": 3671.932, "outputBytes": 353739 },
+    { "converter": "libswscale", "execution": "neonix-skia-command-cpu-libyuv-sandbox-86bnt", "wallMs": 28216.749, "nativeMs": 27319.727, "renderMs": 7164.062, "readbackMs": 1756.905, "colorConvertMs": 14526.019, "encodeMs": 3636.824, "outputBytes": 353739 },
+    { "converter": "libyuv", "execution": "neonix-skia-command-cpu-libyuv-sandbox-mdj46", "wallMs": 15715.311, "nativeMs": 14759.389, "renderMs": 7328.894, "readbackMs": 1501.615, "colorConvertMs": 1784.454, "encodeMs": 3867.25, "outputBytes": 357166 },
+    { "converter": "libyuv", "execution": "neonix-skia-command-cpu-libyuv-sandbox-fqmvt", "wallMs": 13794.118, "nativeMs": 12902.324, "renderMs": 5970.221, "readbackMs": 1750.397, "colorConvertMs": 1574.139, "encodeMs": 3330.397, "outputBytes": 357166 }
+  ],
+  "averages": {
+    "swscaleWallMs": 27758.575,
+    "libyuvWallMs": 14754.715,
+    "wallReductionPercent": 46.85,
+    "swscaleColorConvertMs": 14107.707,
+    "libyuvColorConvertMs": 1679.297,
+    "colorConvertReductionPercent": 88.1
+  },
+  "nextGate": [
+    "Add BT.709 color-card and dynamic fixtures",
+    "Report Y/U/V per-plane diff percentiles and heatmaps",
+    "Decode MP4 and validate ffprobe metadata plus PSNR/SSIM/DeltaE",
+    "Run at least 3 repetitions per converter",
+    "Do not promote until within1 >= 99.9%, meanAbsDiff <= 0.05 and max diff is explained"
+  ]
+}

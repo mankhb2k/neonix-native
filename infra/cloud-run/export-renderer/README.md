@@ -29,6 +29,48 @@ record the Artifact Registry digest. Use `deploy.ps1` for this flow.
 
 Deploy by digest, not by `latest`.
 
+## Native Skia CPU production worker
+
+The native command-buffer worker is now published separately from the
+CanvasKit-based export-renderer image:
+
+- Production image: `skia-command-cpu-bench:20260917-libyuv-production`
+- Production converter: pinned `libyuv` (`2dd4257364d39c38d79465c4ddc4b93137fe729b`)
+- Production binary: `neonix_skia_command_cpu_backend_libyuv`
+- Production contract: in-process FFmpeg, direct raster surface, BT.709,
+  limited-range YUV420P, `libx264`/`veryfast`
+- Sandbox image: `skia-command-cpu-libyuv-sandbox:20260917`
+- Sandbox fallback binary: `neonix-skia-command-cpu-backend-swscale-sandbox`
+
+The production native target does not link `libswscale`; the sandbox target
+links both converters for A/B and fallback tests. The immutable digests and
+Cloud Run smoke evidence are recorded in
+`docs/benchmark/libyuv-production-rollout-2026-09-17.md`.
+
+This native worker is currently the dedicated command-buffer benchmark/export
+job (`neonix-skia-command-cpu-bench-r4`). The default `deploy.ps1` application
+service/job still uses the general `packages/export-renderer/Dockerfile` and
+CanvasKit path; switching that broader RuntimeProjectV3 asset path requires a
+separate native protocol/asset-parity rollout.
+
+The native command-buffer flow is:
+
+```text
+RuntimeProjectV3
+  -> shared frame evaluator
+  -> PaintCommandBuffer
+  -> versioned native command protocol
+  -> Skia Native CPU raster
+  -> libyuv BT.709 limited-range YUV420P
+  -> in-process libx264 / MP4 mux
+  -> verified artifact
+```
+
+CanvasKit remains the browser preview backend. It is also the transitional
+Node export backend for the broader asset/audio path until the native worker
+supports the complete production manifest, font/image/video resources,
+effects, and audio finalization contract.
+
 ## Runtime secrets
 
 The Job needs these values at runtime and they must come from Secret Manager:

@@ -1,0 +1,28 @@
+{
+  "test": "libyuv-vs-libswscale-color-contract",
+  "image": "neonix-libyuv-color-contract:v3",
+  "width": 256,
+  "height": 128,
+  "cases": 21,
+  "matrix": "bt709",
+  "range": "limited",
+  "inputLayout": "rgba-bytes-r-g-b-a",
+  "stridePadding": [0, 7, 13, 31],
+  "referenceFilter": "area",
+  "contractPass": true,
+  "parityPass99_9": true,
+  "rangeFailures": 0,
+  "channelFailures": 0,
+  "aggregateSamples": 1032192,
+  "aggregateWithin1Percent": 100.0,
+  "planes": {
+    "Y": { "samples": 688128, "exactPercent": 79.511515, "within1Percent": 100.0, "within2Percent": 100.0, "meanAbsDiff": 0.204885, "p95AbsDiff": 1, "p99AbsDiff": 1, "maxAbsDiff": 1 },
+    "U": { "samples": 172032, "exactPercent": 67.211914, "within1Percent": 100.0, "within2Percent": 100.0, "meanAbsDiff": 0.327881, "p95AbsDiff": 1, "p99AbsDiff": 1, "maxAbsDiff": 1 },
+    "V": { "samples": 172032, "exactPercent": 68.164062, "within1Percent": 100.0, "within2Percent": 100.0, "meanAbsDiff": 0.318359, "p95AbsDiff": 1, "p99AbsDiff": 1, "maxAbsDiff": 1 }
+  },
+  "control": {
+    "referenceFilter": "bilinear",
+    "aggregateWithin1Percent": 97.962007,
+    "parityPass99_9": false
+  }
+}

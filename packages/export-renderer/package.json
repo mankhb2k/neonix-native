@@ -19,7 +19,9 @@
     "render:smoke": "tsx src/cli.ts",
     "render:job": "tsx src/render-job.ts",
     "render:chunk-job": "tsx src/render-chunk-job.ts",
-    "render:finalizer-job": "tsx src/render-finalizer-job.ts"
+    "render:finalizer-job": "tsx src/render-finalizer-job.ts",
+    "benchmark:libyuv-color-contract": "tsx src/benchmark-libyuv-color-contract.ts",
+    "benchmark:mp4-color-suite": "tsx src/benchmark-mp4-color-suite-5s.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",

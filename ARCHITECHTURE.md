@@ -73,6 +73,54 @@ một project được rút gọn thành:
                               USER
 ```
 
+## Render core and backend boundary
+
+The visual render core is the `PaintCommandBuffer`. It is the backend-neutral
+handoff produced after `RuntimeProjectV3` frame evaluation. The evaluator owns
+timeline semantics; it must not know whether the consumer is a browser, CPU,
+or GPU renderer.
+
+```text
+MotionProtocolV2
+  -> Compiler
+  -> RuntimeProjectV3
+  -> shared frame evaluator
+  -> PaintCommandBuffer
+       |                         |
+       v                         v
+  CanvasKit / WebGL2       Native Skia CPU raster
+  browser preview          export worker
+                                  |
+                                  v
+                         libyuv -> libx264/FFmpeg
+                                  |
+                                  v
+                                 MP4
+```
+
+This is the intended stable boundary:
+
+- Browser preview replays the buffer through CanvasKit and its browser GPU
+  surface.
+- Native export replays the same buffer through Skia Native raster. The
+  current production-native Cloud Run worker uses 4-vCPU CPU raster, direct
+  raster surfaces, libyuv color conversion, and in-process libx264 encoding.
+- Native Skia Vulkan/GPU remains a later backend behind the same command-buffer
+  contract; it is not the current production export path.
+- Assets and fonts are prepared by the host/worker and resolved at backend
+  replay time. They must not be embedded as browser or GPU handles in
+  `RuntimeProjectV3`.
+
+### Implementation status
+
+The native command-buffer worker and its Cloud Run benchmark/export job are
+implemented and measured. The general TypeScript path in
+`packages/export-renderer/src/render/render.ts` still uses CanvasKit WASM in
+Node for the broader RuntimeProjectV3 asset/audio path. Native Skia becomes the
+default for that path only after the full command, font, image, video, effects,
+and audio parity gates are complete. This distinction keeps the architecture
+honest while preserving one visual command contract.
+
 ## HTML authoring boundary (one-way)
 
 HTML/CSS is an optional high-level authoring format for AI agents, MCP and

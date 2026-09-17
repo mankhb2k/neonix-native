@@ -13,7 +13,17 @@
           "spec": {
             "containers": [
               {
-                "image": "asia-southeast1-docker.pkg.dev/neonix-506607/neonix/skia-command-cpu-bench@sha256:930460b2600a31e2744911f73a0a3e4102855bc4a4dd846ec6261269e416e9d5",
+                "env": [
+                  { "name": "BENCHMARK_MODE", "value": "in-process" },
+                  { "name": "BENCHMARK_COLOR_CONVERTER", "value": "libyuv" },
+                  { "name": "BENCHMARK_SURFACE_MODE", "value": "direct-raster" },
+                  { "name": "BENCHMARK_PROTOCOL_TRANSPORT", "value": "file" },
+                  { "name": "BENCHMARK_DURATION_SECONDS", "value": "60" },
+                  { "name": "BENCHMARK_FRAMES", "value": "1800" },
+                  { "name": "FFMPEG_THREADS", "value": "4" },
+                  { "name": "BENCHMARK_PROTOCOL_BATCH_FRAMES", "value": "1" }
+                ],
+                "image": "asia-southeast1-docker.pkg.dev/neonix-506607/neonix/skia-command-cpu-bench@sha256:99c65978b1edc01107cba0fd4dd0e43e5f6ebb9e3148ae19674f6bfa6208b23c",
                 "resources": {
                   "limits": { "cpu": "4", "memory": "16Gi" }
                 }

@@ -42,54 +42,59 @@ Shared frame evaluator
 PaintCommandBuffer
         |
         +--------------------+----------------------+
-        |                    |                      |
-        v                    v                      v
-CanvasKit preview      Native Skia raster golden  Native Skia Vulkan GPU
-        |                    |                      |
-        +--------------------+----------------------+
-                             v
-                       RGBA frame buffer
-                             |
-                             v
-                 Bounded encoder input queue
-                             |
-                             v
-                   Video encoder + audio muxer
-                             |
-                             v
-                         MP4 artifact
+        |                                           |
+        v                                           v
+CanvasKit preview                         Native Skia CPU raster
+browser/WebGL2                           native export worker
+                                                |
+                                                v
+                                      libyuv -> libx264/FFmpeg
+                                                |
+                                                v
+                                           MP4 artifact
 ```
 
 Preview and export must use the same frame semantics. Only the backend that
 replays the `PaintCommandBuffer` changes. CanvasKit is the browser preview
-backend; native Skia raster is the deterministic correctness reference and
-native Skia Vulkan is the GPU export candidate.
+backend; native Skia CPU raster is the production-native export backend. Native
+Skia Vulkan is a future GPU candidate behind the same command-buffer contract.
 
 FFmpeg is an encoder/muxer in this architecture. It must not be responsible
 for evaluating the scene, rasterizing HTML, or taking browser screenshots.
 
-## Current certified path
+## Current implementation split
 
-The current visual baseline is intentionally smaller than the target
-architecture:
+The architecture is shared, but the implementation is currently split into a
+general asset/audio path and a native command-buffer worker:
 
 ```text
 RuntimeProjectV3
   -> prepareRuntimeProjectV3 (once per job)
   -> evaluatePreparedRuntimeProjectV3 (per frame)
   -> PaintCommandBuffer
-  -> SVG frame rasterization (sharp/libvips)
-  -> raw RGBA stream
-  -> FFmpeg H.264 MP4
+       |                              |
+       v                              v
+  CanvasKit WASM in Node         Native Skia CPU worker
+  (general export path)          (command-buffer export path)
+       |                              |
+       v                              v
+  RGBA -> FFmpeg CLI             libyuv -> libx264 in-process
+                                      |
+                                      v
+                                     MP4
 ```
 
-This path proves deterministic Runtime V3 frame output. It is not yet the
-complete optimized renderer. Images, videos, masks, effects, and isolated
-layers remain fail-closed until their parity tests exist.
+The native worker is the measured 4-vCPU Cloud Run path and is the production
+native baseline for the command-buffer fixture/export contract. The general
+`renderFrameRangeToMp4` implementation still uses CanvasKit WASM in Node so it
+can cover the broader RuntimeProjectV3 asset/audio flow while native protocol
+parity is completed. Native Skia must not be described as the complete default
+for that path until fonts, images, video, masks, effects, isolated layers, and
+audio have passed their parity tests.
 
-The target replacement for the SVG/libvips rasterization step is a native Skia
-CPU renderer. GPU rendering may be added later behind a feature flag after it
-passes the same golden-frame tests.
+The former SVG/libvips rasterizer remains a legacy diagnostic helper only. GPU
+rendering may be added later behind a feature flag after it passes the same
+golden-frame tests.
 
 ## Runtime and ownership boundaries
 
@@ -324,10 +329,16 @@ The backend order is deliberate:
 5. Optional hardware encoding after visual parity is stable.
 
 CanvasKit/WASM/WebGL remains the browser preview backend and may be used for
-semantic investigation. Cloud Run GPU export uses native Skia Ganesh + Vulkan;
-headless Chrome, WebGPU, WebGL, and screenshots are not part of that
-production path because browser startup, host drift, and extra readbacks make
-performance and determinism difficult to control.
+semantic investigation. The current Cloud Run native export worker uses Skia
+CPU raster. Native Skia Ganesh + Vulkan is a candidate backend, not an enabled
+production path; headless Chrome, WebGPU, WebGL, and screenshots are not part
+of the native export path because browser startup, host drift, and extra
+readbacks make performance and determinism difficult to control.
+
+The native CPU color contract is explicit: opaque sRGB raster pixels are
+converted by pinned libyuv to BT.709 limited-range YUV420P, then encoded by
+in-process libx264. `libswscale` is retained only in the sandbox image as the
+fallback and A/B reference.
 
 Every benchmark records the actual backend, not only the requested one:
 

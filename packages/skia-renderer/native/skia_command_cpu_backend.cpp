@@ -25,8 +25,15 @@ extern "C" {
 #include <libavutil/error.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/opt.h>
+#ifndef NEONIX_LIBYUV_ONLY
 #include <libswscale/swscale.h>
+#endif
 }
+
+#ifdef NEONIX_ENABLE_LIBYUV
+#include <libyuv/convert.h>
+#include <libyuv/convert_from_argb.h>
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -180,16 +187,61 @@ std::string ffmpeg_error(int error) {
     return std::string(buffer);
 }
 
+enum class ColorConverter {
+    Swscale,
+    Libyuv,
+};
+
+enum class SurfaceMode {
+    CopyReadback,
+    DirectRaster,
+};
+
+const char* surface_mode_name(SurfaceMode mode) {
+    return mode == SurfaceMode::DirectRaster ? "direct-raster" : "copy-readback";
+}
+
+const char* color_converter_name(ColorConverter converter) {
+    return converter == ColorConverter::Libyuv ? "libyuv" : "libswscale";
+}
+
 class InProcessEncoder {
 public:
     ~InProcessEncoder() {
         close(false);
     }
 
-    bool open(const std::string& path, int width, int height, int fps, std::string& error) {
+    bool open(const std::string& path, int width, int height, int fps, uint64_t expectedFrames,
+              ColorConverter converter, bool compareColor, int swsFilter, std::string& error) {
         width_ = width;
         height_ = height;
         fps_ = fps;
+        expectedFrames_ = expectedFrames;
+        converter_ = converter;
+        compareColor_ = compareColor;
+#ifndef NEONIX_LIBYUV_ONLY
+        swsFilter_ = swsFilter;
+#endif
+        if ((width_ & 1) != 0 || (height_ & 1) != 0) {
+            error = "yuv420p requires even width and height";
+            return false;
+        }
+#ifndef NEONIX_ENABLE_LIBYUV
+        if (converter_ == ColorConverter::Libyuv || compareColor_) {
+            error = "libyuv is available only in the sandbox binary";
+            return false;
+        }
+#endif
+#ifdef NEONIX_LIBYUV_ONLY
+        if (converter_ != ColorConverter::Libyuv) {
+            error = "this binary is libyuv-only; libswscale is sandbox-only";
+            return false;
+        }
+        if (compareColor_) {
+            error = "color comparison requires the libswscale sandbox reference";
+            return false;
+        }
+#endif
         int result = avformat_alloc_output_context2(&formatContext_, nullptr, "mp4", path.c_str());
         if (result < 0 || !formatContext_) {
             error = "avformat_alloc_output_context2: " + ffmpeg_error(result);
@@ -222,7 +274,9 @@ public:
         codecContext_->gop_size = fps_ * 2;
         codecContext_->max_b_frames = 2;
         av_opt_set(codecContext_->priv_data, "preset", "veryfast", 0);
-        av_opt_set(codecContext_->priv_data, "crf", "23", 0);
+        const char* requestedCrf = std::getenv("NEONIX_X264_CRF");
+        av_opt_set(codecContext_->priv_data, "crf",
+                   requestedCrf && requestedCrf[0] != '\0' ? requestedCrf : "23", 0);
         if (formatContext_->oformat->flags & AVFMT_GLOBALHEADER) {
             codecContext_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         }
@@ -268,14 +322,51 @@ public:
             error = "av_frame_get_buffer: " + ffmpeg_error(result);
             return false;
         }
+#ifndef NEONIX_LIBYUV_ONLY
         swsContext_ = sws_getContext(
             width_, height_, AV_PIX_FMT_RGBA,
             width_, height_, AV_PIX_FMT_YUV420P,
-            SWS_BILINEAR, nullptr, nullptr, nullptr);
+            swsFilter_, nullptr, nullptr, nullptr);
         if (!swsContext_) {
             error = "sws_getContext failed";
             return false;
         }
+#ifdef NEONIX_EXPLICIT_COLOR_CONTRACT
+        const int colorDetails = sws_setColorspaceDetails(
+            swsContext_, sws_getCoefficients(SWS_CS_ITU709), 1,
+            sws_getCoefficients(SWS_CS_ITU709), 0, 0, 1 << 16, 1 << 16);
+        if (colorDetails < 0) {
+            error = "sws_setColorspaceDetails failed";
+            return false;
+        }
+#endif
+#endif
+#ifdef NEONIX_ENABLE_LIBYUV
+#ifndef NEONIX_LIBYUV_ONLY
+        if (compareColor_) {
+            referenceFrame_ = av_frame_alloc();
+            if (!referenceFrame_) {
+                error = "could not allocate reference AVFrame";
+                return false;
+            }
+            referenceFrame_->format = codecContext_->pix_fmt;
+            referenceFrame_->width = width_;
+            referenceFrame_->height = height_;
+            referenceFrame_->color_range = codecContext_->color_range;
+            referenceFrame_->color_primaries = codecContext_->color_primaries;
+            referenceFrame_->color_trc = codecContext_->color_trc;
+            referenceFrame_->colorspace = codecContext_->colorspace;
+            referenceFrame_->chroma_location = codecContext_->chroma_sample_location;
+            result = av_frame_get_buffer(referenceFrame_, 32);
+            if (result < 0) {
+                error = "reference av_frame_get_buffer: " + ffmpeg_error(result);
+                return false;
+            }
+            referenceConverter_ = converter_ == ColorConverter::Libyuv
+                ? ColorConverter::Swscale : ColorConverter::Libyuv;
+        }
+#endif
+#endif
         opened_ = true;
         return true;
     }
@@ -291,13 +382,25 @@ public:
             return false;
         }
         const auto conversionStart = Clock::now();
-        const uint8_t* source[] = {rgba.data()};
-        const int sourceStride[] = {width_ * 4};
-        if (sws_scale(swsContext_, source, sourceStride, 0, height_, frame_->data, frame_->linesize) <= 0) {
-            error = "sws_scale failed";
-            return false;
-        }
+        if (!convert(rgba, frame_, converter_, error)) return false;
         conversionMilliseconds_ += milliseconds(conversionStart, Clock::now());
+        const uint32_t currentFrame = static_cast<uint32_t>(frameIndex);
+        if (currentFrame == 0 || currentFrame == expectedFrames_ / 2 || currentFrame == expectedFrames_ - 1) {
+            hash_frame(frame_, yuvSampleHashes_[sample_index(currentFrame)]);
+#ifdef NEONIX_ENABLE_LIBYUV
+            if (compareColor_) {
+                result = av_frame_make_writable(referenceFrame_);
+                if (result < 0) {
+                    error = "reference av_frame_make_writable: " + ffmpeg_error(result);
+                    return false;
+                }
+                const auto compareStart = Clock::now();
+                if (!convert(rgba, referenceFrame_, referenceConverter_, error)) return false;
+                compare_frame(frame_, referenceFrame_);
+                comparisonMilliseconds_ += milliseconds(compareStart, Clock::now());
+            }
+#endif
+        }
         frame_->pts = static_cast<int64_t>(frameIndex);
         const auto encodeStart = Clock::now();
         result = avcodec_send_frame(codecContext_, frame_);
@@ -333,8 +436,126 @@ public:
     double encode_milliseconds() const { return encodeMilliseconds_; }
     double mux_milliseconds() const { return muxMilliseconds_; }
     double finalize_milliseconds() const { return finalizeMilliseconds_; }
+    double comparison_milliseconds() const { return comparisonMilliseconds_; }
+    uint32_t yuv_sample_hash(int index) const { return yuvSampleHashes_[index]; }
+    uint64_t comparison_total_samples() const { return comparisonTotalSamples_; }
+    uint64_t comparison_exact_samples() const { return comparisonExactSamples_; }
+    uint64_t comparison_within1_samples() const { return comparisonWithin1Samples_; }
+    uint64_t comparison_within2_samples() const { return comparisonWithin2Samples_; }
+    uint64_t comparison_sum_abs_diff() const { return comparisonSumAbsDiff_; }
+    uint32_t comparison_max_abs_diff() const { return comparisonMaxAbsDiff_; }
+    double comparison_mean_abs_diff() const {
+        return comparisonTotalSamples_ == 0
+            ? 0.0 : static_cast<double>(comparisonSumAbsDiff_) / comparisonTotalSamples_;
+    }
+    uint64_t comparison_plane_total(int plane) const { return comparisonPlaneTotalSamples_[plane]; }
+    uint64_t comparison_plane_exact(int plane) const { return comparisonPlaneExactSamples_[plane]; }
+    uint64_t comparison_plane_within1(int plane) const { return comparisonPlaneWithin1Samples_[plane]; }
+    uint64_t comparison_plane_within2(int plane) const { return comparisonPlaneWithin2Samples_[plane]; }
+    uint64_t comparison_plane_sum_abs_diff(int plane) const { return comparisonPlaneSumAbsDiff_[plane]; }
+    uint32_t comparison_plane_max_abs_diff(int plane) const { return comparisonPlaneMaxAbsDiff_[plane]; }
+    double comparison_plane_mean_abs_diff(int plane) const {
+        return comparisonPlaneTotalSamples_[plane] == 0
+            ? 0.0 : static_cast<double>(comparisonPlaneSumAbsDiff_[plane]) /
+                comparisonPlaneTotalSamples_[plane];
+    }
+    const char* converter_name() const { return color_converter_name(converter_); }
+    const char* reference_converter_name() const { return color_converter_name(referenceConverter_); }
+    bool comparison_enabled() const { return compareColor_; }
 
 private:
+    int sample_index(uint32_t frameIndex) const {
+        if (frameIndex == 0) return 0;
+        if (frameIndex == expectedFrames_ / 2) return 1;
+        return 2;
+    }
+
+    bool convert(const std::vector<uint8_t>& rgba, AVFrame* destination,
+                 ColorConverter converter, std::string& error) {
+#ifndef NEONIX_LIBYUV_ONLY
+        if (converter == ColorConverter::Swscale) {
+            const uint8_t* source[] = {rgba.data()};
+            const int sourceStride[] = {width_ * 4};
+            if (sws_scale(swsContext_, source, sourceStride, 0, height_,
+                          destination->data, destination->linesize) <= 0) {
+                error = "sws_scale failed";
+                return false;
+            }
+            return true;
+        }
+#endif
+#ifdef NEONIX_ENABLE_LIBYUV
+        const int result = libyuv::ARGBToI420Matrix(
+            rgba.data(), width_ * 4,
+            destination->data[0], destination->linesize[0],
+            destination->data[1], destination->linesize[1],
+            destination->data[2], destination->linesize[2],
+            &libyuv::kAbgrH709Constants, width_, height_);
+        if (result != 0) {
+            error = "libyuv ARGBToI420Matrix failed: " + std::to_string(result);
+            return false;
+        }
+        return true;
+#else
+        error = "libyuv converter is unavailable";
+        return false;
+#endif
+    }
+
+    void hash_plane(const uint8_t* data, int stride, int width, int height, uint32_t& hash) const {
+        for (int row = 0; row < height; ++row) {
+            for (int column = 0; column < width; ++column) {
+                hash ^= static_cast<uint32_t>(data[column]);
+                hash *= 16777619U;
+            }
+            data += stride;
+        }
+    }
+
+    void hash_frame(const AVFrame* source, uint32_t& hash) const {
+        hash_plane(source->data[0], source->linesize[0], width_, height_, hash);
+        hash_plane(source->data[1], source->linesize[1], width_ / 2, height_ / 2, hash);
+        hash_plane(source->data[2], source->linesize[2], width_ / 2, height_ / 2, hash);
+    }
+
+#ifdef NEONIX_ENABLE_LIBYUV
+    void compare_plane(const uint8_t* selected, int selectedStride,
+                       const uint8_t* reference, int referenceStride,
+                       int width, int height, int plane) {
+        for (int row = 0; row < height; ++row) {
+            for (int column = 0; column < width; ++column) {
+                const uint32_t left = selected[column];
+                const uint32_t right = reference[column];
+                const uint32_t difference = left > right ? left - right : right - left;
+                comparisonTotalSamples_ += 1;
+                comparisonSumAbsDiff_ += difference;
+                comparisonMaxAbsDiff_ = std::max(comparisonMaxAbsDiff_, difference);
+                comparisonPlaneTotalSamples_[plane] += 1;
+                comparisonPlaneSumAbsDiff_[plane] += difference;
+                comparisonPlaneMaxAbsDiff_[plane] = std::max(comparisonPlaneMaxAbsDiff_[plane], difference);
+                if (difference == 0) comparisonExactSamples_ += 1;
+                if (difference == 0) comparisonPlaneExactSamples_[plane] += 1;
+                if (difference <= 1) {
+                    comparisonWithin1Samples_ += 1;
+                    comparisonPlaneWithin1Samples_[plane] += 1;
+                }
+                if (difference <= 2) {
+                    comparisonWithin2Samples_ += 1;
+                    comparisonPlaneWithin2Samples_[plane] += 1;
+                }
+            }
+            selected += selectedStride;
+            reference += referenceStride;
+        }
+    }
+
+    void compare_frame(const AVFrame* selected, const AVFrame* reference) {
+        compare_plane(selected->data[0], selected->linesize[0], reference->data[0], reference->linesize[0], width_, height_, 0);
+        compare_plane(selected->data[1], selected->linesize[1], reference->data[1], reference->linesize[1], width_ / 2, height_ / 2, 1);
+        compare_plane(selected->data[2], selected->linesize[2], reference->data[2], reference->linesize[2], width_ / 2, height_ / 2, 2);
+    }
+#endif
+
     bool drain(std::string& error) {
         while (true) {
             const auto muxStart = Clock::now();
@@ -360,9 +581,12 @@ private:
         if (formatContext_ && !finished_) {
             av_write_trailer(formatContext_);
         }
+#ifndef NEONIX_LIBYUV_ONLY
         if (swsContext_) sws_freeContext(swsContext_);
+#endif
         if (packet_) av_packet_free(&packet_);
         if (frame_) av_frame_free(&frame_);
+        if (referenceFrame_) av_frame_free(&referenceFrame_);
         if (codecContext_) avcodec_free_context(&codecContext_);
         if (formatContext_) {
             if (!(formatContext_->oformat->flags & AVFMT_NOFILE) && formatContext_->pb) avio_closep(&formatContext_->pb);
@@ -371,26 +595,55 @@ private:
         formatContext_ = nullptr;
         codecContext_ = nullptr;
         stream_ = nullptr;
+#ifndef NEONIX_LIBYUV_ONLY
         swsContext_ = nullptr;
+#endif
         frame_ = nullptr;
+        referenceFrame_ = nullptr;
         packet_ = nullptr;
     }
 
     AVFormatContext* formatContext_ = nullptr;
     AVCodecContext* codecContext_ = nullptr;
     AVStream* stream_ = nullptr;
+#ifndef NEONIX_LIBYUV_ONLY
     SwsContext* swsContext_ = nullptr;
+    int swsFilter_ = SWS_BILINEAR;
+#endif
     AVFrame* frame_ = nullptr;
+    AVFrame* referenceFrame_ = nullptr;
     AVPacket* packet_ = nullptr;
     int width_ = 0;
     int height_ = 0;
     int fps_ = 0;
+    uint64_t expectedFrames_ = 0;
+#ifdef NEONIX_LIBYUV_ONLY
+    ColorConverter converter_ = ColorConverter::Libyuv;
+#else
+    ColorConverter converter_ = ColorConverter::Swscale;
+#endif
+    ColorConverter referenceConverter_ = ColorConverter::Swscale;
+    bool compareColor_ = false;
     bool opened_ = false;
     bool finished_ = false;
     double conversionMilliseconds_ = 0;
     double encodeMilliseconds_ = 0;
     double muxMilliseconds_ = 0;
     double finalizeMilliseconds_ = 0;
+    double comparisonMilliseconds_ = 0;
+    uint32_t yuvSampleHashes_[3] = {2166136261U, 2166136261U, 2166136261U};
+    uint64_t comparisonTotalSamples_ = 0;
+    uint64_t comparisonExactSamples_ = 0;
+    uint64_t comparisonWithin1Samples_ = 0;
+    uint64_t comparisonWithin2Samples_ = 0;
+    uint64_t comparisonSumAbsDiff_ = 0;
+    uint32_t comparisonMaxAbsDiff_ = 0;
+    uint64_t comparisonPlaneTotalSamples_[3] = {0, 0, 0};
+    uint64_t comparisonPlaneExactSamples_[3] = {0, 0, 0};
+    uint64_t comparisonPlaneWithin1Samples_[3] = {0, 0, 0};
+    uint64_t comparisonPlaneWithin2Samples_[3] = {0, 0, 0};
+    uint64_t comparisonPlaneSumAbsDiff_[3] = {0, 0, 0};
+    uint32_t comparisonPlaneMaxAbsDiff_[3] = {0, 0, 0};
 };
 
 bool read_string(Reader& reader, std::string& value) {
@@ -561,6 +814,18 @@ int main(int argc, char** argv) {
     std::string inputPath;
     bool rawOutput = true;
     bool inProcessEncoding = false;
+    bool compareColor = false;
+#ifdef NEONIX_LIBYUV_ONLY
+    ColorConverter colorConverter = ColorConverter::Libyuv;
+#else
+    ColorConverter colorConverter = ColorConverter::Swscale;
+#endif
+#ifndef NEONIX_LIBYUV_ONLY
+    int swsFilter = SWS_BILINEAR;
+#else
+    int swsFilter = 0;
+#endif
+    SurfaceMode surfaceMode = SurfaceMode::CopyReadback;
     for (int index = 1; index < argc; ++index) {
         if (std::strcmp(argv[index], "--input-file") == 0 && index + 1 < argc) {
             inputPath = argv[++index];
@@ -573,6 +838,47 @@ int main(int argc, char** argv) {
         } else if (std::strcmp(argv[index], "--in-process") == 0) {
             inProcessEncoding = true;
             rawOutput = false;
+        } else if (std::strcmp(argv[index], "--compare-color") == 0) {
+            compareColor = true;
+        } else if (std::strcmp(argv[index], "--sws-filter") == 0 && index + 1 < argc) {
+#ifdef NEONIX_LIBYUV_ONLY
+            print_error("encoder", "sws_filter_is_sandbox_only");
+            return 54;
+#else
+            const std::string value = argv[++index];
+            if (value == "area") {
+                swsFilter = SWS_AREA;
+            } else if (value == "bilinear") {
+                swsFilter = SWS_BILINEAR;
+            } else if (value == "fast-bilinear") {
+                swsFilter = SWS_FAST_BILINEAR;
+            } else if (value == "point") {
+                swsFilter = SWS_POINT;
+            } else {
+                print_error("encoder", "unsupported_sws_filter");
+                return 54;
+            }
+#endif
+        } else if (std::strcmp(argv[index], "--converter") == 0 && index + 1 < argc) {
+            const std::string value = argv[++index];
+            if (value == "swscale" || value == "libswscale") {
+                colorConverter = ColorConverter::Swscale;
+            } else if (value == "libyuv") {
+                colorConverter = ColorConverter::Libyuv;
+            } else {
+                print_error("encoder", "unsupported_color_converter");
+                return 52;
+            }
+        } else if (std::strcmp(argv[index], "--surface-mode") == 0 && index + 1 < argc) {
+            const std::string value = argv[++index];
+            if (value == "copy" || value == "copy-readback") {
+                surfaceMode = SurfaceMode::CopyReadback;
+            } else if (value == "direct-raster") {
+                surfaceMode = SurfaceMode::DirectRaster;
+            } else {
+                print_error("surface", "unsupported_surface_mode");
+                return 53;
+            }
         }
     }
 
@@ -610,20 +916,25 @@ int main(int argc, char** argv) {
     const SkImageInfo imageInfo = SkImageInfo::Make(
         static_cast<int>(width), static_cast<int>(height), kRGBA_8888_SkColorType,
         kOpaque_SkAlphaType, SkColorSpace::MakeSRGB());
-    sk_sp<SkSurface> surface = SkSurfaces::Raster(imageInfo);
+    const size_t rowBytes = static_cast<size_t>(width) * 4;
+    std::vector<uint8_t> pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
+    sk_sp<SkSurface> surface = surfaceMode == SurfaceMode::DirectRaster
+        ? SkSurfaces::WrapPixels(imageInfo, pixels.data(), rowBytes)
+        : SkSurfaces::Raster(imageInfo);
     if (!surface) {
-        print_error("create_surface", "SkSurfaces_Raster_failed");
+        print_error("create_surface", surfaceMode == SurfaceMode::DirectRaster
+            ? "SkSurfaces_WrapPixels_failed" : "SkSurfaces_Raster_failed");
         return 22;
     }
     InProcessEncoder encoder;
     if (inProcessEncoding) {
         std::string encoderError;
-        if (!encoder.open(outputPath, static_cast<int>(width), static_cast<int>(height), 30, encoderError)) {
+        if (!encoder.open(outputPath, static_cast<int>(width), static_cast<int>(height), 30,
+                          expectedFrames, colorConverter, compareColor, swsFilter, encoderError)) {
             std::fprintf(stderr, "{\"ok\":false,\"phase\":\"encoder_open\",\"error\":\"%s\"}\n", encoderError.c_str());
             return 49;
         }
     }
-    std::vector<uint8_t> pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
     Matrix4 projection = identity_matrix();
     Transform transform;
     uint64_t frames = 0;
@@ -923,12 +1234,14 @@ int main(int argc, char** argv) {
                 renderMilliseconds += milliseconds(renderStart, Clock::now());
             } else if (opcode == 0xFF) {  // endFrame
                 sawEndFrame = true;
-                const auto readbackStart = Clock::now();
-                if (!surface->readPixels(imageInfo, pixels.data(), static_cast<size_t>(width) * 4, 0, 0)) {
-                    print_error("readback", "SkSurface_readPixels_failed");
-                    return 32;
+                if (surfaceMode == SurfaceMode::CopyReadback) {
+                    const auto readbackStart = Clock::now();
+                    if (!surface->readPixels(imageInfo, pixels.data(), rowBytes, 0, 0)) {
+                        print_error("readback", "SkSurface_readPixels_failed");
+                        return 32;
+                    }
+                    readbackMilliseconds += milliseconds(readbackStart, Clock::now());
                 }
-                readbackMilliseconds += milliseconds(readbackStart, Clock::now());
                 const uint32_t currentFrame = static_cast<uint32_t>(frames);
                 for (int sample = 0; sample < 3; ++sample) {
                     if (currentFrame != sampleFrames[sample]) continue;
@@ -1003,9 +1316,33 @@ int main(int argc, char** argv) {
     const double protocolOverheadMilliseconds =
         std::max(0.0, totalProcessMilliseconds - accountedMilliseconds);
     std::fprintf(stderr,
-        "{\"ok\":true,\"requestedBackend\":\"skia-cpu-command-buffer\",\"actualBackend\":\"skia-native-raster\",\"surfaceKind\":\"raster\",\"softwareRenderer\":true,\"inProcessEncoding\":%s,\"surfaceAlphaType\":\"opaque\",\"surfaceColorSpace\":\"srgb\",\"videoColorSpace\":\"bt709\",\"videoColorRange\":\"limited\",\"alphaSamplesOpaque\":%s,\"width\":%u,\"height\":%u,\"frames\":%llu,\"bytesWritten\":%llu,\"rawSampleHashFnv1a32\":{\"frame0\":\"%08x\",\"frameMid\":\"%08x\",\"frameLast\":\"%08x\"},\"timingsMs\":{\"protocolOverhead\":%.3f,\"render\":%.3f,\"composite\":%.3f,\"readback\":%.3f,\"rawWrite\":%.3f,\"colorConvert\":%.3f,\"encode\":%.3f,\"mux\":%.3f,\"finalize\":%.3f,\"totalProcess\":%.3f}}\n",
-        inProcessEncoding ? "true" : "false", alphaSamplesOpaque ? "true" : "false", width, height, static_cast<unsigned long long>(frames), static_cast<unsigned long long>(bytesWritten),
+        "{\"ok\":true,\"requestedBackend\":\"skia-cpu-command-buffer\",\"actualBackend\":\"skia-native-raster\",\"surfaceKind\":\"%s\",\"surfaceMode\":\"%s\",\"softwareRenderer\":true,\"inProcessEncoding\":%s,\"colorConverter\":\"%s\",\"surfaceAlphaType\":\"opaque\",\"surfaceColorSpace\":\"srgb\",\"videoColorSpace\":\"bt709\",\"videoColorRange\":\"limited\",\"alphaSamplesOpaque\":%s,\"width\":%u,\"height\":%u,\"frames\":%llu,\"bytesWritten\":%llu,\"rawSampleHashFnv1a32\":{\"frame0\":\"%08x\",\"frameMid\":\"%08x\",\"frameLast\":\"%08x\"},\"yuvSampleHashFnv1a32\":{\"frame0\":\"%08x\",\"frameMid\":\"%08x\",\"frameLast\":\"%08x\"},\"colorComparison\":{\"enabled\":%s,\"referenceConverter\":\"%s\",\"samples\":%llu,\"exactSamples\":%llu,\"within1Samples\":%llu,\"within2Samples\":%llu,\"maxAbsDiff\":%u,\"meanAbsDiff\":%.6f,\"milliseconds\":%.3f},\"colorComparisonByPlane\":[{\"plane\":\"Y\",\"samples\":%llu,\"exactSamples\":%llu,\"within1Samples\":%llu,\"within2Samples\":%llu,\"meanAbsDiff\":%.6f,\"maxAbsDiff\":%u},{\"plane\":\"U\",\"samples\":%llu,\"exactSamples\":%llu,\"within1Samples\":%llu,\"within2Samples\":%llu,\"meanAbsDiff\":%.6f,\"maxAbsDiff\":%u},{\"plane\":\"V\",\"samples\":%llu,\"exactSamples\":%llu,\"within1Samples\":%llu,\"within2Samples\":%llu,\"meanAbsDiff\":%.6f,\"maxAbsDiff\":%u}],\"timingsMs\":{\"protocolOverhead\":%.3f,\"render\":%.3f,\"composite\":%.3f,\"readback\":%.3f,\"rawWrite\":%.3f,\"colorConvert\":%.3f,\"encode\":%.3f,\"mux\":%.3f,\"finalize\":%.3f,\"totalProcess\":%.3f}}\n",
+        surfaceMode == SurfaceMode::DirectRaster ? "raster-direct" : "raster",
+        surface_mode_name(surfaceMode),
+        inProcessEncoding ? "true" : "false", encoder.converter_name(), alphaSamplesOpaque ? "true" : "false", width, height, static_cast<unsigned long long>(frames), static_cast<unsigned long long>(bytesWritten),
         rawSampleHashes[0], rawSampleHashes[1], rawSampleHashes[2],
+        encoder.yuv_sample_hash(0), encoder.yuv_sample_hash(1), encoder.yuv_sample_hash(2),
+        encoder.comparison_enabled() ? "true" : "false", encoder.reference_converter_name(),
+        static_cast<unsigned long long>(encoder.comparison_total_samples()),
+        static_cast<unsigned long long>(encoder.comparison_exact_samples()),
+        static_cast<unsigned long long>(encoder.comparison_within1_samples()),
+        static_cast<unsigned long long>(encoder.comparison_within2_samples()),
+        encoder.comparison_max_abs_diff(), encoder.comparison_mean_abs_diff(), encoder.comparison_milliseconds(),
+        static_cast<unsigned long long>(encoder.comparison_plane_total(0)),
+        static_cast<unsigned long long>(encoder.comparison_plane_exact(0)),
+        static_cast<unsigned long long>(encoder.comparison_plane_within1(0)),
+        static_cast<unsigned long long>(encoder.comparison_plane_within2(0)),
+        encoder.comparison_plane_mean_abs_diff(0), encoder.comparison_plane_max_abs_diff(0),
+        static_cast<unsigned long long>(encoder.comparison_plane_total(1)),
+        static_cast<unsigned long long>(encoder.comparison_plane_exact(1)),
+        static_cast<unsigned long long>(encoder.comparison_plane_within1(1)),
+        static_cast<unsigned long long>(encoder.comparison_plane_within2(1)),
+        encoder.comparison_plane_mean_abs_diff(1), encoder.comparison_plane_max_abs_diff(1),
+        static_cast<unsigned long long>(encoder.comparison_plane_total(2)),
+        static_cast<unsigned long long>(encoder.comparison_plane_exact(2)),
+        static_cast<unsigned long long>(encoder.comparison_plane_within1(2)),
+        static_cast<unsigned long long>(encoder.comparison_plane_within2(2)),
+        encoder.comparison_plane_mean_abs_diff(2), encoder.comparison_plane_max_abs_diff(2),
         protocolOverheadMilliseconds, renderMilliseconds, compositeMilliseconds, readbackMilliseconds, rawWriteMilliseconds,
         encoder.conversion_milliseconds(), encoder.encode_milliseconds(), encoder.mux_milliseconds(), encoder.finalize_milliseconds(),
         totalProcessMilliseconds);

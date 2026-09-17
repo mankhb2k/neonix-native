@@ -12,4 +12,4 @@ options:
   logging: CLOUD_LOGGING_ONLY
   machineType: E2_HIGHCPU_8
 substitutions:
-  _IMAGE: asia-southeast1-docker.pkg.dev/neonix-506607/neonix/skia-command-cpu-bench:20260916
+  _IMAGE: asia-southeast1-docker.pkg.dev/neonix-506607/neonix/skia-command-cpu-bench:20260917-libyuv-production

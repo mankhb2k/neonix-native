@@ -7,7 +7,7 @@ import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer } 
 import { compileDocument } from "../../html-compiler/src/index";
 import { compileAndPrepareRuntimeProjectV3 } from "../../../apps/web/lib/server/render/project-runtime";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../../../apps/web/lib/docs/html-compiler-preview";
-import { createNativeExportSmokeProject } from "./testing";
+import { createNativeColorCardProject, createNativeColorSuiteProject, createNativeExportSmokeProject } from "./testing";
 
 const fps = 30;
 const durationSeconds = positiveNumber(process.env.BENCHMARK_DURATION_SECONDS, 60);
@@ -24,6 +24,31 @@ if (!["pipe", "render-only", "raw-file", "encode-file", "in-process"].includes(b
 }
 const rawPath = resolve(process.env.BENCHMARK_RAW_OUTPUT ?? "/tmp/native-skia-command-cpu.rgba");
 const fixtureId = process.env.BENCHMARK_FIXTURE_ID?.trim();
+type ColorConverterName = "swscale" | "libyuv";
+// Native production images are libyuv-only. The sandbox sets this explicitly
+// to swscale when it runs the fallback/control binary.
+const colorConverter = (process.env.BENCHMARK_COLOR_CONVERTER?.trim() || "libyuv") as ColorConverterName;
+if (!["swscale", "libyuv"].includes(colorConverter)) {
+  throw new Error(`Unsupported BENCHMARK_COLOR_CONVERTER: ${colorConverter}`);
+}
+const compareColor = (process.env.BENCHMARK_COMPARE_COLOR?.trim() || "false") === "true";
+const swsFilter = (process.env.BENCHMARK_SWS_FILTER?.trim() || "bilinear") as "bilinear" | "area" | "fast-bilinear" | "point";
+if (!["bilinear", "area", "fast-bilinear", "point"].includes(swsFilter)) {
+  throw new Error(`Unsupported BENCHMARK_SWS_FILTER: ${swsFilter}`);
+}
+type SurfaceMode = "copy" | "direct-raster";
+const surfaceMode = (process.env.BENCHMARK_SURFACE_MODE?.trim() || "copy") as SurfaceMode;
+if (!["copy", "direct-raster"].includes(surfaceMode)) {
+  throw new Error(`Unsupported BENCHMARK_SURFACE_MODE: ${surfaceMode}`);
+}
+const benchmarkScene = process.env.BENCHMARK_SCENE?.trim() || "smoke";
+if (!["smoke", "color-card", "color-suite"].includes(benchmarkScene)) {
+  throw new Error(`Unsupported BENCHMARK_SCENE: ${benchmarkScene}`);
+}
+const colorSuiteTest = (process.env.BENCHMARK_COLOR_TEST?.trim() || "primary") as "primary" | "memory" | "grayscale" | "alpha" | "chroma" | "stride";
+if (!["primary", "memory", "grayscale", "alpha", "chroma", "stride"].includes(colorSuiteTest)) {
+  throw new Error(`Unsupported BENCHMARK_COLOR_TEST: ${colorSuiteTest}`);
+}
 const protocolBatchFrames = positiveInteger(process.env.BENCHMARK_PROTOCOL_BATCH_FRAMES, 1);
 type ProtocolTransport = "pipe" | "file";
 const protocolTransport = (process.env.BENCHMARK_PROTOCOL_TRANSPORT?.trim() || "pipe") as ProtocolTransport;
@@ -294,7 +319,11 @@ if (fixtureId) {
   }
   project = await compileAndPrepareRuntimeProjectV3(compiled.protocol);
 } else {
-  project = createNativeExportSmokeProject(durationSeconds);
+  project = benchmarkScene === "color-card"
+    ? createNativeColorCardProject(durationSeconds)
+    : benchmarkScene === "color-suite"
+      ? createNativeColorSuiteProject(colorSuiteTest, durationSeconds)
+      : createNativeExportSmokeProject(durationSeconds);
 }
 const appStarted = performance.now();
 const nativeStdoutMode = benchmarkMode === "pipe" ? "pipe" : benchmarkMode === "raw-file" || benchmarkMode === "encode-file" ? openSync(rawPath, "w") : "ignore";
@@ -318,7 +347,14 @@ let nativeStderr = "";
 let ffmpegStderr = "";
 function spawnNative(): void {
   const args = [benchmarkMode === "render-only" || benchmarkMode === "in-process" ? "--no-raw" : "--raw"];
-  if (benchmarkMode === "in-process") args.push("--in-process", "--output", outputPath);
+  if (benchmarkMode === "in-process") {
+    args.push("--in-process", "--output", outputPath, "--converter", colorConverter);
+    if (compareColor) args.push("--compare-color");
+    if (colorConverter === "swscale") args.push("--sws-filter", swsFilter);
+  } else if (benchmarkMode === "render-only") {
+    args.push("--output", outputPath);
+  }
+  args.push("--surface-mode", surfaceMode);
   const nativeEnvironment = { ...process.env };
   const nativeLibraryPath = process.env.BENCHMARK_NATIVE_LD_LIBRARY_PATH?.trim();
   if (nativeLibraryPath) {
@@ -467,6 +503,12 @@ const benchmarkResult = {
   frames: frameCount,
   durationSeconds,
   benchmarkMode,
+  colorConverter,
+  swsFilter,
+  compareColor,
+  colorSuiteTest: benchmarkScene === "color-suite" ? colorSuiteTest : null,
+  surfaceMode,
+  benchmarkScene,
   protocolTransport,
   protocolBatchFrames,
   protocolBytes,
@@ -479,6 +521,9 @@ const benchmarkResult = {
   outputPath: ffmpeg || benchmarkMode === "in-process" ? outputPath : null,
   outputBytes: output?.size ?? null,
   outputSha256: output ? outputHash.digest("hex") : null,
+  libyuvRevision: process.env.LIBYUV_REVISION ?? null,
+  yuvSampleHashFnv1a32: nativeMetrics.yuvSampleHashFnv1a32 ?? null,
+  colorComparison: nativeMetrics.colorComparison ?? null,
   rawPath: rawOutput ? rawPath : null,
   rawBytes: rawOutput?.size ?? Number(nativeMetrics.bytesWritten ?? 0),
   timingsMs: {

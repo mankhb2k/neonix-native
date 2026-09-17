@@ -1,0 +1,4652 @@
+{
+  "suite": "mp4-color-suite-5s",
+  "durationSeconds": 5,
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "matrix": "bt709",
+  "range": "limited",
+  "pixelFormat": "yuv420p",
+  "encoder": "libx264 veryfast crf=0",
+  "tests": {
+    "primary": {
+      "png": {
+        "pass": true,
+        "errors": [],
+        "samples": [
+          {
+            "x": 240,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 600,
+            "y": 540,
+            "rgba": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              255,
+              255
+            ]
+          },
+          {
+            "x": 960,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1320,
+            "y": 540,
+            "rgba": [
+              0,
+              255,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              255,
+              0
+            ]
+          },
+          {
+            "x": 1680,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "libswscale-bilinear": {
+          "fileBytes": 94095,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-primary",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "bilinear",
+            "compareColor": false,
+            "colorSuiteTest": "primary",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 224121,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 224100,
+            "protocolCommandCount": 2100,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 900,
+              "drawShape": 900,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 1494,
+            "protocolMaxFrameBytes": 1494,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/primary/libswscale-bilinear.mp4",
+            "outputBytes": 94095,
+            "outputSha256": "70d4c83ffb2c2980390b2ae3673f63fb658880ed657fe5c529b6f9e786fc47aa",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "713d5ec5",
+              "frameMid": "713d5ec5",
+              "frameLast": "713d5ec5"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1853.0836910000003,
+              "protocolEncode": 17.590423000000328,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 23.662422000000333,
+              "evaluate": 38.96275900000029,
+              "nativeProcess": 1733.259,
+              "nativeProtocolOverhead": 74.566,
+              "nativeRender": 306.249,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 275.153,
+              "colorConvert": 1049.131,
+              "mux": 27.485,
+              "finalize": 28.16,
+              "ffmpegPipeline": 1853.0680900000002
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "659cadc5",
+                "frameMid": "659cadc5",
+                "frameLast": "659cadc5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "713d5ec5",
+                "frameMid": "713d5ec5",
+                "frameLast": "713d5ec5"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 74.566,
+                "render": 306.249,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 1049.131,
+                "encode": 275.153,
+                "mux": 27.485,
+                "finalize": 28.16,
+                "totalProcess": 1733.259
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.8281893004115226,
+            "rgbMse": 1.9257201646090536,
+            "rgbPsnrDb": 45.28487182853962,
+            "exactPercent": 22.098765432098766,
+            "within1Percent": 99.67078189300412,
+            "within2Percent": 99.67078189300412,
+            "maxAbsDiff": 30,
+            "globalLumaSsim": 0.9998630247623518,
+            "deltaEMean": 0.2535192645923017,
+            "deltaEP95": 0.42318757125400763,
+            "deltaEMax": 0.4713654223957667
+          },
+          "qualityPass": true
+        },
+        "libswscale-area": {
+          "fileBytes": 83010,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-primary",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "area",
+            "compareColor": false,
+            "colorSuiteTest": "primary",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 224121,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 224100,
+            "protocolCommandCount": 2100,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 900,
+              "drawShape": 900,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 1494,
+            "protocolMaxFrameBytes": 1494,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/primary/libswscale-area.mp4",
+            "outputBytes": 83010,
+            "outputSha256": "403d1f271a544ee6de255ce781416f2e6a38a204354a122315f1106e04d82bb2",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "7bb23dc5",
+              "frameMid": "7bb23dc5",
+              "frameLast": "7bb23dc5"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1793.7213579999998,
+              "protocolEncode": 15.207739000000174,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 23.10611400000039,
+              "evaluate": 32.14085399999993,
+              "nativeProcess": 1682.21,
+              "nativeProtocolOverhead": 70.819,
+              "nativeRender": 288.279,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 249.589,
+              "colorConvert": 955.919,
+              "mux": 28.719,
+              "finalize": 117.603,
+              "ffmpegPipeline": 1793.7107569999998
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "659cadc5",
+                "frameMid": "659cadc5",
+                "frameLast": "659cadc5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "7bb23dc5",
+                "frameMid": "7bb23dc5",
+                "frameLast": "7bb23dc5"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 70.819,
+                "render": 288.279,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 955.919,
+                "encode": 249.589,
+                "mux": 28.719,
+                "finalize": 117.603,
+                "totalProcess": 1682.21
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.7777777777777778,
+            "rgbMse": 0.7777777777777778,
+            "rgbPsnrDb": 49.222248302929785,
+            "exactPercent": 22.22222222222222,
+            "within1Percent": 100,
+            "within2Percent": 100,
+            "maxAbsDiff": 1,
+            "globalLumaSsim": 0.999864441266779,
+            "deltaEMean": 0.2535192645923017,
+            "deltaEP95": 0.42318757125400763,
+            "deltaEMax": 0.4713654223957667
+          },
+          "qualityPass": true
+        },
+        "libyuv": {
+          "fileBytes": 83010,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-primary",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "libyuv",
+            "swsFilter": "area",
+            "compareColor": true,
+            "colorSuiteTest": "primary",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 224121,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 224100,
+            "protocolCommandCount": 2100,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 900,
+              "drawShape": 900,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 1494,
+            "protocolMaxFrameBytes": 1494,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/primary/libyuv.mp4",
+            "outputBytes": 83010,
+            "outputSha256": "3d80b4960147ed34820d862765d6309bf46089eb8458bef9fc3616c120d915be",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "4d8ec6c5",
+              "frameMid": "4d8ec6c5",
+              "frameLast": "4d8ec6c5"
+            },
+            "colorComparison": {
+              "enabled": true,
+              "referenceConverter": "libswscale",
+              "samples": 9331200,
+              "exactSamples": 4320000,
+              "within1Samples": 9331200,
+              "within2Samples": 9331200,
+              "maxAbsDiff": 1,
+              "meanAbsDiff": 0.537037,
+              "milliseconds": 49.754
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1372.589489,
+              "protocolEncode": 12.218337000000588,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 21.267956999999967,
+              "evaluate": 28.14980400000036,
+              "nativeProcess": 1275.24,
+              "nativeProtocolOverhead": 109.07,
+              "nativeRender": 421.397,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 388.729,
+              "colorConvert": 298.848,
+              "mux": 18.907,
+              "finalize": 57.195,
+              "ffmpegPipeline": 1372.5780889999999
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libyuv",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "659cadc5",
+                "frameMid": "659cadc5",
+                "frameLast": "659cadc5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "4d8ec6c5",
+                "frameMid": "4d8ec6c5",
+                "frameLast": "4d8ec6c5"
+              },
+              "colorComparison": {
+                "enabled": true,
+                "referenceConverter": "libswscale",
+                "samples": 9331200,
+                "exactSamples": 4320000,
+                "within1Samples": 9331200,
+                "within2Samples": 9331200,
+                "maxAbsDiff": 1,
+                "meanAbsDiff": 0.537037,
+                "milliseconds": 49.754
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 6220800,
+                  "exactSamples": 1382400,
+                  "within1Samples": 6220800,
+                  "within2Samples": 6220800,
+                  "meanAbsDiff": 0.777778,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "U",
+                  "samples": 1555200,
+                  "exactSamples": 1468800,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.055556,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "V",
+                  "samples": 1555200,
+                  "exactSamples": 1468800,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.055556,
+                  "maxAbsDiff": 1
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 109.07,
+                "render": 421.397,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 298.848,
+                "encode": 388.729,
+                "mux": 18.907,
+                "finalize": 57.195,
+                "totalProcess": 1275.24
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.14814814814814814,
+            "rgbMse": 0.4074074074074074,
+            "rgbPsnrDb": 52.03051439868673,
+            "exactPercent": 94.44444444444444,
+            "within1Percent": 94.44444444444444,
+            "within2Percent": 96.29629629629629,
+            "maxAbsDiff": 3,
+            "globalLumaSsim": 0.9999806043336217,
+            "deltaEMean": 0.6667122386272066,
+            "deltaEP95": 1.1199666473550431,
+            "deltaEMax": 1.2705118363974826
+          },
+          "qualityPass": true
+        }
+      },
+      "libyuvVsAreaDecoded": {
+        "frameCount": 5,
+        "rgbMeanAbsDiff": 0.8148148148148148,
+        "rgbMse": 0.8888888888888888,
+        "rgbPsnrDb": 48.642328833152916,
+        "exactPercent": 22.22222222222222,
+        "within1Percent": 96.29629629629629,
+        "within2Percent": 100,
+        "maxAbsDiff": 2,
+        "globalLumaSsim": 0.9998737185213601,
+        "deltaEMean": 0.413192974034905,
+        "deltaEP95": 0.847324265143475,
+        "deltaEMax": 0.847324265143475
+      },
+      "libyuvNativeParity": {
+        "reference": "libswscale-area",
+        "within1Percent": 100,
+        "maxAbsDiff": 1,
+        "samples": 9331200,
+        "pass": true
+      },
+      "libyuvParityPass": true
+    },
+    "memory": {
+      "png": {
+        "pass": false,
+        "errors": [
+          "sample-1-unexpected-rgb",
+          "sample-2-unexpected-rgb",
+          "sample-3-unexpected-rgb",
+          "sample-4-unexpected-rgb",
+          "sample-5-unexpected-rgb",
+          "sample-6-unexpected-rgb"
+        ],
+        "samples": [
+          {
+            "x": 280,
+            "y": 320,
+            "rgba": [
+              246,
+              199,
+              168,
+              255
+            ],
+            "expectedRgb": [
+              246,
+              199,
+              168
+            ]
+          },
+          {
+            "x": 280,
+            "y": 700,
+            "rgba": [
+              54,
+              168,
+              82,
+              255
+            ],
+            "expectedRgb": [
+              198,
+              134,
+              66
+            ]
+          },
+          {
+            "x": 730,
+            "y": 320,
+            "rgba": [
+              198,
+              134,
+              66,
+              255
+            ],
+            "expectedRgb": [
+              141,
+              85,
+              36
+            ]
+          },
+          {
+            "x": 730,
+            "y": 700,
+            "rgba": [
+              74,
+              163,
+              223,
+              255
+            ],
+            "expectedRgb": [
+              74,
+              44,
+              32
+            ]
+          },
+          {
+            "x": 1180,
+            "y": 320,
+            "rgba": [
+              141,
+              85,
+              36,
+              255
+            ],
+            "expectedRgb": [
+              54,
+              168,
+              82
+            ]
+          },
+          {
+            "x": 1180,
+            "y": 700,
+            "rgba": [
+              244,
+              211,
+              94,
+              255
+            ],
+            "expectedRgb": [
+              74,
+              163,
+              223
+            ]
+          },
+          {
+            "x": 1630,
+            "y": 320,
+            "rgba": [
+              74,
+              44,
+              32,
+              255
+            ],
+            "expectedRgb": [
+              244,
+              211,
+              94
+            ]
+          },
+          {
+            "x": 1630,
+            "y": 700,
+            "rgba": [
+              217,
+              217,
+              217,
+              255
+            ],
+            "expectedRgb": [
+              217,
+              217,
+              217
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "libswscale-bilinear": {
+          "fileBytes": 118329,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-memory",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "bilinear",
+            "compareColor": false,
+            "colorSuiteTest": "memory",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 332271,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 332250,
+            "protocolCommandCount": 3000,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 1350,
+              "drawShape": 1350,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 2215,
+            "protocolMaxFrameBytes": 2215,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/memory/libswscale-bilinear.mp4",
+            "outputBytes": 118329,
+            "outputSha256": "d2abcdfc87dbdc2809f8d64905b780ae9f4693fb3392ccb70bf08532584d21c0",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "8793a49f",
+              "frameMid": "8793a49f",
+              "frameLast": "8793a49f"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1768.020155,
+              "protocolEncode": 14.154613999999867,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 21.29487899999998,
+              "evaluate": 32.07248399999969,
+              "nativeProcess": 1665.057,
+              "nativeProtocolOverhead": 67.326,
+              "nativeRender": 319.613,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 240.399,
+              "colorConvert": 949.606,
+              "mux": 19.451,
+              "finalize": 88.112,
+              "ffmpegPipeline": 1768.0124549999998
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "fce76238",
+                "frameMid": "fce76238",
+                "frameLast": "fce76238"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "8793a49f",
+                "frameMid": "8793a49f",
+                "frameLast": "8793a49f"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 67.326,
+                "render": 319.613,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 949.606,
+                "encode": 240.399,
+                "mux": 19.451,
+                "finalize": 88.112,
+                "totalProcess": 1665.057
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 1.1119227430555556,
+            "rgbMse": 2.0302531828703705,
+            "rgbPsnrDb": 45.05530160852629,
+            "exactPercent": 9.610307355967079,
+            "within1Percent": 86.45233731995884,
+            "within2Percent": 96.06450938786008,
+            "maxAbsDiff": 63,
+            "globalLumaSsim": 0.9998910786192723,
+            "deltaEMean": 0.7516315411957182,
+            "deltaEP95": 0.9611864764973966,
+            "deltaEMax": 1.0337583308013518
+          },
+          "qualityPass": true
+        },
+        "libswscale-area": {
+          "fileBytes": 107259,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-memory",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "area",
+            "compareColor": false,
+            "colorSuiteTest": "memory",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 332271,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 332250,
+            "protocolCommandCount": 3000,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 1350,
+              "drawShape": 1350,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 2215,
+            "protocolMaxFrameBytes": 2215,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/memory/libswscale-area.mp4",
+            "outputBytes": 107259,
+            "outputSha256": "fe372b6d6f222f7c689b97d14999546fc0e2e128c098baa0c7d9bf1c3722eda6",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "cf861fab",
+              "frameMid": "cf861fab",
+              "frameLast": "cf861fab"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 2136.515793,
+              "protocolEncode": 21.591999000000044,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 29.205481000000134,
+              "evaluate": 49.110994000000005,
+              "nativeProcess": 1985.584,
+              "nativeProtocolOverhead": 420.069,
+              "nativeRender": 327.071,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 260.342,
+              "colorConvert": 934.391,
+              "mux": 16.318,
+              "finalize": 43.711,
+              "ffmpegPipeline": 2136.500892
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "fce76238",
+                "frameMid": "fce76238",
+                "frameLast": "fce76238"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "cf861fab",
+                "frameMid": "cf861fab",
+                "frameLast": "cf861fab"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 420.069,
+                "render": 327.071,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 934.391,
+                "encode": 260.342,
+                "mux": 16.318,
+                "finalize": 43.711,
+                "totalProcess": 1985.584
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 1.0579989711934157,
+            "rgbMse": 1.619775591563786,
+            "rgbPsnrDb": 46.03625510582304,
+            "exactPercent": 9.647312242798355,
+            "within1Percent": 88.65679655349794,
+            "within2Percent": 96.69928305041152,
+            "maxAbsDiff": 67,
+            "globalLumaSsim": 0.999887563418434,
+            "deltaEMean": 0.8394007462781956,
+            "deltaEP95": 1.2129532407975592,
+            "deltaEMax": 1.466712684152307
+          },
+          "qualityPass": true
+        },
+        "libyuv": {
+          "fileBytes": 106980,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-memory",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "libyuv",
+            "swsFilter": "area",
+            "compareColor": true,
+            "colorSuiteTest": "memory",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 332271,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 332250,
+            "protocolCommandCount": 3000,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 1350,
+              "drawShape": 1350,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 2215,
+            "protocolMaxFrameBytes": 2215,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/memory/libyuv.mp4",
+            "outputBytes": 106980,
+            "outputSha256": "b45b788ddf42532e15337047f6e58dbc949b3464add093f3ae8237feb0a934fd",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "75966c17",
+              "frameMid": "75966c17",
+              "frameLast": "75966c17"
+            },
+            "colorComparison": {
+              "enabled": true,
+              "referenceConverter": "libswscale",
+              "samples": 9331200,
+              "exactSamples": 4838790,
+              "within1Samples": 9331200,
+              "within2Samples": 9331200,
+              "maxAbsDiff": 1,
+              "meanAbsDiff": 0.48144,
+              "milliseconds": 51.705
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1486.342343,
+              "protocolEncode": 14.853702000000112,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 22.889724999999828,
+              "evaluate": 32.987019999999916,
+              "nativeProcess": 1334.932,
+              "nativeProtocolOverhead": 109.304,
+              "nativeRender": 481.819,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 372.712,
+              "colorConvert": 223.947,
+              "mux": 16.237,
+              "finalize": 147.15,
+              "ffmpegPipeline": 1486.334843
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libyuv",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "fce76238",
+                "frameMid": "fce76238",
+                "frameLast": "fce76238"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "75966c17",
+                "frameMid": "75966c17",
+                "frameLast": "75966c17"
+              },
+              "colorComparison": {
+                "enabled": true,
+                "referenceConverter": "libswscale",
+                "samples": 9331200,
+                "exactSamples": 4838790,
+                "within1Samples": 9331200,
+                "within2Samples": 9331200,
+                "maxAbsDiff": 1,
+                "meanAbsDiff": 0.48144,
+                "milliseconds": 51.705
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 6220800,
+                  "exactSamples": 2404470,
+                  "within1Samples": 6220800,
+                  "within2Samples": 6220800,
+                  "meanAbsDiff": 0.613479,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "U",
+                  "samples": 1555200,
+                  "exactSamples": 1179726,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.241431,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "V",
+                  "samples": 1555200,
+                  "exactSamples": 1254594,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.193291,
+                  "maxAbsDiff": 1
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 109.304,
+                "render": 481.819,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 223.947,
+                "encode": 372.712,
+                "mux": 16.237,
+                "finalize": 147.15,
+                "totalProcess": 1334.932
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.6374762088477366,
+            "rgbMse": 1.5518106995884773,
+            "rgbPsnrDb": 46.222416189060105,
+            "exactPercent": 66.15055941358024,
+            "within1Percent": 77.41714891975309,
+            "within2Percent": 93.48857060185185,
+            "maxAbsDiff": 65,
+            "globalLumaSsim": 0.9999313994572068,
+            "deltaEMean": 1.0148585810532542,
+            "deltaEP95": 1.2567476066964685,
+            "deltaEMax": 1.2826846656064381
+          },
+          "qualityPass": true
+        }
+      },
+      "libyuvVsAreaDecoded": {
+        "frameCount": 5,
+        "rgbMeanAbsDiff": 0.999569508744856,
+        "rgbMse": 1.4177896733539095,
+        "rgbPsnrDb": 46.61468552077844,
+        "exactPercent": 17.739422582304528,
+        "within1Percent": 85.51826131687243,
+        "within2Percent": 96.78536522633745,
+        "maxAbsDiff": 3,
+        "globalLumaSsim": 0.999941887602752,
+        "deltaEMean": 1.2035464632252173,
+        "deltaEP95": 2.672292391900193,
+        "deltaEMax": 2.672292391900193
+      },
+      "libyuvNativeParity": {
+        "reference": "libswscale-area",
+        "within1Percent": 100,
+        "maxAbsDiff": 1,
+        "samples": 9331200,
+        "pass": true
+      },
+      "libyuvParityPass": true
+    },
+    "grayscale": {
+      "png": {
+        "pass": true,
+        "errors": [],
+        "samples": [
+          {
+            "x": 98,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 212,
+            "y": 540,
+            "rgba": [
+              17,
+              17,
+              17,
+              255
+            ],
+            "expectedRgb": [
+              17,
+              17,
+              17
+            ]
+          },
+          {
+            "x": 326,
+            "y": 540,
+            "rgba": [
+              34,
+              34,
+              34,
+              255
+            ],
+            "expectedRgb": [
+              34,
+              34,
+              34
+            ]
+          },
+          {
+            "x": 440,
+            "y": 540,
+            "rgba": [
+              51,
+              51,
+              51,
+              255
+            ],
+            "expectedRgb": [
+              51,
+              51,
+              51
+            ]
+          },
+          {
+            "x": 554,
+            "y": 540,
+            "rgba": [
+              68,
+              68,
+              68,
+              255
+            ],
+            "expectedRgb": [
+              68,
+              68,
+              68
+            ]
+          },
+          {
+            "x": 668,
+            "y": 540,
+            "rgba": [
+              85,
+              85,
+              85,
+              255
+            ],
+            "expectedRgb": [
+              85,
+              85,
+              85
+            ]
+          },
+          {
+            "x": 782,
+            "y": 540,
+            "rgba": [
+              102,
+              102,
+              102,
+              255
+            ],
+            "expectedRgb": [
+              102,
+              102,
+              102
+            ]
+          },
+          {
+            "x": 896,
+            "y": 540,
+            "rgba": [
+              119,
+              119,
+              119,
+              255
+            ],
+            "expectedRgb": [
+              119,
+              119,
+              119
+            ]
+          },
+          {
+            "x": 1010,
+            "y": 540,
+            "rgba": [
+              136,
+              136,
+              136,
+              255
+            ],
+            "expectedRgb": [
+              136,
+              136,
+              136
+            ]
+          },
+          {
+            "x": 1124,
+            "y": 540,
+            "rgba": [
+              153,
+              153,
+              153,
+              255
+            ],
+            "expectedRgb": [
+              153,
+              153,
+              153
+            ]
+          },
+          {
+            "x": 1238,
+            "y": 540,
+            "rgba": [
+              170,
+              170,
+              170,
+              255
+            ],
+            "expectedRgb": [
+              170,
+              170,
+              170
+            ]
+          },
+          {
+            "x": 1352,
+            "y": 540,
+            "rgba": [
+              187,
+              187,
+              187,
+              255
+            ],
+            "expectedRgb": [
+              187,
+              187,
+              187
+            ]
+          },
+          {
+            "x": 1466,
+            "y": 540,
+            "rgba": [
+              204,
+              204,
+              204,
+              255
+            ],
+            "expectedRgb": [
+              204,
+              204,
+              204
+            ]
+          },
+          {
+            "x": 1580,
+            "y": 540,
+            "rgba": [
+              221,
+              221,
+              221,
+              255
+            ],
+            "expectedRgb": [
+              221,
+              221,
+              221
+            ]
+          },
+          {
+            "x": 1694,
+            "y": 540,
+            "rgba": [
+              238,
+              238,
+              238,
+              255
+            ],
+            "expectedRgb": [
+              238,
+              238,
+              238
+            ]
+          },
+          {
+            "x": 1808,
+            "y": 540,
+            "rgba": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              255,
+              255
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "libswscale-bilinear": {
+          "fileBytes": 78345,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-grayscale",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "bilinear",
+            "compareColor": false,
+            "colorSuiteTest": "grayscale",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 585471,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 585450,
+            "protocolCommandCount": 5400,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 2550,
+              "drawShape": 2550,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 3903,
+            "protocolMaxFrameBytes": 3903,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/grayscale/libswscale-bilinear.mp4",
+            "outputBytes": 78345,
+            "outputSha256": "b0ae3d65968803a884d05225da9857760a34ce251af66589a11e77fddfe88c36",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "f900f9c5",
+              "frameMid": "f900f9c5",
+              "frameLast": "f900f9c5"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1717.5902380000002,
+              "protocolEncode": 21.268859000000077,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 26.362767000000076,
+              "evaluate": 45.64232599999974,
+              "nativeProcess": 1589.832,
+              "nativeProtocolOverhead": 74.651,
+              "nativeRender": 285.139,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 262.278,
+              "colorConvert": 924.834,
+              "mux": 18.308,
+              "finalize": 42.93,
+              "ffmpegPipeline": 1717.583638
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "82f8d8c5",
+                "frameMid": "82f8d8c5",
+                "frameLast": "82f8d8c5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "f900f9c5",
+                "frameMid": "f900f9c5",
+                "frameLast": "f900f9c5"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 74.651,
+                "render": 285.139,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 924.834,
+                "encode": 262.278,
+                "mux": 18.308,
+                "finalize": 42.93,
+                "totalProcess": 1589.832
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.8263888888888888,
+            "rgbMse": 0.8263888888888888,
+            "rgbPsnrDb": 48.95895891570629,
+            "exactPercent": 17.36111111111111,
+            "within1Percent": 100,
+            "within2Percent": 100,
+            "maxAbsDiff": 1,
+            "globalLumaSsim": 0.9998789401439054,
+            "deltaEMean": 0.15078336297641529,
+            "deltaEP95": 0.43798210908878404,
+            "deltaEMax": 0.48790062723280286
+          },
+          "qualityPass": true
+        },
+        "libswscale-area": {
+          "fileBytes": 78345,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-grayscale",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "area",
+            "compareColor": false,
+            "colorSuiteTest": "grayscale",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 585471,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 585450,
+            "protocolCommandCount": 5400,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 2550,
+              "drawShape": 2550,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 3903,
+            "protocolMaxFrameBytes": 3903,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/grayscale/libswscale-area.mp4",
+            "outputBytes": 78345,
+            "outputSha256": "b0ae3d65968803a884d05225da9857760a34ce251af66589a11e77fddfe88c36",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "f900f9c5",
+              "frameMid": "f900f9c5",
+              "frameLast": "f900f9c5"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1612.3048529999999,
+              "protocolEncode": 19.27369399999975,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 26.121541999999465,
+              "evaluate": 42.08831300000031,
+              "nativeProcess": 1491.344,
+              "nativeProtocolOverhead": 54.382,
+              "nativeRender": 286.377,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 201.732,
+              "colorConvert": 925.788,
+              "mux": 16.142,
+              "finalize": 23.066,
+              "ffmpegPipeline": 1612.297353
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "82f8d8c5",
+                "frameMid": "82f8d8c5",
+                "frameLast": "82f8d8c5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "f900f9c5",
+                "frameMid": "f900f9c5",
+                "frameLast": "f900f9c5"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 54.382,
+                "render": 286.377,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 925.788,
+                "encode": 201.732,
+                "mux": 16.142,
+                "finalize": 23.066,
+                "totalProcess": 1491.344
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.8263888888888888,
+            "rgbMse": 0.8263888888888888,
+            "rgbPsnrDb": 48.95895891570629,
+            "exactPercent": 17.36111111111111,
+            "within1Percent": 100,
+            "within2Percent": 100,
+            "maxAbsDiff": 1,
+            "globalLumaSsim": 0.9998789401439054,
+            "deltaEMean": 0.15078336297641529,
+            "deltaEP95": 0.43798210908878404,
+            "deltaEMax": 0.48790062723280286
+          },
+          "qualityPass": true
+        },
+        "libyuv": {
+          "fileBytes": 78351,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-grayscale",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "libyuv",
+            "swsFilter": "area",
+            "compareColor": true,
+            "colorSuiteTest": "grayscale",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 585471,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 585450,
+            "protocolCommandCount": 5400,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 2550,
+              "drawShape": 2550,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 3903,
+            "protocolMaxFrameBytes": 3903,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/grayscale/libyuv.mp4",
+            "outputBytes": 78351,
+            "outputSha256": "508868bd051ff2ce1ecc5b16fafff7dfc612fc32d77e29ff8d8425c9bdcdd8af",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "96f0f565",
+              "frameMid": "96f0f565",
+              "frameLast": "96f0f565"
+            },
+            "colorComparison": {
+              "enabled": true,
+              "referenceConverter": "libswscale",
+              "samples": 9331200,
+              "exactSamples": 4730400,
+              "within1Samples": 9331200,
+              "within2Samples": 9331200,
+              "maxAbsDiff": 1,
+              "meanAbsDiff": 0.493056,
+              "milliseconds": 73.616
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1532.263981,
+              "protocolEncode": 29.351055999999573,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 47.96592499999997,
+              "evaluate": 44.62289000000078,
+              "nativeProcess": 1375.335,
+              "nativeProtocolOverhead": 147.315,
+              "nativeRender": 428.808,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 517.516,
+              "colorConvert": 265.338,
+              "mux": 17.125,
+              "finalize": 16.358,
+              "ffmpegPipeline": 1532.2557809999998
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libyuv",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "82f8d8c5",
+                "frameMid": "82f8d8c5",
+                "frameLast": "82f8d8c5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "96f0f565",
+                "frameMid": "96f0f565",
+                "frameLast": "96f0f565"
+              },
+              "colorComparison": {
+                "enabled": true,
+                "referenceConverter": "libswscale",
+                "samples": 9331200,
+                "exactSamples": 4730400,
+                "within1Samples": 9331200,
+                "within2Samples": 9331200,
+                "maxAbsDiff": 1,
+                "meanAbsDiff": 0.493056,
+                "milliseconds": 73.616
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 6220800,
+                  "exactSamples": 1620000,
+                  "within1Samples": 6220800,
+                  "within2Samples": 6220800,
+                  "meanAbsDiff": 0.739583,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "U",
+                  "samples": 1555200,
+                  "exactSamples": 1555200,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 1555200,
+                  "exactSamples": 1555200,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 147.315,
+                "render": 428.808,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 265.338,
+                "encode": 517.516,
+                "mux": 17.125,
+                "finalize": 16.358,
+                "totalProcess": 1375.335
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.08680555555555555,
+            "rgbMse": 0.08680555555555555,
+            "rgbPsnrDb": 58.74532839955103,
+            "exactPercent": 91.31944444444444,
+            "within1Percent": 100,
+            "within2Percent": 100,
+            "maxAbsDiff": 1,
+            "globalLumaSsim": 0.9999877658592518,
+            "deltaEMean": 0.12893204015731574,
+            "deltaEP95": 0.43798210908878404,
+            "deltaEMax": 0.48790062723280286
+          },
+          "qualityPass": true
+        }
+      },
+      "libyuvVsAreaDecoded": {
+        "frameCount": 5,
+        "rgbMeanAbsDiff": 0.7395833333333334,
+        "rgbMse": 0.7395833333333334,
+        "rgbPsnrDb": 49.44093245188404,
+        "exactPercent": 26.041666666666668,
+        "within1Percent": 100,
+        "within2Percent": 100,
+        "maxAbsDiff": 1,
+        "globalLumaSsim": 0.9998920166623061,
+        "deltaEMean": 0.02185132281909956,
+        "deltaEP95": 0.34962116510559293,
+        "deltaEMax": 0.34962116510559293
+      },
+      "libyuvNativeParity": {
+        "reference": "libswscale-area",
+        "within1Percent": 100,
+        "maxAbsDiff": 1,
+        "samples": 9331200,
+        "pass": true
+      },
+      "libyuvParityPass": true
+    },
+    "alpha": {
+      "png": {
+        "pass": true,
+        "errors": [],
+        "samples": [
+          {
+            "x": 100,
+            "y": 100,
+            "rgba": [
+              128,
+              128,
+              128,
+              255
+            ]
+          },
+          {
+            "x": 540,
+            "y": 440,
+            "rgba": [
+              192,
+              64,
+              64,
+              255
+            ]
+          },
+          {
+            "x": 1380,
+            "y": 440,
+            "rgba": [
+              127,
+              127,
+              255,
+              255
+            ]
+          },
+          {
+            "x": 540,
+            "y": 850,
+            "rgba": [
+              64,
+              192,
+              64,
+              255
+            ]
+          },
+          {
+            "x": 1380,
+            "y": 850,
+            "rgba": [
+              255,
+              127,
+              255,
+              255
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "libswscale-bilinear": {
+          "fileBytes": 110505,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-alpha",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "bilinear",
+            "compareColor": false,
+            "colorSuiteTest": "alpha",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 238521,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 238500,
+            "protocolCommandCount": 2100,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 900,
+              "drawShape": 900,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 1590,
+            "protocolMaxFrameBytes": 1590,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/alpha/libswscale-bilinear.mp4",
+            "outputBytes": 110505,
+            "outputSha256": "c78c1d534b1c783ee23ba7ce72b1fe842fd4b52542b30e931f8727f611f3376a",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "deaae098",
+              "frameMid": "deaae098",
+              "frameLast": "deaae098"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1878.825335,
+              "protocolEncode": 14.343117999999606,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 20.625540000000115,
+              "evaluate": 30.62179899999984,
+              "nativeProcess": 1778.942,
+              "nativeProtocolOverhead": 71.099,
+              "nativeRender": 626.245,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 236.196,
+              "colorConvert": 823.453,
+              "mux": 16.256,
+              "finalize": 21.948,
+              "ffmpegPipeline": 1878.8168349999999
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "32f68dd3",
+                "frameMid": "32f68dd3",
+                "frameLast": "32f68dd3"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "deaae098",
+                "frameMid": "deaae098",
+                "frameLast": "deaae098"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 71.099,
+                "render": 626.245,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 823.453,
+                "encode": 236.196,
+                "mux": 16.256,
+                "finalize": 21.948,
+                "totalProcess": 1778.942
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.5089768197016461,
+            "rgbMse": 3.9007476530349794,
+            "rgbPsnrDb": 42.219325050035025,
+            "exactPercent": 73.18124678497942,
+            "within1Percent": 84.2628761574074,
+            "within2Percent": 99.38551311728395,
+            "maxAbsDiff": 70,
+            "globalLumaSsim": 0.9999184903189315,
+            "deltaEMean": 0.45009859153165366,
+            "deltaEP95": 0.6746794335809225,
+            "deltaEMax": 0.7383235966657963
+          },
+          "qualityPass": true
+        },
+        "libswscale-area": {
+          "fileBytes": 106659,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-alpha",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "area",
+            "compareColor": false,
+            "colorSuiteTest": "alpha",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 238521,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 238500,
+            "protocolCommandCount": 2100,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 900,
+              "drawShape": 900,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 1590,
+            "protocolMaxFrameBytes": 1590,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/alpha/libswscale-area.mp4",
+            "outputBytes": 106659,
+            "outputSha256": "de50deecf2dc7d31e6b877dd053453b54816d5d50389091e57f22aa9578a211b",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "15c80f94",
+              "frameMid": "15c80f94",
+              "frameLast": "15c80f94"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 2306.836256,
+              "protocolEncode": 12.410089999999968,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 19.144405000000177,
+              "evaluate": 27.278052000000173,
+              "nativeProcess": 2167.616,
+              "nativeProtocolOverhead": 198.414,
+              "nativeRender": 652.807,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 284.327,
+              "colorConvert": 862.581,
+              "mux": 17.077,
+              "finalize": 169.486,
+              "ffmpegPipeline": 2306.828756
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "32f68dd3",
+                "frameMid": "32f68dd3",
+                "frameLast": "32f68dd3"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "15c80f94",
+                "frameMid": "15c80f94",
+                "frameLast": "15c80f94"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 198.414,
+                "render": 652.807,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 862.581,
+                "encode": 284.327,
+                "mux": 17.077,
+                "finalize": 169.486,
+                "totalProcess": 2167.616
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.4842251800411523,
+            "rgbMse": 3.6381960519547327,
+            "rgbPsnrDb": 42.52194262625334,
+            "exactPercent": 73.36930941358024,
+            "within1Percent": 84.51035236625515,
+            "within2Percent": 99.69536072530865,
+            "maxAbsDiff": 74,
+            "globalLumaSsim": 0.9999202419542892,
+            "deltaEMean": 0.45009859153165366,
+            "deltaEP95": 0.6746794335809225,
+            "deltaEMax": 0.7383235966657963
+          },
+          "qualityPass": true
+        },
+        "libyuv": {
+          "fileBytes": 107181,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-alpha",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "libyuv",
+            "swsFilter": "area",
+            "compareColor": true,
+            "colorSuiteTest": "alpha",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 238521,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 238500,
+            "protocolCommandCount": 2100,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 900,
+              "drawShape": 900,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 1590,
+            "protocolMaxFrameBytes": 1590,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/alpha/libyuv.mp4",
+            "outputBytes": 107181,
+            "outputSha256": "91d19bd340f5816ef39fb7fb7518f2c4ef85c6a45034addbf604cf5410eaa333",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "d145a927",
+              "frameMid": "d145a927",
+              "frameLast": "d145a927"
+            },
+            "colorComparison": {
+              "enabled": true,
+              "referenceConverter": "libswscale",
+              "samples": 9331200,
+              "exactSamples": 8284701,
+              "within1Samples": 9331200,
+              "within2Samples": 9331200,
+              "maxAbsDiff": 1,
+              "meanAbsDiff": 0.112151,
+              "milliseconds": 47.102
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1666.4925170000001,
+              "protocolEncode": 15.419782000000168,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 24.460460999999896,
+              "evaluate": 31.784893999999497,
+              "nativeProcess": 1537.019,
+              "nativeProtocolOverhead": 116.755,
+              "nativeRender": 699.515,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 222.948,
+              "colorConvert": 152.431,
+              "mux": 16.067,
+              "finalize": 345.37,
+              "ffmpegPipeline": 1666.485517
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libyuv",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "32f68dd3",
+                "frameMid": "32f68dd3",
+                "frameLast": "32f68dd3"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "d145a927",
+                "frameMid": "d145a927",
+                "frameLast": "d145a927"
+              },
+              "colorComparison": {
+                "enabled": true,
+                "referenceConverter": "libswscale",
+                "samples": 9331200,
+                "exactSamples": 8284701,
+                "within1Samples": 9331200,
+                "within2Samples": 9331200,
+                "maxAbsDiff": 1,
+                "meanAbsDiff": 0.112151,
+                "milliseconds": 47.102
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 6220800,
+                  "exactSamples": 5178768,
+                  "within1Samples": 6220800,
+                  "within2Samples": 6220800,
+                  "meanAbsDiff": 0.167508,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "U",
+                  "samples": 1555200,
+                  "exactSamples": 1551834,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.002164,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "V",
+                  "samples": 1555200,
+                  "exactSamples": 1554099,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.000708,
+                  "maxAbsDiff": 1
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 116.755,
+                "render": 699.515,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 152.431,
+                "encode": 222.948,
+                "mux": 16.067,
+                "finalize": 345.37,
+                "totalProcess": 1537.019
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.3180687371399177,
+            "rgbMse": 3.161951517489712,
+            "rgbPsnrDb": 43.13125154300218,
+            "exactPercent": 74.85003536522635,
+            "within1Percent": 99.68164866255144,
+            "within2Percent": 99.69354423868313,
+            "maxAbsDiff": 76,
+            "globalLumaSsim": 0.9999658803648505,
+            "deltaEMean": 0.3247489200668733,
+            "deltaEP95": 0.4171577486532059,
+            "deltaEMax": 0.4214533756770473
+          },
+          "qualityPass": true
+        }
+      },
+      "libyuvVsAreaDecoded": {
+        "frameCount": 5,
+        "rgbMeanAbsDiff": 0.16868344907407407,
+        "rgbMse": 0.16990387088477366,
+        "rgbPsnrDb": 55.82877087444733,
+        "exactPercent": 83.18970228909464,
+        "within1Percent": 99.94492669753086,
+        "within2Percent": 99.99702610596708,
+        "maxAbsDiff": 3,
+        "globalLumaSsim": 0.9999829345849816,
+        "deltaEMean": 0.14282907815403356,
+        "deltaEP95": 0.3692293154501448,
+        "deltaEMax": 0.3692293154501448
+      },
+      "libyuvNativeParity": {
+        "reference": "libswscale-area",
+        "within1Percent": 100,
+        "maxAbsDiff": 1,
+        "samples": 9331200,
+        "pass": true
+      },
+      "libyuvParityPass": true
+    },
+    "chroma": {
+      "png": {
+        "pass": false,
+        "errors": [
+          "sample-23-unexpected-rgb"
+        ],
+        "samples": [
+          {
+            "x": 80,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 160,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 240,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 320,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 400,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 480,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 560,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 640,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 720,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 800,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 880,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 960,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1040,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1120,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1200,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1280,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1360,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1440,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1520,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1600,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1680,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1760,
+            "y": 540,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1840,
+            "y": 540,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ],
+            "expectedRgb": [
+              255,
+              0,
+              0
+            ]
+          },
+          {
+            "x": 1920,
+            "y": 540,
+            "rgba": [
+              32,
+              32,
+              32,
+              255
+            ],
+            "expectedRgb": [
+              0,
+              0,
+              255
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "libswscale-bilinear": {
+          "fileBytes": 153870,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-chroma",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "bilinear",
+            "compareColor": false,
+            "colorSuiteTest": "chroma",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 913971,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 913950,
+            "protocolCommandCount": 8400,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 4050,
+              "drawShape": 4050,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 6093,
+            "protocolMaxFrameBytes": 6093,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/chroma/libswscale-bilinear.mp4",
+            "outputBytes": 153870,
+            "outputSha256": "dd12fb979b90cdda5ee6fe5afddd471e94a59c606406605d97f28e59b4704da1",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "75145165",
+              "frameMid": "75145165",
+              "frameLast": "75145165"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1789.563387,
+              "protocolEncode": 26.04730800000027,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 24.733335000000125,
+              "evaluate": 56.30544500000025,
+              "nativeProcess": 1619.987,
+              "nativeProtocolOverhead": 70.561,
+              "nativeRender": 307.085,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 224.422,
+              "colorConvert": 870.553,
+              "mux": 16.298,
+              "finalize": 147.366,
+              "ffmpegPipeline": 1789.551886
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "a8d90ec5",
+                "frameMid": "a8d90ec5",
+                "frameLast": "a8d90ec5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "75145165",
+                "frameMid": "75145165",
+                "frameLast": "75145165"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 70.561,
+                "render": 307.085,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 870.553,
+                "encode": 224.422,
+                "mux": 16.298,
+                "finalize": 147.366,
+                "totalProcess": 1619.987
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.7642746913580247,
+            "rgbMse": 5.327340534979424,
+            "rgbPsnrDb": 40.86569902165387,
+            "exactPercent": 44.22325102880658,
+            "within1Percent": 98.68312757201646,
+            "within2Percent": 98.68312757201646,
+            "maxAbsDiff": 30,
+            "globalLumaSsim": 0.9998015954141527,
+            "deltaEMean": 0.4009873972310276,
+            "deltaEP95": 0.42318757125400763,
+            "deltaEMax": 0.4921142980097658
+          },
+          "qualityPass": true
+        },
+        "libswscale-area": {
+          "fileBytes": 148602,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-chroma",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "area",
+            "compareColor": false,
+            "colorSuiteTest": "chroma",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 913971,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 913950,
+            "protocolCommandCount": 8400,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 4050,
+              "drawShape": 4050,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 6093,
+            "protocolMaxFrameBytes": 6093,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/chroma/libswscale-area.mp4",
+            "outputBytes": 148602,
+            "outputSha256": "231ef4c6a8cd16b396363e3eb2f184a87477e0e069235b5e93296cb814c61910",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "34c66f45",
+              "frameMid": "34c66f45",
+              "frameLast": "34c66f45"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1924.8411650000003,
+              "protocolEncode": 26.681236999999783,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 26.40782200000035,
+              "evaluate": 55.24849300000005,
+              "nativeProcess": 1749.731,
+              "nativeProtocolOverhead": 225.326,
+              "nativeRender": 316.6,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 194.517,
+              "colorConvert": 843.936,
+              "mux": 28.158,
+              "finalize": 169.351,
+              "ffmpegPipeline": 1924.832765
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "a8d90ec5",
+                "frameMid": "a8d90ec5",
+                "frameLast": "a8d90ec5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "34c66f45",
+                "frameMid": "34c66f45",
+                "frameLast": "34c66f45"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 225.326,
+                "render": 316.6,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 843.936,
+                "encode": 194.517,
+                "mux": 28.158,
+                "finalize": 169.351,
+                "totalProcess": 1749.731
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.5529835390946503,
+            "rgbMse": 0.5529835390946503,
+            "rgbPsnrDb": 50.70368157206542,
+            "exactPercent": 44.70164609053498,
+            "within1Percent": 100,
+            "within2Percent": 100,
+            "maxAbsDiff": 1,
+            "globalLumaSsim": 0.9998202319773063,
+            "deltaEMean": 0.4009873972310276,
+            "deltaEP95": 0.42318757125400763,
+            "deltaEMax": 0.4921142980097658
+          },
+          "qualityPass": true
+        },
+        "libyuv": {
+          "fileBytes": 148605,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-chroma",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "libyuv",
+            "swsFilter": "area",
+            "compareColor": true,
+            "colorSuiteTest": "chroma",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 913971,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 913950,
+            "protocolCommandCount": 8400,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 4050,
+              "drawShape": 4050,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 6093,
+            "protocolMaxFrameBytes": 6093,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/chroma/libyuv.mp4",
+            "outputBytes": 148605,
+            "outputSha256": "f19a2cb5e44d0173b27a9636ec814d9a7da28ca9653844a7ab3f5b874a4ae8b7",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "bcf2b565",
+              "frameMid": "bcf2b565",
+              "frameLast": "bcf2b565"
+            },
+            "colorComparison": {
+              "enabled": true,
+              "referenceConverter": "libswscale",
+              "samples": 9331200,
+              "exactSamples": 6200160,
+              "within1Samples": 9331200,
+              "within2Samples": 9331200,
+              "maxAbsDiff": 1,
+              "meanAbsDiff": 0.335545,
+              "milliseconds": 51
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1664.1099060000001,
+              "protocolEncode": 29.16533899999996,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 28.040876000000026,
+              "evaluate": 61.02677900000026,
+              "nativeProcess": 1461.965,
+              "nativeProtocolOverhead": 272.37,
+              "nativeRender": 424.289,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 354.774,
+              "colorConvert": 233.347,
+              "mux": 21.975,
+              "finalize": 177.185,
+              "ffmpegPipeline": 1664.1023060000002
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libyuv",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "a8d90ec5",
+                "frameMid": "a8d90ec5",
+                "frameLast": "a8d90ec5"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "bcf2b565",
+                "frameMid": "bcf2b565",
+                "frameLast": "bcf2b565"
+              },
+              "colorComparison": {
+                "enabled": true,
+                "referenceConverter": "libswscale",
+                "samples": 9331200,
+                "exactSamples": 6200160,
+                "within1Samples": 9331200,
+                "within2Samples": 9331200,
+                "maxAbsDiff": 1,
+                "meanAbsDiff": 0.335545,
+                "milliseconds": 51
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 6220800,
+                  "exactSamples": 4104960,
+                  "within1Samples": 6220800,
+                  "within2Samples": 6220800,
+                  "meanAbsDiff": 0.340123,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "U",
+                  "samples": 1555200,
+                  "exactSamples": 1058400,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.319444,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "V",
+                  "samples": 1555200,
+                  "exactSamples": 1036800,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.333333,
+                  "maxAbsDiff": 1
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 272.37,
+                "render": 424.289,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 233.347,
+                "encode": 354.774,
+                "mux": 21.975,
+                "finalize": 177.185,
+                "totalProcess": 1461.965
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.6575102880658437,
+            "rgbMse": 1.967798353909465,
+            "rgbPsnrDb": 45.1909976792667,
+            "exactPercent": 78.00411522633745,
+            "within1Percent": 78.00411522633745,
+            "within2Percent": 78.24074074074075,
+            "maxAbsDiff": 3,
+            "globalLumaSsim": 0.9999151679667075,
+            "deltaEMean": 1.142301248693034,
+            "deltaEP95": 1.2705118363974826,
+            "deltaEMax": 1.2705118363974826
+          },
+          "qualityPass": true
+        }
+      },
+      "libyuvVsAreaDecoded": {
+        "frameCount": 5,
+        "rgbMeanAbsDiff": 0.7705761316872428,
+        "rgbMse": 1.205761316872428,
+        "rgbPsnrDb": 47.31819014112113,
+        "exactPercent": 44.70164609053498,
+        "within1Percent": 78.24074074074075,
+        "within2Percent": 100,
+        "maxAbsDiff": 2,
+        "globalLumaSsim": 0.9997301947309136,
+        "deltaEMean": 0.7823233762961529,
+        "deltaEP95": 0.847324265143475,
+        "deltaEMax": 0.847324265143475
+      },
+      "libyuvNativeParity": {
+        "reference": "libswscale-area",
+        "within1Percent": 100,
+        "maxAbsDiff": 1,
+        "samples": 9331200,
+        "pass": true
+      },
+      "libyuvParityPass": true
+    },
+    "stride": {
+      "png": {
+        "pass": true,
+        "errors": [],
+        "samples": [
+          {
+            "x": 260,
+            "y": 330,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 720,
+            "y": 330,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ]
+          },
+          {
+            "x": 1180,
+            "y": 330,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1640,
+            "y": 330,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ]
+          },
+          {
+            "x": 260,
+            "y": 750,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 720,
+            "y": 750,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ]
+          },
+          {
+            "x": 1180,
+            "y": 750,
+            "rgba": [
+              255,
+              0,
+              0,
+              255
+            ]
+          },
+          {
+            "x": 1640,
+            "y": 750,
+            "rgba": [
+              0,
+              0,
+              255,
+              255
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "libswscale-bilinear": {
+          "fileBytes": 114540,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-stride",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "bilinear",
+            "compareColor": false,
+            "colorSuiteTest": "stride",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 370671,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 370650,
+            "protocolCommandCount": 3000,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 1350,
+              "drawShape": 1350,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 2471,
+            "protocolMaxFrameBytes": 2471,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/stride/libswscale-bilinear.mp4",
+            "outputBytes": 114540,
+            "outputSha256": "bb430fa6641c1bc760be5e50b940c0708fe3131be4d71236674052d5bf93d277",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "95331345",
+              "frameMid": "95331345",
+              "frameLast": "95331345"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1706.6514439999999,
+              "protocolEncode": 15.623522000000321,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 20.542323000000295,
+              "evaluate": 31.564337999999566,
+              "nativeProcess": 1598.007,
+              "nativeProtocolOverhead": 60.236,
+              "nativeRender": 452.134,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 229.912,
+              "colorConvert": 831.473,
+              "mux": 15.978,
+              "finalize": 24.252,
+              "ffmpegPipeline": 1706.644143
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "b16e1c75",
+                "frameMid": "b16e1c75",
+                "frameLast": "b16e1c75"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "95331345",
+                "frameMid": "95331345",
+                "frameLast": "95331345"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 60.236,
+                "render": 452.134,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 831.473,
+                "encode": 229.912,
+                "mux": 15.978,
+                "finalize": 24.252,
+                "totalProcess": 1598.007
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.8747595164609053,
+            "rgbMse": 5.76602109053498,
+            "rgbPsnrDb": 40.52204134281866,
+            "exactPercent": 28.01929012345679,
+            "within1Percent": 98.82619598765432,
+            "within2Percent": 98.87557870370371,
+            "maxAbsDiff": 135,
+            "globalLumaSsim": 0.9994248225071947,
+            "deltaEMean": 0.3981154502828709,
+            "deltaEP95": 0.42318757125400763,
+            "deltaEMax": 0.42318757125400763
+          },
+          "qualityPass": true
+        },
+        "libswscale-area": {
+          "fileBytes": 113868,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-stride",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "swscale",
+            "swsFilter": "area",
+            "compareColor": false,
+            "colorSuiteTest": "stride",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 370671,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 370650,
+            "protocolCommandCount": 3000,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 1350,
+              "drawShape": 1350,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 2471,
+            "protocolMaxFrameBytes": 2471,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/stride/libswscale-area.mp4",
+            "outputBytes": 113868,
+            "outputSha256": "ddbe4b170daf9de6467fbe94392b9b65f5a3a471f6404f06edc8f82c002a9db8",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "4af01c55",
+              "frameMid": "4af01c55",
+              "frameLast": "4af01c55"
+            },
+            "colorComparison": {
+              "enabled": false,
+              "referenceConverter": "libswscale",
+              "samples": 0,
+              "exactSamples": 0,
+              "within1Samples": 0,
+              "within2Samples": 0,
+              "maxAbsDiff": 0,
+              "meanAbsDiff": 0,
+              "milliseconds": 0
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1665.879587,
+              "protocolEncode": 15.813971999999978,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 23.801276000000144,
+              "evaluate": 31.768758999999932,
+              "nativeProcess": 1560.644,
+              "nativeProtocolOverhead": 55.647,
+              "nativeRender": 458.338,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 191.261,
+              "colorConvert": 825.614,
+              "mux": 21.667,
+              "finalize": 29.784,
+              "ffmpegPipeline": 1665.869686
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libswscale",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "b16e1c75",
+                "frameMid": "b16e1c75",
+                "frameLast": "b16e1c75"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "4af01c55",
+                "frameMid": "4af01c55",
+                "frameLast": "4af01c55"
+              },
+              "colorComparison": {
+                "enabled": false,
+                "referenceConverter": "libswscale",
+                "samples": 0,
+                "exactSamples": 0,
+                "within1Samples": 0,
+                "within2Samples": 0,
+                "maxAbsDiff": 0,
+                "meanAbsDiff": 0,
+                "milliseconds": 0
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "U",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                },
+                {
+                  "plane": "V",
+                  "samples": 0,
+                  "exactSamples": 0,
+                  "within1Samples": 0,
+                  "within2Samples": 0,
+                  "meanAbsDiff": 0,
+                  "maxAbsDiff": 0
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 55.647,
+                "render": 458.338,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 825.614,
+                "encode": 191.261,
+                "mux": 21.667,
+                "finalize": 29.784,
+                "totalProcess": 1560.644
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.8561844135802469,
+            "rgbMse": 6.4075784465020575,
+            "rgbPsnrDb": 40.063864290121096,
+            "exactPercent": 28.205632716049383,
+            "within1Percent": 99.17907664609054,
+            "within2Percent": 99.18447788065843,
+            "maxAbsDiff": 141,
+            "globalLumaSsim": 0.9995096979871596,
+            "deltaEMean": 0.3981154502828709,
+            "deltaEP95": 0.42318757125400763,
+            "deltaEMax": 0.42318757125400763
+          },
+          "qualityPass": true
+        },
+        "libyuv": {
+          "fileBytes": 113712,
+          "metadata": {
+            "programs": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "pix_fmt": "yuv420p",
+                "color_range": "tv",
+                "color_space": "bt709",
+                "color_transfer": "bt709",
+                "color_primaries": "bt709",
+                "chroma_location": "left",
+                "r_frame_rate": "30/1",
+                "duration": "4.966667",
+                "nb_frames": "150"
+              }
+            ]
+          },
+          "metadataContract": {
+            "pass": true,
+            "errors": []
+          },
+          "nativeMetrics": {
+            "benchmark": "native-skia-command-buffer-cpu-cloud-run",
+            "projectId": "native-color-suite-stride",
+            "requestedBackend": "skia-cpu-command-buffer",
+            "actualBackend": "skia-native-raster",
+            "softwareRenderer": true,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "frames": 150,
+            "durationSeconds": 5,
+            "benchmarkMode": "in-process",
+            "colorConverter": "libyuv",
+            "swsFilter": "area",
+            "compareColor": true,
+            "colorSuiteTest": "stride",
+            "surfaceMode": "direct-raster",
+            "benchmarkScene": "color-suite",
+            "protocolTransport": "file",
+            "protocolBatchFrames": 1,
+            "protocolBytes": 370671,
+            "protocolWrites": 152,
+            "protocolFrameBytes": 370650,
+            "protocolCommandCount": 3000,
+            "protocolCommandCounts": {
+              "beginFrame": 150,
+              "setTransform": 1350,
+              "drawShape": 1350,
+              "endFrame": 150
+            },
+            "protocolMinFrameBytes": 2471,
+            "protocolMaxFrameBytes": 2471,
+            "outputPath": "/app/tmp/mp4-color-suite-5s-lossless-v3/stride/libyuv.mp4",
+            "outputBytes": 113712,
+            "outputSha256": "fd8d5119479483849d42a38048d03568e693da345ccfda6f89627fd69e03412b",
+            "libyuvRevision": "2dd4257364d39c38d79465c4ddc4b93137fe729b",
+            "yuvSampleHashFnv1a32": {
+              "frame0": "2bed2b65",
+              "frameMid": "2bed2b65",
+              "frameLast": "2bed2b65"
+            },
+            "colorComparison": {
+              "enabled": true,
+              "referenceConverter": "libswscale",
+              "samples": 9331200,
+              "exactSamples": 5104320,
+              "within1Samples": 9331200,
+              "within2Samples": 9331200,
+              "maxAbsDiff": 1,
+              "meanAbsDiff": 0.452984,
+              "milliseconds": 45.843
+            },
+            "rawPath": null,
+            "rawBytes": 0,
+            "timingsMs": {
+              "applicationWall": 1223.3110379999998,
+              "protocolEncode": 17.335630000000435,
+              "protocolBackpressure": 0,
+              "protocolFileWrite": 24.658803999999975,
+              "evaluate": 35.625001000000395,
+              "nativeProcess": 1110.055,
+              "nativeProtocolOverhead": 105.084,
+              "nativeRender": 575.174,
+              "nativeComposite": 0,
+              "nativeReadback": 0,
+              "nativeRawWrite": 0,
+              "encode": 246.019,
+              "colorConvert": 159.412,
+              "mux": 16.38,
+              "finalize": 24.366,
+              "ffmpegPipeline": 1223.303738
+            },
+            "nativeMetrics": {
+              "ok": true,
+              "requestedBackend": "skia-cpu-command-buffer",
+              "actualBackend": "skia-native-raster",
+              "surfaceKind": "raster-direct",
+              "surfaceMode": "direct-raster",
+              "softwareRenderer": true,
+              "inProcessEncoding": true,
+              "colorConverter": "libyuv",
+              "surfaceAlphaType": "opaque",
+              "surfaceColorSpace": "srgb",
+              "videoColorSpace": "bt709",
+              "videoColorRange": "limited",
+              "alphaSamplesOpaque": true,
+              "width": 1920,
+              "height": 1080,
+              "frames": 150,
+              "bytesWritten": 0,
+              "rawSampleHashFnv1a32": {
+                "frame0": "b16e1c75",
+                "frameMid": "b16e1c75",
+                "frameLast": "b16e1c75"
+              },
+              "yuvSampleHashFnv1a32": {
+                "frame0": "2bed2b65",
+                "frameMid": "2bed2b65",
+                "frameLast": "2bed2b65"
+              },
+              "colorComparison": {
+                "enabled": true,
+                "referenceConverter": "libswscale",
+                "samples": 9331200,
+                "exactSamples": 5104320,
+                "within1Samples": 9331200,
+                "within2Samples": 9331200,
+                "maxAbsDiff": 1,
+                "meanAbsDiff": 0.452984,
+                "milliseconds": 45.843
+              },
+              "colorComparisonByPlane": [
+                {
+                  "plane": "Y",
+                  "samples": 6220800,
+                  "exactSamples": 2647668,
+                  "within1Samples": 6220800,
+                  "within2Samples": 6220800,
+                  "meanAbsDiff": 0.574385,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "U",
+                  "samples": 1555200,
+                  "exactSamples": 1224648,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.212546,
+                  "maxAbsDiff": 1
+                },
+                {
+                  "plane": "V",
+                  "samples": 1555200,
+                  "exactSamples": 1232004,
+                  "within1Samples": 1555200,
+                  "within2Samples": 1555200,
+                  "meanAbsDiff": 0.207816,
+                  "maxAbsDiff": 1
+                }
+              ],
+              "timingsMs": {
+                "protocolOverhead": 105.084,
+                "render": 575.174,
+                "composite": 0,
+                "readback": 0,
+                "rawWrite": 0,
+                "colorConvert": 159.412,
+                "encode": 246.019,
+                "mux": 16.38,
+                "finalize": 24.366,
+                "totalProcess": 1110.055
+              }
+            }
+          },
+          "sourceComparison": {
+            "frameCount": 1,
+            "rgbMeanAbsDiff": 0.5555414094650206,
+            "rgbMse": 7.276642232510288,
+            "rgbPsnrDb": 39.51149338188617,
+            "exactPercent": 85.63586676954732,
+            "within1Percent": 85.65972222222223,
+            "within2Percent": 85.66615226337449,
+            "maxAbsDiff": 143,
+            "globalLumaSsim": 0.9997077689621793,
+            "deltaEMean": 1.1952392418762627,
+            "deltaEP95": 1.2705118363974826,
+            "deltaEMax": 1.2705118363974826
+          },
+          "qualityPass": true
+        }
+      },
+      "libyuvVsAreaDecoded": {
+        "frameCount": 5,
+        "rgbMeanAbsDiff": 0.8514313271604939,
+        "rgbMse": 1.1284336419753087,
+        "rgbPsnrDb": 47.60604335576674,
+        "exactPercent": 28.70531121399177,
+        "within1Percent": 86.15322788065843,
+        "within2Percent": 99.99832818930041,
+        "maxAbsDiff": 3,
+        "globalLumaSsim": 0.9996505550569303,
+        "deltaEMean": 0.7971237915933918,
+        "deltaEP95": 0.847324265143475,
+        "deltaEMax": 0.847324265143475
+      },
+      "libyuvNativeParity": {
+        "reference": "libswscale-area",
+        "within1Percent": 100,
+        "maxAbsDiff": 1,
+        "samples": 9331200,
+        "pass": true
+      },
+      "libyuvParityPass": true
+    }
+  },
+  "qualityPass": true,
+  "parityPass": true,
+  "pass": true
+}
