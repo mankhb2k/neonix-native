@@ -6,6 +6,47 @@ import { useState, type FormEvent } from "react";
 import { APP_NAME } from "@/lib/app-config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+function normalizedNextPath(nextPath?: string) {
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return "/dashboard";
+  }
+  if (nextPath === "/app/editor" || nextPath.startsWith("/app/editor/")) {
+    return nextPath.slice("/app".length);
+  }
+  if (nextPath === "/app/preview" || nextPath.startsWith("/app/preview/")) {
+    return nextPath.slice("/app".length);
+  }
+  return nextPath;
+}
+
+function isWorkspacePath(pathname: string) {
+  return pathname.startsWith("/editor/") || pathname.startsWith("/preview/");
+}
+
+function getPostAuthDestination(nextPath?: string) {
+  const pathname = normalizedNextPath(nextPath);
+  if (!isWorkspacePath(pathname)) return pathname;
+
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const currentHost = window.location.hostname;
+  if (appOrigin && !currentHost.startsWith("app.")) {
+    return new URL(pathname, appOrigin).toString();
+  }
+  return pathname;
+}
+
+function getAuthCallbackUrl(nextPath?: string) {
+  const pathname = normalizedNextPath(nextPath);
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const callbackOrigin =
+    isWorkspacePath(pathname) && appOrigin && !window.location.hostname.startsWith("app.")
+      ? appOrigin
+      : window.location.origin;
+  const redirectTo = new URL("/api/auth/callback", callbackOrigin);
+  redirectTo.searchParams.set("next", pathname);
+  return redirectTo;
+}
+
 export function LoginForm({
   mode,
   error: initialError,
@@ -28,8 +69,7 @@ export function LoginForm({
     setMessage(null);
 
     try {
-      const redirectTo = new URL("/api/auth/callback", window.location.origin);
-      redirectTo.searchParams.set("next", nextPath || "/dashboard");
+      const redirectTo = getAuthCallbackUrl(nextPath);
 
       const supabase = createSupabaseBrowserClient();
       const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -66,8 +106,7 @@ export function LoginForm({
     let result;
     try {
       const supabase = createSupabaseBrowserClient();
-      const redirectTo = new URL("/api/auth/callback", window.location.origin);
-      redirectTo.searchParams.set("next", nextPath || "/dashboard");
+      const redirectTo = getAuthCallbackUrl(nextPath);
 
       result = isRegister
         ? await supabase.auth.signUp({
@@ -94,13 +133,13 @@ export function LoginForm({
       return;
     }
 
-    window.location.assign(nextPath || "/dashboard");
+    window.location.assign(getPostAuthDestination(nextPath));
   }
 
   const isRegister = mode === "register";
   const switchHref = isRegister ? "/login" : "/register";
   const switchUrl = nextPath
-    ? `${switchHref}?next=${encodeURIComponent(nextPath)}`
+    ? `${switchHref}?next=${encodeURIComponent(normalizedNextPath(nextPath))}`
     : switchHref;
 
   return (
