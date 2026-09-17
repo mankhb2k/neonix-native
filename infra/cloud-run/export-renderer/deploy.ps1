@@ -162,4 +162,20 @@ $jobSecrets = @(
   --set-secrets=$jobSecrets `
   --project=$ProjectId 2>&1 | Out-Host
 
+# The control-plane service starts jobs with a per-job RENDER_JOB_ID override.
+# Keep both executor bindings in deployment automation; without the override
+# role the queue consumer can leave render_jobs stuck in queued state.
+foreach ($jobToAuthorize in @($JobName, $ChunkJobName, $FinalizerJobName)) {
+  & $gcloudCommand run jobs add-iam-policy-binding $jobToAuthorize `
+    --region=$Region `
+    --member="serviceAccount:$RuntimeServiceAccount" `
+    --role="roles/run.jobsExecutor" `
+    --project=$ProjectId 2>&1 | Out-Host
+  & $gcloudCommand run jobs add-iam-policy-binding $jobToAuthorize `
+    --region=$Region `
+    --member="serviceAccount:$RuntimeServiceAccount" `
+    --role="roles/run.jobsExecutorWithOverrides" `
+    --project=$ProjectId 2>&1 | Out-Host
+}
+
 Write-Host "Deployed Service=$ServiceName and Jobs=$JobName,$ChunkJobName,$FinalizerJobName using $immutableImage"

@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { MCP_CLIENTS, MCP_ENDPOINT, type McpClient, type McpClientSlug } from "@/lib/mcp/clients";
@@ -39,17 +40,14 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 function ClientCard({ client }: { client: McpClient }) {
-  const Icon = client.Icon;
-
   return (
     <article className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-[0_14px_35px_rgba(8,126,139,0.1)]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <span
             className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]"
-            style={{ color: client.accent }}
           >
-            <Icon className="h-5 w-5" />
+            <Image src={client.logoSrc} alt={`${client.name} logo`} width={26} height={26} className="h-6 w-6 object-contain" />
           </span>
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-[var(--fg-primary)]">
@@ -277,8 +275,6 @@ export function McpClientPage({ slug }: { slug: McpClientSlug }) {
   const client = MCP_CLIENTS.find((entry) => entry.slug === slug);
   if (!client) return null;
 
-  const Icon = client.Icon;
-
   return (
     <main className="min-h-screen bg-[var(--bg-site)] text-[var(--fg-primary)]">
       <section className="mx-auto max-w-[1100px] px-6 pb-20 pt-16 sm:pb-28 sm:pt-24">
@@ -295,9 +291,8 @@ export function McpClientPage({ slug }: { slug: McpClientSlug }) {
             <div className="flex items-center gap-3">
               <span
                 className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-elevated)] shadow-sm"
-                style={{ color: client.accent }}
               >
-                <Icon className="h-6 w-6" />
+                <Image src={client.logoSrc} alt={`${client.name} logo`} width={32} height={32} className="h-7 w-7 object-contain" />
               </span>
               <p className="font-mono text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent-text)]">
                 {client.name} / MCP

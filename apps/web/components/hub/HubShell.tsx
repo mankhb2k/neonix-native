@@ -14,6 +14,8 @@ type ProjectCardData = {
   accent: string;
 };
 
+const FREE_PROJECT_LIMIT = 10;
+
 const fallbackProjects: ProjectCardData[] = [
   {
     title: "Three Kingdoms",
@@ -142,7 +144,7 @@ export async function HubShell() {
               </button>
               <span className="ml-auto flex items-center gap-2 text-caption text-[var(--fg-disabled)]">
                 <FolderKanban className="size-3.5" />
-                {projects.length}/5 projects
+                {projects.length}/{FREE_PROJECT_LIMIT} projects
               </span>
             </div>
 

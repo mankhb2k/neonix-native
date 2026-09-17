@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUpRight, Check, Copy, Link2, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Link2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { dashboardHref } from "@/components/AppLink";
@@ -51,17 +52,20 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 function ProviderCard({ client }: { client: McpClient }) {
-  const Icon: LucideIcon = client.Icon;
-
   return (
     <article className="flex min-w-0 flex-col rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span
             className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--hub-content-bg)]"
-            style={{ color: client.accent }}
           >
-            <Icon className="size-5" />
+            <Image
+              src={client.logoSrc}
+              alt={`${client.name} logo`}
+              width={26}
+              height={26}
+              className="size-6 object-contain"
+            />
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-[var(--fg-primary)]">{client.name}</h2>
