@@ -331,6 +331,19 @@ export async function getRenderJob(
 }
 
 export async function listRenderJobs(): Promise<PersistentRenderJob[]> {
+  const databaseClient = createRenderDatabaseClient();
+
+  // Vercel's deployed function filesystem is read-only. Production jobs are
+  // database-backed, so do not touch the local render-job directory there.
+  if (databaseClient && process.env.NODE_ENV === "production") {
+    const result = await databaseClient
+      .from("render_jobs")
+      .select(SUPABASE_RENDER_JOB_COLUMNS)
+      .order("created_at", { ascending: false });
+    if (result.error) throw new Error(`Unable to list render jobs: ${result.error.message}`);
+    return (result.data ?? []).map(fromSupabaseRow);
+  }
+
   await mkdir(renderJobsRootDir(), { recursive: true });
   const files = await readdir(renderJobsRootDir());
   const jobs: PersistentRenderJob[] = [];
@@ -339,9 +352,8 @@ export async function listRenderJobs(): Promise<PersistentRenderJob[]> {
     const job = await getRenderJob(file.replace(/\.json$/, ""));
     if (job) jobs.push(job);
   }
-  const client = createRenderDatabaseClient();
-  if (!client) return jobs;
-  const result = await client.from("render_jobs").select(SUPABASE_RENDER_JOB_COLUMNS).order("created_at", { ascending: false });
+  if (!databaseClient) return jobs;
+  const result = await databaseClient.from("render_jobs").select(SUPABASE_RENDER_JOB_COLUMNS).order("created_at", { ascending: false });
   if (result.error) return jobs;
   const byId = new Map(jobs.map((job) => [job.jobId, job]));
   for (const row of result.data ?? []) {

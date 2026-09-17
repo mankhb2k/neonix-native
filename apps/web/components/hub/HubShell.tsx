@@ -2,22 +2,15 @@ import { FolderKanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { dashboardHref } from "@/components/AppLink";
 import { HubFrame } from "@/components/hub/HubFrame";
+import { ProjectGrid, type ProjectCardData } from "@/components/hub/ProjectGrid";
 import { listProjects } from "@/lib/editor/document/project-repository";
 import { appUrl } from "@/lib/hosts";
-
-type ProjectCardData = {
-  title: string;
-  href: string;
-  layers: string;
-  duration: string;
-  updated: string;
-  accent: string;
-};
 
 const FREE_PROJECT_LIMIT = 10;
 
 const fallbackProjects: ProjectCardData[] = [
   {
+    projectId: "three-kingdoms",
     title: "Three Kingdoms",
     href: "/editor/three-kingdoms",
     layers: "14 layers",
@@ -26,6 +19,7 @@ const fallbackProjects: ProjectCardData[] = [
     accent: "from-cyan-400/25 via-slate-900 to-violet-500/20",
   },
   {
+    projectId: "shape",
     title: "Shape composition",
     href: "/editor/shape",
     layers: "1 layer",
@@ -34,6 +28,7 @@ const fallbackProjects: ProjectCardData[] = [
     accent: "from-cyan-300/20 via-slate-900 to-slate-900",
   },
   {
+    projectId: "overlap",
     title: "Overlap study",
     href: "/editor/overlap",
     layers: "2 layers",
@@ -42,6 +37,7 @@ const fallbackProjects: ProjectCardData[] = [
     accent: "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
   },
   {
+    projectId: "timeline",
     title: "Timeline prototype",
     href: "/editor/timeline",
     layers: "6 layers",
@@ -51,7 +47,7 @@ const fallbackProjects: ProjectCardData[] = [
   },
 ];
 
-function ProjectCard({ project }: { project: ProjectCardData }) {
+function _LegacyProjectCard({ project }: { project: ProjectCardData }) {
   return (
     <a
       href={appUrl(project.href)}
@@ -87,6 +83,7 @@ export async function HubShell() {
     const rows = await listProjects(50);
     if (rows.length > 0) {
       projects = rows.map((project, index) => ({
+        projectId: project.projectId,
         title: project.title,
         href: `/editor/${project.projectId}`,
         layers: `${project.layerCount} ${project.layerCount === 1 ? "layer" : "layers"}`,
@@ -148,11 +145,7 @@ export async function HubShell() {
               </span>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {projects.map((project) => (
-                <ProjectCard key={project.title} project={project} />
-              ))}
-            </div>
+            <ProjectGrid projects={projects} />
     </HubFrame>
   );
 }

@@ -7,21 +7,29 @@ import { dashboardHref } from "@/components/AppLink";
 
 type ViewMode = "list" | "grid";
 
-type ExportJob = { jobId: string; projectId: string; status: string; progress: number; stage?: string; error?: string; metrics?: { outputSizeInBytes?: number; displayCost?: number; estimatedBillingDurationInMilliseconds?: number }; createdAt: number; };
+type ExportJob = { jobId: string; projectId: string; status: string; progress: number; stage?: string; error?: string; artifactPath?: string; outputKey?: string; metrics?: { outputSizeInBytes?: number; displayCost?: number; estimatedBillingDurationInMilliseconds?: number }; createdAt: number; };
 
 export function ExportsWorkspace() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [jobs, setJobs] = useState<ExportJob[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const response = await globalThis.fetch("/api/v1/renders", { headers: { "x-user-id": "web-editor" }, cache: "no-store" });
-      if (!response.ok) return;
+      const response = await globalThis.fetch("/api/v1/renders", { cache: "no-store" });
+      if (!response.ok) {
+        if (active) setLoadError(`Unable to load exports (${response.status})`);
+        return;
+      }
       const data = await response.json() as { jobs?: ExportJob[] };
-      if (active) setJobs(data.jobs ?? []);
+      if (active) {
+        setLoadError(null);
+        setJobs(data.jobs ?? []);
+      }
     };
     void load();
     const timer = window.setInterval(() => void load(), 5000);
@@ -117,6 +125,10 @@ export function ExportsWorkspace() {
         </div>
       </div>
 
+      {loadError ? (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{loadError}</div>
+      ) : null}
+
       {visibleJobs.length > 0 ? (
         <div className="mt-6 space-y-2">
           {visibleJobs.map((job) => (
@@ -125,9 +137,32 @@ export function ExportsWorkspace() {
                 <p className="m-0 text-body font-semibold text-[var(--fg-primary)]">{job.projectId}</p>
                 <p className="mt-1 m-0 text-caption text-[var(--fg-muted)]">{job.jobId} · {job.stage ?? job.status}</p>
               </div>
-              <div className="text-right text-caption text-[var(--fg-muted)]">
+              <div className="flex items-center justify-end gap-4 text-right text-caption text-[var(--fg-muted)]">
                 <p className="m-0 font-medium text-[var(--fg-primary)]">{job.status} · {Math.round(job.progress * 100)}%</p>
                 <p className="mt-1 m-0">{job.metrics?.outputSizeInBytes ? `${Math.round(job.metrics.outputSizeInBytes / 1024 / 1024 * 100) / 100} MB` : "Awaiting metrics"}</p>
+                {job.status === "done" ? (
+                  <button
+                    type="button"
+                    disabled={downloadingJobId === job.jobId}
+                    className="rounded-lg border border-[var(--hub-border)] px-3 py-2 text-body font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)] disabled:opacity-60"
+                    onClick={async () => {
+                      setDownloadingJobId(job.jobId);
+                      try {
+                        const response = await fetch(`/api/v1/renders/${encodeURIComponent(job.jobId)}/download`, { cache: "no-store" });
+                        if (!response.ok) throw new Error(`Download unavailable (${response.status})`);
+                        const data = await response.json() as { url?: string };
+                        if (!data.url) throw new Error("Download URL is missing");
+                        window.location.assign(data.url);
+                      } catch (error) {
+                        setLoadError(error instanceof Error ? error.message : "Download failed");
+                      } finally {
+                        setDownloadingJobId(null);
+                      }
+                    }}
+                  >
+                    {downloadingJobId === job.jobId ? "Preparing…" : "Download"}
+                  </button>
+                ) : null}
               </div>
             </div>
           ))}

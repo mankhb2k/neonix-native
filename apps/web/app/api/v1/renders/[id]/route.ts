@@ -8,7 +8,8 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: Ctx) {
   const { id } = await context.params;
-  const userId = resolveRequestUserId(request);
+  const userId = await resolveRequestUserId(request);
+  if (!userId) return NextResponse.json({ error: "authentication_required" }, { status: 401 });
   const job = await getRenderJob(id);
   if (!job) return NextResponse.json({ error: "not_found" }, { status: 404 });
   try { assertJobOwner(job, userId); } catch { return NextResponse.json({ error: "forbidden" }, { status: 403 }); }
@@ -18,7 +19,8 @@ export async function GET(request: Request, context: Ctx) {
 
 export async function DELETE(request: Request, context: Ctx) {
   const { id } = await context.params;
-  const userId = resolveRequestUserId(request);
+  const userId = await resolveRequestUserId(request);
+  if (!userId) return NextResponse.json({ error: "authentication_required" }, { status: 401 });
   const job = await getRenderJob(id);
   if (!job) return NextResponse.json({ error: "not_found" }, { status: 404 });
   try { assertJobOwner(job, userId); } catch { return NextResponse.json({ error: "forbidden" }, { status: 403 }); }
@@ -27,5 +29,4 @@ export async function DELETE(request: Request, context: Ctx) {
   const updated = await getRenderJob(id);
   return NextResponse.json({ jobId: id, status: updated?.status ?? "cancelled" });
 }
-
 

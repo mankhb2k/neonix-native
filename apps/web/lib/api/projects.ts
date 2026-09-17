@@ -55,3 +55,14 @@ export async function attachProjectAsset(input: {
     throw new Error(message || "Unable to attach asset to project");
   }
 }
+
+export async function removeProject(projectId: string): Promise<void> {
+  const response = await fetch(`/api/v1/projects/${encodeURIComponent(projectId)}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  if (response.ok) return;
+
+  const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+  throw new Error(body?.error?.message ?? `Unable to remove project (${response.status})`);
+}

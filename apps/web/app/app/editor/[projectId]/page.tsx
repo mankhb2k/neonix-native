@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { EditorShell } from "@/components/editor/EditorShell";
 import {
   createV2EditorProject,
@@ -9,6 +10,7 @@ import {
   ProjectRepositoryError,
 } from "@/lib/editor/document/project-repository";
 import { getCurrentUser } from "@/lib/supabase/server";
+import { getHostname, isAppHost } from "@/lib/hosts";
 
 export default async function EditorPage({
   params,
@@ -22,7 +24,11 @@ export default async function EditorPage({
 
   const user = await getCurrentUser();
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/app/editor/${projectId}`)}`);
+    const host = getHostname((await headers()).get("host"));
+    const publicEditorPath = isAppHost(host)
+      ? `/editor/${projectId}`
+      : `/app/editor/${projectId}`;
+    redirect(`/login?next=${encodeURIComponent(publicEditorPath)}`);
   }
 
   try {

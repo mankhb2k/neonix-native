@@ -15,7 +15,6 @@ export async function exportMotionProject(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": "web-editor",
     },
     body: JSON.stringify({
       projectId: project.id,

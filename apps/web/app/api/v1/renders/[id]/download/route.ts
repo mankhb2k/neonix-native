@@ -10,7 +10,8 @@ const DOWNLOAD_TTL_SECONDS = 60;
 
 export async function GET(request: Request, context: Ctx) {
   const { id } = await context.params;
-  const userId = resolveRequestUserId(request);
+  const userId = await resolveRequestUserId(request);
+  if (!userId) return NextResponse.json({ error: "authentication_required" }, { status: 401 });
   const job = await getRenderJob(id);
   if (!job) return NextResponse.json({ error: "not_found" }, { status: 404 });
   try { assertJobOwner(job, userId); } catch { return NextResponse.json({ error: "forbidden" }, { status: 403 }); }
@@ -27,5 +28,4 @@ export async function GET(request: Request, context: Ctx) {
     : `/api/v1/renders/${refreshed.jobId}/download?token=${token}&expires=${expiresAt}`;
   return NextResponse.json({ url, expiresAt, ttlSeconds: DOWNLOAD_TTL_SECONDS });
 }
-
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getProjectAccess, getProtocolRevision } from "@/lib/server/projects/repository";
 import { buildStubRuntimeProjectV3 } from "@/lib/server/render/build-manifest";
 import { startRenderOnWorker, syncRenderJob } from "@/lib/server/render/export-worker";
 import {
@@ -14,6 +15,7 @@ import {
 import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-runtime";
 import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
 import { validateProjectVideoDurations } from "@/lib/server/render/source-duration";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   CreateRenderJobRequestSchema,
   isRenderPresetId,
@@ -44,7 +46,8 @@ function responseJob(job: Awaited<ReturnType<typeof listRenderJobs>>[number]) {
 }
 
 export async function GET(request: Request) {
-  const userId = resolveRequestUserId(request);
+  const userId = await resolveRequestUserId(request);
+  if (!userId) return NextResponse.json({ error: "authentication_required" }, { status: 401 });
   const jobs = await listRenderJobs();
   const owned = jobs.filter((job) => job.userId === userId);
   const refreshed = await Promise.all(owned.map((job) => syncRenderJob(job)));
@@ -55,7 +58,8 @@ export async function POST(request: Request) {
   if (productionQueueIsMisconfigured()) {
     return NextResponse.json({ error: "render_queue_required", detail: "Production render entrypoints require Supabase PGMQ." }, { status: 503 });
   }
-  const userId = resolveRequestUserId(request);
+  const userId = await resolveRequestUserId(request);
+  if (!userId) return NextResponse.json({ error: "authentication_required" }, { status: 401 });
   const body = CreateRenderJobRequestSchema.parse(await request.json());
   const presetRaw = body.preset ?? "export-1080p";
   if (!isRenderPresetId(presetRaw)) return NextResponse.json({ error: "invalid_preset" }, { status: 400 });
@@ -72,7 +76,25 @@ export async function POST(request: Request) {
     runtime = buildStubRuntimeProjectV3({ projectId: body.projectId, preset: presetRaw });
   }
   const idempotencyKey = buildIdempotencyKey({ userId, projectId: body.projectId, projectRevision, preset: presetRaw, clientKey: body.idempotencyKey });
-  const { job, created } = await createRenderJob({ userId, projectId: body.projectId, projectRevision, idempotencyKey });
+  let database: Parameters<typeof createRenderJob>[0]["database"];
+  if (process.env.NODE_ENV === "production" || isRenderQueueEnabled()) {
+    try {
+      const client = await createSupabaseServerClient();
+      const access = await getProjectAccess(client, { userId }, { projectId: body.projectId });
+      const revisionNo = projectRevision > 0 ? projectRevision : access.project.currentRevisionNo;
+      const revision = await getProtocolRevision(client, { userId }, { projectId: access.project.id, revisionNo });
+      database = {
+        workspaceId: access.project.workspaceId,
+        revisionId: revision.revision.id,
+        preset: presetRaw,
+        runtime,
+      };
+    } catch (error) {
+      return NextResponse.json({ error: "render_persistence_failed", detail: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    }
+  }
+
+  const { job, created } = await createRenderJob({ userId, projectId: body.projectId, projectRevision, idempotencyKey, ...(database ? { database } : {}) });
   if (created) {
     try {
       if (isRenderQueueEnabled()) {
