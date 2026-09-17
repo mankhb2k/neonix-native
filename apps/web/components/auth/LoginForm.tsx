@@ -23,13 +23,22 @@ function isWorkspacePath(pathname: string) {
   return pathname.startsWith("/editor/") || pathname.startsWith("/preview/");
 }
 
+function isPreviewPath(pathname: string) {
+  return pathname.startsWith("/preview/");
+}
+
 function getPostAuthDestination(nextPath?: string) {
   const pathname = normalizedNextPath(nextPath);
   if (!isWorkspacePath(pathname)) return pathname;
 
-  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const appOrigin = isPreviewPath(pathname)
+    ? process.env.NEXT_PUBLIC_MARKETING_URL?.replace(/\/$/, "")
+    : process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   const currentHost = window.location.hostname;
-  if (appOrigin && !currentHost.startsWith("app.")) {
+  const isTargetHost = isPreviewPath(pathname)
+    ? !currentHost.endsWith("neonix.video") || currentHost.startsWith("app.")
+    : !currentHost.startsWith("app.");
+  if (appOrigin && isTargetHost) {
     return new URL(pathname, appOrigin).toString();
   }
   return pathname;
@@ -37,9 +46,14 @@ function getPostAuthDestination(nextPath?: string) {
 
 function getAuthCallbackUrl(nextPath?: string) {
   const pathname = normalizedNextPath(nextPath);
-  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const appOrigin = isPreviewPath(pathname)
+    ? process.env.NEXT_PUBLIC_MARKETING_URL?.replace(/\/$/, "")
+    : process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   const callbackOrigin =
-    isWorkspacePath(pathname) && appOrigin && !window.location.hostname.startsWith("app.")
+    isWorkspacePath(pathname) && appOrigin &&
+    (isPreviewPath(pathname)
+      ? window.location.hostname.startsWith("app.")
+      : !window.location.hostname.startsWith("app."))
       ? appOrigin
       : window.location.origin;
   const redirectTo = new URL("/api/auth/callback", callbackOrigin);

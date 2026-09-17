@@ -62,12 +62,11 @@ export function appUrl(path = "/"): string {
   return `${base}${p}`;
 }
 
-/** URL for the read-only project preview on the root route. */
+/** URL for the read-only project preview on the marketing domain. */
 export function previewUrl(path = "/"): string {
-  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const base = (configuredBase ?? "http://localhost:3000/app")
-    .replace(/\/app\/?$/, "")
-    .replace(/\/$/, "");
+  const base = (
+    process.env.NEXT_PUBLIC_MARKETING_URL ?? "http://localhost:3000"
+  ).replace(/\/$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return p === "/" ? base : `${base}${p}`;
 }

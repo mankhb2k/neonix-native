@@ -31,6 +31,10 @@ function isWorkspaceRoute(pathname: string): boolean {
   return pathname.startsWith("/editor/") || pathname.startsWith("/preview/");
 }
 
+function workspaceRouteOrigin(pathname: string): string {
+  return pathname.startsWith("/preview/") ? controlOrigin() : workspaceOrigin();
+}
+
 function removeInternalWorkspacePrefix(pathname: string): string {
   if (pathname === APP_ROUTE_PREFIX) return "/";
   return pathname.slice(APP_ROUTE_PREFIX.length) || "/";
@@ -72,7 +76,7 @@ export async function middleware(request: NextRequest) {
     ) {
       const cleanPath = removeInternalWorkspacePrefix(pathname);
       if (isWorkspaceRoute(cleanPath)) {
-        response = redirectTo(request, workspaceOrigin(), cleanPath);
+        response = redirectTo(request, workspaceRouteOrigin(cleanPath), cleanPath);
       } else {
         response = redirectTo(request, controlOrigin(), "/dashboard");
       }
@@ -86,7 +90,7 @@ export async function middleware(request: NextRequest) {
 
     if (isWorkspaceRoute(pathname)) {
       if (pathname.startsWith("/preview/")) {
-        response = NextResponse.next();
+        response = redirectTo(request, controlOrigin(), pathname);
         return updateSupabaseSession(request, response);
       }
       const url = request.nextUrl.clone();
@@ -108,7 +112,7 @@ export async function middleware(request: NextRequest) {
   ) {
     const cleanPath = removeInternalWorkspacePrefix(pathname);
     if (isWorkspaceRoute(cleanPath)) {
-      response = redirectTo(request, workspaceOrigin(), cleanPath);
+      response = redirectTo(request, workspaceRouteOrigin(cleanPath), cleanPath);
     } else if (cleanPath === "/") {
       response = redirectTo(request, controlOrigin(), "/dashboard");
     } else {

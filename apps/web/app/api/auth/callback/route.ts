@@ -21,6 +21,10 @@ function isWorkspacePath(pathname: string) {
   return pathname.startsWith("/editor/") || pathname.startsWith("/preview/");
 }
 
+function isPreviewPath(pathname: string) {
+  return pathname.startsWith("/preview/");
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -41,9 +45,11 @@ export async function GET(request: NextRequest) {
 
   // Workspace pages live on the isolated app host. This also protects the
   // return path when OAuth happens to finish on the marketing/www host.
-  const destinationOrigin = isWorkspacePath(nextPath)
-    ? process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || url.origin
-    : url.origin;
+  const destinationOrigin = isPreviewPath(nextPath)
+    ? process.env.NEXT_PUBLIC_MARKETING_URL?.replace(/\/$/, "") || url.origin
+    : isWorkspacePath(nextPath)
+      ? process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || url.origin
+      : url.origin;
 
   return NextResponse.redirect(new URL(nextPath, destinationOrigin));
 }
