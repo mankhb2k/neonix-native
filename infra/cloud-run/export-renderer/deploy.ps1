@@ -3,13 +3,16 @@ param(
   [string]$ProjectId,
   [string]$Region = "asia-southeast1",
   [string]$Repository = "neonix",
-  [string]$ImageName = "export-renderer",
+  [string]$ImageName = "skia-command-cpu-native",
+  [string]$Dockerfile = "infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile",
   [string]$ServiceName = "neonix-export-renderer",
   [string]$JobName = "neonix-render-job",
   [string]$ChunkJobName = "neonix-render-chunk-job",
   [string]$FinalizerJobName = "neonix-render-finalizer-job",
   [int]$ChunkTaskCapacity = 8,
   [int]$ChunkParallelism = 4,
+  [int]$RenderCpu = 4,
+  [string]$RenderMemory = "16Gi",
   [string]$GitSha,
   [switch]$Deploy,
   [string]$RuntimeServiceAccount,
@@ -29,6 +32,7 @@ if ($ChunkTaskCapacity -lt 1) { throw "ChunkTaskCapacity must be at least 1" }
 if ($ChunkParallelism -lt 1 -or $ChunkParallelism -gt $maxProductionChunkParallelism) {
   throw "ChunkParallelism must be between 1 and $maxProductionChunkParallelism for production"
 }
+if ($RenderCpu -lt 1) { throw "RenderCpu must be at least 1" }
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot "..\..\.."))
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
   $PSNativeCommandUseErrorActionPreference = $false
@@ -58,7 +62,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & $gcloudCommand auth configure-docker $registryHost --quiet 2>&1 | Out-Host
-docker build --platform linux/amd64 -f packages/export-renderer/Dockerfile -t $taggedImage .
+docker build --platform linux/amd64 -f $Dockerfile -t $taggedImage .
 docker push $taggedImage
 
 $digest = (& $gcloudCommand artifacts docker images describe $taggedImage --format="value(image_summary.digest)" --project=$ProjectId 2>&1 | Where-Object { $_ -match "^sha256:" } | Select-Object -First 1).Trim()
@@ -84,13 +88,15 @@ foreach ($entry in $required.GetEnumerator()) {
   if (-not $entry.Value) { throw "$($entry.Key) is required with -Deploy" }
 }
 
-$serviceEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,EXPORT_RENDERER_CONTROL_PLANE_ONLY=1,CLOUD_RUN_PROJECT_ID=$ProjectId,CLOUD_RUN_REGION=$Region,CLOUD_RUN_JOB_NAME=$JobName,CLOUD_RUN_CHUNK_JOB_NAME=$ChunkJobName,CLOUD_RUN_FINALIZER_JOB_NAME=$FinalizerJobName,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha"
+$serviceEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,EXPORT_RENDERER_CONTROL_PLANE_ONLY=1,CLOUD_RUN_PROJECT_ID=$ProjectId,CLOUD_RUN_REGION=$Region,CLOUD_RUN_JOB_NAME=$JobName,CLOUD_RUN_CHUNK_JOB_NAME=$ChunkJobName,CLOUD_RUN_FINALIZER_JOB_NAME=$FinalizerJobName,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha,NATIVE_SKIA_BINARY=/usr/local/bin/neonix-skia-command-cpu-backend,BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat,BENCHMARK_COLOR_CONVERTER=libyuv,BENCHMARK_SURFACE_MODE=direct-raster"
 & $gcloudCommand run deploy $ServiceName `
   --image=$immutableImage `
   --region=$Region `
   --platform=managed `
   --allow-unauthenticated `
   --service-account=$RuntimeServiceAccount `
+  --command=pnpm `
+  --args='--filter,@motionvideo/export-renderer,start' `
   --cpu=2 `
   --memory=4Gi `
   --concurrency=1 `
@@ -100,7 +106,7 @@ $serviceEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,EXPORT_RENDERER_CO
   --set-secrets="INTERNAL_WORKER_TOKEN=$InternalWorkerTokenSecret`:latest" `
   --project=$ProjectId 2>&1 | Out-Host
 
-$jobEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,R2_USER_ASSETS_BUCKET=$R2AssetsBucket,R2_USER_EXPORTS_BUCKET=$R2ExportsBucket,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha"
+$jobEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,R2_USER_ASSETS_BUCKET=$R2AssetsBucket,R2_USER_EXPORTS_BUCKET=$R2ExportsBucket,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha,NATIVE_SKIA_BINARY=/usr/local/bin/neonix-skia-command-cpu-backend,BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat,BENCHMARK_COLOR_CONVERTER=libyuv,BENCHMARK_SURFACE_MODE=direct-raster"
 $jobSecrets = @(
   "NEXT_PUBLIC_SUPABASE_URL=$SupabaseUrlSecret`:latest",
   "SUPABASE_SERVICE_ROLE_KEY=$SupabaseServiceRoleSecret`:latest",
@@ -115,8 +121,8 @@ $jobSecrets = @(
   --parallelism=1 `
   --max-retries=2 `
   --task-timeout=3600s `
-  --cpu=2 `
-  --memory=4Gi `
+  --cpu=$RenderCpu `
+  --memory=$RenderMemory `
   --service-account=$RuntimeServiceAccount `
   --command=pnpm `
   --args='--filter,@motionvideo/export-renderer,render:job' `
@@ -131,8 +137,8 @@ $jobSecrets = @(
   --parallelism=$ChunkParallelism `
   --max-retries=2 `
   --task-timeout=3600s `
-  --cpu=2 `
-  --memory=4Gi `
+  --cpu=$RenderCpu `
+  --memory=$RenderMemory `
   --service-account=$RuntimeServiceAccount `
   --command=pnpm `
   --args='--filter,@motionvideo/export-renderer,render:chunk-job' `
@@ -147,8 +153,8 @@ $jobSecrets = @(
   --parallelism=1 `
   --max-retries=2 `
   --task-timeout=3600s `
-  --cpu=2 `
-  --memory=4Gi `
+  --cpu=$RenderCpu `
+  --memory=$RenderMemory `
   --service-account=$RuntimeServiceAccount `
   --command=pnpm `
   --args='--filter,@motionvideo/export-renderer,render:finalizer-job' `

@@ -259,7 +259,7 @@ export function createExportRendererServer(options: {
   return createServer({ requestTimeout: 0, headersTimeout: 0 }, async (request, response) => {
     try {
       if (request.method === "GET" && ["/health", "/healthz", "/readyz"].includes(request.url ?? "")) {
-        json(response, 200, { ok: true, service: "export-renderer", renderer: "skia-wasm-ffmpeg" });
+        json(response, 200, { ok: true, service: "export-renderer", renderer: "skia-native-raster" });
         return;
       }
       const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);

@@ -31,8 +31,9 @@ Deploy by digest, not by `latest`.
 
 ## Native Skia CPU production worker
 
-The native command-buffer worker is now published separately from the
-CanvasKit-based export-renderer image:
+The native command-buffer worker is the production export image. CanvasKit is
+not part of the MP4 export path; it remains a browser preview dependency and a
+historical benchmark reference only:
 
 - Production image: `skia-command-cpu-bench:20260917-libyuv-production`
 - Production converter: pinned `libyuv` (`2dd4257364d39c38d79465c4ddc4b93137fe729b`)
@@ -47,11 +48,34 @@ links both converters for A/B and fallback tests. The immutable digests and
 Cloud Run smoke evidence are recorded in
 `docs/benchmark/libyuv-production-rollout-2026-09-17.md`.
 
-This native worker is currently the dedicated command-buffer benchmark/export
-job (`neonix-skia-command-cpu-bench-r4`). The default `deploy.ps1` application
-service/job still uses the general `packages/export-renderer/Dockerfile` and
-CanvasKit path; switching that broader RuntimeProjectV3 asset path requires a
-separate native protocol/asset-parity rollout.
+The default `deploy.ps1` build must use
+`infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile`, and the
+production `render:job`, chunk worker, and finalizer all invoke the same native
+export adapter. Do not set `RENDER_BACKEND` to select another renderer; there
+is no CanvasKit export fallback. Audio/video/image/effect manifests that are
+not yet supported by the native command protocol fail explicitly and remain
+outside the production acceptance set until parity is implemented.
+
+The native sandbox Job must use the native image and the same runtime secrets as
+the normal worker, but must have a distinct Job name. This keeps a failed
+native experiment from changing the production CanvasKit worker:
+
+```powershell
+gcloud run jobs create neonix-render-native-e2e `
+  --image <native-image-digest> `
+  --region asia-southeast1 `
+  --tasks 1 --parallelism 1 --cpu 4 --memory 16Gi `
+  --set-secrets NEXT_PUBLIC_SUPABASE_URL=neonix-supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=neonix-supabase-service-role:latest,R2_ACCOUNT_ID=neonix-r2-account-id:latest,R2_ACCESS_KEY_ID=neonix-r2-access-key:latest,R2_SECRET_ACCESS_KEY=neonix-r2-secret-key:latest
+
+gcloud run jobs execute neonix-render-native-e2e `
+  --region asia-southeast1 --update-env-vars RENDER_JOB_ID=<job-id>
+```
+
+The `<job-id>` must already exist in Supabase with an inline
+`runtime_json` for the 5-second visual-only fixture. The worker claims that
+row, renders the MP4 with native Skia/libyuv/in-process FFmpeg, verifies it,
+publishes it to R2, and updates the row. API/MCP creation and queue wake-up
+can be tested against the same row without changing the worker contract.
 
 The native command-buffer flow is:
 
@@ -66,10 +90,8 @@ RuntimeProjectV3
   -> verified artifact
 ```
 
-CanvasKit remains the browser preview backend. It is also the transitional
-Node export backend for the broader asset/audio path until the native worker
-supports the complete production manifest, font/image/video resources,
-effects, and audio finalization contract.
+CanvasKit remains the browser preview backend only. The native worker is the
+only MP4 source of truth.
 
 ## Runtime secrets
 
@@ -115,7 +137,8 @@ gcloud run jobs execute neonix-render-job --region asia-southeast1 `
 
 The Phase 5 slice additionally proves the chunk lifecycle RPCs, bounded
 indexed task submission, per-chunk R2 publication and finalizer path on a real
-60-second video-only E2E job. Keep `RENDER_CHUNK_EXECUTION_ENABLED=false` in
+60-second video-only E2E job. Native chunk export remains sequential at the
+renderer adapter until segment parity is completed. Keep `RENDER_CHUNK_EXECUTION_ENABLED=false` in
 the application queue worker until the repeated Phase 6 capacity matrix,
 audio-finalizer checks, failure/recovery tests and image-provenance audit in
 `docs/plans/phase6-7-production-validation.md` are complete.

@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +11,7 @@ import { rasterizeSvgToRgba } from "../src/render/svg-rasterizer";
 
 const fixturePath = fileURLToPath(new URL("./fixtures/runtime-v3-animated.json", import.meta.url));
 const ffmpegAvailable = spawnSync("ffmpeg", ["-version"], { stdio: "ignore" }).status === 0;
+const nativeSkiaAvailable = Boolean(process.env.NATIVE_SKIA_BINARY && existsSync(process.env.NATIVE_SKIA_BINARY));
 
 async function fixture(): Promise<RuntimeProjectV3> {
   return JSON.parse(await readFile(fixturePath, "utf8")) as RuntimeProjectV3;
@@ -37,7 +39,15 @@ describe("Runtime V3 animated export", () => {
     expect(firstPixels.equals(secondPixels)).toBe(false);
   });
 
-  (ffmpegAvailable ? it : it.skip)("encodes visibly different Skia frames into a real MP4", async () => {
+  it("does not fall back to SVG or CanvasKit for MP4 export", async () => {
+    const project = await fixture();
+    await expect(renderRuntimeProjectV3(project, {
+      outputPath: "tmp/should-not-export-svg.mp4",
+      renderer: "svg",
+    })).rejects.toMatchObject({ code: "UNSUPPORTED_COMMAND" });
+  });
+
+  (ffmpegAvailable && nativeSkiaAvailable ? it : it.skip)("encodes visibly different native Skia frames into a real MP4", async () => {
     const project = await fixture();
     const outputRoot = await mkdtemp(join(tmpdir(), "neonix-runtime-animation-"));
     const outputPath = join(outputRoot, "animated.mp4");
@@ -68,7 +78,7 @@ describe("Runtime V3 animated export", () => {
     }
   }, 30_000);
 
-  (ffmpegAvailable ? it : it.skip)("keeps repeated single-thread H.264 exports byte-stable", async () => {
+  (ffmpegAvailable && nativeSkiaAvailable ? it : it.skip)("keeps repeated single-thread H.264 exports byte-stable", async () => {
     const project = await fixture();
     const outputRoot = await mkdtemp(join(tmpdir(), "neonix-runtime-determinism-"));
     const firstPath = join(outputRoot, "first.mp4");

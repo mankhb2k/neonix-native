@@ -62,35 +62,38 @@ Skia Vulkan is a future GPU candidate behind the same command-buffer contract.
 FFmpeg is an encoder/muxer in this architecture. It must not be responsible
 for evaluating the scene, rasterizing HTML, or taking browser screenshots.
 
-## Current implementation split
+## Current implementation
 
-The architecture is shared, but the implementation is currently split into a
-general asset/audio path and a native command-buffer worker:
+There is one MP4 export path. The implementation is intentionally fail-closed
+while native parity is being completed:
 
 ```text
 RuntimeProjectV3
   -> prepareRuntimeProjectV3 (once per job)
   -> evaluatePreparedRuntimeProjectV3 (per frame)
   -> PaintCommandBuffer
-       |                              |
-       v                              v
-  CanvasKit WASM in Node         Native Skia CPU worker
-  (general export path)          (command-buffer export path)
-       |                              |
-       v                              v
-  RGBA -> FFmpeg CLI             libyuv -> libx264 in-process
-                                      |
-                                      v
-                                     MP4
+       |
+       v
+  Native Skia CPU worker
+       |
+       v
+  libyuv -> libx264 in-process
+       |
+       v
+      MP4
 ```
 
-The native worker is the measured 4-vCPU Cloud Run path and is the production
-native baseline for the command-buffer fixture/export contract. The general
-`renderFrameRangeToMp4` implementation still uses CanvasKit WASM in Node so it
-can cover the broader RuntimeProjectV3 asset/audio flow while native protocol
-parity is completed. Native Skia must not be described as the complete default
-for that path until fonts, images, video, masks, effects, isolated layers, and
-audio have passed their parity tests.
+`renderRuntimeProjectV3`, `renderFrameRangeToMp4`, `render:job`, chunk workers,
+the API render route, and the CLI all use the native adapter. There is no
+CanvasKit fallback and `RENDER_BACKEND` is no longer a routing switch. If a
+project contains a command that the native protocol does not support yet
+(currently image/video/audio and some effects), export returns an explicit
+`UNSUPPORTED_COMMAND` error. This prevents a preview backend from becoming an
+undocumented production source of truth.
+
+CanvasKit remains in the browser preview package and in historical benchmark
+fixtures only. `renderOneFrameToSvg` is a preview/diagnostic helper and never
+creates an MP4.
 
 The former SVG/libvips rasterizer remains a legacy diagnostic helper only. GPU
 rendering may be added later behind a feature flag after it passes the same
@@ -492,21 +495,21 @@ processes and concatenate the encoded segments without re-encoding:
 ```
 
 Each chunk has absolute frame boundaries, an attempt number, and a SHA-256
-checksum. The scheduler retries only the failed chunk. Audio-bearing projects
-and the legacy SVG renderer deliberately fall back to sequential rendering
-until the centralized audio/encoder phase is complete.
+checksum. The scheduler retries only the failed chunk. Native export is the
+only render implementation; projects containing native-unsupported audio,
+video, image, effect, or text features fail with an explicit capability error
+until their parity work is complete. They never fall back to CanvasKit.
 
 H.264 encoding defaults to one FFmpeg encoder thread for byte-stable output
 within the same runtime and preset. A caller may set `ffmpegThreads` explicitly
 when throughput is more important than byte-for-byte repeatability; decoded
 frame verification remains the image-quality contract.
 
-### Neonix fixture benchmark after Skia layer-bounds optimization
+### Historical CanvasKit benchmark
 
-The current bottleneck is Skia replay, specifically `saveLayer` restore/compositing;
-FFmpeg is not the limiting stage for this fixture. Restricting isolation-only
-layers to their drawable content bounds avoids full-composition offscreen
-surfaces for small layers.
+These numbers are retained only as the pre-native comparison baseline. They
+must not be interpreted as the current export implementation. The current
+production path is native Skia CPU plus in-process libyuv/libx264.
 
 Measured on the local software CanvasKit backend at 1920x1080, 30 FPS:
 
@@ -525,14 +528,10 @@ on this machine, so concurrency must be bounded by the Cloud Run memory budget.
 The command profiler is available at
 `apps/web/scripts/profile-neonix-commands.ts`.
 
-Phase 6 also resolves `r2://...` audio resources through the worker's
-S3-compatible R2 credentials. It materializes each source into a bounded
-temporary directory, builds the canonical Runtime audio mix with FFmpeg
-`atrim`/`atempo`/`volume`/`pan`/`afade`/`adelay`/`amix`, and removes the staged
-files after encode or failure. The E2E fixture
-`apps/web/scripts/export-r2-audio-fixture.ts` mixes one R2 MP3 with the audio
-stream from one R2 MP4 and records source download, audio preparation,
-backpressure, and finalize timings.
+The previous Phase 6 audio run is retained as a historical reference. The
+current native-only export intentionally rejects audio/video manifests until
+native media decoding and audio finalization are implemented and parity-tested;
+the old CanvasKit/FFmpeg route is not a production fallback.
 
 The latest real run rendered 300 frames / 10 seconds in 80.33 s after the
 source download: R2 download 15.73 s, audio preparation 15.52 s, Skia render
@@ -566,8 +565,8 @@ Media preparation request:
 Build from the repository root so workspace packages are available:
 
 ```bash
-docker build -f packages/export-renderer/Dockerfile -t neonix-export-renderer .
-docker run --rm -p 8787:8787 neonix-export-renderer
+docker build --platform linux/amd64 -f infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile -t neonix-skia-command-cpu-native .
+docker run --rm -p 8787:8787 neonix-skia-command-cpu-native pnpm --filter @motionvideo/export-renderer start
 ```
 
 ## Reference policy

@@ -89,7 +89,7 @@ async function main(): Promise<void> {
       assetRoot: publicRoot,
     }));
   }
-  const manifest = { phase: 9, backend: "skia-wasm", assetRoot: publicRoot, frameCount, exports: results };
+  const manifest = { phase: 9, backend: "skia-native-raster", assetRoot: publicRoot, frameCount, exports: results };
   await writeFile(join(outputRoot, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   console.log(JSON.stringify(manifest, null, 2));
 }

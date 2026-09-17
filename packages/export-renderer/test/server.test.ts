@@ -1,10 +1,12 @@
 import { once } from "node:events";
+import { existsSync } from "node:fs";
 import { describe, expect, it, afterEach } from "vitest";
 import { identityMatrix4 } from "@motionvideo/motion-runtime";
 import { createExportRendererServer } from "../src/api/server";
 
 const originalToken = process.env.INTERNAL_WORKER_TOKEN;
 const originalControlPlaneOnly = process.env.EXPORT_RENDERER_CONTROL_PLANE_ONLY;
+const nativeSkiaAvailable = Boolean(process.env.NATIVE_SKIA_BINARY && existsSync(process.env.NATIVE_SKIA_BINARY));
 
 afterEach(() => {
   if (originalToken === undefined) delete process.env.INTERNAL_WORKER_TOKEN;
@@ -74,7 +76,7 @@ describe("export renderer HTTP media endpoint", () => {
     }
   });
 
-  it("accepts an async render job, exposes progress, and publishes a verified artifact", async () => {
+  (nativeSkiaAvailable ? it : it.skip)("accepts an async native render job, exposes progress, and publishes a verified artifact", async () => {
     process.env.INTERNAL_WORKER_TOKEN = "test-token";
     const server = createExportRendererServer();
     server.listen(0, "127.0.0.1");

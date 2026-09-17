@@ -14,8 +14,8 @@ export type ExportRenderOptions = {
   ffmpegThreads?: number;
   /** Filesystem root containing the web app's public directory. */
   assetRoot?: string;
-  /** Skia is the Phase 9 visual export backend; SVG remains available only for legacy helpers. */
-  renderer?: "skia" | "svg";
+  /** Native Skia is the only MP4 export backend; SVG is preview-only and rejected for export. */
+  renderer?: "skia-native" | "skia" | "svg";
   /** Number of isolated renderer processes to use for video-only exports. */
   parallelism?: number;
   /** Frame range size for parallel segment rendering. */

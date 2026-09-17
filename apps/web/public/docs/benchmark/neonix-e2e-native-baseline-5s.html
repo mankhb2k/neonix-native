@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+  <style data-neonix-bundle>
+    body {
+      margin: 0;
+      background: #081018;
+    }
+
+    #panel {
+      position: absolute;
+      left: 360px;
+      top: 270px;
+      width: 1200px;
+      height: 540px;
+      background: #172554;
+      animation: panel-drift 5s linear both;
+    }
+
+    #accent {
+      position: absolute;
+      left: 720px;
+      top: 390px;
+      width: 480px;
+      height: 300px;
+      background: #22d3ee;
+      opacity: 0.9;
+      animation: accent-drift 5s linear both;
+    }
+
+    #dot {
+      position: absolute;
+      left: 1280px;
+      top: 430px;
+      width: 96px;
+      height: 96px;
+      background: #f97316;
+      animation: dot-pulse 5s linear both;
+    }
+
+    @keyframes panel-drift {
+      from { transform: translateX(-120px); opacity: 0.55; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes accent-drift {
+      from { transform: translateY(80px) scale(0.72); opacity: 0.35; }
+      to { transform: translateY(0) scale(1); opacity: 0.9; }
+    }
+
+    @keyframes dot-pulse {
+      from { transform: scale(0.5); opacity: 0.2; }
+      50% { transform: scale(1.25); opacity: 1; }
+      to { transform: scale(1); opacity: 0.85; }
+    }
+  </style>
+</head>
+<body>
+  <div id="panel"></div>
+  <div id="accent"></div>
+  <div id="dot"></div>
+</body>
+</html>

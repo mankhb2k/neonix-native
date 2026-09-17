@@ -30,7 +30,6 @@
     "@motionvideo/skia-renderer": "workspace:*",
     "google-auth-library": "^10.4.1",
     "@supabase/supabase-js": "^2.50.0",
-    "canvaskit-wasm": "0.42.0",
     "sharp": "^0.34.5",
     "zod": "^3.25.76"
   },

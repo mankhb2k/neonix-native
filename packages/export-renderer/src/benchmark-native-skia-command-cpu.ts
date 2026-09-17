@@ -3,17 +3,14 @@ import { mkdir, open as openFile, readFile, stat, type FileHandle } from "node:f
 import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
-import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { compileDocument } from "../../html-compiler/src/index";
 import { compileAndPrepareRuntimeProjectV3 } from "../../../apps/web/lib/server/render/project-runtime";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../../../apps/web/lib/docs/html-compiler-preview";
 import { createNativeColorCardProject, createNativeColorSuiteProject, createNativeExportSmokeProject } from "./testing";
 
-const fps = 30;
-const durationSeconds = positiveNumber(process.env.BENCHMARK_DURATION_SECONDS, 60);
-const frameCount = positiveInteger(process.env.BENCHMARK_FRAMES, Math.ceil(durationSeconds * fps));
-const width = 1920;
-const height = 1080;
+const requestedDurationSeconds = positiveNumber(process.env.BENCHMARK_DURATION_SECONDS, 60);
+const requestedFrameCount = positiveInteger(process.env.BENCHMARK_FRAMES, Math.ceil(requestedDurationSeconds * 30));
 const outputPath = resolve(process.env.BENCHMARK_OUTPUT ?? "/tmp/native-skia-command-cpu.mp4");
 const nativeBinary = process.env.NATIVE_SKIA_BINARY ?? "/usr/local/bin/neonix-skia-command-cpu-backend";
 const ffmpegPath = process.env.FFMPEG_PATH ?? "ffmpeg";
@@ -24,6 +21,7 @@ if (!["pipe", "render-only", "raw-file", "encode-file", "in-process"].includes(b
 }
 const rawPath = resolve(process.env.BENCHMARK_RAW_OUTPUT ?? "/tmp/native-skia-command-cpu.rgba");
 const fixtureId = process.env.BENCHMARK_FIXTURE_ID?.trim();
+const runtimeJsonPath = process.env.BENCHMARK_RUNTIME_JSON_PATH?.trim();
 type ColorConverterName = "swscale" | "libyuv";
 // Native production images are libyuv-only. The sandbox sets this explicitly
 // to swscale when it runs the fallback/control binary.
@@ -290,7 +288,9 @@ await mkdir(dirname(outputPath), { recursive: true });
 await mkdir(dirname(rawPath), { recursive: true });
 await mkdir(dirname(protocolPath), { recursive: true });
 let project;
-if (fixtureId) {
+if (runtimeJsonPath) {
+  project = JSON.parse(await readFile(resolve(runtimeJsonPath), "utf8")) as RuntimeProjectV3;
+} else if (fixtureId) {
   const fixtureRootOverride = process.env.BENCHMARK_FIXTURE_ROOT?.trim();
   const fixtureRootCandidates = fixtureRootOverride
     ? [resolve(fixtureRootOverride)]
@@ -320,11 +320,26 @@ if (fixtureId) {
   project = await compileAndPrepareRuntimeProjectV3(compiled.protocol);
 } else {
   project = benchmarkScene === "color-card"
-    ? createNativeColorCardProject(durationSeconds)
+    ? createNativeColorCardProject(requestedDurationSeconds)
     : benchmarkScene === "color-suite"
-      ? createNativeColorSuiteProject(colorSuiteTest, durationSeconds)
-      : createNativeExportSmokeProject(durationSeconds);
+      ? createNativeColorSuiteProject(colorSuiteTest, requestedDurationSeconds)
+      : createNativeExportSmokeProject(requestedDurationSeconds);
 }
+const fps = project.visual.composition.fps;
+const width = project.visual.composition.width;
+const height = project.visual.composition.height;
+const totalProjectFrames = Math.max(1, Math.ceil((project.visual.composition.duration ?? requestedDurationSeconds) * fps));
+const startFrame = Math.max(0, Math.floor(Number(process.env.BENCHMARK_START_FRAME ?? 0)));
+const requestedEndFrame = process.env.BENCHMARK_END_FRAME === undefined
+  ? undefined
+  : Math.floor(Number(process.env.BENCHMARK_END_FRAME));
+const endFrameExclusive = requestedEndFrame ?? Math.min(totalProjectFrames, startFrame + requestedFrameCount);
+if (!Number.isFinite(startFrame) || !Number.isFinite(endFrameExclusive)
+  || startFrame >= endFrameExclusive || endFrameExclusive > totalProjectFrames) {
+  throw new Error(`Invalid benchmark frame range ${startFrame}-${endFrameExclusive}; project has ${totalProjectFrames} frames`);
+}
+const frameCount = endFrameExclusive - startFrame;
+const durationSeconds = frameCount / fps;
 const appStarted = performance.now();
 const nativeStdoutMode = benchmarkMode === "pipe" ? "pipe" : benchmarkMode === "raw-file" || benchmarkMode === "encode-file" ? openSync(rawPath, "w") : "ignore";
 let native: ChildProcess | null = null;
@@ -414,7 +429,7 @@ header.u32(frameCount);
 await writeProtocolChunk(header.finish());
 
 let protocolBatch: Buffer[] = [];
-for (let frame = 0; frame < frameCount; frame += 1) {
+for (let frame = startFrame; frame < endFrameExclusive; frame += 1) {
   const evaluateStarted = performance.now();
   const evaluated = evaluateRuntimeProjectV3(project, frame);
   frameEvaluateMilliseconds += performance.now() - evaluateStarted;
@@ -429,7 +444,7 @@ for (let frame = 0; frame < frameCount; frame += 1) {
     protocolCommandCounts[command.op] = (protocolCommandCounts[command.op] ?? 0) + 1;
   }
   protocolBatch.push(encoded);
-  if (protocolBatch.length >= protocolBatchFrames || frame === frameCount - 1) {
+  if (protocolBatch.length >= protocolBatchFrames || frame === endFrameExclusive - 1) {
     await writeProtocolChunk(Buffer.concat(protocolBatch));
     protocolBatch = [];
   }

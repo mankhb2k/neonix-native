@@ -9,6 +9,15 @@
   },
   "fixtures": [
     {
+      "id": "neonix-e2e-native-baseline-5s",
+      "source": "neonix-e2e-native-baseline-5s.html",
+      "durationMs": 5000,
+      "frameCount": 150,
+      "featureSet": ["solid-shapes", "css-animation", "transform", "opacity"],
+      "e2e": true,
+      "nativeCommandBuffer": true
+    },
+    {
       "id": "neonix-f0-baseline-shapes-5s",
       "source": "neonix-f0-baseline-shapes-5s.html",
       "durationMs": 5000,

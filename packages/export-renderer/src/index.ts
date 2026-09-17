@@ -4,7 +4,6 @@ export * from "./render/render";
 export * from "./render/frame-range-scheduler";
 export * from "./render/chunk-manifest";
 export { resolveFfmpegAudioMix, resolveProjectAudioMix } from "./render/audio-filter";
-export { loadNodeCanvasKit } from "./render/node-skia";
 export {
   resolveLocalPreviewAssetPath,
   SkiaFrameAssetResolver,
