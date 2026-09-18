@@ -71,7 +71,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsedDocument = MotionProtocolV2Schema.safeParse(input.document);
   if (!parsedDocument.success) {
     return NextResponse.json(
-      { error: "document must be a valid Motion Protocol V2 object", code: "INVALID_DOCUMENT" },
+      { error: "document must be a valid Neonix JSON V2 document", code: "INVALID_DOCUMENT" },
       { status: 422 },
     );
   }
@@ -99,5 +99,4 @@ export async function PATCH(request: Request, context: RouteContext) {
     return errorResponse(error);
   }
 }
-
 

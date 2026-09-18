@@ -150,6 +150,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     htmlRevision: revision,
     protocolRevision: revision,
     diagnostics: z.array(diagnostic),
+    alreadyCreated: z.boolean().optional(),
   },
   list_projects: {
     workspace: workspace,
@@ -180,6 +181,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     document: jsonObject,
     htmlTags: jsonObject,
     cssProperties: z.array(z.string()),
+    fonts: z.array(jsonObject).optional(),
   },
   validate_html: {
     valid: z.boolean(),

@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const body = await readJsonObject(request);
   if (!body || typeof body.document !== "object" || body.document === null || Array.isArray(body.document)) {
-    return jsonApiError(request, 400, "INVALID_INPUT", "document must be a Protocol V2 object");
+    return jsonApiError(request, 400, "INVALID_INPUT", "document must be a Neonix JSON V2 document");
   }
   try {
     const { client, actor } = await authenticatedProjectContext();

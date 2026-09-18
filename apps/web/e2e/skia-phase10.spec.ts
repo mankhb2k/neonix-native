@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 async function ready(page: import("@playwright/test").Page, id: string) {
-  await page.goto("/docs/preview/skia", { waitUntil: "domcontentloaded" });
+  await page.goto("/docs/preview/native", { waitUntil: "domcontentloaded" });
   const select = page.locator("#runtime-skia-case");
   const canvas = page.getByTestId("skia-runtime-stage");
   await select.selectOption(id);

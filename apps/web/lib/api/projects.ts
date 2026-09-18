@@ -4,6 +4,24 @@ export type SaveEditorProjectResult =
   | { ok: true; revisionNo: number }
   | { ok: false; status: number };
 
+export async function createHtmlProject(input: { title?: string; html: string }): Promise<{ projectId: string }> {
+  const response = await fetch("/api/v1/projects/html", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => null) as {
+    project?: { id?: unknown };
+    error?: { message?: unknown };
+  } | null;
+  if (!response.ok) {
+    throw new Error(typeof payload?.error?.message === "string" ? payload.error.message : "Unable to import HTML");
+  }
+  const projectId = payload?.project?.id;
+  if (typeof projectId !== "string" || !projectId) throw new Error("The project was created without an id");
+  return { projectId };
+}
+
 /** Browser BFF client for the authenticated V2 project repository. */
 export async function saveEditorProject(input: {
   projectRef: string;

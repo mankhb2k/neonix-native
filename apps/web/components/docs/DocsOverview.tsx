@@ -38,7 +38,7 @@ const pillars = [
 
 const pipeline = [
   ["01", "Intent", "human, agent or template"],
-  ["02", "Protocol V2", "explicit authoring JSON"],
+  ["02", "Neonix JSON V2", "explicit authoring JSON"],
   ["03", "Compiler", "lowering and diagnostics"],
   ["04", "Runtime", "evaluated frame data"],
   ["05", "Output", "preview or export"],
@@ -53,17 +53,17 @@ export function DocsOverview() {
         <div className="relative max-w-3xl">
           <div className="mb-5 flex items-center gap-2 font-mono text-sm font-semibold tracking-[0.18em] text-[#087f73] uppercase">
             <span className="h-2 w-2 rounded-full bg-[#0d9488] shadow-[0_0_12px_#0d9488]" />
-            Neonix / motion-protocol
+            Neonix / Neonix JSON
           </div>
           <h1 className="max-w-2xl text-4xl font-semibold leading-[0.98] tracking-[-0.055em] text-[#102a2a] md:text-6xl">
             Author motion as data.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-[#3e5b5a] md:text-lg">
-            Protocol V2 is Neonix&apos;s strict, renderer-neutral JSON for turning web intent into editable motion. Learn the document model, animate any atomic property, and keep preview and export on the same meaning.
+            Neonix JSON V2 is Neonix&apos;s strict, renderer-neutral JSON for turning web intent into editable motion. Learn the document model, animate any atomic property, and keep preview and export on the same meaning.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/docs/atoms" className="inline-flex items-center gap-2 rounded-full bg-[#0d9488] px-4 py-2.5 text-sm font-semibold text-white no-underline shadow-[0_8px_20px_rgba(13,148,136,0.2)] hover:bg-[#0f766e]">
-              Explore the protocol <ArrowRight className="h-4 w-4" />
+            Explore Neonix JSON <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/docs/examples/project" className="inline-flex items-center gap-2 rounded-full border border-[#b7d5cf] bg-white/70 px-4 py-2.5 text-sm font-semibold text-[#175a55] no-underline hover:bg-white">
               See a complete JSON project

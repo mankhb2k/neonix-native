@@ -4,7 +4,7 @@ import { readSkiaDiff } from "./skia-pixel-diff";
 
 test.describe("Skia projective surface tessellation", () => {
   test("clips complex near-plane surfaces before perspective division and keeps SVG parity", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
 

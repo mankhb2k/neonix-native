@@ -2,9 +2,9 @@ import { FolderKanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { dashboardHref } from "@/components/AppLink";
 import { HubFrame } from "@/components/hub/HubFrame";
+import { ImportHtmlDialog } from "@/components/hub/ImportHtmlDialog";
 import { ProjectGrid, type ProjectCardData } from "@/components/hub/ProjectGrid";
 import { listProjects } from "@/lib/editor/document/project-repository";
-import { appUrl } from "@/lib/hosts";
 
 const FREE_PROJECT_LIMIT = 10;
 
@@ -50,15 +50,15 @@ const fallbackProjects: ProjectCardData[] = [
 function _LegacyProjectCard({ project }: { project: ProjectCardData }) {
   return (
     <a
-      href={appUrl(project.href)}
-      className="group min-w-0 overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] no-underline transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--hub-accent)_40%,transparent)] hover:bg-[var(--bg-elevated)]"
+      href={project.href}
+      className="min-w-0 overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] no-underline"
     >
       <div
         className={`relative aspect-video overflow-hidden bg-gradient-to-br ${project.accent}`}
       >
         <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(135deg,transparent_35%,rgba(255,255,255,0.08)_36%,transparent_37%),linear-gradient(45deg,transparent_48%,rgba(34,211,238,0.12)_49%,transparent_50%)] [background-size:32px_32px,48px_48px]" />
         <span className="absolute bottom-3 left-3 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-caption font-medium text-slate-200 backdrop-blur-sm">
-          Protocol V2
+          Neonix JSON V2
         </span>
         <span className="absolute right-3 bottom-3 rounded-md bg-black/45 px-2 py-1 font-mono text-caption text-slate-200 backdrop-blur-sm">
           {project.duration}
@@ -117,13 +117,16 @@ export async function HubShell() {
                   motion story is ready.
                 </p>
               </div>
-              <Link
-                href={dashboardHref("/projects/new")}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--hub-accent)] px-4 py-2.5 text-body font-semibold text-[var(--hub-accent-on)] no-underline transition hover:bg-[var(--hub-accent-hover)]"
-              >
-                <Plus className="size-4" />
-                New project
-              </Link>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <ImportHtmlDialog />
+                <Link
+                  href={dashboardHref("/projects/new")}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--hub-accent)] px-4 py-2.5 text-body font-semibold text-[var(--hub-accent-on)] no-underline transition hover:bg-[var(--hub-accent-hover)]"
+                >
+                  <Plus className="size-4" />
+                  New project
+                </Link>
+              </div>
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-2 border-b border-[var(--hub-border)] pb-3">

@@ -59,7 +59,7 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
   return (
     <>
       <a
-        href={appUrl(project.href)}
+        href={previewUrl(`/preview/${project.projectId}`)}
         onContextMenu={(event) => {
           event.preventDefault();
           setError(null);
@@ -68,11 +68,11 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
             y: Math.min(event.clientY, window.innerHeight - 170),
           });
         }}
-        className="group min-w-0 overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] no-underline transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--hub-accent)_40%,transparent)] hover:bg-[var(--bg-elevated)]"
+        className="min-w-0 overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] no-underline"
       >
         <div className={`relative aspect-video overflow-hidden bg-gradient-to-br ${project.accent}`}>
           <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(135deg,transparent_35%,rgba(255,255,255,0.08)_36%,transparent_37%),linear-gradient(45deg,transparent_48%,rgba(34,211,238,0.12)_49%,transparent_50%)] [background-size:32px_32px,48px_48px]" />
-          <span className="absolute bottom-3 left-3 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-caption font-medium text-slate-200 backdrop-blur-sm">Protocol V2</span>
+          <span className="absolute bottom-3 left-3 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-caption font-medium text-slate-200 backdrop-blur-sm">Neonix JSON V2</span>
           <span className="absolute right-3 bottom-3 rounded-md bg-black/45 px-2 py-1 font-mono text-caption text-slate-200 backdrop-blur-sm">{project.duration}</span>
         </div>
         <div className="space-y-1.5 px-4 py-3.5">

@@ -4,7 +4,7 @@ export const NEONIX_OPENAPI = {
     title: "Neonix API",
     version: "1.0.0",
     description:
-      "HTML-first API for validating and compiling Neonix documents into Protocol V2 JSON, persisting projects, and creating render jobs.",
+      "HTML-first API for validating and compiling Neonix documents into Neonix JSON V2, persisting projects, and creating render jobs.",
   },
   servers: [{ url: "/", description: "Current Neonix app" }],
   tags: [
@@ -46,11 +46,11 @@ export const NEONIX_OPENAPI = {
     "/api/v1/documents/compile": {
       post: {
         tags: ["Documents"],
-        summary: "Compile HTML into Protocol V2 JSON",
-        description: "The primary AI/user endpoint: final.html-like source goes in, normalized Protocol V2 JSON comes out.",
+        summary: "Compile HTML into Neonix JSON V2",
+        description: "The primary AI/user endpoint: final.html-like source goes in, normalized Neonix JSON V2 comes out.",
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/HtmlDocumentRequest" } } } },
         responses: {
-          "200": { description: "Compiled Protocol V2 document", content: { "application/json": { schema: { $ref: "#/components/schemas/CompileResponse" } } } },
+          "200": { description: "Compiled Neonix JSON V2 document", content: { "application/json": { schema: { $ref: "#/components/schemas/CompileResponse" } } } },
           "400": { $ref: "#/components/responses/InvalidInput" },
           "422": { $ref: "#/components/responses/CompilerError" },
         },
@@ -59,14 +59,14 @@ export const NEONIX_OPENAPI = {
     "/api/v1/projects": {
       get: {
         tags: ["Projects"],
-        summary: "List Protocol V2 projects",
+        summary: "List Neonix JSON V2 projects",
         parameters: [{ $ref: "#/components/parameters/Limit" }],
         responses: { "200": { description: "Project list" }, "401": { $ref: "#/components/responses/Unauthorized" } },
       },
       post: {
         tags: ["Projects"],
-        summary: "Create a Protocol V2 project",
-        description: "Creates the project and its initial canonical Protocol V2 JSON revision. HTML is attached later as an authoring subresource.",
+        summary: "Create a Neonix JSON V2 project",
+        description: "Creates the project and its initial canonical Neonix JSON V2 revision. HTML is attached later as an authoring subresource.",
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateProjectRequest" } } } },
         responses: { "201": { description: "Created project" }, "401": { $ref: "#/components/responses/Unauthorized" }, "422": { $ref: "#/components/responses/CompilerError" } },
       },
@@ -75,7 +75,7 @@ export const NEONIX_OPENAPI = {
       post: {
         tags: ["Projects"],
         summary: "Create an HTML-authored project",
-        description: "Compiles HTML and atomically creates the project, canonical Protocol V2 revision, and linked HTML authoring revision.",
+        description: "Compiles HTML and atomically creates the project, canonical Neonix JSON V2 revision, and linked HTML authoring revision.",
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateHtmlProjectRequest" } } } },
         responses: { "201": { description: "Created HTML project" }, "401": { $ref: "#/components/responses/Unauthorized" }, "422": { $ref: "#/components/responses/CompilerError" } },
       },
@@ -89,7 +89,7 @@ export const NEONIX_OPENAPI = {
       },
       patch: {
         tags: ["Projects"],
-        summary: "Update a Protocol V2 project",
+        summary: "Update a Neonix JSON V2 project",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }],
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateProjectRequest" } } } },
         responses: { "200": { description: "Updated project" }, "409": { description: "Revision conflict" }, "422": { $ref: "#/components/responses/CompilerError" } },
@@ -112,7 +112,7 @@ export const NEONIX_OPENAPI = {
       put: {
         tags: ["Projects"],
         summary: "Compile and save HTML authoring source",
-        description: "Atomically creates a Protocol V2 revision and its linked HTML revision.",
+        description: "Atomically creates a Neonix JSON V2 revision and its linked HTML revision.",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }],
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateHtmlProjectRequest" } } } },
         responses: { "200": { description: "Updated project and linked revisions" }, "409": { description: "Revision conflict" }, "422": { $ref: "#/components/responses/CompilerError" } },
@@ -121,7 +121,7 @@ export const NEONIX_OPENAPI = {
     "/api/v1/projects/{projectId}/json": {
       patch: {
         tags: ["Projects"],
-        summary: "Apply a validated Protocol V2 patch",
+        summary: "Apply a validated Neonix JSON V2 patch",
         description: "Creates a JSON revision. This is an explicit escape hatch for changes that HTML cannot express.",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }],
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/JsonPatchRequest" } } } },
@@ -155,10 +155,10 @@ export const NEONIX_OPENAPI = {
     "/api/v1/projects/{projectId}/revisions/{revisionNo}/json": {
       get: {
         tags: ["Projects"],
-        summary: "Get the canonical Protocol V2 JSON revision",
+        summary: "Get the canonical Neonix JSON V2 revision",
         description: "Returns the immutable JSON source of truth generated from the HTML revision with the same revision number.",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }, { $ref: "#/components/parameters/RevisionNo" }],
-        responses: { "200": { description: "Canonical Protocol V2 revision" }, "404": { $ref: "#/components/responses/NotFound" } },
+        responses: { "200": { description: "Canonical Neonix JSON V2 revision" }, "404": { $ref: "#/components/responses/NotFound" } },
       },
     },
     "/api/v1/projects/{projectId}/assets": {
@@ -182,14 +182,14 @@ export const NEONIX_OPENAPI = {
     "/api/v1/editor/projects/{projectId}": {
       get: {
         tags: ["Projects"],
-        summary: "Read an editor Protocol V2 project",
+        summary: "Read an editor Neonix JSON V2 project",
         description: "Legacy editor persistence remains versioned under this explicit editor namespace.",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }],
-        responses: { "200": { description: "Protocol V2 editor project" } },
+        responses: { "200": { description: "Neonix JSON V2 editor project" } },
       },
       patch: {
         tags: ["Projects"],
-        summary: "Update an editor Protocol V2 project",
+        summary: "Update an editor Neonix JSON V2 project",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }],
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", additionalProperties: true } } } },
         responses: { "200": { description: "Updated editor project" } },
@@ -199,7 +199,7 @@ export const NEONIX_OPENAPI = {
       get: { tags: ["Renders"], summary: "List render jobs", responses: { "200": { description: "Render jobs" } } },
       post: {
         tags: ["Renders"],
-        summary: "Create a render job from Protocol V2 JSON",
+        summary: "Create a render job from Neonix JSON V2",
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/RenderRequest" } } } },
         responses: { "202": { description: "Render job accepted" } },
       },
@@ -384,7 +384,7 @@ export const NEONIX_OPENAPI = {
         required: ["html"],
         properties: { html: { type: "string", description: "One complete Neonix HTML document with inline style blocks and meta[name=neonix-document]", example: "<!doctype html><html><head><meta name=\"neonix-document\" content=\'{\"kind\":\"neonix-html-document\",\"schemaVersion\":2,\"composition\":{\"width\":1920,\"height\":1080,\"fps\":30,\"background\":\"#081018\",\"colorSpace\":\"srgb\"}}\'><style>body{margin:0}</style></head><body><div></div></body></html>" } },
       },
-      CreateProjectRequest: { type: "object", required: ["document"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, document: { type: "object", additionalProperties: true, description: "Protocol V2 JSON document" } } },
+      CreateProjectRequest: { type: "object", required: ["document"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, document: { type: "object", additionalProperties: true, description: "Neonix JSON V2 document" } } },
       CreateHtmlProjectRequest: { type: "object", required: ["html"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, html: { type: "string", description: "Complete Neonix HTML document including inline style blocks and meta[name=neonix-document]" }, idempotencyKey: { type: "string", maxLength: 200, description: "Retry key that returns the original project instead of creating a duplicate" } } },
       UpdateProjectRequest: { type: "object", properties: { title: { type: "string" }, document: { type: "object", additionalProperties: true }, expectedRevisionNo: { type: "integer", minimum: 0 } } },
       UpdateHtmlProjectRequest: { type: "object", required: ["html"], properties: { html: { type: "string" }, expectedHtmlRevisionNo: { type: "integer", minimum: 0 }, expectedProtocolRevisionNo: { type: "integer", minimum: 0 } } },

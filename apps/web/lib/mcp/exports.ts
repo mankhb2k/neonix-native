@@ -8,6 +8,7 @@ import { buildIdempotencyKey } from "@/lib/server/render/ownership";
 import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-runtime";
 import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
 import { validateProjectVideoDurations } from "@/lib/server/render/source-duration";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
 import { isRenderPresetId } from "@motionvideo/export-renderer/contracts";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import { getMcpSupabaseClient } from "./projects";
@@ -28,7 +29,7 @@ function output(job: PersistentRenderJob) {
     status: job.status,
     progress: job.progress,
     stage: job.stage,
-    error: job.error,
+    error: job.error ? publicRendererMessage(job.error) : job.error,
     outputKey: job.outputKey,
     metrics: job.metrics,
     createdAt: job.createdAt,
@@ -74,7 +75,7 @@ async function readAndCompileRevision(principal: McpPrincipal, input: { projectI
   const revisionNo = input.protocolRevisionNo ?? access.project.currentRevisionNo;
   const revision = await getProtocolRevision(client, principal, { projectId: access.project.id, revisionNo });
   const parsed = MotionProtocolV2Schema.safeParse(revision.revision.document);
-  if (!parsed.success) throw new McpExportError("Stored Protocol V2 revision is invalid", "INVALID_REVISION");
+  if (!parsed.success) throw new McpExportError("Stored Neonix JSON V2 revision is invalid", "INVALID_REVISION");
   const durationIssues = validateProjectVideoDurations(parsed.data);
   if (durationIssues.length > 0) throw new McpExportError("Video source duration validation failed", "VIDEO_SOURCE_DURATION_MISMATCH");
   let runtime;

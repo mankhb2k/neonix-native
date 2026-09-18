@@ -6,7 +6,7 @@ export const NEONIX_WORKFLOW_GUIDE = `# Neonix MCP workflows
 
 1. If the supported HTML/CSS surface is unknown, call get_capabilities.
 2. Prepare one complete neonix-document HTML string, including style blocks.
-3. Call create_project_html. Do not call create_project for an HTML-first request.
+3. Call create_project_html. It is the only public AI path for creating a new project.
 4. Use the returned project id to call open_preview. Call open_editor only when the user wants to edit manually.
 5. Call create_export only when the user explicitly asks for an export.
 
@@ -35,7 +35,9 @@ export const NEONIX_HTML_GUIDE = `# Neonix HTML authoring contract
 
 The input must be a complete Neonix HTML document. Keep the
 meta[name="neonix-document"] manifest and put CSS in style blocks in the same
-document. Use get_capabilities to discover supported tags and CSS properties.
+document. Use get_capabilities to discover supported tags, CSS properties and
+bundled fonts. For deterministic text layout, use the bundled Inter family
+(weights 400 and 700); generic system fonts such as Arial are not implicit.
 
 The compiler produces Protocol V2 JSON. Protocol V2 is the canonical revision
 used by the runtime and export pipeline; HTML is the linked authoring source.

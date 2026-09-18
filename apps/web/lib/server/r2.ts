@@ -9,7 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-export type UserBucket = "assets" | "exports" | "system";
+export type UserBucket = "assets" | "exports" | "system" | "systemFonts";
 
 export type PutObjectInput = {
   key: string;
@@ -227,6 +227,7 @@ function bucketFor(kind: UserBucket): string {
     assets: "R2_USER_ASSETS_BUCKET",
     exports: "R2_USER_EXPORTS_BUCKET",
     system: "R2_SYSTEM_ASSETS_BUCKET",
+    systemFonts: "R2_SYSTEM_FONTS_BUCKET",
   }[kind];
   const value = process.env[specificName]?.trim();
   if (value) return value;
@@ -259,6 +260,10 @@ export function getUserExportsProvider(): R2StorageProvider {
 
 export function getSystemAssetsProvider(): R2StorageProvider {
   return getR2Provider("system");
+}
+
+export function getSystemFontsProvider(): R2StorageProvider {
+  return getR2Provider("systemFonts");
 }
 
 export function publicUserAssetUrl(key: string): string | null {

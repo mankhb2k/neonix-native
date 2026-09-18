@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-[var(--fg-primary)]">Overview</h2>
             <p className="mt-3">
               Neonix provides tools for creating motion-video projects from
-              HTML and CSS, managing structured Protocol V2 project data, and
+HTML and CSS, managing structured Neonix JSON V2 project data, and
               previewing or exporting those projects. This policy explains the
               information we process when you use Neonix, the hosted API, or
               the Neonix MCP server.
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
               </li>
               <li>
                 Workspace and project information, including project names,
-                composition settings, HTML authoring documents, Protocol V2
+composition settings, HTML authoring documents, Neonix JSON V2
                 JSON revisions, and audit or revision metadata.
               </li>
               <li>
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-[var(--fg-primary)]">How we use information</h2>
             <p className="mt-3">
               We use this information to authenticate you, provide project and
-              workspace features, compile HTML into Protocol V2, manage assets,
+workspace features, compile HTML into Neonix JSON V2, manage assets,
               render previews and exports, provide support, maintain security,
               and improve the reliability of the service.
             </p>

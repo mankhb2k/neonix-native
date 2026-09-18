@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Native stage debug | Neonix",
-  description: "Compare Browser CSS and Skia repeat and grid patterns in the native 1920 by 1080 stage.",
+  description: "Compare Browser CSS and native repeat and grid patterns in the 1920 by 1080 stage.",
   robots: { index: false, follow: false },
 };
 

@@ -304,7 +304,7 @@ const PREVIEW_IMAGE_ASSET = {
   uri: "/preview/image/photo-landscape.jpg",
   mimeType: "image/jpeg",
   // Keep the declared intrinsic size aligned with photo-landscape.jpg so
-  // preserveAspectRatio=meet resolves identically in native SVG and Skia.
+  // preserveAspectRatio=meet resolves identically in native SVG and the renderer.
   width: 1920,
   height: 1280,
 };
@@ -3149,7 +3149,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   {
     id: "animation.transform-keyframes",
     label: "Animation / transform keyframes",
-    group: "Animation / Protocol V2",
+    group: "Animation / Neonix JSON V2",
     hint: "Local millisecond tracks animate translate, rotation, and scale through the Runtime frame.",
     project: ANIMATION_TRANSFORM_PROJECT,
     previewTime: 0.5,
@@ -3157,7 +3157,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   {
     id: "animation.opacity",
     label: "Animation / opacity",
-    group: "Animation / Protocol V2",
+    group: "Animation / Neonix JSON V2",
     hint: "A numeric opacity track fades the foreground layer over a static backdrop.",
     project: ANIMATION_OPACITY_PROJECT,
     previewTime: 0.6,
@@ -3165,7 +3165,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   {
     id: "animation.path-morph",
     label: "Animation / path morph",
-    group: "Animation / Protocol V2",
+    group: "Animation / Neonix JSON V2",
     hint: "The path morph progress is sampled from a local keyframe track.",
     project: ANIMATION_MORPH_PROJECT,
     previewTime: 0.75,
@@ -3173,7 +3173,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   {
     id: "animation.timing-stagger",
     label: "Animation / timing stagger",
-    group: "Animation / Protocol V2",
+    group: "Animation / Neonix JSON V2",
     hint: "Layer timing windows activate the first and second layer at different composition times.",
     project: ANIMATION_TIMING_PROJECT,
     previewTime: 0.4,
@@ -3394,7 +3394,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     id: "text.arabic.rtl",
     label: "Text / Arabic RTL shaping",
     group: "Task 10 / Text",
-    hint: "Protocol V2 keeps Arabic semantic text with language=ar and direction=rtl; HarfBuzz resolves joining forms before Skia receives positioned glyph IDs.",
+    hint: "Neonix JSON V2 keeps Arabic semantic text with language=ar and direction=rtl; HarfBuzz resolves joining forms before the native renderer receives positioned glyph IDs.",
     project: TEXT_ARABIC_RTL_PROJECT,
   },
   {
@@ -4035,7 +4035,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     id: "rectangle.transform.operations.matrix",
     label: "Transform / SVG matrix",
     group: "Transforms & 3D",
-    hint: "A canonical 4×4 matrix operation is passed directly through Protocol V2 and composed by Runtime.",
+    hint: "A canonical 4×4 matrix operation is passed directly through Neonix JSON V2 and composed by Runtime.",
     project: project("preview-rectangle-matrix-operation-v2", [
       rectangle({
         id: "rectangle",
@@ -4160,7 +4160,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     id: "rectangle.mat4.near-plane.rotate-y",
     label: "Matrix4 / near-plane rotate Y",
     group: "Task 3.5 / Matrix4 rectangle",
-    hint: "A rectangle crosses the canonical near plane; Runtime and Skia clip its tessellated surface before perspective division.",
+    hint: "A rectangle crosses the canonical near plane; Runtime and the native renderer clip its tessellated surface before perspective division.",
     project: project(
       "preview-rectangle-near-plane-rotate-y-v2",
       [

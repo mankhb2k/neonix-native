@@ -1,6 +1,7 @@
 import "server-only";
 
 import { compileHtmlDocument } from "@/lib/server/html-project-repository";
+import { HTML_COMPILER_FONT_ASSETS } from "@/lib/server/html-compiler-font-assets";
 import { HTML_TAG_PROFILE, SUPPORTED_PROPERTIES } from "@motionvideo/html-compiler";
 import {
   createRemoteMcpServer,
@@ -78,8 +79,19 @@ export function createMcpServer(principal: McpPrincipal) {
             htmlTags: Object.fromEntries(
               Object.entries(HTML_TAG_PROFILE).map(([group, tags]) => [group, [...tags].sort()]),
             ),
-            cssProperties: [...SUPPORTED_PROPERTIES].sort(),
-          })),
+             cssProperties: [...SUPPORTED_PROPERTIES].sort(),
+             fonts: [...new Set(HTML_COMPILER_FONT_ASSETS.map((font) => font.family))].sort().map((family) => ({
+               family,
+               weights: HTML_COMPILER_FONT_ASSETS
+                 .filter((font) => font.family === family)
+                 .map((font) => font.weight)
+                 .sort((a, b) => a - b),
+               styles: [...new Set(HTML_COMPILER_FONT_ASSETS
+                 .filter((font) => font.family === family)
+                 .map((font) => font.style))]
+                 .sort(),
+             })),
+           })),
         validateDocument: ({ html }) => {
           return guarded("projects:read", () => {
             const result = compileHtmlDocument(html);

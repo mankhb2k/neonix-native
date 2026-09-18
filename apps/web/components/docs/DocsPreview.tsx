@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 const hostCanvasClass =
@@ -24,7 +25,7 @@ export function DocsPreview({
       MotionProtocolV2Schema.parse(project);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(publicRendererMessage(err instanceof Error ? err.message : String(err)));
     }
   }, [project]);
 
@@ -60,7 +61,7 @@ export function DocsPreview({
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-surface)]">
       <p className="border-b border-[var(--border-subtle,#e4e4e7)] px-3 py-2 text-sm text-[var(--fg-muted)]">
-        Protocol V2 atom preview
+        Neonix JSON V2 atom preview
       </p>
       {stage}
     </div>

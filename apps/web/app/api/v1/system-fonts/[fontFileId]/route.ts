@@ -1,7 +1,7 @@
 /* Supabase's schema client is intentionally untyped in this repository. */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Readable } from "node:stream";
-import { getSystemAssetsProvider } from "@/lib/server/r2";
+import { getSystemAssetsProvider, getSystemFontsProvider } from "@/lib/server/r2";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -11,11 +11,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fon
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return Response.json({ error: "Authentication required" }, { status: 401 });
   const { fontFileId } = await params;
-  const { data: dataValue, error } = await supabase.schema("system_catalog").from("font_files").select("id,r2_key,format,enabled").eq("id", fontFileId).eq("enabled", true).maybeSingle();
+  const { data: dataValue, error } = await supabase.schema("system_catalog").from("font_files").select("id,r2_key,format,enabled,storage_bucket").eq("id", fontFileId).eq("enabled", true).maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
   const data = dataValue;
   if (!data) return Response.json({ error: "System font not found" }, { status: 404 });
-  const provider = getSystemAssetsProvider();
+  const fontsBucket = process.env.R2_SYSTEM_FONTS_BUCKET?.trim() || "neonix-system-fonts";
+  const provider = data.storage_bucket === fontsBucket ? getSystemFontsProvider() : getSystemAssetsProvider();
   const head = await provider.headObject(data.r2_key);
   if (!head) return Response.json({ error: "System font object not found" }, { status: 404 });
   try {
@@ -27,5 +28,3 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fon
     return new Response(stream, { headers: { "Content-Type": head.contentType ?? mime, "Content-Length": String(head.sizeBytes), "Cache-Control": "private, max-age=3600" } });
   } catch { return Response.json({ error: "Unable to read system font" }, { status: 502 }); }
 }
-
-

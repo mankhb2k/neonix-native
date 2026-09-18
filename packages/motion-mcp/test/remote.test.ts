@@ -49,7 +49,6 @@ describe("hosted remote MCP contract", () => {
     const names = new Set(response.tools.map((tool) => tool.name));
 
     expect([...names]).toEqual(expect.arrayContaining([
-      "create_project",
       "create_project_html",
       "get_project_html",
       "update_project_html",
@@ -64,6 +63,8 @@ describe("hosted remote MCP contract", () => {
       "validate_html",
       "compile_html",
     ]));
+    expect(names.has("create_project")).toBe(false);
+    expect(names.has("create_project_html")).toBe(true);
 
     for (const tool of response.tools) {
       expect(tool.outputSchema, `${tool.name} must publish outputSchema`).toBeDefined();
@@ -102,9 +103,6 @@ describe("hosted remote MCP contract", () => {
     expect(response.tools.find((tool) => tool.name === "create_export")?._meta).toEqual(expect.objectContaining({
       ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
     }));
-    expect(response.tools.find((tool) => tool.name === "create_project")?._meta).toEqual(expect.objectContaining({
-      ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
-    }));
     expect(response.tools.find((tool) => tool.name === "create_project_html")?._meta).toEqual(expect.objectContaining({
       ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
     }));
@@ -131,13 +129,40 @@ describe("hosted remote MCP contract", () => {
 
     const invalidLocator = await client.callTool({ name: "get_project", arguments: {} });
     expect(invalidLocator.isError).toBe(true);
-    expect(invalidLocator.structuredContent).toEqual({
-      error: {
-        code: "INVALID_INPUT",
-        message: "Provide exactly one of project_id or public_ref",
-        retryable: false,
+    expect(invalidLocator.structuredContent).toBeUndefined();
+    expect((invalidLocator.content[0] as { text?: string }).text).toContain("INVALID_INPUT");
+    expect((invalidLocator.content[0] as { text?: string }).text).toContain("Provide exactly one of project_id or public_ref");
+
+    await client.close();
+    await server.close();
+  });
+
+  it("accepts the HTML creation response including idempotency state", async () => {
+    const server = createRemoteMcpServer({
+      api: {
+        ...api,
+        createProjectHtml: () => Promise.resolve({
+          project: { id: "project-1", sourceFormat: "html" },
+          workspace: { id: "workspace-1" },
+          htmlRevision: { id: "html-revision-1", revisionNo: 1 },
+          protocolRevision: { id: "protocol-revision-1", revisionNo: 1 },
+          diagnostics: [],
+          alreadyCreated: false,
+        }),
       },
     });
+    const client = new Client({ name: "test-client", version: "1.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    const response = await client.callTool({
+      name: "create_project_html",
+      arguments: { html: "<html></html>" },
+    });
+
+    expect(response.isError).not.toBe(true);
+    expect(response.structuredContent).toMatchObject({ alreadyCreated: false });
 
     await client.close();
     await server.close();

@@ -144,7 +144,7 @@ export function RadialPatternNativeLab() {
               Repeat pattern / grid — 1920 × 1080
             </h1>
             <p className="mt-2 text-sm text-[#525252]">
-              Browser CSS and Skia are rendered at the same native composition
+              Browser CSS and the native renderer are rendered at the same composition
               size. No CSS scaling is applied.
             </p>
           </div>
@@ -217,8 +217,8 @@ export function RadialPatternNativeLab() {
 
           <NativePanel
             className="w-[1920px] shrink-0"
-            title="Skia output"
-            badge="Protocol V2 · Runtime V3 · Skia · 1920×1080"
+            title="Native renderer output"
+            badge="Neonix JSON V2 · Runtime V3 · Native · 1920×1080"
           >
             <div
               className="overflow-auto bg-[#d4d4d4]"

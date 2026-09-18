@@ -10,7 +10,7 @@ test.describe("HTML compiler two-panel preview layout", () => {
     await expect(page.getByTestId("html-compiler-browser-stage").locator("iframe")).toBeVisible();
     await expect(page.getByTestId("html-compiler-runtime-stage")).toBeVisible();
     await expect(page.getByText("Cascade + value normalization")).toBeVisible();
-    await expect(page.getByText("Normalized Protocol V2")).toBeVisible();
+    await expect(page.getByText("Normalized Neonix JSON V2")).toBeVisible();
     await expect(page.getByTestId("html-compiler-runtime-canvas")).toBeVisible();
     await expect(page.getByTestId("html-compiler-browser-transport")).toBeVisible();
     await expect(page.getByTestId("html-compiler-browser-play-toggle")).toBeVisible();

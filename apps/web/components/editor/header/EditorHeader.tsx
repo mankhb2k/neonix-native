@@ -13,7 +13,7 @@ const iconBtn =
 /** Existing header chrome, decoupled from the former V1 store. */
 export function EditorHeader() {
   const document = useEditorDocument();
-  const meta = `${document.id} · Protocol V2 · ${document.composition.width}×${document.composition.height}`;
+  const meta = `${document.id} · Neonix JSON V2 · ${document.composition.width}×${document.composition.height}`;
 
   return (
     <header className="editor-panel flex h-[var(--editor-chrome-h)] items-center gap-1.5 px-2.5 [grid-area:header]">

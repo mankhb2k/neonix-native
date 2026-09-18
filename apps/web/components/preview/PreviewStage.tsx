@@ -8,6 +8,7 @@ import {
   type PreviewResourceLease,
 } from "@/lib/editor/playback/preview-resource-registry";
 import { systemAssetFallbackId, systemAssetFallbackUrl } from "@/lib/media/system-asset-fallback";
+import { publicDiagnosticCode, publicRendererMessage } from "@/lib/public-renderer-message";
 import { stageInteractionStore } from "@/lib/store/stage-interaction-store";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
@@ -258,7 +259,9 @@ export function PreviewStage({
       preparationDiagnosticsRef.current = [];
     }
   }
-  const error = parsedResult.success ? rendererError : parsedResult.error.message;
+  const error = parsedResult.success
+    ? rendererError
+    : publicRendererMessage(parsedResult.error.message);
   frameRef.current = frame ?? null;
   isPlayingRef.current = isPlaying;
 
@@ -634,7 +637,7 @@ export function PreviewStage({
       }
     })().catch((err: unknown) => {
       if (!cancelled && resourceGeneration === resourceGenerationRef.current) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = publicRendererMessage(err instanceof Error ? err.message : String(err));
         const canvas = canvasRef.current;
         if (canvas) {
           canvas.dataset.previewState = "error";
@@ -1281,7 +1284,7 @@ function paintFrame(
       ...preparationDiagnostics.map((code) => ({ code })),
       ...missingResourceDiagnostics,
     ]
-      .map((diagnostic) => diagnostic.code)
+      .map((diagnostic) => publicDiagnosticCode(diagnostic.code))
       .join(",");
     if (collectPerformanceMetrics) {
       rendererCanvas.dataset.videoHealth = JSON.stringify(

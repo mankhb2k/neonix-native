@@ -118,7 +118,6 @@ function toolError(error: unknown): ToolResult {
   return {
     isError: true,
     content: [{ type: "text", text: JSON.stringify(payload) }],
-    structuredContent: payload,
   };
 }
 
@@ -478,33 +477,6 @@ export function createRemoteMcpServer(options: {
           title: input.title,
           html: input.html,
           idempotencyKey: input.idempotency_key,
-        }),
-      ),
-  );
-
-  server.registerTool(
-    "create_project",
-    {
-      title: "Create project",
-      description: "Create a Neonix project with an initial document revision. Call open_editor after creation to return the editor link.",
-      inputSchema: {
-        workspace_id: uuid.optional().describe("Workspace id; omit to use the first accessible workspace or create a personal workspace."),
-        title: z.string().trim().min(1).max(200).optional(),
-        document: documentSchema.describe("Initial editor document as a JSON object."),
-      },
-      annotations: ADDITIVE_TOOL_ANNOTATIONS,
-      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project,
-      _meta: {
-        ui: { resourceUri: VIDEO_PREVIEW_RESOURCE_URI },
-        "openai/outputTemplate": VIDEO_PREVIEW_RESOURCE_URI,
-      },
-    },
-    (input) =>
-      safely(() =>
-        api.createProject({
-          workspaceId: input.workspace_id,
-          title: input.title,
-          document: input.document,
         }),
       ),
   );

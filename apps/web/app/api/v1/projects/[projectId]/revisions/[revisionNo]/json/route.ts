@@ -24,7 +24,6 @@ export async function GET(request: Request, context: Context) {
     return jsonApi(request, await getProtocolRevision(client, actor, { projectId, revisionNo }));
   } catch (error) {
     if (error instanceof ProjectRepositoryError) return jsonApiError(request, projectErrorStatus(error.code), error.code, error.message, error.details);
-    return jsonApiError(request, 500, "PROTOCOL_REVISION_READ_FAILED", "Unable to read Protocol V2 revision");
+    return jsonApiError(request, 500, "PROTOCOL_REVISION_READ_FAILED", "Unable to read Neonix JSON V2 revision");
   }
 }
-

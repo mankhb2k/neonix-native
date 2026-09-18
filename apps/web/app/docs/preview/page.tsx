@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Preview lab",
-  description: "Protocol V2 atoms rendered one certified primitive at a time.",
+  description: "Neonix JSON V2 atoms rendered one certified primitive at a time.",
   robots: { index: false, follow: false },
 };
 

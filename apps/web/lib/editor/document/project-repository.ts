@@ -196,7 +196,7 @@ function parseDocument(value: unknown): MotionProtocolV2 {
     return MotionProtocolV2Schema.parse(value);
   } catch (error) {
     throw new ProjectRepositoryError(
-      `Project source is not a valid Motion Protocol V2 document: ${parseFailureDetail(error)}`,
+      `Project source is not a valid Neonix JSON V2 document: ${parseFailureDetail(error)}`,
       "INVALID_DOCUMENT",
     );
   }

@@ -4,7 +4,7 @@ import { readSkiaDiff } from "./skia-pixel-diff";
 
 test.describe("Skia Protocol V2 animation contract", () => {
   test("samples JSON tracks and layer timing through the Skia preview", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     const time = page.getByTestId("skia-preview-time");

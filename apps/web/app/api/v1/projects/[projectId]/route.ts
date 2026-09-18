@@ -36,7 +36,7 @@ export async function PATCH(request: Request, context: Context) {
     return jsonApiError(request, 400, "INVALID_INPUT", "title or document is required");
   }
   if (body.document !== undefined && (typeof body.document !== "object" || body.document === null || Array.isArray(body.document))) {
-    return jsonApiError(request, 400, "INVALID_INPUT", "document must be a Protocol V2 object");
+    return jsonApiError(request, 400, "INVALID_INPUT", "document must be a Neonix JSON V2 document");
   }
   if (body.expectedRevisionNo !== undefined && (!Number.isInteger(body.expectedRevisionNo) || Number(body.expectedRevisionNo) < 0)) {
     return jsonApiError(request, 400, "INVALID_INPUT", "expectedRevisionNo must be a non-negative integer");

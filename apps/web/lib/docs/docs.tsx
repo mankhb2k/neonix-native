@@ -26,7 +26,7 @@ const V2_PAGES: Record<string, V2Page> = {
     title: "Neonix V2 documentation",
     markdown: String.raw`# Neonix V2
 
-This is the static guide to Neonix's current authoring vocabulary and Atomic Protocol V2. The examples on these pages are display-only teaching material. They are not sent to a compiler, runtime, preview renderer, or export process.
+This is the static guide to Neonix's current authoring vocabulary and Neonix JSON V2. The examples on these pages are display-only teaching material. They are not sent to a compiler, runtime, preview renderer, or export process.
 
 ## Start with the model
 
@@ -35,7 +35,7 @@ Neonix separates intent from rendering:
 ${FENCE}text
 Claude via MCP / future editor
         -> high-level authoring intent
-        -> Atomic Protocol V2
+        -> Neonix JSON V2
         -> Runtime IR
         -> frame evaluation
         -> preview or export adapter
@@ -59,7 +59,7 @@ ${FENCE}
 
 ## Current rules
 
-- Atomic Protocol V2 is the current protocol contract.
+- Neonix JSON V2 is the current public document contract.
 - Transform data is designed around a 4x4 matrix.
 - A normal 2D layer is a 3D layer with zero Z rotation and zero Z position.
 - ${BT}anchor${BT} describes the pivot; ${BT}z${BT} describes position along the world axis.
@@ -69,7 +69,8 @@ ${FENCE}
 ## Continue
 
 - Read [Authoring model](/docs/authoring) for the boundary between intent and atoms.
-- Read [Atomic Protocol V2](/docs/atoms) for the atom catalog.
+- Read [HTML authoring](/docs/html) for the document metadata, CSS shell and import flow.
+- Read [Neonix JSON V2](/docs/atoms) for the atom catalog.
 - Read [Runtime, preview, and export](/docs/rendering) for adapter responsibilities.`,
   },
   authoring: {
@@ -88,7 +89,7 @@ ${FENCE}json
 }
 ${FENCE}
 
-This is illustrative high-level input. The fields are not Atomic Protocol V2 fields. Compiler A expands and normalizes this intent before runtime rendering.
+This is illustrative high-level input. The fields are not Neonix JSON V2 fields. Compiler A expands and normalizes this intent before runtime rendering.
 
 ## Atomic input
 
@@ -105,7 +106,7 @@ ${FENCE}
 
 ## What belongs where
 
-| Concern | High-level authoring | Atomic Protocol V2 |
+| Concern | High-level authoring | Neonix JSON V2 |
 | --- | --- | --- |
 | Pattern and preset names | Yes | No |
 | Semantic motion intent | Yes | No |
@@ -121,7 +122,7 @@ An authoring surface may be expressive. The atomic result must be explicit enoug
 
 ## MCP authoring
 
-MCP is an authoring transport, not a second protocol. An agent should express intent first, then create or update explicit Protocol V2 fields.
+MCP is an authoring transport, not a second format. An agent should express intent first, then create or update explicit Neonix JSON V2 fields.
 
 - Ask for missing composition dimensions, timing, asset references and font information.
 - Use ${BT}anchor${BT} for a pivot, ${BT}translate.z${BT} for world position and ${BT}order${BT} for paint order.
@@ -147,8 +148,8 @@ ${FENCE}
 JSON blocks in this guide teach structure. They are not validated or rendered by the web documentation page.`,
   },
   atoms: {
-    title: "Atomic Protocol V2",
-    markdown: String.raw`# Atomic Protocol V2
+    title: "Neonix JSON V2",
+    markdown: String.raw`# Neonix JSON V2
 
 ## Atom catalog
 
@@ -428,7 +429,7 @@ The asset reference is stable. File URLs, decoding, and caching are delivery con
 
 ## Portable references
 
-Assets are metadata and stable references. Protocol V2 never stores decoded pixels, video elements, PCM buffers, font objects, GPU handles, or runtime caches in authoring JSON.
+Assets are metadata and stable references. Neonix JSON V2 never stores decoded pixels, video elements, PCM buffers, font objects, GPU handles, or runtime caches in authoring JSON.
 
 ${FENCE}json
 {
@@ -768,13 +769,13 @@ Embedded video audio stays on video.payload.audio so its visual trim and origina
 
 ## Lower once, present many ways
 
-Protocol V2 owns authoring meaning. The compiler resolves that meaning into Runtime V3 without replacing the authoring contract.
+Neonix JSON V2 owns authoring meaning. The compiler resolves that meaning into Runtime V3 without replacing the authoring contract.
 
 ${FENCE}text
 HTML / CSS / agent intent
           |
           v
-Protocol V2 JSON
+Neonix JSON V2
           |
           v
 motion-compiler
@@ -783,7 +784,7 @@ motion-compiler
 RuntimeProjectV3 / RuntimeFrameV3
           |
           +--> browser SVG
-          +--> Skia preview
+          +--> Native preview
           +--> export renderer
 ${FENCE}
 
@@ -831,13 +832,136 @@ ${FENCE}
 
 Backend differences are implementation details, not new protocol semantics.`,
   },
+  html: {
+    title: "HTML authoring",
+    markdown: String.raw`# HTML authoring
+
+HTML projects are compiled into the same Neonix project model used by the editor, preview and export flows. The document metadata defines the video composition; the browser page around it is only a convenient authoring surface.
+
+## Required document metadata
+
+Every HTML project must contain exactly one ${BT}<meta name="neonix-document">${BT} tag. Its JSON value declares the composition contract:
+
+${FENCE}html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="neonix-document"
+      content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'
+    />
+  </head>
+  <body>
+    <main class="scene">
+      <h1>Neonix</h1>
+      <p>HTML to editable motion.</p>
+    </main>
+  </body>
+</html>
+${FENCE}
+
+The following values are required:
+
+- ${BT}kind${BT} must be ${BT}neonix-html-document${BT}.
+- ${BT}schemaVersion${BT} must be ${BT}2${BT}.
+- ${BT}composition.width${BT}, ${BT}composition.height${BT} and ${BT}composition.fps${BT} must be positive numbers.
+- ${BT}composition.background${BT} must be a valid color.
+- ${BT}composition.colorSpace${BT} must be ${BT}srgb${BT}.
+
+## Composition size and body CSS
+
+The composition metadata is the source of truth for preview and export. You do not have to set ${BT}body${BT} to the same pixel dimensions, and the compiler does not infer the video size from body CSS.
+
+For a document that should also look correct when opened directly in a browser, use a fluid page shell and let the composition define the render viewport:
+
+${FENCE}css
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  position: relative;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+${FENCE}
+
+If an element paints outside the composition rectangle, the exported frame remains the declared composition size and the outside area is cropped. Set explicit dimensions on individual elements when their layout depends on a fixed design grid.
+
+## Supported authoring surface
+
+Use ordinary HTML and CSS for the supported compiler subset:
+
+- semantic elements such as ${BT}div${BT}, ${BT}section${BT}, ${BT}main${BT}, headings and paragraphs;
+- CSS colors, opacity, borders, rounded corners, gradients, transforms and animation declarations supported by the compiler;
+- local or Neonix system-font URLs for deterministic text layout;
+- images and other media through the asset references supported by the HTML compiler.
+
+The compiler validates the document before creating a project. Browser-only behavior such as event handlers, network-dependent layout, canvas state or arbitrary JavaScript is not part of the deterministic export contract.
+
+## Fonts
+
+For stable preview and export, use a font from the Neonix system font CDN and declare it explicitly:
+
+${FENCE}css
+@font-face {
+  font-family: "Inter";
+  src: url("https://fonts.neonix.video/inter/Inter_18pt-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+${FENCE}
+
+Keep the font family, weight and style explicit. Avoid relying on a user's installed fonts or loading a font from an unpinned external provider.
+
+## Import from the dashboard
+
+Choose **Import HTML** on the dashboard, enter a project name, then upload an ${BT}.html${BT} file or paste the document. The import uses the same validation and compilation path as the API and opens the new project preview when it succeeds.
+
+## Create through the API
+
+The HTML project endpoint accepts the same document as a string:
+
+${FENCE}bash
+curl -X POST http://localhost:3000/api/v1/projects/html \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <access-token>" \\
+  -d '{
+    "title": "Neonix intro",
+    "html": "<!doctype html><html>...</html>",
+    "idempotencyKey": "neonix-intro-v1"
+  }'
+${FENCE}
+
+On success, the response contains the created project identifier. The project can then be opened in preview, refined in the editor and exported through the normal project flow.
+
+## Validate before importing
+
+When a document is rejected, fix the first diagnostic before retrying. Common causes are a missing or duplicated metadata tag, invalid JSON in the ${BT}content${BT} attribute, unsupported CSS, or a font/media reference that cannot be resolved.
+
+For an interactive compiler test, open [HTML compiler preview](/docs/preview/html-compiler). For the underlying project and API contracts, continue with [Compiler pipeline](/docs/compiler) and [Runtime, preview, and export](/docs/rendering).`,
+  },
   validation: {
     title: "Validation and schema",
     markdown: String.raw`# Validation and schema
 
 ## Validate at the boundary
 
-The canonical contract is the Zod schema in packages/motion-protocol/src/v2. The generated JSON Schema is packages/motion-protocol/schema/v2.json. Strict object boundaries reject unknown properties.
+The canonical implementation is the Zod schema in packages/motion-protocol/src/v2. The generated JSON Schema is packages/motion-protocol/schema/v2.json. Strict object boundaries reject unknown properties.
 
 ${FENCE}ts
 import {
@@ -1044,7 +1168,7 @@ const hidden = (slug: string, label: string, surface: DocsSurface): DocsEntry =>
 export const DOCS_ENTRIES: DocsEntry[] = [
   published("", "Overview", "start", "authoring"),
   published("authoring", "Authoring model", "start", "authoring"),
-  published("atoms", "Atomic Protocol V2", "protocol", "protocol"),
+  published("atoms", "Neonix JSON V2", "protocol", "protocol"),
   published("atoms/composition", "Composition and view", "protocol", "protocol"),
   published("atoms/assets", "Assets", "protocol", "protocol"),
   published("atoms/layers", "Layers and hierarchy", "protocol", "protocol"),
@@ -1061,6 +1185,7 @@ export const DOCS_ENTRIES: DocsEntry[] = [
   published("animation/motion-paths", "Motion paths", "animation", "protocol"),
   published("audio", "Audio", "animation", "protocol"),
   published("compiler", "Compiler pipeline", "runtime", "runtime"),
+  published("html", "HTML authoring", "runtime", "runtime"),
   published("rendering", "Runtime, preview, and export", "runtime", "runtime"),
   published("validation", "Validation and schema", "runtime", "protocol"),
   published("examples", "Static examples", "examples", "authoring"),
@@ -1074,7 +1199,7 @@ export const DOCS_ENTRIES: DocsEntry[] = [
 
 export const DOCS_NAV: DocsNavGroup[] = [
   { id: "start", label: "Start here", description: "Understand the model", items: [] },
-  { id: "protocol", label: "Atomic Protocol V2", description: "The JSON contract", items: [] },
+  { id: "protocol", label: "Neonix JSON V2", description: "The JSON contract", items: [] },
   { id: "animation", label: "Animation system", description: "Time, tracks and paths", items: [] },
   { id: "visual", label: "Visual semantics", description: "Paint, masks and effects", items: [] },
   { id: "runtime", label: "Compiler & runtime", description: "Validate, lower and render", items: [] },

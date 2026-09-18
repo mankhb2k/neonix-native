@@ -99,7 +99,7 @@ export function HtmlCompilerRuntimeLab({
       else animation.pause();
       // Calling play() on an idle CSS Animation may initialize its current
       // time to zero. Set the shared playhead after changing transport state
-      // so Browser CSS and the sampled V2/Skia preview stay aligned on seek.
+      // so Browser CSS and the sampled native preview stay aligned on seek.
       animation.currentTime = Math.max(0, time * 1000);
     }
   }, []);
@@ -277,7 +277,7 @@ export function HtmlCompilerRuntimeLab({
               />
           </Panel>
 
-          <Panel title="Compiler output" badge="HTML/CSS → JSON V2 → Skia">
+          <Panel title="Compiler output" badge="HTML/CSS → JSON V2 → Native renderer">
             {compilation.protocol ? (
               <div
                 className="bg-[#101820]"
@@ -321,7 +321,7 @@ export function HtmlCompilerRuntimeLab({
         <section className="mt-5 grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
           <SourceCanvas composition={selected.composition} html={selectedHtml} />
           <SourcePanel
-            title="Normalized Protocol V2"
+            title="Normalized Neonix JSON V2"
             value={JSON.stringify(
               compilation.protocol ?? { diagnostics: compilation.diagnostics },
               null,

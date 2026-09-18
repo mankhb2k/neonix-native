@@ -11,7 +11,7 @@ export function SwaggerApiReference() {
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-700">Preview / API</p>
           <h1 className="text-2xl font-semibold tracking-tight">Neonix API reference</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            OpenAPI reference for the HTML-first workflow: validate HTML, compile to Protocol V2 JSON, persist projects, and create render jobs.
+            OpenAPI reference for the HTML-first workflow: validate HTML, compile to Neonix JSON V2, persist projects, and create render jobs.
           </p>
         </div>
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

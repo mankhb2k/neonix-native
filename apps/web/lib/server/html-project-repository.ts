@@ -200,7 +200,7 @@ async function saveRevision(
     .select("id, revision_no")
     .single();
   if (canonical.error || !canonical.data) {
-    throw new HtmlProjectError("Unable to create canonical Protocol V2 revision", "DATABASE_ERROR");
+    throw new HtmlProjectError("Unable to create canonical Neonix JSON V2 revision", "DATABASE_ERROR");
   }
   const inserted = await client
     .from("project_html_revisions")
@@ -356,10 +356,10 @@ export async function getProtocolRevision(projectRef: string, revisionNo: number
     .eq("project_id", project.id)
     .eq("revision_no", revisionNo)
     .maybeSingle();
-  if (result.error) throw new HtmlProjectError("Unable to read Protocol V2 revision", "DATABASE_ERROR");
-  if (!result.data) throw new HtmlProjectError("Protocol V2 revision not found", "NOT_FOUND");
+  if (result.error) throw new HtmlProjectError("Unable to read Neonix JSON V2 revision", "DATABASE_ERROR");
+  if (!result.data) throw new HtmlProjectError("Neonix JSON V2 revision not found", "NOT_FOUND");
   const parsed = MotionProtocolV2Schema.safeParse(result.data.document_json);
-  if (!parsed.success) throw new HtmlProjectError("Protocol V2 revision is invalid", "INVALID_DOCUMENT");
+  if (!parsed.success) throw new HtmlProjectError("Neonix JSON V2 revision is invalid", "INVALID_DOCUMENT");
   return {
     projectId: project.id,
     revision: {

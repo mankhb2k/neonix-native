@@ -43,7 +43,7 @@ async function selectCase(page: Page, id: string) {
 
 test.describe("Skia Phase 6 Runtime compositing contract", () => {
   test("replays blend/isolation through Skia saveLayer and matches the same Runtime SVG fixture", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await expect(select.locator("option")).toHaveCount(TOTAL_SKIA_CASES);
@@ -67,7 +67,7 @@ test.describe("Skia Phase 6 Runtime compositing contract", () => {
   });
 
   test("replays Runtime clipPath source geometry without painting the source node", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const canvas = page.getByTestId("skia-runtime-stage");
     for (const fixture of SKIA_CLIP_CASES) {
       await selectCase(page, fixture.id);
@@ -81,7 +81,7 @@ test.describe("Skia Phase 6 Runtime compositing contract", () => {
   });
 
   test("replays alpha/luma masks and the supported Runtime effect graph through Skia", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     for (const fixture of SKIA_MASK_CASES) {

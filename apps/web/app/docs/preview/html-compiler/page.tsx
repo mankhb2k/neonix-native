@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "HTML compiler preview lab",
-  description: "HTML/CSS compiler output compared with the Protocol V2 runtime.",
+  description: "HTML/CSS compiler output compared with the Neonix JSON V2 runtime.",
   robots: { index: false, follow: false },
 };
 
@@ -44,7 +44,7 @@ async function loadExportSamples(): Promise<CategorizedHtmlCompilerPreviewCase[]
       classificationLabel: "10-second export",
       topic: "Motion & animation" as const,
       label: sample.label,
-      properties: ["10 seconds", "30 fps", "HTML/CSS", "JSON V2", "Skia export"],
+      properties: ["10 seconds", "30 fps", "HTML/CSS", "JSON V2", "Native export"],
       hint: sample.hint,
       durationMs: 10_000,
       composition: compositionFromDocument(html),

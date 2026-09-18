@@ -7,7 +7,7 @@ test.describe("Skia Phase 8 SVG reference contract", () => {
     const fixture = SKIA_PREVIEW_CASES[0];
     if (!fixture) throw new Error("Skia path fixtures are empty");
 
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await select.selectOption(fixture.id);
@@ -54,7 +54,7 @@ test.describe("Skia Phase 8 SVG reference contract", () => {
   });
 
   test("preserves ordered color-adjust and blur effects", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await select.selectOption("effect.order");
@@ -94,7 +94,7 @@ test.describe("Skia Phase 8 SVG reference contract", () => {
   });
 
   test("renders deterministic noise in the Skia layer", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await select.selectOption("effect.noise");

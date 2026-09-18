@@ -83,8 +83,8 @@ function ClientCard({ client }: { client: McpClient }) {
 const TOOL_GROUPS = [
   {
     title: "Workspace & projects",
-    description: "Find workspaces, create projects, edit revisions, and open the Neonix editor.",
-    tools: ["list_workspaces", "list_projects", "get_project", "create_project", "update_project", "delete_project", "open_editor"],
+    description: "Find workspaces and projects, manage HTML revisions, and open the Neonix editor.",
+    tools: ["list_workspaces", "list_projects", "get_project", "delete_project", "open_editor"],
   },
   {
     title: "HTML authoring",
@@ -92,8 +92,8 @@ const TOOL_GROUPS = [
     tools: ["get_capabilities", "validate_html", "compile_html", "create_project_html", "get_project_html", "update_project_html", "list_html_revisions", "get_html_revision"],
   },
   {
-    title: "Protocol JSON",
-    description: "Inspect canonical Protocol V2 and apply a small validated JSON patch when needed.",
+    title: "Neonix JSON",
+    description: "Inspect canonical Neonix JSON V2 and apply a small validated JSON patch when needed.",
     tools: ["get_project_json", "apply_json_patch"],
   },
   {
@@ -122,9 +122,9 @@ export function McpPage() {
             </div>
             <div className="space-y-4 text-base leading-7 text-[var(--fg-secondary)]">
               <p>Model Context Protocol lets a compatible AI client discover structured tools and call them with validated inputs. Instead of asking an agent to print a large JSON file in chat, Neonix lets it work with a real project through a controlled remote connection.</p>
-              <p>Neonix remains responsible for authentication, workspace ownership, revisions, Protocol V2 validation, preview, and export. The agent supplies intent; Neonix keeps the project safe and editable.</p>
+              <p>Neonix remains responsible for authentication, workspace ownership, revisions, Neonix JSON V2 validation, preview, and export. The agent supplies intent; Neonix keeps the project safe and editable.</p>
               <p className="pt-1 font-mono text-sm text-[var(--fg-muted)]">
-                Streamable HTTP / OAuth / Protocol V2 / Preview and export
+                Streamable HTTP / OAuth / Neonix JSON V2 / Preview and export
               </p>
             </div>
           </div>
@@ -154,7 +154,7 @@ export function McpPage() {
             {[
               ["01", "Use a remote MCP client", "Choose a host that supports Streamable HTTP MCP connections."],
               ["02", "Authorize Neonix", "OAuth connects the client to your account and workspace permissions."],
-              ["03", "Start with a project", "Ask the agent to create an HTML or Protocol V2 project."],
+              ["03", "Start with an HTML project", "Ask the agent to create a complete HTML/CSS project."],
             ].map(([number, title, body]) => (
               <div key={number} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-site)] p-4">
                 <span className="font-mono text-sm font-semibold text-[var(--accent-text)]">{number}</span>
@@ -230,7 +230,7 @@ export function McpPage() {
               <h2 className="mt-3 text-xl font-semibold text-[var(--fg-primary)]">Guidance available to the host</h2>
               <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--fg-secondary)]">
                 <p><code className="font-mono text-sm text-[var(--accent-text)]">neonix://docs/workflows</code> — recommended create, edit, asset, and export flows.</p>
-                <p><code className="font-mono text-sm text-[var(--accent-text)]">neonix://docs/html-authoring</code> — supported HTML/CSS boundary and Protocol V2 rules.</p>
+                <p><code className="font-mono text-sm text-[var(--accent-text)]">neonix://docs/html-authoring</code> — supported HTML/CSS boundary and Neonix JSON V2 rules.</p>
               </div>
             </article>
             <article className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5">
@@ -251,7 +251,7 @@ export function McpPage() {
             <div>
               <p className="font-mono text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent-text)]">Important boundaries</p>
               <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--fg-secondary)]">
-                <li>HTML is the preferred high-level authoring source for HTML requests; Protocol V2 JSON remains canonical.</li>
+                <li>HTML is the preferred high-level authoring source for HTML requests; Neonix JSON V2 remains canonical.</li>
                 <li>Exports run from saved revisions, not unsaved arbitrary JSON supplied in a tool call.</li>
                 <li>Destructive actions such as delete_project, delete_asset, and cancel_export should be confirmed first.</li>
               </ul>

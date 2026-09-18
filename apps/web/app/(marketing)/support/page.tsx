@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 const supportTopics = [
   "HTML/CSS authoring and supported tags or CSS values",
-  "HTML to Protocol V2 compilation diagnostics",
+  "HTML to Neonix JSON V2 compilation diagnostics",
   "MCP connection, authentication, and project tools",
   "Media assets, previews, and video export jobs",
 ];

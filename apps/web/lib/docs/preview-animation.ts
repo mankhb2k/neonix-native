@@ -28,7 +28,7 @@ export function samplePreviewLayerAtTime(
  *
  * The production compiler still receives the original project for resource
  * ownership. This function creates the sampled V2 snapshot that is compiled
- * into the RuntimeFrameV3 supplied to both the SVG reference and Skia. Track
+ * into the RuntimeFrameV3 supplied to both the SVG reference and native renderer. Track
  * keyframes are local to their owning layer and use protocol milliseconds.
  */
 export function samplePreviewProtocolAtTime(

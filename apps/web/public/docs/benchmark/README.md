@@ -1,6 +1,6 @@
 # Neonix native render benchmark fixtures
 
-This directory is the canonical fixture set for the Native Skia CPU → frame bridge → FFmpeg benchmark. All fixtures use `1920x1080`, `30 fps`, and `srgb` unless a runner overrides the composition.
+This directory is the canonical fixture set for the native CPU → frame bridge → FFmpeg benchmark. All fixtures use `1920x1080`, `30 fps`, and `srgb` unless a runner overrides the composition.
 
 ## Ladder
 
@@ -24,7 +24,7 @@ Each run should record at least:
 - process start and cold-start time;
 - compile/manifest load time;
 - asset resolve, image decode and video seek/decode time;
-- native Skia render time per frame and total;
+- native render time per frame and total;
 - RGBA readback/color conversion time;
 - bridge/IPC time and bytes transferred;
 - FFmpeg encode time, output size and output duration;

@@ -32,6 +32,7 @@ import {
   type EditorStoreApi,
   type TextEditStartPoint,
 } from "@/lib/editor/state/editor-store";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
 import {
   applyTextDraftToLayer,
   applyEditorCommands,
@@ -232,7 +233,7 @@ export function EditorProviders({
         {
           severity: "error",
           code: "compile_invalid",
-          message: error instanceof Error ? error.message : String(error),
+          message: publicRendererMessage(error instanceof Error ? error.message : String(error)),
         },
       ]);
     }

@@ -57,7 +57,7 @@ const SKIA_VIDEO_DEMOS: readonly SkiaDemoSpec[] = [
 
 function skiaDemoProject(spec: SkiaDemoSpec): MotionProtocolV2 {
   const fixture = SKIA_ANIMATION_CASES.find((item) => item.id === spec.fixtureId);
-  if (!fixture) throw new Error(`Missing Skia demo fixture: ${spec.fixtureId}`);
+  if (!fixture) throw new Error(`Missing native demo fixture: ${spec.fixtureId}`);
   return {
     ...fixture.project,
     id: `${fixture.project.id}-${spec.width}x${spec.height}`,
@@ -128,7 +128,7 @@ function SkiaVideoDemoCard({ spec }: { spec: SkiaDemoSpec }) {
           testId={spec.id}
         />
         <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2 py-1 font-mono text-[10px] font-semibold tracking-[0.08em] text-white/85">
-          SKIA / {spec.ratio.replaceAll(" ", "")}
+            NATIVE / {spec.ratio.replaceAll(" ", "")}
         </span>
       </div>
       <div className="space-y-3 border-t border-[var(--border-subtle)] p-4">
@@ -371,10 +371,10 @@ export function McpVideoPreviewLab() {
       <section className="mt-10">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--accent-text)]">Skia runtime demos</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--accent-text)]">Native runtime demos</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[var(--fg-primary)]">Real-time canvas previews</h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--fg-secondary)]">
-              These cards render the Protocol V2 animation fixtures through the real Skia backend, with independent play/pause controls.
+              These cards render the Neonix JSON V2 animation fixtures through the native backend, with independent play/pause controls.
             </p>
           </div>
         </div>

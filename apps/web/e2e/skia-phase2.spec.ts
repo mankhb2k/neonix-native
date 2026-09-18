@@ -4,7 +4,7 @@ import { readSkiaDiff } from "./skia-pixel-diff";
 
 test.describe("Skia Phase 2 Runtime path baseline", () => {
   test("renders all eight Protocol V2 path fixtures and passes SVG pixel diff", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await expect(select.locator("option")).toHaveCount(SKIA_ANIMATION_CASES.length + SKIA_PREVIEW_CASES.length + SKIA_TRANSFORM_CASES.length + SKIA_PROJECTIVE_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_IMAGE_CASES.length + SKIA_VIDEO_CASES.length + SKIA_TEXT_CASES.length + SKIA_COMPOSITING_CASES.length + SKIA_CLIP_CASES.length + SKIA_MASK_CASES.length + SKIA_EFFECT_CASES.length);

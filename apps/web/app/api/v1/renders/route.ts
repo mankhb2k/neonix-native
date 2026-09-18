@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
 import { getProjectAccess, getProtocolRevision } from "@/lib/server/projects/repository";
 import { buildStubRuntimeProjectV3 } from "@/lib/server/render/build-manifest";
 import { startRenderOnWorker, syncRenderJob } from "@/lib/server/render/export-worker";
@@ -36,7 +37,7 @@ function responseJob(job: Awaited<ReturnType<typeof listRenderJobs>>[number]) {
     status: job.status,
     progress: job.progress,
     stage: job.stage,
-    error: job.error,
+    error: job.error ? publicRendererMessage(job.error) : job.error,
     artifactPath: job.artifactPath,
     outputKey: job.outputKey,
     metrics: job.metrics,
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     const durationIssues = validateProjectVideoDurations(parsedProject.data);
     if (durationIssues.length > 0) return NextResponse.json({ error: "video_source_duration_mismatch", issues: durationIssues }, { status: 422 });
     try { runtime = await compileAndPrepareRuntimeProjectV3(parsedProject.data); }
-    catch (error) { return NextResponse.json({ error: "runtime_compile_failed", detail: error instanceof Error ? error.message : String(error) }, { status: 422 }); }
+    catch (error) { return NextResponse.json({ error: "runtime_compile_failed", detail: publicRendererMessage(error instanceof Error ? error.message : String(error)) }, { status: 422 }); }
   } else {
     runtime = buildStubRuntimeProjectV3({ projectId: body.projectId, preset: presetRaw });
   }
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
         runtime,
       };
     } catch (error) {
-      return NextResponse.json({ error: "render_persistence_failed", detail: error instanceof Error ? error.message : String(error) }, { status: 500 });
+      return NextResponse.json({ error: "render_persistence_failed", detail: publicRendererMessage(error instanceof Error ? error.message : String(error)) }, { status: 500 });
     }
   }
 
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       await updateRenderJob(job.jobId, { status: "failed", stage: "failed", error: detail });
-      return NextResponse.json({ error: "worker_dispatch_failed", detail, jobId: job.jobId }, { status: 502 });
+      return NextResponse.json({ error: "worker_dispatch_failed", detail: publicRendererMessage(detail), jobId: job.jobId }, { status: 502 });
     }
   }
   const current = (await getRenderJob(job.jobId)) ?? job;

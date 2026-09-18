@@ -24,7 +24,7 @@ const backendOptions: Array<{
   label: string;
 }> = [
   { id: "auto", label: "Auto" },
-  { id: "skia", label: "Skia" },
+  { id: "skia", label: "Native renderer" },
   { id: "webgpu", label: "WebGPU" },
   { id: "webgl2", label: "WebGL2" },
 ];
@@ -37,7 +37,7 @@ export function PreviewLab() {
   const searchParams = useSearchParams();
   const selected = previewLabCaseById(searchParams.get("case"));
   const backend: PreviewLabBackendPreference =
-    searchParams.get("backend") === "skia"
+    searchParams.get("backend") === "skia" || searchParams.get("backend") === "native"
       ? "skia"
       : searchParams.get("backend") === "webgpu"
       ? "webgpu"
@@ -62,7 +62,7 @@ export function PreviewLab() {
   function selectBackend(next: PreviewLabBackendPreference) {
     const params = new URLSearchParams(searchParams.toString());
     if (next === "auto") params.delete("backend");
-    else params.set("backend", next);
+    else params.set("backend", next === "skia" ? "native" : next);
     router.replace(`/docs/preview?${params.toString()}`, { scroll: false });
   }
 
@@ -74,7 +74,7 @@ export function PreviewLab() {
       <aside className="border-b border-white/10 lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden lg:border-r lg:border-b-0">
         <div className="border-b border-white/10 px-4 py-3">
           <p className="text-[11px] font-semibold tracking-[0.16em] text-cyan-300/80 uppercase">
-            Protocol V2 atoms
+            Neonix JSON V2 atoms
           </p>
           <p className="mt-1 text-[12px] text-slate-400">
             One certified atom at a time. Docs stay at{" "}
@@ -143,7 +143,7 @@ export function PreviewLab() {
           </div>
 
           <aside className="hidden min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14] 2xl:flex" data-testid="preview-authoring-panel">
-            <div className="border-b border-white/10 px-3 py-2 text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">Atomic Protocol V2 JSON</div>
+            <div className="border-b border-white/10 px-3 py-2 text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">Neonix JSON V2</div>
             <CodePanel value={json} />
           </aside>
         </div>
@@ -381,7 +381,7 @@ function PreviewCaseRenderer({
           data-testid="preview-active-backend"
         >
           {activeBackend
-            ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : activeBackend === "skia" ? "Skia" : "WebGL2"}`
+            ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : activeBackend === "skia" ? "Native renderer" : "WebGL2"}`
             : "Loading renderer..."}
         </span>
       </div>

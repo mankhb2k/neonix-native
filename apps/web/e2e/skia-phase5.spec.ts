@@ -76,7 +76,7 @@ async function readPaintedRegion(page: Page): Promise<number> {
 
 test.describe("Skia Phase 5 Protocol V2 resource contract", () => {
   test("renders public preview images through RuntimeFrameV3 and passes SVG pixel diff", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await expect(select.locator("option")).toHaveCount(TOTAL_SKIA_CASES);
@@ -135,7 +135,7 @@ test.describe("Skia Phase 5 Protocol V2 resource contract", () => {
   });
 
   test("keeps a missing image fail-closed", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const { canvas } = await waitForSkiaCase(page, "image.missing-asset");
     await expect(canvas).toHaveAttribute("data-diagnostics", /preview_asset_missing/);
     await expect(canvas).not.toHaveAttribute("data-diagnostics", /current_3d_unsupported/);
@@ -143,7 +143,7 @@ test.describe("Skia Phase 5 Protocol V2 resource contract", () => {
   });
 
   test("seeks public preview video resources before Skia replay", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await expect(select.locator("option")).toHaveCount(TOTAL_SKIA_CASES);

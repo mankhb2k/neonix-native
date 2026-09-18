@@ -7,7 +7,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
-import { getSystemAssetsProvider } from "@/lib/server/r2";
+import { getSystemAssetsProvider, getSystemFontsProvider } from "@/lib/server/r2";
 
 loadEnvConfig(process.cwd(), false);
 
@@ -49,6 +49,7 @@ type FontRecord = FontMetadata & {
   contentHash: string;
   byteSize: number;
   r2Key: string;
+  legacyR2Key: string;
 };
 
 function argValue(name: string): string | undefined {
@@ -58,7 +59,9 @@ function argValue(name: string): string | undefined {
 const apply = process.argv.includes("--apply");
 const skipUpload = process.argv.includes("--skip-upload");
 const verify = process.argv.includes("--verify");
+const cleanupSource = process.argv.includes("--cleanup-source");
 const onlyFamily = argValue("--family");
+const systemFontsBucket = process.env.R2_SYSTEM_FONTS_BUCKET?.trim() || "neonix-system-fonts";
 
 function slugify(value: string): string {
   return value
@@ -261,7 +264,8 @@ async function discoverFonts(root: string, ttx: string): Promise<FontRecord[]> {
       format,
       contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
       byteSize: bytes.byteLength,
-      r2Key: `font/${slugify(familyName)}/${sourceFile}`,
+      r2Key: `${slugify(familyName)}/${sourceFile}`,
+      legacyR2Key: `font/${slugify(familyName)}/${sourceFile}`,
     });
   }
   return records.filter((record) => !onlyFamily || record.familySlug === slugify(onlyFamily));
@@ -305,7 +309,7 @@ function assertUniqueCatalogIdentity(records: FontRecord[]): void {
 
 async function syncR2(records: FontRecord[]): Promise<void> {
   if (skipUpload) return;
-  const provider = getSystemAssetsProvider();
+  const provider = getSystemFontsProvider();
   let uploaded = 0;
   let skipped = 0;
   for (const record of records) {
@@ -381,7 +385,7 @@ async function syncDatabase(records: FontRecord[]): Promise<void> {
     style: record.style,
     format: record.format,
     width_class: record.widthClass,
-    storage_bucket: "neonix-system-assets",
+    storage_bucket: systemFontsBucket,
     r2_key: record.r2Key,
     public_url: null,
     content_hash: record.contentHash,
@@ -401,12 +405,19 @@ async function syncDatabase(records: FontRecord[]): Promise<void> {
     },
   }));
   if (rows.some((row) => !row.font_family_id)) throw new Error("font family id resolution failed");
+  if (apply) {
+    for (const record of records) {
+      const { error: legacyKeyError } = await catalog
+        .from("font_files")
+        .update({ r2_key: record.r2Key })
+        .eq("r2_key", record.legacyR2Key);
+      if (legacyKeyError) throw new Error(`legacy font key migration failed: ${legacyKeyError.message}`);
+    }
+  }
   const { error: fileError } = await catalog
     .from("font_files")
-    // r2_key is the original, already-existing unique key and is also the
-    // immutable identity of a bundled binary. This avoids relying on a
-    // freshly-added composite constraint while PostgREST refreshes schema
-    // metadata after a migration.
+    // r2_key is the stable object key for the bundled binary. The legacy
+    // prefixed key is migrated before this upsert when moving catalog data.
     .upsert(rows, { onConflict: "r2_key" });
   if (fileError) throw new Error(`font file upsert failed: ${fileError.message}`);
   const { data: verifiedRows, error: verifyError } = await catalog
@@ -421,11 +432,39 @@ async function syncDatabase(records: FontRecord[]): Promise<void> {
       byte_size?: number;
       storage_bucket?: string;
     } | undefined;
-    if (!row || row.content_hash !== record.contentHash || Number(row.byte_size) !== record.byteSize || row.storage_bucket !== "neonix-system-assets") {
+    if (!row || row.content_hash !== record.contentHash || Number(row.byte_size) !== record.byteSize || row.storage_bucket !== systemFontsBucket) {
       throw new Error(`font file metadata verification failed: ${record.r2Key}`);
     }
   }
   console.log(`Supabase: ${familyRows.length} families, ${rows.length} font files upserted`);
+}
+
+async function cleanupSourceFonts(records: FontRecord[]): Promise<void> {
+  if (!apply || !cleanupSource) return;
+  const oldSystemProvider = getSystemAssetsProvider();
+  const newSystemFontsProvider = getSystemFontsProvider();
+  let oldBucketDeleted = 0;
+  let oldBucketMissing = 0;
+  let legacyPrefixDeleted = 0;
+  let legacyPrefixMissing = 0;
+  for (const record of records) {
+    const oldBucketObject = await oldSystemProvider.headObject(record.legacyR2Key);
+    if (oldBucketObject) {
+      await oldSystemProvider.deleteObject(record.legacyR2Key);
+      oldBucketDeleted += 1;
+    } else {
+      oldBucketMissing += 1;
+    }
+    const legacyObject = await newSystemFontsProvider.headObject(record.legacyR2Key);
+    if (legacyObject) {
+      await newSystemFontsProvider.deleteObject(record.legacyR2Key);
+      legacyPrefixDeleted += 1;
+    } else {
+      legacyPrefixMissing += 1;
+    }
+  }
+  console.log(`Source cleanup: ${oldBucketDeleted} deleted from neonix-system-assets, ${oldBucketMissing} already absent`);
+  console.log(`Legacy prefix cleanup: ${legacyPrefixDeleted} deleted from ${systemFontsBucket}, ${legacyPrefixMissing} already absent`);
 }
 
 async function main(): Promise<void> {
@@ -452,6 +491,7 @@ async function main(): Promise<void> {
   }
   await syncR2(records);
   await syncDatabase(records);
+  await cleanupSourceFonts(records);
   if (!apply) console.log("Dry-run complete. Add --apply to upload R2 objects and upsert Supabase metadata.");
 }
 

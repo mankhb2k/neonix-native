@@ -12,8 +12,6 @@ create_project_html(HTML + CSS)
         |
 validate + compile → create project + linked revisions
         |
-create_project(Protocol V2 JSON)
-        |
 get_project_html → edit HTML → validate_html
         |
 update_project_html
@@ -23,10 +21,12 @@ project_html_revision + linked project_revision
 Protocol V2 JSON → compileProtocol → RuntimeProjectV3
 ```
 
-`create_project_html` is the preferred HTML-first flow: it compiles the supplied
-source and atomically creates the project, canonical Protocol V2 revision, and
-linked HTML authoring revision. HTML remains an authoring source attached to
-the project; the hosted MCP flow never converts JSON back to HTML.
+`create_project_html` is the only public AI project-creation flow: it compiles
+the supplied source and atomically creates the project, canonical Protocol V2
+revision, and linked HTML authoring revision. HTML remains an authoring source
+attached to the project; the hosted MCP flow never converts JSON back to HTML.
+The low-level Protocol V2 create operation remains available to internal
+adapters for compatibility, but is not registered by the hosted MCP server.
 `get_project_json` is read-only and `apply_json_patch` is an explicit escape
 hatch for small changes that HTML cannot express.
 

@@ -1,7 +1,7 @@
 # Neonix Web
 
-`apps/web` is the Next.js host for the Neonix landing page, protocol docs,
-authenticated workspace, Protocol V2 editor, MCP OAuth surface, and export
+`apps/web` is the Next.js host for the Neonix landing page, Neonix JSON docs,
+authenticated workspace, Neonix JSON V2 editor, MCP OAuth surface, and export
 BFF routes.
 
 ## Editor boundary
@@ -20,7 +20,7 @@ Supabase project revision
 ```
 
 `EditorProviders` composes selector-based document/transport stores with narrow
-authoring and playback action contexts. Only the Protocol V2 document and
+authoring and playback action contexts. Only the Neonix JSON V2 document and
 server revision are persisted.
 The browser calls project BFF clients from `lib/api`; UI components do not
 call `fetch` directly.

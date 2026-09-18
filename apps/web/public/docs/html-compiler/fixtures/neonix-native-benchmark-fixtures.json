@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "purpose": "Native Skia CPU and FFmpeg benchmark ladder",
+  "purpose": "Native CPU and FFmpeg benchmark ladder",
   "composition": {
     "width": 1920,
     "height": 1080,

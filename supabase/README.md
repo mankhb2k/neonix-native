@@ -67,7 +67,7 @@ the `system_catalog` schema; user/project/workspace data remains in `public`.
 
 The preview font files are treated as the canonical bundled system-font input.
 The sync CLI reads real font metadata from each binary, uploads private objects
-under `font/{family}/{filename}`, and upserts compiler-facing rows in
+under `{family}/{filename}` in the dedicated `neonix-system-fonts` bucket, and upserts compiler-facing rows in
 `system_catalog.font_families` and `system_catalog.font_files`:
 
 ```powershell

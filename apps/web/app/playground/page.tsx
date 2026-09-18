@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "HTML compiler playground | Neonix",
-  description: "Import HTML and compare browser CSS with the Neonix Runtime V3 and Skia preview.",
+  description: "Import HTML and compare browser CSS with the Neonix Runtime V3 and native preview.",
   robots: { index: false, follow: false },
 };
 

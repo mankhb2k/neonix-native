@@ -213,7 +213,7 @@ function parseProjectDocument(document: JsonObject): JsonObject {
     return parseMotionProtocol(document);
   } catch {
     throw new McpProjectError(
-      "document must be a valid Motion Protocol V2 document",
+      "document must be a valid Neonix JSON V2 document",
       "INVALID_INPUT",
     );
   }
@@ -227,7 +227,7 @@ export async function createProtocolProject(
   principal: McpPrincipal,
   input: { workspaceId?: string; title?: string; document?: JsonObject },
 ) {
-  if (!input.document) throw new McpProjectError("document is required and must be a valid Motion Protocol V2 document", "INVALID_INPUT");
+  if (!input.document) throw new McpProjectError("document is required and must be a valid Neonix JSON V2 document", "INVALID_INPUT");
   try {
     return await createSharedProject(getClient(principal), repositoryActor(principal), {
       workspaceId: input.workspaceId,
@@ -467,7 +467,7 @@ export async function createProject(
   const title = input.title?.trim() || "Untitled project";
   if (!input.document) {
     throw new McpProjectError(
-      "document is required and must be a valid Motion Protocol V2 document",
+      "document is required and must be a valid Neonix JSON V2 document",
       "INVALID_INPUT",
     );
   }

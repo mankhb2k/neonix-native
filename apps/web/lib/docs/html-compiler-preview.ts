@@ -191,7 +191,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "rectangle",
       "blue paint"
     ],
-    "hint": "The smallest authored project starts from the fixed composition envelope and compiles one rectangle into a valid Protocol V2 shape layer.",
+    "hint": "The smallest authored project starts from the fixed composition envelope and compiles one rectangle into a valid Neonix JSON V2 shape layer.",
     "fixtureUrl": "/docs/html-compiler/fixtures/new-project-blue-rectangle.html",
     "composition": {
       "width": 1920,
@@ -212,7 +212,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "explicit px",
       "composition pixels"
     ],
-    "hint": "Explicit width and height resolve directly to a composition-space frame that both browser reference and Protocol V2 share.",
+    "hint": "Explicit width and height resolve directly to a composition-space frame that both browser reference and Neonix JSON V2 share.",
     "fixtureUrl": "/docs/html-compiler/fixtures/geometry-explicit-size.html",
     "composition": {
       "width": 1920,
@@ -254,7 +254,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "rectangle",
       "solid paint"
     ],
-    "hint": "A leaf div is the smallest visual tag: the compiler lowers it to one Protocol V2 rectangle shape layer.",
+    "hint": "A leaf div is the smallest visual tag: the compiler lowers it to one Neonix JSON V2 rectangle shape layer.",
     "fixtureUrl": "/docs/html-compiler/fixtures/tags-div-shape.html",
     "composition": {
       "width": 1920,
@@ -296,7 +296,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "vector group",
       "cubic contour"
     ],
-    "hint": "An svg container becomes a group and its path child lowers to a Protocol V2 path with fill and stroke semantics.",
+    "hint": "An svg container becomes a group and its path child lowers to a Neonix JSON V2 path with fill and stroke semantics.",
     "fixtureUrl": "/docs/html-compiler/fixtures/tags-svg-path.html",
     "composition": {
       "width": 1920,
@@ -384,7 +384,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "padding-bottom",
       "padding-left"
     ],
-    "hint": "Four fixed objects show how padding shorthand and longhands expand the content box into the final Protocol V2 frame.",
+    "hint": "Four fixed objects show how padding shorthand and longhands expand the content box into the final Neonix JSON V2 frame.",
     "fixtureUrl": "/docs/html-compiler/fixtures/geometry-padding.html",
     "composition": {
       "width": 1920,
@@ -496,7 +496,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "rotate",
       "skew"
     ],
-    "hint": "The transform list is preserved in source order and lowered to Protocol V2 operations; transform-origin becomes the local anchor for the complete list.",
+    "hint": "The transform list is preserved in source order and lowered to Neonix JSON V2 operations; transform-origin becomes the local anchor for the complete list.",
     "fixtureUrl": "/docs/html-compiler/fixtures/transform-functions.html",
     "composition": {
       "width": 1920,
@@ -517,7 +517,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "transform-origin",
       "edge rasterization"
     ],
-    "hint": "A single rectangle isolates transform geometry from multi-layer overlap so browser and Skia edge rasterization can be compared directly.",
+    "hint": "A single rectangle isolates transform geometry from multi-layer overlap so browser and native edge rasterization can be compared directly.",
     "fixtureUrl": "/docs/html-compiler/fixtures/transform-rotate-single.html",
     "composition": {
       "width": 1920,
@@ -669,7 +669,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "multi-stop",
       "background"
     ],
-    "hint": "A centered radial gradient preserves its normalized center and color-stop sequence for Protocol V2.",
+    "hint": "A centered radial gradient preserves its normalized center and color-stop sequence for Neonix JSON V2.",
     "fixtureUrl": "/docs/html-compiler/fixtures/paint-radial-gradient.html",
     "composition": {
       "width": 1920,
@@ -690,7 +690,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "center",
       "multi-stop"
     ],
-    "hint": "A conic gradient uses the Protocol V2 conic primitive with an explicit start angle and normalized center.",
+    "hint": "A conic gradient uses the Neonix JSON V2 conic primitive with an explicit start angle and normalized center.",
     "fixtureUrl": "/docs/html-compiler/fixtures/paint-conic-gradient.html",
     "composition": {
       "width": 1920,
@@ -800,7 +800,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "match-parent",
       "justify-all"
     ],
-    "hint": "Eight CSS text-align inputs are normalized into the Protocol V2 text layout contract; match-parent resolves to left for the compiler's fixed LTR text and justify-all preserves its base justify alignment.",
+    "hint": "Eight CSS text-align inputs are normalized into the Neonix JSON V2 text layout contract; match-parent resolves to left for the compiler's fixed LTR text and justify-all preserves its base justify alignment.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography-text-align-values.html",
     "composition": {
       "width": 1920,
@@ -854,7 +854,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "overline",
       "line-through"
     ],
-    "hint": "CSS direction and writing-mode are emitted on the text source; text-decoration is lowered into Protocol V2 decoration paints and thickness.",
+    "hint": "CSS direction and writing-mode are emitted on the text source; text-decoration is lowered into Neonix JSON V2 decoration paints and thickness.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography-direction-writing-decoration.html",
     "composition": {
       "width": 1920,
@@ -877,7 +877,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "Lora",
       "Roboto"
     ],
-    "hint": "Three exact font assets are resolved from the ordered CSS family and weight, then emitted as semantic Protocol V2 text layers.",
+    "hint": "Three exact font assets are resolved from the ordered CSS family and weight, then emitted as semantic Neonix JSON V2 text layers.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography-font-family-three-fonts.html",
     "composition": {
       "width": 1920,
@@ -1067,7 +1067,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "optimizeSpeed",
       "geometricPrecision"
     ],
-    "hint": "The authored rendering intent is preserved in Protocol V2; optimizeSpeed may use a mask while geometricPrecision selects vector glyphs.",
+    "hint": "The authored rendering intent is preserved in Neonix JSON V2; optimizeSpeed may use a mask while geometricPrecision selects vector glyphs.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography-text-rendering-capability.html",
     "composition": {
       "width": 1920,
@@ -1725,7 +1725,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
       "grid auto-placement",
       "stable ids"
     ],
-    "hint": "Grid auto-placement follows the order-modified sequence while the source IDs remain stable in Protocol V2.",
+    "hint": "Grid auto-placement follows the order-modified sequence while the source IDs remain stable in Neonix JSON V2.",
     "fixtureUrl": "/docs/html-compiler/fixtures/layout-grid-order.html",
     "composition": {
       "width": 1920,
@@ -2613,7 +2613,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "blur",
       "color"
     ],
-    "hint": "A box shadow is lowered to the Protocol V2 box shadow effect without changing the owner's frame.",
+    "hint": "A box shadow is lowered to the Neonix JSON V2 box shadow effect without changing the owner's frame.",
     "fixtureUrl": "/docs/html-compiler/fixtures/paint-box-shadow.html",
     "composition": {
       "width": 1920,
@@ -3295,7 +3295,7 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
       "mask-mode: luminance",
       "mask-size"
     ],
-    "hint": "The image asset is registered in Protocol V2 and sampled as luminance coverage inside the mask source surface.",
+    "hint": "The image asset is registered in Neonix JSON V2 and sampled as luminance coverage inside the mask source surface.",
     "fixtureUrl": "/docs/html-compiler/fixtures/paint-mask-luminance-image.html",
     "composition": {
       "width": 1920,

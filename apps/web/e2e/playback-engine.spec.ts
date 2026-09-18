@@ -48,7 +48,7 @@ test.describe("isolated playback integration", () => {
   });
 
   test("docs Skia keeps its independent video registration path", async ({ page }) => {
-    await page.goto("/docs/preview/skia");
+    await page.goto("/docs/preview/native");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
     await select.selectOption("video.frame-seek");

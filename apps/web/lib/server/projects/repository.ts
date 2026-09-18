@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { compileDocument, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { applyMotionProtocolV2Patch } from "@motionvideo/motion-mcp";
+import { HTML_COMPILER_FONT_ASSETS } from "../html-compiler-font-assets";
 
 export type ProjectClient = SupabaseClient;
 
@@ -116,7 +117,7 @@ function parseProtocol(value: unknown): MotionProtocolV2 {
   const parsed = MotionProtocolV2Schema.safeParse(value);
   if (!parsed.success) {
     throw new ProjectRepositoryError(
-      "document must be a valid Motion Protocol V2 object",
+      "document must be a valid Neonix JSON V2 document",
       "INVALID_DOCUMENT",
       parsed.error.issues,
     );
@@ -441,7 +442,7 @@ export async function createProjectHtml(
 ) {
   if (!input.html.trim()) throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
 
-  const compiled = compileDocument({ html: input.html });
+  const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
     throw new ProjectRepositoryError(
@@ -487,7 +488,7 @@ export async function createProjectHtml(
     client.from("project_html_revisions").select(HTML_REVISION_COLUMNS).eq("id", commit.htmlRevisionId).single(),
   ]);
   if (createdProject.error || !createdProject.data) throwDatabase("Unable to read created HTML project", createdProject.error);
-  if (protocolRevision.error || !protocolRevision.data) throwDatabase("Unable to read created Protocol V2 revision", protocolRevision.error);
+  if (protocolRevision.error || !protocolRevision.data) throwDatabase("Unable to read created Neonix JSON V2 revision", protocolRevision.error);
   if (htmlRevision.error || !htmlRevision.data) throwDatabase("Unable to read created HTML revision", htmlRevision.error);
 
   const project = createdProject.data as unknown as ProjectRow;
@@ -598,7 +599,7 @@ export async function updateProjectHtml(
     throw new ProjectRepositoryError("HTML revision conflict", "REVISION_CONFLICT");
   }
 
-  const compiled = compileDocument({ html: input.html });
+  const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
     throw new ProjectRepositoryError(
@@ -626,7 +627,7 @@ export async function updateProjectHtml(
   });
   if (committed.error || !committed.data) {
     if (committed.error?.code === "P0002") throw new ProjectRepositoryError("Project revision conflict", "REVISION_CONFLICT");
-    throwDatabase("Unable to commit HTML and Protocol V2 revisions", committed.error);
+    throwDatabase("Unable to commit HTML and Neonix JSON V2 revisions", committed.error);
   }
   const commit = committed.data as unknown as {
     projectId: string;
@@ -639,7 +640,7 @@ export async function updateProjectHtml(
     client.from("project_html_revisions").select(HTML_REVISION_COLUMNS).eq("id", commit.htmlRevisionId).single(),
     client.from("projects").select(PROJECT_COLUMNS).eq("id", project.id).single(),
   ]);
-  if (canonical.error || !canonical.data) throwDatabase("Unable to read committed Protocol V2 revision", canonical.error);
+  if (canonical.error || !canonical.data) throwDatabase("Unable to read committed Neonix JSON V2 revision", canonical.error);
   if (htmlRevision.error || !htmlRevision.data) throwDatabase("Unable to read committed HTML revision", htmlRevision.error);
   if (updated.error || !updated.data) throwDatabase("Unable to read updated project", updated.error);
   const revisionNo = commit.revisionNo;
@@ -689,8 +690,8 @@ export async function getProtocolRevision(client: ProjectClient, actor: ProjectA
     .eq("project_id", project.id)
     .eq("revision_no", input.revisionNo)
     .maybeSingle();
-  if (result.error) throwDatabase("Unable to read Protocol V2 revision", result.error);
-  if (!result.data) throw new ProjectRepositoryError("Protocol V2 revision not found", "NOT_FOUND");
+    if (result.error) throwDatabase("Unable to read Neonix JSON V2 revision", result.error);
+  if (!result.data) throw new ProjectRepositoryError("Neonix JSON V2 revision not found", "NOT_FOUND");
   const revision = result.data as unknown as ProtocolRevisionRow;
   return { projectId: project.id, revision: { ...revision, document: parseProtocol(revision.document_json) } };
 }

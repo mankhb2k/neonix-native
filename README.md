@@ -16,7 +16,7 @@ Claude
   │ Remote MCP + OAuth
   ▼
 Neonix MCP (/api/mcp)
-  │ create_project / update_project / open_editor
+  │ create_project_html / update_project_html / open_editor
   ▼
 Supabase Auth + Postgres (RLS-protected project revisions)
   │

@@ -7,6 +7,7 @@ import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
 import { fetchPlaygroundFixture } from "@/lib/api/playground";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "@/lib/docs/html-compiler-preview";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
 import {
   createPlaybackControllerV3,
   type PlaybackControllerV3,
@@ -43,7 +44,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
   <h1>Make it <span class="accent">move.</span></h1>
   <div class="orb"></div>
   <div class="line"><div class="line-fill"></div></div>
-  <div class="caption">One HTML document → Protocol V2 → Skia</div>
+      <div class="caption">One HTML document → Neonix JSON V2 → Native renderer</div>
 </body>
 </html>`;
 
@@ -79,7 +80,7 @@ function browserDocument(html: string, background: string, width: number, height
 
 function diagnosticText(result: HtmlCompilerResult): string {
   return result.diagnostics
-    .map((diagnostic) => `${diagnostic.severity.toUpperCase()} ${diagnostic.code}: ${diagnostic.message}`)
+    .map((diagnostic) => `${diagnostic.severity.toUpperCase()} ${diagnostic.code}: ${publicRendererMessage(diagnostic.message)}`)
     .join("\n");
 }
 
@@ -290,7 +291,7 @@ export function HtmlCompilerPlayground() {
         </div>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">HTML → Protocol V2 playground</h1>
+          <h1 className="text-2xl font-semibold">HTML → Neonix JSON V2 playground</h1>
           </div>
           <div className="flex items-center gap-2">
             {SHOW_DEV_FIXTURE_PICKER ? (
@@ -361,7 +362,7 @@ export function HtmlCompilerPlayground() {
         <Panel title="Source HTML" badge="Imported document" titleSize="sm">
           <pre className="max-h-[348px] overflow-auto whitespace-pre-wrap break-words bg-[#f5f5f5] p-4 font-mono text-[11px] leading-relaxed text-[var(--fg-secondary)]" data-testid="playground-source">{html}</pre>
         </Panel>
-        <Panel title="Normalized Protocol V2" badge={compilation.status === "success" ? "Canonical output" : "Diagnostics"} titleSize="sm">
+        <Panel title="Normalized Neonix JSON V2" badge={compilation.status === "success" ? "Canonical output" : "Diagnostics"} titleSize="sm">
           <pre className="max-h-[348px] overflow-auto whitespace-pre-wrap break-words bg-[#f5f5f5] p-4 font-mono text-[11px] leading-relaxed text-[var(--fg-secondary)]" data-testid="playground-json">{JSON.stringify(protocol ?? { diagnostics: compilation.diagnostics }, null, 2)}</pre>
         </Panel>
       </section>

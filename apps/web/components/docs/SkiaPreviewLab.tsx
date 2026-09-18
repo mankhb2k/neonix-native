@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
 
 const WIDTH = 960;
 const HEIGHT = 540;
@@ -34,7 +35,7 @@ const CASES = [
   { id: "shapes", label: "Shapes / fills", content: '<rect x="120" y="110" width="300" height="220" rx="24" fill="#22d3ee" opacity=".8"/><circle cx="650" cy="270" r="120" fill="#8b5cf6" opacity=".8"/>' },
   { id: "path", label: "Path / stroke", content: '<path d="M180 370 C260 120 390 120 480 270 S700 420 780 165" fill="none" stroke="#67e8f9" stroke-width="12" stroke-linecap="round"/>' },
   { id: "gradient", label: "Gradient / alpha", content: '<defs><linearGradient id="g"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="92" y="80" width="776" height="380" rx="28" fill="url(#g)" opacity=".55"/><circle cx="480" cy="270" r="120" fill="#f8fafc" opacity=".65"/>' },
-  { id: "text", label: "Text / font", content: '<text x="480" y="270" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="44" font-weight="700">Skia text next</text>' },
+  { id: "text", label: "Text / font", content: '<text x="480" y="270" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="44" font-weight="700">Native text next</text>' },
 ] as const;
 function svgFixture(content: string): string {
  return `
@@ -100,7 +101,7 @@ export function SkiaPreviewLab() {
         if (typeface && "drawText" in canvas) {
           const font = new kit.Font(typeface, 44);
           const textPaint = new kit.Paint(); textPaint.setAntiAlias(true); textPaint.setColor(kit.Color(248, 250, 252, 1)); textPaint.setStyle(kit.PaintStyle.Fill);
-          (canvas as LabSkiaCanvas & { drawText(text: string, x: number, y: number, font: LabFont, paint: LabSkiaPaint): void }).drawText("Skia text next", 330, 285, font, textPaint);
+          (canvas as LabSkiaCanvas & { drawText(text: string, x: number, y: number, font: LabFont, paint: LabSkiaPaint): void }).drawText("Native text next", 330, 285, font, textPaint);
           textPaint.delete(); font.delete(); typeface.delete();
         }
       }
@@ -118,17 +119,17 @@ export function SkiaPreviewLab() {
       });
       if (!pixels) throw new Error("CanvasKit surface returned no pixels");
       context.putImageData(new ImageData(new Uint8ClampedArray(pixels), WIDTH, HEIGHT), 0, 0);
-      setStatus("CanvasKit WASM loaded · baseline surface ready");
+      setStatus("Browser runtime loaded · baseline surface ready");
     };
-    run().catch((error: unknown) => setStatus(error instanceof Error ? error.message : String(error)));
+    run().catch((error: unknown) => setStatus(publicRendererMessage(error instanceof Error ? error.message : String(error))));
     return () => { disposed = true; surface?.dispose(); };
   }, [selectedCase]);
   return <main className="min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100 md:px-8">
-    <header className="mx-auto mb-6 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Skia</p><h1 className="mt-2 text-2xl font-semibold">SVG vs Skia 2D preview</h1></header>
+    <header className="mx-auto mb-6 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Native renderer</p><h1 className="mt-2 text-2xl font-semibold">SVG vs native 2D preview</h1></header>
     <div className="mx-auto mb-5 flex max-w-[1400px] items-center gap-3"><label htmlFor="skia-case" className="text-xs text-slate-400">Test case</label><select id="skia-case" value={caseId} onChange={(event) => setCaseId(event.target.value as (typeof CASES)[number]["id"])} className="rounded-md border border-white/15 bg-[#101721] px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-300/60">{CASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><span className="font-mono text-[11px] text-slate-500">{selectedCase.id}</span></div>
     <section className="mx-auto grid max-w-[1400px] gap-5 lg:grid-cols-2">
       <Panel title="Browser SVG reference" badge="SVG / browser"><iframe title="Browser SVG reference" srcDoc={svgFixture(selectedCase.content)} className="aspect-video w-full border-0 bg-[#080c14]" /></Panel>
-      <Panel title="Skia preview" badge="CanvasKit / WASM"><canvas ref={canvasRef} className="aspect-video w-full bg-[#080c14]" /><p className="border-t border-white/10 px-3 py-2 font-mono text-[11px] text-slate-500" data-testid="skia-status">{status}</p></Panel>
+      <Panel title="Native preview" badge="Browser runtime"><canvas ref={canvasRef} className="aspect-video w-full bg-[#080c14]" /><p className="border-t border-white/10 px-3 py-2 font-mono text-[11px] text-slate-500" data-testid="skia-status">{status}</p></Panel>
     </section>
   </main>;
 }
