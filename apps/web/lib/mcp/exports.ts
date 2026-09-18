@@ -3,7 +3,7 @@ import "server-only";
 import { getProjectAccess, getProtocolRevision } from "@/lib/server/projects/repository";
 import { getUserExportsProvider } from "@/lib/server/r2";
 import { startRenderOnWorker, syncRenderJob, cancelRenderOnWorker } from "@/lib/server/render/export-worker";
-import { assertJobOwner, createRenderJob, getRenderJob, type PersistentRenderJob } from "@/lib/server/render/job-store";
+import { assertJobOwner, buildRenderOutputKey, createRenderJob, getRenderJob, type PersistentRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
 import { buildIdempotencyKey } from "@/lib/server/render/ownership";
 import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-runtime";
 import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
@@ -67,6 +67,25 @@ async function mirrorJobStatus(principal: McpPrincipal, job: PersistentRenderJob
     finished_at: ["done", "failed", "cancelled"].includes(job.status) ? new Date(job.updatedAt).toISOString() : null,
   }).eq("public_ref", job.jobId).eq("created_by", principal.userId);
   if (result.error) throw new McpExportError(result.error.message, "DATABASE_ERROR");
+}
+
+/**
+ * A renderer can finish publishing the MP4 before the control-plane observes
+ * the final row update. Reconcile only the unambiguous state where the worker
+ * already reported stage=done/progress=1 and the deterministic artifact exists.
+ */
+async function reconcilePublishedArtifact(job: PersistentRenderJob): Promise<PersistentRenderJob> {
+  if (job.status !== "publishing" || job.stage !== "done" || job.progress < 1 || job.outputKey) return job;
+  const outputKey = buildRenderOutputKey(job.userId, job.jobId);
+  const object = await getUserExportsProvider().headObject(outputKey);
+  if (!object) return job;
+  return (await updateRenderJob(job.jobId, {
+    status: "done",
+    stage: "done",
+    progress: 1,
+    outputKey,
+    artifactPath: `r2://${outputKey}`,
+  })) ?? job;
 }
 
 async function readAndCompileRevision(principal: McpPrincipal, input: { projectId?: string; publicRef?: string; protocolRevisionNo?: number }) {
@@ -148,7 +167,7 @@ export async function getExport(principal: McpPrincipal, input: { jobId: string 
   const job = await getRenderJob(input.jobId);
   if (!job) throw new McpExportError("Export not found", "NOT_FOUND");
   try { assertJobOwner(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
-  const refreshed = await syncRenderJob(job);
+  const refreshed = await reconcilePublishedArtifact(await syncRenderJob(job));
   await mirrorJobStatus(principal, refreshed);
   return { export: output(refreshed) };
 }
@@ -168,7 +187,7 @@ export async function getExportDownloadUrl(principal: McpPrincipal, input: { job
   const job = await getRenderJob(input.jobId);
   if (!job) throw new McpExportError("Export not found", "NOT_FOUND");
   try { assertJobOwner(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
-  const refreshed = await syncRenderJob(job);
+  const refreshed = await reconcilePublishedArtifact(await syncRenderJob(job));
   await mirrorJobStatus(principal, refreshed);
   if (refreshed.status !== "done") throw new McpExportError("Export is not ready", "NOT_READY");
   if (refreshed.outputKey && refreshed.artifactPath?.startsWith("r2://")) {

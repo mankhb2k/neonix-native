@@ -722,7 +722,9 @@ export async function applyJsonPatch(
       document_json: document,
       content_hash: hash(JSON.stringify(document)),
       source_schema_version: document.formatVersion,
-      reason: "mcp-json-patch",
+      // Keep the reason within the database's canonical revision reason enum.
+      // The operation type is already captured by the audit event below.
+      reason: "mcp",
       byte_size: jsonSize(document),
       created_by: actor.userId,
     })
@@ -734,9 +736,12 @@ export async function applyJsonPatch(
   }
   const updated = await client
     .from("projects")
-    .update({ current_revision_no: nextRevisionNo, source_format: "protocol-v2", last_activity_at: new Date().toISOString() })
+    // The project_revisions_set_head trigger advances current_revision_no as
+    // soon as the immutable revision is inserted. Match that post-insert
+    // value instead of comparing against the pre-insert revision.
+    .update({ source_format: "protocol-v2", last_activity_at: new Date().toISOString() })
     .eq("id", project.id)
-    .eq("current_revision_no", project.current_revision_no)
+    .eq("current_revision_no", nextRevisionNo)
     .select(PROJECT_COLUMNS)
     .single();
   if (updated.error || !updated.data) throwDatabase("Unable to activate patched project revision", updated.error);

@@ -15,6 +15,7 @@
     "seed:demo-user": "tsx scripts/seed-demo-user.ts",
     "e2e:mcp:create-html-local": "tsx scripts/e2e-mcp-create-html-local.ts",
     "e2e:mcp:html-export-local": "tsx scripts/e2e-mcp-html-export-local.ts",
+    "e2e:mcp:27-tools": "tsx scripts/e2e-mcp-27-tools.ts",
     "seed:render-tests": "tsx scripts/seed-render-test-projects.ts",
     "migrate:projects-v2": "tsx scripts/migrate-project-revisions-v2.ts",
     "export:emoji-samples": "tsx scripts/export-emoji-samples.ts",
