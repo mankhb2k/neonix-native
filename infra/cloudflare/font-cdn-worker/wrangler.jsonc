@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "neonix-font-cdn",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-18",
+  "routes": [
+    {
+      "pattern": "fonts.neonix.video",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "FONT_CATALOG_URL": "https://www.neonix.video/api/v1/fonts"
+  },
+  "r2_buckets": [
+    {
+      "binding": "FONT_BUCKET",
+      "bucket_name": "neonix-system-fonts",
+      "remote": true
+    }
+  ]
+}

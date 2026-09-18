@@ -235,7 +235,7 @@ export const NEONIX_OPENAPI = {
       get: { tags: ["Assets"], summary: "Find asset usage", parameters: [{ $ref: "#/components/parameters/AssetId" }], responses: { "200": { description: "Usage information" } } },
     },
     "/api/v1/fonts": {
-      get: { tags: ["Fonts"], summary: "List user fonts", responses: { "200": { description: "Fonts" } } },
+      get: { tags: ["Fonts"], summary: "List available fonts", description: "Without authentication, returns enabled public system fonts. With a valid workspace session, also returns enabled custom fonts for that workspace.", responses: { "200": { description: "Font catalog with family, weight, style, format, integrity and delivery URI" } } },
       post: { tags: ["Fonts"], summary: "Create a font upload", responses: { "201": { description: "Upload instructions" } } },
     },
     "/api/v1/fonts/upload/complete": {
@@ -382,7 +382,7 @@ export const NEONIX_OPENAPI = {
       HtmlDocumentRequest: {
         type: "object",
         required: ["html"],
-        properties: { html: { type: "string", description: "One complete Neonix HTML document with inline style blocks and meta[name=neonix-document]", example: "<!doctype html><html><head><meta name=\"neonix-document\" content=\'{\"kind\":\"neonix-html-document\",\"schemaVersion\":2,\"composition\":{\"width\":1920,\"height\":1080,\"fps\":30,\"background\":\"#081018\",\"colorSpace\":\"srgb\"}}\'><style>body{margin:0}</style></head><body><div></div></body></html>" } },
+        properties: { html: { type: "string", description: "One complete Neonix HTML document with inline style blocks and meta[name=neonix-document]", example: "<!doctype html><html><head><meta name=\"neonix-document\" content='{\"kind\":\"neonix-html-document\",\"schemaVersion\":2,\"composition\":{\"width\":1920,\"height\":1080,\"fps\":30,\"background\":\"#081018\",\"colorSpace\":\"srgb\"}}'><style>body{margin:0}</style></head><body><div></div></body></html>" } },
       },
       CreateProjectRequest: { type: "object", required: ["document"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, document: { type: "object", additionalProperties: true, description: "Neonix JSON V2 document" } } },
       CreateHtmlProjectRequest: { type: "object", required: ["html"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, html: { type: "string", description: "Complete Neonix HTML document including inline style blocks and meta[name=neonix-document]" }, idempotencyKey: { type: "string", maxLength: 200, description: "Retry key that returns the original project instead of creating a duplicate" } } },

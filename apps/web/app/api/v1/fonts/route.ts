@@ -8,6 +8,7 @@ import {
   USER_FONT_FORMATS,
 } from "@/lib/server/font-metadata";
 import { fontObjectKey, getUserAssetsProvider } from "@/lib/server/r2";
+import { createSupabaseAdminClient } from "@/lib/server/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -15,9 +16,67 @@ function integrity(value: unknown): string | null {
   return typeof value === "string" && /^sha256:[a-f0-9]{64}$/i.test(value) ? value : null;
 }
 
+const PUBLIC_FONT_CDN = "https://fonts.neonix.video";
+
+function publicFontUrl(r2Key: string): string {
+  const path = r2Key.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+  return `${PUBLIC_FONT_CDN}/${path}`;
+}
+
+function publicCatalogHeaders(): HeadersInit {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Accept, Content-Type",
+    "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+  };
+}
+
+async function getPublicSystemFontCatalog(): Promise<Response> {
+  const supabase = createSupabaseAdminClient();
+  const [familiesResult, filesResult] = await Promise.all([
+    supabase.schema("system_catalog").from("font_families").select("id,family_name,source").eq("enabled", true).eq("source", "system").order("family_name"),
+    supabase.schema("system_catalog").from("font_files").select("id,font_family_id,weight,style,format,content_hash,r2_key,subfamily_name").eq("enabled", true).in("format", [...USER_FONT_FORMATS]),
+  ]);
+  if (familiesResult.error) return jsonError(familiesResult.error.message, 500);
+  if (filesResult.error) return jsonError(filesResult.error.message, 500);
+
+  const systemFamilies = new Map((familiesResult.data ?? []).map((row) => [row.id, row]));
+  const fonts = (filesResult.data ?? []).flatMap((row) => {
+    const file = row;
+    const family = systemFamilies.get(file.font_family_id);
+    const hash = integrity(file.content_hash);
+    if (!family || !hash || typeof file.r2_key !== "string") return [];
+    return [{
+      id: `system:${file.id}`,
+      source: "system" as const,
+      familyName: family.family_name,
+      subfamilyName: file.subfamily_name ?? "Regular",
+      weight: file.weight,
+      style: file.style,
+      format: file.format,
+      fontAssetId: `system-font-${file.id}`,
+      uri: publicFontUrl(file.r2_key),
+      integrity: hash,
+    }];
+  }).sort((a, b) => a.familyName.localeCompare(b.familyName) || a.weight - b.weight || a.style.localeCompare(b.style));
+
+  return Response.json({ scope: "public", fonts }, { headers: publicCatalogHeaders() });
+}
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: publicCatalogHeaders() });
+}
+
 export async function GET() {
   const result = await getAssetRequestContext();
-  if (!result.ok) return jsonError(result.message, result.status);
+  if (!result.ok) {
+    try {
+      return await getPublicSystemFontCatalog();
+    } catch (error) {
+      return jsonError(error instanceof Error ? error.message : result.message, 500);
+    }
+  }
   const { supabase, workspaceId } = result.context;
 
   const [familiesResult, filesResult, customFamiliesResult] = await Promise.all([
@@ -138,4 +197,3 @@ export async function POST(request: Request) {
     return jsonError(error instanceof Error ? error.message : "Unable to connect to R2", 500);
   }
 }
-

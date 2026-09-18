@@ -1,6 +1,7 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 
 const MARKDOWN_COMPONENTS: Components = {
   h1: ({ node: _node, children, ...props }) => (
@@ -74,29 +75,12 @@ const MARKDOWN_COMPONENTS: Components = {
       {...props}
     />
   ),
-  table: ({ node: _node, children, ...props }) => (
-    <div className="mb-4 w-full overflow-x-auto">
-      <table className="min-w-full border-separate border-spacing-0 overflow-hidden rounded-xl text-sm" {...props}>
-        {children}
-      </table>
-    </div>
-  ),
-  th: ({ node: _node, children, ...props }) => (
-    <th
-      className="border-b border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 text-left align-top font-semibold text-[var(--fg-primary)] first:border-l"
-      {...props}
-    >
-      {children}
-    </th>
-  ),
-  td: ({ node: _node, children, ...props }) => (
-    <td
-      className="border-b border-r border-[var(--border-subtle)] px-4 py-3 text-left align-top text-[var(--fg-secondary)] first:border-l"
-      {...props}
-    >
-      {children}
-    </td>
-  ),
+  table: ({ node: _node, children, ...props }) => <Table {...props}>{children}</Table>,
+  thead: ({ node: _node, children, ...props }) => <TableHeader {...props}>{children}</TableHeader>,
+  tbody: ({ node: _node, children, ...props }) => <TableBody {...props}>{children}</TableBody>,
+  tr: ({ node: _node, children, ...props }) => <TableRow {...props}>{children}</TableRow>,
+  th: ({ node: _node, children, ...props }) => <TableHead {...props}>{children}</TableHead>,
+  td: ({ node: _node, children, ...props }) => <TableCell {...props}>{children}</TableCell>,
   code: ({ node: _node, children, className, ...props }) => (
     <code
       className={`rounded-md bg-[color-mix(in_srgb,var(--fg-primary)_8%,var(--bg-elevated))] px-[0.4em] py-[0.15em] font-mono text-[0.85em] ${className ?? ""}`}

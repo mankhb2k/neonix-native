@@ -356,9 +356,9 @@ Continue with [Transform and Matrix4](/docs/atoms/transform) for layer transform
     title: "Transform and Matrix4",
     markdown: String.raw`# Transform and Matrix4
 
-## One transform source
+Transform controls where a layer is placed, how it rotates and scales, and which local point acts as its pivot. Every layer has a required transform object, and the same model works for flat 2D motion and 3D motion.
 
-V2 uses a 4x4 transform representation for both 2D and 3D.
+## The transform model
 
 ${FENCE}json
 {
@@ -367,23 +367,171 @@ ${FENCE}json
     "translate": { "x": 320, "y": 180, "z": 0 },
     "rotate": { "x": 0, "y": 0, "z": 8 },
     "scale": { "x": 1, "y": 1, "z": 1 },
-    "anchor": { "x": 0.5, "y": 0.5, "z": 0 },
+    "anchor": { "x": 240, "y": 135, "z": 0 },
     "skew": { "x": 0, "y": 0 }
   }
 }
 ${FENCE}
 
-## 2D is a 3D case
+| Field | Meaning | Typical default |
+| --- | --- | --- |
+| ${BT}translate${BT} | Position in the parent/world coordinate system | ${BT}{ x: 0, y: 0, z: 0 }${BT} |
+| ${BT}rotate${BT} | Rotation around X, Y and Z axes, in degrees | ${BT}{ x: 0, y: 0, z: 0 }${BT} |
+| ${BT}scale${BT} | Scale along X, Y and Z axes | ${BT}{ x: 1, y: 1, z: 1 }${BT} |
+| ${BT}anchor${BT} | Local pivot point used by rotation and scale | ${BT}{ x: 0, y: 0, z: 0 }${BT} |
+| ${BT}skew${BT} | 2D shear angles for X and Y | ${BT}{ x: 0, y: 0 }${BT} |
 
-For ordinary 2D content, ${BT}z = 0${BT}, X/Y rotation is zero, and the view is orthographic. The runtime still evaluates Matrix4 so future perspective and 3D motion do not require a transform-system replacement.
+All values must be finite numbers. The transform does not change the layer frame itself; it changes how that frame is placed and projected.
 
-## Anchor
+## Frame versus transform
 
-${BT}anchor.x${BT} and ${BT}anchor.y${BT} are normalized within the local frame. ${BT}anchor.z${BT} is an absolute world-unit pivot coordinate. A non-zero Z anchor changes the pivot for X/Y rotation.
+The frame is local geometry. The transform is placement:
 
-## Order
+${FENCE}text
+frame:     480 × 270 local rectangle
+anchor:    (240, 135) center of that rectangle
+translate: (320, 180) position in the parent/world space
+rotate.z:  8 degrees around the anchor
+scale:     (1, 1, 1) unchanged size
+${FENCE}
 
-The runtime owns the exact matrix composition order. Documentation describes semantic inputs and must not expose backend-specific matrix packing or shader details.`,
+Changing ${BT}frame.width${BT} or ${BT}frame.height${BT} changes the layer's local geometry. Changing ${BT}translate${BT}, ${BT}rotate${BT}, ${BT}scale${BT} or ${BT}anchor${BT} keeps the geometry but changes its placement or appearance.
+
+## Translate
+
+${BT}translate${BT} moves the layer in its parent coordinate system. X and Y use composition/world units. Z is used when the composition view or a parent group uses depth.
+
+${FENCE}json
+"translate": { "x": 320, "y": 180, "z": 0 }
+${FENCE}
+
+For a child layer, the translation is evaluated relative to its parent group. For a root layer, it is evaluated relative to the composition world.
+
+## Scale
+
+${BT}scale${BT} multiplies the local geometry around the anchor:
+
+- ${BT}1${BT} leaves an axis unchanged.
+- A value between ${BT}0${BT} and ${BT}1${BT} shrinks that axis.
+- A value greater than ${BT}1${BT} enlarges that axis.
+- A negative value mirrors the layer across that axis.
+- ${BT}0${BT} collapses an axis and should be used deliberately.
+
+${FENCE}json
+"scale": { "x": 1.2, "y": 0.8, "z": 1 }
+${FENCE}
+
+## Rotation
+
+Rotation values are degrees. Z rotation is the usual flat 2D rotation; X and Y rotation are useful with perspective projection or 3D layers.
+
+${FENCE}json
+"rotate": { "x": 0, "y": 0, "z": -12 }
+${FENCE}
+
+Rotation happens around the local anchor. If the anchor is at the top-left, the layer swings around that corner. If the anchor is at the center, it rotates around its center.
+
+## Anchor and pivot
+
+${BT}anchor.x${BT} and ${BT}anchor.y${BT} are local units, not normalized 0–1 percentages. For a 480×270 frame, the center anchor is ${BT}{ x: 240, y: 135, z: 0 }${BT}. The pivot may be outside the frame for orbit-style motion.
+
+${FENCE}json
+{
+  "frame": { "width": 480, "height": 270 },
+  "transform": {
+    "translate": { "x": 540, "y": 405, "z": 0 },
+    "rotate": { "x": 0, "y": 0, "z": 20 },
+    "scale": { "x": 1, "y": 1, "z": 1 },
+    "anchor": { "x": 240, "y": 135, "z": 0 },
+    "skew": { "x": 0, "y": 0 }
+  }
+}
+${FENCE}
+
+To place the frame's center at a world position, use the frame center as the anchor and set ${BT}translate${BT} to that world position. To rotate around a corner, use ${BT}{ x: 0, y: 0, z: 0 }${BT}.
+
+## Skew
+
+${BT}skew.x${BT} and ${BT}skew.y${BT} are 2D shear angles in degrees. They are useful for slanted cards, italic-style geometric motion and simple projection accents. Use an ordered ${BT}operations${BT} list when the exact SVG transform sequence matters.
+
+## Ordered operations
+
+The component fields above provide the simple layer transform contract. An optional ${BT}operations${BT} array preserves an explicit ordered transform list; its order is semantic and must not be rearranged.
+
+${FENCE}json
+"operations": [
+  { "type": "translate", "x": 320, "y": 180 },
+  { "type": "rotate", "angle": 8, "center": { "x": 240, "y": 135 } },
+  { "type": "scale", "x": 1.1, "y": 1.1 },
+  { "type": "skewX", "angle": 4 }
+]
+${FENCE}
+
+Supported 2D operations are ${BT}translate${BT}, ${BT}scale${BT}, ${BT}rotate${BT}, ${BT}skewX${BT}, ${BT}skewY${BT} and six-value SVG ${BT}matrix${BT}. Motion extensions add ${BT}motion.translate3d${BT}, ${BT}motion.scale3d${BT}, ${BT}motion.rotateX${BT}, ${BT}motion.rotateY${BT}, ${BT}motion.rotateZ${BT}, ${BT}motion.perspective${BT} and ${BT}motion.matrix4${BT}.
+
+When ${BT}operations${BT} is present, it is the authored operation sequence. The transform anchor wraps that sequence as a pivot, and the layer translation places the result.
+
+## Matrix4
+
+Neonix uses a canonical 4×4 matrix for the final 2D/3D transform. Most authors should use the named fields or ordered operations. Use ${BT}motion.matrix4${BT} only when importing an already-composed matrix or when a tool needs direct matrix control.
+
+${FENCE}json
+{
+  "type": "extension",
+  "name": "motion.matrix4",
+  "value": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    320, 180, 0, 1
+  ]
+}
+${FENCE}
+
+Do not mix a pre-composed matrix with equivalent translate, rotate and scale values unless the duplication is intentional. Otherwise the same motion can be applied twice.
+
+## Composition order
+
+With the named fields, the conceptual local transform is:
+
+${FENCE}text
+translate → pivot to anchor → rotate → skew → scale → pivot back
+${FENCE}
+
+The exact matrix is evaluated consistently for preview and export. With ${BT}operations${BT}, the listed operations replace the implicit ordered list; their order is not interchangeable. For example, scale-then-translate does not generally produce the same result as translate-then-scale.
+
+## Parent and child layers
+
+A group transform affects its descendants. A child transform is evaluated in the coordinate system established by its parent, then the child is painted according to sibling ${BT}order${BT}. To understand a misplaced layer, inspect the chain from the root composition through each parent group before changing the child values.
+
+See [Layers and hierarchy](/docs/atoms/layers) for parent relationships and [Composition and view](/docs/atoms/composition) for the global view projection.
+
+## Animate a transform
+
+Animation tracks target individual transform properties with dot-separated paths:
+
+${FENCE}json
+{
+  "path": "transform.translate.x",
+  "keyframes": [
+    { "time": 0, "value": { "type": "number", "value": 120 } },
+    { "time": 1000, "value": { "type": "number", "value": 520 } }
+  ]
+}
+${FENCE}
+
+Other supported paths include ${BT}transform.translate.y${BT}, ${BT}transform.translate.z${BT}, ${BT}transform.scale.x${BT}, ${BT}transform.rotate.z${BT}, ${BT}transform.skew.x${BT} and ${BT}transform.anchor.x${BT}. Track times are milliseconds and each keyframe value must keep the property's type.
+
+## Common mistakes
+
+- Using normalized anchor values such as ${BT}0.5${BT} instead of local units such as ${BT}frame.width / 2${BT}.
+- Changing the layer frame when the intent is only to move or rotate the layer.
+- Reordering ${BT}operations${BT} and expecting the same result.
+- Applying both a pre-composed ${BT}motion.matrix4${BT} and equivalent named transform values.
+- Using X/Y rotation without a perspective view and expecting visible depth scaling.
+- Forgetting that a parent group transform affects every descendant.
+
+For the global camera, read [Composition and view](/docs/atoms/composition). For time-based changes, read [Animation and timing](/docs/animation).`,
   },
   "atoms/shape": {
     title: "Shape",
@@ -461,24 +609,29 @@ Stroke width, cap, join, dash, color, and opacity are paint semantics applied to
     title: "Text",
     markdown: String.raw`# Text
 
-## Responsibility
+Text combines source content, font selection, layout and paint. The compiler resolves the requested font family, weight and style into deterministic font assets before text is previewed or exported.
 
-Text preserves SVG-like source, chunks, spans, font requests and paint semantics. The compiler resolves shaping, fallback, clusters and glyph positions before a renderer consumes it.
+## Text structure
 
 ${FENCE}json
 {
   "id": "title",
   "type": "text",
   "payload": {
-    "source": { "text": "Neonix V2", "language": "en" },
+    "source": { "text": "Neonix JSON V2", "language": "en" },
     "chunks": [{
       "id": "title-chunk",
-      "sourceRange": { "start": 0, "end": 9 },
+      "sourceRange": { "start": 0, "end": 14 },
       "textAnchor": "middle",
       "spans": [{
         "id": "title-span",
-        "sourceRange": { "start": 0, "end": 9 },
-        "font": { "families": ["Roboto", "sans-serif"], "size": 64 },
+        "sourceRange": { "start": 0, "end": 14 },
+        "font": {
+          "families": ["Inter", "sans-serif"],
+          "size": 64,
+          "weight": 700,
+          "style": "normal"
+        },
         "fill": "#ffffff"
       }]
     }]
@@ -487,13 +640,95 @@ ${FENCE}json
 }
 ${FENCE}
 
-## Frame semantics
+The ${BT}families${BT} array is an ordered fallback list. The first available family is preferred; later families cover missing glyphs or unavailable styles. Keep a generic fallback such as ${BT}sans-serif${BT} at the end, but use a Neonix system font first for stable export.
 
-The text frame is the immutable layout area. Alignment positions shaped lines inside that frame. A high-level editor may calculate a convenient frame, but the atomic text node receives an explicit frame.
+## Frame and layout
 
-## Fonts
+The text frame is the explicit layout area. It controls where lines can wrap and where alignment is resolved; it is not automatically resized to the browser viewport.
 
-Fonts should be resolved through an asset reference so preview and export can use the same font bytes. A CDN URL is an asset delivery detail, not a text atom field.`,
+- Use a wider frame for a single-line headline.
+- Use a fixed width and sufficient height for a paragraph.
+- Keep the layer transform separate from text frame geometry.
+- Use ${BT}textAnchor${BT}, text alignment and vertical alignment to position shaped lines inside the frame.
+
+The source ranges are UTF-16 offsets and must cover the text spans without overlap. Text source should be NFC-normalized before creating the document.
+
+## Font fields
+
+| Field | Meaning |
+| --- | --- |
+| ${BT}families${BT} | Ordered family fallback list |
+| ${BT}size${BT} | Positive font size in SVG length units |
+| ${BT}weight${BT} | Integer weight from 1 to 1000 |
+| ${BT}style${BT} | ${BT}normal${BT}, ${BT}italic${BT} or ${BT}oblique |
+| ${BT}stretch${BT} | CSS width classification |
+| ${BT}variations${BT} | Optional four-character variable-font axis tags |
+
+Do not put a CDN URL inside ${BT}families${BT}. The family name selects the face; the asset catalog resolves the actual font bytes.
+
+## Use the public font CDN in HTML
+
+The system font bucket is public for GET/HEAD requests. Use an explicit ${BT}@font-face${BT} declaration when authoring HTML outside the app:
+
+${FENCE}html
+<style>
+  @font-face {
+    font-family: "Inter";
+    src: url("https://fonts.neonix.video/inter/Inter_18pt-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "Inter";
+    src: url("https://fonts.neonix.video/inter/Inter_18pt-Bold.ttf") format("truetype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  .headline {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+  }
+</style>
+${FENCE}
+
+The public CDN supports browser GET/HEAD. CORS should allow the HTML page origin to request the font. Use the CDN for known files; the bucket intentionally does not act as a browser directory listing.
+
+## Get the complete font catalog
+
+Use the public catalog endpoint to retrieve every enabled system font without authentication:
+
+${FENCE}bash
+curl https://www.neonix.video/api/v1/fonts
+${FENCE}
+
+When an access token is provided, the same endpoint also includes enabled custom fonts from the authenticated workspace:
+
+${FENCE}bash
+curl https://www.neonix.video/api/v1/fonts \\
+  -H "Authorization: Bearer <access-token>"
+${FENCE}
+
+The response is shaped as ${BT}{ fonts: [...] }${BT}. Each entry includes ${BT}source${BT}, ${BT}familyName${BT}, ${BT}subfamilyName${BT}, ${BT}weight${BT}, ${BT}style${BT}, ${BT}format${BT}, ${BT}integrity${BT} and a usable ${BT}uri${BT}. System entries use the protected system-font API URI; custom entries use the workspace asset URI.
+
+The unauthenticated response has ${BT}scope: "public"${BT} and contains system fonts only. The authenticated response contains system and workspace fonts. The catalog endpoint is the source of truth for applications and AI clients that need to show every available font; the public CDN is the delivery path for a known system-font object.
+
+## Deterministic font workflow
+
+1. Fetch the catalog with the user's authenticated session.
+2. Select a family, weight and style that exist in the response.
+3. In HTML, declare the matching CDN ${BT}@font-face${BT} URL; in Neonix JSON V2, use the family name and weight in the text font object.
+4. Keep the same family, weight, style and asset integrity across preview and export.
+5. Avoid silently replacing a missing face with a machine-local font.
+
+## Font loading failures
+
+If text looks different or a font is missing, check the CDN object URL, CORS response, MIME type, weight/style match and the font catalog integrity value. A fallback family can keep text visible, but it may change glyph widths, line breaks and final composition layout.
+
+See [Assets](/docs/atoms/assets) for the asset identity boundary and [HTML authoring](/docs/html) for the complete HTML document workflow.`,
   },
   "atoms/image": {
     title: "Image",
@@ -578,8 +813,10 @@ ${FENCE}json
     {
       "kind": "font",
       "id": "inter-regular",
-      "uri": "/fonts/Inter-Regular.woff2",
+      "uri": "https://fonts.neonix.video/inter/Inter_18pt-Regular.ttf",
+      "mimeType": "font/ttf",
       "weight": 400,
+      "style": "normal",
       "integrity": "sha256-..."
     }
   ]
@@ -598,6 +835,80 @@ ${FENCE}
 ## Identity boundary
 
 Layers point to assets by id. Loading, decoding, caching and delivery happen after validation in the compiler or runtime.
+
+## System fonts and the public CDN
+
+Neonix system fonts are stored in the public-read ${BT}neonix-system-fonts${BT} bucket and served through:
+
+${FENCE}text
+https://fonts.neonix.video/{family}/{filename}
+${FENCE}
+
+Example:
+
+${FENCE}text
+https://fonts.neonix.video/inter/Inter_18pt-Regular.ttf
+https://fonts.neonix.video/inter/Inter_18pt-Bold.ttf
+${FENCE}
+
+The CDN is a delivery endpoint for known objects. R2 does not expose a browser directory listing, so requesting the bucket root or a family folder is not the way to discover fonts.
+
+## Google Fonts-compatible CSS API
+
+For browser HTML, request the required family and weights through the CSS endpoint:
+
+${FENCE}html
+<link rel="stylesheet" href="https://fonts.neonix.video/css2?family=Inter:wght@400;700;900&display=swap">
+${FENCE}
+
+Then use the canonical family name in CSS:
+
+${FENCE}css
+body {
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+}
+${FENCE}
+
+The CSS endpoint resolves the requested family, weight and style to the matching public R2 object. It does not rename the font's internal family metadata.
+
+## Get every available font
+
+Call ${BT}GET /api/v1/fonts${BT} without authentication to list all public system fonts:
+
+${FENCE}bash
+curl https://www.neonix.video/api/v1/fonts
+${FENCE}
+
+For a workspace-aware catalog that also includes the user's custom fonts, add the access token:
+
+${FENCE}bash
+curl https://www.neonix.video/api/v1/fonts \\
+  -H "Authorization: Bearer <access-token>"
+${FENCE}
+
+The response contains ${BT}{ "fonts": [...] }${BT} and includes enabled system fonts plus enabled custom fonts belonging to the current workspace. Each item exposes the family, subfamily, weight, style, format, integrity hash and a usable URI.
+
+Use the catalog to populate a font picker or help an AI choose an available face. Use the public CDN URI when the HTML document is loaded outside the authenticated app. Custom workspace fonts remain private asset URLs and should not be copied into public HTML.
+
+## Font asset versus text style
+
+The font catalog identifies the bytes. The text span selects the family and style:
+
+${FENCE}json
+{
+  "font": {
+    "families": ["Inter", "sans-serif"],
+    "size": 64,
+    "weight": 700,
+    "style": "normal"
+  }
+}
+${FENCE}
+
+Do not put an R2 URL in ${BT}families${BT}. Use the family name in Neonix JSON V2 and use ${BT}@font-face${BT} with the CDN URL in HTML. The compiler and export path can then resolve the same family, weight and style deterministically.
+
+See [Text](/docs/atoms/text) for font selection, fallback and ${BT}@font-face${BT} examples.
 `,
   },
   "atoms/layers": {
@@ -1069,7 +1380,7 @@ Choose **Import HTML** on the dashboard, enter a project name, then upload an ${
 The HTML project endpoint accepts the same document as a string:
 
 ${FENCE}bash
-curl -X POST http://localhost:3000/api/v1/projects/html \\
+curl -X POST https://www.neonix.video/api/v1/projects/html \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer <access-token>" \\
   -d '{
