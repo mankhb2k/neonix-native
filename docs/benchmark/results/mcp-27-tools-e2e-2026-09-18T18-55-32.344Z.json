@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-09-18T18:55:32.341Z",
+  "endpoint": "http://localhost:3000/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": null,
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 388
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 77
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 51
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 36
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 837
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 467
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 427
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 453
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 360
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 340
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 324
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 754
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 476
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 708
+    },
+    {
+      "tool": "open_editor",
+      "status": "passed",
+      "elapsedMs": 440
+    },
+    {
+      "tool": "open_preview",
+      "status": "passed",
+      "elapsedMs": 411
+    },
+    {
+      "tool": "list_assets",
+      "status": "passed",
+      "elapsedMs": 334
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "passed",
+      "elapsedMs": 1059
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "passed",
+      "elapsedMs": 996
+    },
+    {
+      "tool": "import_asset",
+      "status": "passed",
+      "elapsedMs": 1421
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "passed",
+      "elapsedMs": 533
+    },
+    {
+      "tool": "delete_asset",
+      "status": "passed",
+      "elapsedMs": 1793
+    },
+    {
+      "tool": "create_export",
+      "status": "passed",
+      "elapsedMs": 1948
+    },
+    {
+      "tool": "get_export",
+      "status": "passed",
+      "elapsedMs": 22309
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "passed",
+      "elapsedMs": 724
+    },
+    {
+      "tool": "cancel_export",
+      "status": "passed",
+      "elapsedMs": 2269
+    },
+    {
+      "tool": "delete_project",
+      "status": "passed",
+      "elapsedMs": 696
+    }
+  ],
+  "passed": 27,
+  "failed": 0,
+  "blocked": 0,
+  "cleanup": {
+    "projectId": "dc87a1fd-63b7-4c3a-bbd4-c2046ce93807",
+    "exportJobId": "rnd_mu7bizk9_tzepmn",
+    "cancelledJobId": "rnd_mu7bjiuy_nfts2t"
+  }
+}
