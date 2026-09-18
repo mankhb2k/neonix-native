@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-09-18T19:05:53.224Z",
+  "endpoint": "https://www.neonix.video/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": null,
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 2162
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 349
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 380
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 343
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 8414
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 7831
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 2850
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 3048
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 2331
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 2253
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 2282
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 3833
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 2055
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 5037
+    },
+    {
+      "tool": "open_editor",
+      "status": "passed",
+      "elapsedMs": 3603
+    },
+    {
+      "tool": "open_preview",
+      "status": "passed",
+      "elapsedMs": 3304
+    },
+    {
+      "tool": "list_assets",
+      "status": "passed",
+      "elapsedMs": 1823
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "passed",
+      "elapsedMs": 2560
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "passed",
+      "elapsedMs": 2591
+    },
+    {
+      "tool": "import_asset",
+      "status": "passed",
+      "elapsedMs": 2896
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "passed",
+      "elapsedMs": 3379
+    },
+    {
+      "tool": "delete_asset",
+      "status": "passed",
+      "elapsedMs": 8477
+    },
+    {
+      "tool": "create_export",
+      "status": "passed",
+      "elapsedMs": 10009
+    },
+    {
+      "tool": "get_export",
+      "status": "passed",
+      "elapsedMs": 21110
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "passed",
+      "elapsedMs": 2118
+    },
+    {
+      "tool": "cancel_export",
+      "status": "passed",
+      "elapsedMs": 9921
+    },
+    {
+      "tool": "delete_project",
+      "status": "passed",
+      "elapsedMs": 2083
+    }
+  ],
+  "passed": 27,
+  "failed": 0,
+  "blocked": 0,
+  "cleanup": {
+    "projectId": "fe665416-0188-4ce8-95a6-220a42b1852e",
+    "exportJobId": "rnd_mu7bvztz_hkpueq",
+    "cancelledJobId": "rnd_mu7bwp0z_do5hja"
+  }
+}

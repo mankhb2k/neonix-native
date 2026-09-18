@@ -1,0 +1,153 @@
+{
+  "generatedAt": "2026-09-18T18:50:21.595Z",
+  "endpoint": "https://www.neonix.video/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "create_export returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"RUNTIME_COMPILE_FAILED\\\",\\\"message\\\":\\\"Cannot find module '/var/task/apps/web/public/vendor/harfbuzz/index.mjs' imported from /var/task/apps/web/.next/server/app/api/mcp/route.js\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 1543
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 565
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 361
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 342
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 3277
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 2107
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 2282
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 1578
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 1246
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 2261
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 1244
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 3372
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 2185
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 3206
+    },
+    {
+      "tool": "open_editor",
+      "status": "passed",
+      "elapsedMs": 1569
+    },
+    {
+      "tool": "open_preview",
+      "status": "passed",
+      "elapsedMs": 2161
+    },
+    {
+      "tool": "list_assets",
+      "status": "passed",
+      "elapsedMs": 1553
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "passed",
+      "elapsedMs": 3799
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "passed",
+      "elapsedMs": 3830
+    },
+    {
+      "tool": "import_asset",
+      "status": "passed",
+      "elapsedMs": 3621
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "passed",
+      "elapsedMs": 2439
+    },
+    {
+      "tool": "delete_asset",
+      "status": "passed",
+      "elapsedMs": 8856
+    },
+    {
+      "tool": "create_export",
+      "status": "failed",
+      "elapsedMs": 2722,
+      "detail": "create_export returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"RUNTIME_COMPILE_FAILED\\\",\\\"message\\\":\\\"Cannot find module '/var/task/apps/web/public/vendor/harfbuzz/index.mjs' imported from /var/task/apps/web/.next/server/app/api/mcp/route.js\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}"
+    },
+    {
+      "tool": "delete_project",
+      "status": "passed",
+      "elapsedMs": 2017
+    },
+    {
+      "tool": "get_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 23,
+  "failed": 2,
+  "blocked": 3,
+  "cleanup": {
+    "projectId": "ef665d30-b18b-44c9-a9aa-abd338a8b096"
+  }
+}

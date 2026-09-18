@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-09-18T18:46:20.308Z",
+  "endpoint": "https://www.neonix.video/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "apply_json_patch returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"DATABASE_ERROR\\\",\\\"message\\\":\\\"Unable to create patched project revision\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 4294
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 438
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 666
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 596
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 5167
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 2067
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 2215
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 1529
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 1180
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 3141
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 2141
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 4593
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 3182
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "failed",
+      "elapsedMs": 1560,
+      "detail": "apply_json_patch returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"DATABASE_ERROR\\\",\\\"message\\\":\\\"Unable to create patched project revision\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}"
+    },
+    {
+      "tool": "delete_project",
+      "status": "passed",
+      "elapsedMs": 1626
+    },
+    {
+      "tool": "list_assets",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "import_asset",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "delete_asset",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "create_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "open_editor",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "open_preview",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 14,
+  "failed": 2,
+  "blocked": 12,
+  "cleanup": {
+    "projectId": "ef2f3eed-71e3-47f0-a751-14b69a20a46b"
+  }
+}

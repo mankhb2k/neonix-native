@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-09-18T18:28:59.587Z",
+  "endpoint": "http://localhost:3000/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "Editor URL missing",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 387
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 111
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 47
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 34
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 726
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 430
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 330
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 415
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 337
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 315
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 366
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 628
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 479
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 617
+    },
+    {
+      "tool": "open_editor",
+      "status": "failed",
+      "elapsedMs": 456,
+      "detail": "Editor URL missing"
+    },
+    {
+      "tool": "list_assets",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "import_asset",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "delete_asset",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "create_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "delete_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "open_preview",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 14,
+  "failed": 2,
+  "blocked": 12,
+  "cleanup": {
+    "projectId": "446f1211-2a3d-4054-a3bb-1a7794b602f4"
+  }
+}

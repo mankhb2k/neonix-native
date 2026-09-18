@@ -1,0 +1,154 @@
+{
+  "generatedAt": "2026-09-18T18:41:17.914Z",
+  "endpoint": "http://localhost:3000/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "Export did not finish: {\"exportJobId\":\"rnd_mu7aoc99_hkq5n8\",\"statusHistory\":[{\"status\":\"queued\",\"stage\":\"queued\",\"progress\":0},{\"status\":\"rendering\",\"stage\":\"rendering\",\"progress\":0.05},{\"status\":\"publishing\",\"stage\":\"publishing\",\"progress\":0.94},{\"status\":\"publishing\",\"stage\":\"done\",\"progress\":1}],\"last\":{\"export\":{\"jobId\":\"rnd_mu7aoc99_hkq5n8\",\"projectId\":\"64523a6a-306b-4fa8-8b6f-5681b9c16e90\",\"protocolRevisionNo\":3,\"status\":\"publishing\",\"progress\":1,\"stage\":\"done\",\"metrics\":{\"framesRendered\":30,\"outputSizeInBytes\":4664,\"audioStreams\":0,\"verifiedFrames\":30,\"verifiedDurationSeconds\":0.967,\"verifiedCodec\":\"h264\",\"encodeBreakdown\":{\"framesSubmitted\":30,\"pipeWriteMilliseconds\":0,\"backpressureWaitMilliseconds\":0,\"finalizeMilliseconds\":2.678}},\"createdAt\":1789756276259,\"updatedAt\":1789756874360}}}",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 745
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 73
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 33
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 32
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 708
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 433
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 359
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 435
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 338
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 347
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 352
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 655
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 441
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 620
+    },
+    {
+      "tool": "open_editor",
+      "status": "passed",
+      "elapsedMs": 438
+    },
+    {
+      "tool": "open_preview",
+      "status": "passed",
+      "elapsedMs": 452
+    },
+    {
+      "tool": "list_assets",
+      "status": "passed",
+      "elapsedMs": 305
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "passed",
+      "elapsedMs": 880
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "passed",
+      "elapsedMs": 615
+    },
+    {
+      "tool": "import_asset",
+      "status": "passed",
+      "elapsedMs": 1863
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "passed",
+      "elapsedMs": 583
+    },
+    {
+      "tool": "delete_asset",
+      "status": "passed",
+      "elapsedMs": 1662
+    },
+    {
+      "tool": "create_export",
+      "status": "passed",
+      "elapsedMs": 1922
+    },
+    {
+      "tool": "get_export",
+      "status": "failed",
+      "elapsedMs": 600784,
+      "detail": "Export did not finish: {\"exportJobId\":\"rnd_mu7aoc99_hkq5n8\",\"statusHistory\":[{\"status\":\"queued\",\"stage\":\"queued\",\"progress\":0},{\"status\":\"rendering\",\"stage\":\"rendering\",\"progress\":0.05},{\"status\":\"publishing\",\"stage\":\"publishing\",\"progress\":0.94},{\"status\":\"publishing\",\"stage\":\"done\",\"progress\":1}],\"last\":{\"export\":{\"jobId\":\"rnd_mu7aoc99_hkq5n8\",\"projectId\":\"64523a6a-306b-4fa8-8b6f-5681b9c16e90\",\"protocolRevisionNo\":3,\"status\":\"publishing\",\"progress\":1,\"stage\":\"done\",\"metrics\":{\"framesRendered\":30,\"outputSizeInBytes\":4664,\"audioStreams\":0,\"verifiedFrames\":30,\"verifiedDurationSeconds\":0.967,\"verifiedCodec\":\"h264\",\"encodeBreakdown\":{\"framesSubmitted\":30,\"pipeWriteMilliseconds\":0,\"backpressureWaitMilliseconds\":0,\"finalizeMilliseconds\":2.678}},\"createdAt\":1789756276259,\"updatedAt\":1789756874360}}}"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "delete_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 23,
+  "failed": 2,
+  "blocked": 3,
+  "cleanup": {
+    "projectId": "64523a6a-306b-4fa8-8b6f-5681b9c16e90",
+    "exportJobId": "rnd_mu7aoc99_hkq5n8"
+  }
+}

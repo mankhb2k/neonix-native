@@ -1,0 +1,153 @@
+{
+  "generatedAt": "2026-09-18T19:02:31.063Z",
+  "endpoint": "https://www.neonix.video/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "create_export returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"RUNTIME_COMPILE_FAILED\\\",\\\"message\\\":\\\"Cannot use 'import.meta' outside a module\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 1003
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 570
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 415
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 381
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 2782
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 1551
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 1803
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 2035
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 1224
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 1256
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 1294
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 5908
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 2033
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 2035
+    },
+    {
+      "tool": "open_editor",
+      "status": "passed",
+      "elapsedMs": 1968
+    },
+    {
+      "tool": "open_preview",
+      "status": "passed",
+      "elapsedMs": 2529
+    },
+    {
+      "tool": "list_assets",
+      "status": "passed",
+      "elapsedMs": 1203
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "passed",
+      "elapsedMs": 4129
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "passed",
+      "elapsedMs": 5167
+    },
+    {
+      "tool": "import_asset",
+      "status": "passed",
+      "elapsedMs": 6575
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "passed",
+      "elapsedMs": 2689
+    },
+    {
+      "tool": "delete_asset",
+      "status": "passed",
+      "elapsedMs": 9205
+    },
+    {
+      "tool": "create_export",
+      "status": "failed",
+      "elapsedMs": 3485,
+      "detail": "create_export returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"RUNTIME_COMPILE_FAILED\\\",\\\"message\\\":\\\"Cannot use 'import.meta' outside a module\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}"
+    },
+    {
+      "tool": "delete_project",
+      "status": "passed",
+      "elapsedMs": 2065
+    },
+    {
+      "tool": "get_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 23,
+  "failed": 2,
+  "blocked": 3,
+  "cleanup": {
+    "projectId": "2d46ade6-6d08-493f-ae5e-0e5fb8ab166b"
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "generatedAt": "2026-09-18T18:57:55.979Z",
+  "endpoint": "https://www.neonix.video/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "create_export returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"RUNTIME_COMPILE_FAILED\\\",\\\"message\\\":\\\"Cannot find package 'harfbuzzjs' imported from /var/task/apps/web/.next/server/app/api/mcp/route.js\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 1144
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 352
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 351
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 336
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 3256
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 1726
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 1747
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 2079
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 1234
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 1230
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "passed",
+      "elapsedMs": 1737
+    },
+    {
+      "tool": "update_project_html",
+      "status": "passed",
+      "elapsedMs": 2850
+    },
+    {
+      "tool": "update_project",
+      "status": "passed",
+      "elapsedMs": 3089
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "passed",
+      "elapsedMs": 2121
+    },
+    {
+      "tool": "open_editor",
+      "status": "passed",
+      "elapsedMs": 2141
+    },
+    {
+      "tool": "open_preview",
+      "status": "passed",
+      "elapsedMs": 1583
+    },
+    {
+      "tool": "list_assets",
+      "status": "passed",
+      "elapsedMs": 1182
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "passed",
+      "elapsedMs": 2554
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "passed",
+      "elapsedMs": 2309
+    },
+    {
+      "tool": "import_asset",
+      "status": "passed",
+      "elapsedMs": 2723
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "passed",
+      "elapsedMs": 1980
+    },
+    {
+      "tool": "delete_asset",
+      "status": "passed",
+      "elapsedMs": 10127
+    },
+    {
+      "tool": "create_export",
+      "status": "failed",
+      "elapsedMs": 4273,
+      "detail": "create_export returned MCP error: {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"RUNTIME_COMPILE_FAILED\\\",\\\"message\\\":\\\"Cannot find package 'harfbuzzjs' imported from /var/task/apps/web/.next/server/app/api/mcp/route.js\\\",\\\"retryable\\\":false}}\"}],\"isError\":true}"
+    },
+    {
+      "tool": "delete_project",
+      "status": "passed",
+      "elapsedMs": 1620
+    },
+    {
+      "tool": "get_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 23,
+  "failed": 2,
+  "blocked": 3,
+  "cleanup": {
+    "projectId": "f5eb2bd9-553c-4efd-aaf7-faf0d8df9fe3"
+  }
+}

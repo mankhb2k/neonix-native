@@ -1,0 +1,166 @@
+{
+  "generatedAt": "2026-09-18T18:26:39.337Z",
+  "endpoint": "http://localhost:3000/api/mcp",
+  "expectedToolCount": 27,
+  "suiteError": "Wrong HTML revision returned",
+  "cases": [
+    {
+      "tool": "list_workspaces",
+      "status": "passed",
+      "elapsedMs": 504
+    },
+    {
+      "tool": "get_capabilities",
+      "status": "passed",
+      "elapsedMs": 100
+    },
+    {
+      "tool": "validate_html",
+      "status": "passed",
+      "elapsedMs": 41
+    },
+    {
+      "tool": "compile_html",
+      "status": "passed",
+      "elapsedMs": 34
+    },
+    {
+      "tool": "create_project_html",
+      "status": "passed",
+      "elapsedMs": 886
+    },
+    {
+      "tool": "list_projects",
+      "status": "passed",
+      "elapsedMs": 516
+    },
+    {
+      "tool": "get_project",
+      "status": "passed",
+      "elapsedMs": 402
+    },
+    {
+      "tool": "get_project_html",
+      "status": "passed",
+      "elapsedMs": 463
+    },
+    {
+      "tool": "get_project_json",
+      "status": "passed",
+      "elapsedMs": 432
+    },
+    {
+      "tool": "list_html_revisions",
+      "status": "passed",
+      "elapsedMs": 362
+    },
+    {
+      "tool": "get_html_revision",
+      "status": "failed",
+      "elapsedMs": 372,
+      "detail": "Wrong HTML revision returned"
+    },
+    {
+      "tool": "apply_json_patch",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "update_project_html",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "list_assets",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "request_asset_upload",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "complete_asset_upload",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "import_asset",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "attach_asset_to_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "delete_asset",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "create_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "get_export_download_url",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "cancel_export",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "update_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "delete_project",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "open_editor",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    },
+    {
+      "tool": "open_preview",
+      "status": "blocked",
+      "elapsedMs": 0,
+      "detail": "Not reached because a prerequisite test failed"
+    }
+  ],
+  "passed": 10,
+  "failed": 2,
+  "blocked": 16,
+  "cleanup": {
+    "projectId": "0e92ddd1-51fc-42e1-9769-0126bed8f2b4"
+  }
+}
