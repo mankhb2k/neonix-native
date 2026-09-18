@@ -75,6 +75,7 @@ async function loadHarfBuzzOnce(): Promise<typeof import("harfbuzzjs")> {
     }));
     await mkdir(tempDir, { recursive: true });
     await Promise.all(assetNames.map((assetName, index) => writeFile(path.join(tempDir, assetName), assets[index])));
+    await writeFile(path.join(tempDir, "package.json"), '{"type":"module"}');
     return nativeImport(pathToFileURL(path.join(tempDir, "index.mjs")).href);
   }
 }
