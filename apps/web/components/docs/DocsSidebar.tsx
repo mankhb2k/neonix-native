@@ -28,15 +28,16 @@ export function DocsSidebar() {
           <ul className="border-l border-[var(--border-subtle)]">
             {group.items.map((item) => {
               const active = pathname === item.href;
-              const pad = "-ml-px block border-l py-2 pl-4 text-body leading-6 no-underline transition-colors";
+              const pad =
+                "-ml-px block border-l py-2 pl-4 text-body leading-6 no-underline transition-colors";
               return (
                 <li key={`${item.href}-${item.label}`}>
                   <Link
                     href={item.href}
                     className={
                       active
-                        ? `${pad} border-[var(--accent)] font-semibold text-[var(--fg-primary)]`
-                        : `${pad} border-transparent text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]`
+                        ? `${pad} rounded-r-md border-[var(--accent)] bg-[#e8f8f4] font-semibold text-[#087f73]`
+                        : `${pad} border-transparent text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[#087f73]`
                     }
                   >
                     {item.label}

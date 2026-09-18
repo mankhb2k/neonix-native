@@ -183,9 +183,22 @@ An atom is documented as certified only after its static contract, runtime meani
     title: "Composition and view",
     markdown: String.raw`# Composition and view
 
-## Composition
+Composition and view are the two global settings that define how a Neonix JSON V2 document becomes a visual output. Composition defines the canvas and time base. View defines how world coordinates are projected into that canvas.
 
-The composition defines the output coordinate system and timing basis.
+## The mental model
+
+| Concept | Responsibility | Changes the output size? |
+| --- | --- | --- |
+| Composition | Canvas dimensions, frame rate, background and color space | Yes |
+| View | Projection, camera position and camera rotation | No |
+| Layer frame | Local width and height of one layer | No |
+| Layer transform | Position, rotation, scale and anchor of one layer | No |
+
+The order is intentional: authoring defines the composition, layers are placed in world space, and the view projects that world into the declared output rectangle.
+
+## Complete composition example
+
+The composition object is required. This is a valid 1920×1080, 30 FPS document envelope:
 
 ${FENCE}json
 {
@@ -196,8 +209,14 @@ ${FENCE}json
     "height": 1080,
     "fps": 30,
     "background": "#101820",
+    "colorSpace": "srgb",
     "view": {
-      "projection": { "kind": "orthographic", "zoom": 1 },
+      "projection": {
+        "kind": "orthographic",
+        "zoom": 1,
+        "near": 1,
+        "far": 4000
+      },
       "transform": {
         "translate": { "x": 0, "y": 0, "z": 0 },
         "rotate": { "x": 0, "y": 0, "z": 0 }
@@ -208,17 +227,130 @@ ${FENCE}json
 }
 ${FENCE}
 
-## View
+The JSON field ${BT}format${BT} remains the schema compatibility value. The public name of the document format is Neonix JSON V2.
 
-The view chooses orthographic or perspective projection and supplies a view transform. A normal 2D composition uses orthographic projection and keeps the relevant Z values at zero.
+## Output dimensions
 
-## Coordinate units
+${BT}width${BT} and ${BT}height${BT} are positive composition units. For standard 2D work they behave like output pixels, with the origin at the top-left, X increasing to the right and Y increasing downward.
 
-Frame and transform coordinates are composition/world units. The preview surface may scale them to fit a browser viewport, but the document meaning does not change.
+The aspect ratio is determined by these two values:
 
-## Required distinction
+| Composition | Aspect ratio | Typical use |
+| --- | --- | --- |
+| 1920 × 1080 | 16:9 | Landscape video |
+| 1080 × 1920 | 9:16 | Vertical video |
+| 1080 × 1080 | 1:1 | Square social video |
+| 2048 × 2048 | 1:1 | High-resolution square output |
 
-Composition dimensions describe the output. A layer frame describes local geometry. A view describes projection. These are separate responsibilities.`,
+Changing a layer frame does not change the composition size. Changing the browser viewport does not change it either. In an HTML document, the ${BT}composition${BT} metadata is authoritative; body CSS only controls how the authoring page is laid out.
+
+## Frame rate and time
+
+${BT}fps${BT} is the positive number of frames per second. Export samples the composition at this cadence:
+
+${FENCE}text
+30 fps  ->  frame 0 at 0 ms
+           frame 1 at 33.333... ms
+           frame 2 at 66.666... ms
+           frame 3 at 100 ms
+${FENCE}
+
+Layer timing, keyframes and audio clip timing use milliseconds. The composition does not resize or stretch time when the output FPS changes; it changes the frame sampling cadence. Keep the same FPS in preview and export when comparing motion.
+
+## Background and color space
+
+${BT}background${BT} is the base color of the composition behind transparent or uncovered pixels. It is a color value, not an image asset and not a layer.
+
+${BT}colorSpace${BT} is currently required to be ${BT}srgb${BT}. Keeping this explicit makes color interpretation deterministic across browsers, preview surfaces and exported video.
+
+## View and projection
+
+The view is required and contains two parts:
+
+1. ${BT}projection${BT} maps world coordinates into the composition rectangle.
+2. ${BT}transform${BT} moves and rotates the view before projection.
+
+### Orthographic projection
+
+Orthographic projection is the default for ordinary 2D motion. Objects do not become smaller just because their Z position changes.
+
+${FENCE}json
+{
+  "kind": "orthographic",
+  "zoom": 1,
+  "near": 1,
+  "far": 4000
+}
+${FENCE}
+
+- ${BT}zoom${BT} is a positive scale factor. A larger value zooms into the world.
+- ${BT}near${BT} and ${BT}far${BT} define the visible depth range.
+- ${BT}far${BT} must be greater than ${BT}near${BT}.
+
+Use orthographic projection for titles, cards, UI motion, illustrations and most HTML-to-video compositions.
+
+### Perspective projection
+
+Perspective projection makes depth affect apparent size. Objects with different Z positions can appear closer or farther from the view.
+
+${FENCE}json
+{
+  "kind": "perspective",
+  "fov": 60,
+  "near": 1,
+  "far": 4000
+}
+${FENCE}
+
+- ${BT}fov${BT} is the vertical field of view in degrees and must be between 0.001 and 179.999.
+- ${BT}near${BT} and ${BT}far${BT} are positive depth planes.
+- Keep ${BT}far${BT} > ${BT}near${BT} and keep visible objects inside the depth range.
+
+Perspective belongs at the composition view level. A local group can also have its own 3D perspective semantics; that is documented under [Layers and hierarchy](/docs/atoms/layers).
+
+## View transform
+
+The view transform has finite 3D translation and rotation values:
+
+${FENCE}json
+{
+  "transform": {
+    "translate": { "x": 0, "y": 0, "z": 0 },
+    "rotate": { "x": 0, "y": 0, "z": 0 }
+  }
+}
+${FENCE}
+
+- ${BT}translate${BT} moves the view in world units. Because it is a view transform, moving the view in one direction makes the scene appear to move in the opposite direction.
+- ${BT}rotate${BT} rotates the view around X, Y and Z in degrees.
+- ${BT}z${BT} is meaningful when using 3D layer positions or perspective projection.
+
+For a normal 2D composition, keep the view at zero translation and rotation, use orthographic projection and place content with layer transforms instead.
+
+## Composition, view and layer frame are different
+
+Consider a 1920×1080 composition with a 640×360 card:
+
+${FENCE}text
+composition.width / height  -> output canvas: 1920 × 1080
+card.frame.width / height   -> local geometry: 640 × 360
+card.transform.translate    -> where the card is placed
+composition.view             -> how the whole world is projected
+${FENCE}
+
+Changing the card frame changes only the card. Changing the view can affect every layer. Changing the composition dimensions changes the final output contract and may require repositioning content.
+
+## Validation rules and common mistakes
+
+- Composition must include positive ${BT}width${BT}, ${BT}height${BT} and ${BT}fps${BT}.
+- ${BT}background${BT} must be a valid color and ${BT}colorSpace${BT} must be ${BT}srgb${BT}.
+- ${BT}view${BT}, ${BT}projection${BT} and ${BT}transform${BT} are required objects.
+- Orthographic projection requires ${BT}zoom${BT}, ${BT}near${BT} and ${BT}far${BT}.
+- Perspective projection requires ${BT}fov${BT}, ${BT}near${BT} and ${BT}far${BT}.
+- ${BT}far${BT} must be greater than ${BT}near${BT}.
+- Do not use body CSS, a browser window size or a layer frame as a substitute for composition dimensions.
+
+Continue with [Transform and Matrix4](/docs/atoms/transform) for layer transforms, [Layers and hierarchy](/docs/atoms/layers) for parent-child coordinates, and [Animation and timing](/docs/animation) for time-based changes.`,
   },
   "atoms/transform": {
     title: "Transform and Matrix4",

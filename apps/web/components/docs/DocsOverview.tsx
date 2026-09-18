@@ -37,10 +37,10 @@ const pillars = [
 ];
 
 const pipeline = [
-  ["01", "Intent", "human, agent or template"],
-  ["02", "Neonix JSON V2", "explicit authoring JSON"],
+  ["01", "Human, agent or template", "idea and intent"],
+  ["02", "HTML", "the authoring source"],
   ["03", "Compiler", "lowering and diagnostics"],
-  ["04", "Runtime", "evaluated frame data"],
+  ["04", "Neonix JSON V2", "canonical editable JSON"],
   ["05", "Output", "preview or export"],
 ];
 
@@ -76,7 +76,7 @@ export function DocsOverview() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="font-mono text-sm font-semibold tracking-[0.16em] text-[#0d9488] uppercase">The mental model</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-[var(--fg-primary)] md:text-3xl">Five steps from idea to frame.</h2>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-[var(--fg-primary)] md:text-3xl">Five steps from idea to output.</h2>
           </div>
           <Zap className="hidden h-6 w-6 text-[#0d9488] md:block" />
         </div>
