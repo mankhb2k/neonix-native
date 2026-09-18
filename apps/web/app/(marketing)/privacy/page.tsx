@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "How Neonix collects, uses, and protects information.",
 };
 
-const updated = "September 9, 2026";
+const updated = "September 19, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -65,14 +65,13 @@ workspace features, compile HTML into Neonix JSON V2, manage assets,
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-[var(--fg-primary)]">Service providers</h2>
+            <h2 className="text-xl font-semibold text-[var(--fg-primary)]">Data processing and storage</h2>
             <p className="mt-3">
-              Neonix relies on infrastructure providers to operate the
-              service, including Supabase for authentication and database
-              services, Cloudflare R2 or related object storage for uploaded
-              files, and rendering or hosting infrastructure for previews and
-              exports. These providers process information only as needed to
-              provide their services to Neonix.
+              Neonix uses managed service infrastructure to provide
+              authentication, databases, file storage, hosting, media
+              processing, previews, and exports. Access to information is
+              limited to the functions needed to operate the service, protect
+              users, and deliver the features you request.
             </p>
           </section>
 
@@ -84,8 +83,8 @@ workspace features, compile HTML into Neonix JSON V2, manage assets,
               may request account or project data deletion by contacting us;
               deletion may be subject to backup, security, or legal retention
               requirements. You can also stop using the MCP connection or
-              revoke its OAuth authorization through the connected account
-              provider.
+              revoke its OAuth authorization through your account settings or
+              the connected application.
             </p>
           </section>
 
