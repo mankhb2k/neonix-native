@@ -11,6 +11,10 @@ export type NeonixToolAnnotations = ToolAnnotations & {
   destructiveHint: boolean;
 };
 
+export function withToolTitle(annotations: NeonixToolAnnotations, title: string): NeonixToolAnnotations {
+  return { ...annotations, title };
+}
+
 export const READ_ONLY_TOOL_ANNOTATIONS: NeonixToolAnnotations = {
   readOnlyHint: true,
   openWorldHint: false,
