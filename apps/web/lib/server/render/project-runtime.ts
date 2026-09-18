@@ -23,7 +23,11 @@ export async function compileAndPrepareRuntimeProjectV3(document: MotionProtocol
   const compiled = compileProtocol(document, { collectStats: true });
   if (!compiled.visual.nodes.some((node) => node.content.kind === "text")) return compiled;
   const moduleUrl = pathToFileURL(path.join(repoRoot(), "apps/web/public/vendor/harfbuzz/index.mjs")).href;
-  const harfbuzz = await import(moduleUrl) as typeof import("harfbuzzjs");
+  // Keep this as a native Node import. Next's server bundler otherwise tries
+  // to resolve the absolute file URL as a webpack module during local MCP
+  // requests instead of loading the checked-in browser-compatible module.
+  const nativeImport = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<typeof import("harfbuzzjs")>;
+  const harfbuzz = await nativeImport(moduleUrl);
   const prepared = await prepareRuntimeProjectV3Text(
     compiled,
     (font) => loadFont(font.uri),

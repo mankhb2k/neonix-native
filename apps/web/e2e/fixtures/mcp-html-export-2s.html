@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":640,"height":360,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 640px; height: 360px; margin: 0; overflow: hidden; }
+    body { background: #081018; color: #f8fafc; font-family: Inter, sans-serif; }
+    .scene {
+      position: absolute;
+      inset: 0;
+      padding: 52px;
+      background: linear-gradient(135deg, #081018 0%, #102a43 55%, #164e63 100%);
+    }
+    .eyebrow {
+      margin: 0 0 14px;
+      color: #2ee6c5;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      animation: reveal 400ms linear both;
+    }
+    .title {
+      margin: 0;
+      max-width: 500px;
+      color: #f8fafc;
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+      animation: rise 900ms 150ms linear both;
+    }
+    .card {
+      position: absolute;
+      right: 52px;
+      bottom: 52px;
+      width: 210px;
+      height: 82px;
+      border: 1px solid #2ee6c580;
+      border-radius: 18px;
+      background: #081018aa;
+      animation: drift 1500ms 500ms linear both;
+    }
+    .card-label {
+      position: absolute;
+      left: 18px;
+      top: 31px;
+      color: #b8fff2;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    @keyframes reveal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(28px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes drift {
+      from { opacity: 0; transform: translateX(36px) rotate(3deg); }
+      to { opacity: 1; transform: translateX(0) rotate(0deg); }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene">
+    <p class="eyebrow">Neonix MCP</p>
+    <h1 class="title">HTML to a real two-second export.</h1>
+    <div class="card" aria-hidden="true"><span class="card-label">2s local e2e</span></div>
+  </main>
+</body>
+</html>

@@ -2062,6 +2062,77 @@ Use ordinary HTML and CSS for the supported compiler subset:
 
 The compiler validates the document before creating a project. Browser-only behavior such as event handlers, network-dependent layout, canvas state or arbitrary JavaScript is not part of the deterministic export contract.
 
+## HTML elements that are supported
+
+Use only the following visual HTML vocabulary. Tags are grouped by their authoring role:
+
+| Role | Supported tags |
+| --- | --- |
+| Document | ${BT}html${BT}, ${BT}head${BT}, ${BT}meta${BT}, ${BT}title${BT}, ${BT}style${BT}, ${BT}body${BT} |
+| Containers | ${BT}div${BT}, ${BT}main${BT}, ${BT}section${BT}, ${BT}article${BT}, ${BT}header${BT}, ${BT}footer${BT}, ${BT}nav${BT}, ${BT}aside${BT}, ${BT}figure${BT}, ${BT}figcaption${BT} |
+| Text | ${BT}h1${BT}–${BT}h6${BT}, ${BT}span${BT}, ${BT}p${BT}, ${BT}strong${BT}, ${BT}b${BT}, ${BT}em${BT}, ${BT}i${BT}, ${BT}small${BT}, ${BT}br${BT}, ${BT}blockquote${BT}, ${BT}pre${BT}, ${BT}code${BT} |
+| Media | ${BT}img${BT}, ${BT}video${BT}, ${BT}audio${BT} |
+| SVG | ${BT}svg${BT}, ${BT}g${BT}, ${BT}path${BT}, ${BT}rect${BT}, ${BT}circle${BT}, ${BT}ellipse${BT}, ${BT}line${BT}, ${BT}polyline${BT}, ${BT}polygon${BT} |
+
+Use a supported container or ${BT}span${BT} instead of inventing a custom visual tag. Give important elements a stable ${BT}id${BT}; ids must be unique.
+
+## CSS properties currently supported
+
+The following property groups are available for HTML authoring. The value still has to use the documented syntax for that property.
+
+| Category | Properties |
+| --- | --- |
+| Layout and box | ${BT}position${BT}, ${BT}position-anchor${BT}, ${BT}anchor-name${BT}, ${BT}inset${BT}, ${BT}top${BT}, ${BT}right${BT}, ${BT}bottom${BT}, ${BT}left${BT}, ${BT}width${BT}, ${BT}height${BT}, ${BT}min-width${BT}, ${BT}max-width${BT}, ${BT}min-height${BT}, ${BT}max-height${BT}, ${BT}aspect-ratio${BT}, ${BT}margin${BT} and ${BT}padding${BT} longhands, ${BT}box-sizing${BT} |
+| Visibility and order | ${BT}display${BT}, ${BT}visibility${BT}, ${BT}opacity${BT}, ${BT}overflow${BT}, ${BT}z-index${BT} |
+| Paint and borders | ${BT}background${BT}, ${BT}background-color${BT}, ${BT}background-image${BT}, ${BT}background-position${BT}, ${BT}background-size${BT}, ${BT}background-repeat${BT}, ${BT}background-origin${BT}, ${BT}background-clip${BT}, ${BT}color${BT}, ${BT}border${BT} and border longhands, ${BT}border-radius${BT}, ${BT}outline${BT} and outline longhands |
+| Text | ${BT}font-family${BT}, ${BT}font-size${BT}, ${BT}font-weight${BT}, ${BT}font-style${BT}, ${BT}font-stretch${BT}, ${BT}line-height${BT}, ${BT}letter-spacing${BT}, ${BT}word-spacing${BT}, ${BT}white-space${BT}, ${BT}text-align${BT}, ${BT}direction${BT}, ${BT}writing-mode${BT}, ${BT}text-decoration${BT}, ${BT}text-overflow${BT}, ${BT}text-rendering${BT}, ${BT}text-shadow${BT} |
+| Transform | ${BT}transform${BT}, ${BT}transform-origin${BT}, ${BT}perspective${BT}, ${BT}perspective-origin${BT}, ${BT}transform-style${BT}, ${BT}backface-visibility${BT} |
+| SVG paint | ${BT}fill${BT}, ${BT}fill-opacity${BT}, ${BT}fill-rule${BT}, ${BT}stroke${BT}, ${BT}stroke-width${BT}, ${BT}stroke-opacity${BT}, ${BT}stroke-linejoin${BT}, ${BT}stroke-linecap${BT}, ${BT}stroke-dasharray${BT}, ${BT}stroke-dashoffset${BT}, ${BT}paint-order${BT} |
+| Media | ${BT}object-fit${BT}, ${BT}object-position${BT}, ${BT}image-rendering${BT} |
+| Flex and grid | ${BT}flex-direction${BT}, ${BT}flex-wrap${BT}, ${BT}justify-content${BT}, ${BT}justify-items${BT}, ${BT}align-items${BT}, ${BT}align-self${BT}, ${BT}align-content${BT}, ${BT}place-items${BT}, ${BT}gap${BT}, ${BT}row-gap${BT}, ${BT}column-gap${BT}, ${BT}flex${BT}, ${BT}flex-basis${BT}, ${BT}flex-grow${BT}, ${BT}flex-shrink${BT}, ${BT}order${BT}, ${BT}grid-template-columns${BT}, ${BT}grid-template-rows${BT}, ${BT}grid-column${BT}/${BT}grid-row${BT} and their start/end fields |
+| Motion and effects | ${BT}animation${BT}, ${BT}animation-name${BT}, ${BT}animation-duration${BT}, ${BT}animation-delay${BT}, ${BT}animation-iteration-count${BT}, ${BT}animation-direction${BT}, ${BT}animation-fill-mode${BT}, ${BT}animation-play-state${BT}, ${BT}animation-timing-function${BT}, ${BT}filter${BT}, ${BT}backdrop-filter${BT}, ${BT}mix-blend-mode${BT}, ${BT}isolation${BT}, ${BT}clip-path${BT}, ${BT}mask-image${BT}, ${BT}mask-position${BT}, ${BT}mask-size${BT}, ${BT}mask-repeat${BT}, ${BT}mask-mode${BT}, ${BT}mask-composite${BT}, ${BT}offset-path${BT}, ${BT}offset-distance${BT}, ${BT}offset-rotate${BT}, ${BT}offset-anchor${BT} |
+
+Common supported value forms include ${BT}px${BT}, percentages, ${BT}em${BT}, ${BT}rem${BT}, ${BT}vw${BT}, ${BT}vh${BT}, ${BT}auto${BT}, arithmetic ${BT}calc()${BT}, ${BT}min()${BT}, ${BT}max()${BT} and ${BT}clamp()${BT}, when they are valid for the selected property. Use solid colors, supported gradients, documented transform functions and deterministic animation timing values.
+
+## Selectors and CSS resources
+
+Supported selectors are tag selectors, class selectors, id selectors, descendant selectors and comma-separated selector lists. CSS custom properties and ${BT}var()${BT} fallbacks are supported when their values resolve to a supported property.
+
+Put CSS in an inline ${BT}<style>${BT} block in the same HTML document. External stylesheets, inline ${BT}style="..."${BT} attributes, pseudo-classes, pseudo-elements, attribute selectors, child/sibling combinators (${BT}>${BT}, ${BT}+${BT}, ${BT}~${BT}) and media queries are not part of the current authoring contract.
+
+## Deliberately unsupported browser features
+
+Do not ask an AI to generate these for a Neonix video document:
+
+- ${BT}<script>${BT}, event handlers, forms, inputs, buttons, iframes or canvas drawing;
+- ${BT}::before${BT}, ${BT}::after${BT} and CSS ${BT}content${BT};
+- browser interaction, hover/focus state, responsive media-query branches or network-dependent layout;
+- arbitrary HTML tags outside the allowlist;
+- CSS declarations or selector syntax outside the supported vocabulary.
+
+For generated text or decorations, use real elements instead of CSS-generated content:
+
+${FENCE}html
+<div class="badge">
+  <span class="badge-label">Neonix</span>
+</div>
+${FENCE}
+
+This makes text, shapes and animation explicit and keeps the document predictable for preview, validation and export.
+
+## AI generation checklist
+
+Before calling the HTML project tool, an AI should:
+
+1. Use exactly one ${BT}neonix-document${BT} metadata tag.
+2. Use only tags from the element table above.
+3. Put all CSS in an inline ${BT}<style>${BT} block.
+4. Use real HTML elements for every visible text or decoration.
+5. Use only listed CSS properties and supported value forms.
+6. Give important visual elements unique ids.
+7. Avoid scripts, pseudo-elements, external stylesheets and browser-only behavior.
+8. Validate the complete HTML and fix the first diagnostic before creating or exporting the project.
+
 ## Fonts
 
 For stable preview and export, use a font from the Neonix system font CDN and declare it explicitly:
