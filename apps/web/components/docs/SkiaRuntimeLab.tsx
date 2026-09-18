@@ -56,8 +56,10 @@ export function SkiaRuntimeLab() {
   const referenceFrame = preparedFrame?.caseId === selected.id && Math.abs(preparedFrame.time - previewTime) < 1e-6
     ? preparedFrame.frame
     : frame;
+  const textCommand = referenceFrame.commands.find((command): command is Extract<PaintCommand, { op: "drawText" }> => command.op === "drawText");
+  const textPaintType = textCommand?.fillPaint?.type ?? "none";
   const frameStep = 1 / selected.project.composition.fps;
-  return <main className="min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100 md:px-8">
+  return <main data-testid="skia-runtime-lab" data-text-fill-paint={textPaintType} className="min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100 md:px-8">
     <header className="mx-auto mb-5 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Native renderer / Runtime E2E</p><h1 className="mt-2 text-2xl font-semibold">Neonix JSON V2 → Compiler → Runtime → Native renderer</h1><p className="mt-2 text-sm text-slate-400">{selected.label} · time {previewTime.toFixed(3)}s · {referenceFrame.commands.length} runtime commands</p></header>
     <div className="mx-auto mb-5 flex max-w-[1400px] items-center gap-3"><label htmlFor="runtime-skia-case" className="text-xs text-slate-400">Protocol fixture</label><select id="runtime-skia-case" value={caseId} onChange={(event) => setCaseId(event.target.value)} className="rounded-md border border-white/15 bg-[#101721] px-3 py-2 text-base text-slate-100">{CASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><span className="font-mono text-[11px] text-slate-500">{selected.id}</span></div>
     <section className="mx-auto grid max-w-[1400px] gap-5 lg:grid-cols-2">

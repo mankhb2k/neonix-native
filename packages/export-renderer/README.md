@@ -102,10 +102,10 @@ golden-frame tests.
 ## Runtime and ownership boundaries
 
 ```text
-Motion Protocol
+Neonix JSON V2
   -> authoring schema and audio fields
 
-Motion Compiler
+Compiler pipe
   -> compiled timeline, linked media/audio relationships,
      hydrated media catalog, RuntimeProjectV3
 

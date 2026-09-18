@@ -3,7 +3,7 @@ import { mkdir, open as openFile, readFile, stat, type FileHandle } from "node:f
 import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
-import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer, type PaintFill, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { compileDocument } from "../../html-compiler/src/index";
 import { compileAndPrepareRuntimeProjectV3 } from "../../../apps/web/lib/server/render/project-runtime";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../../../apps/web/lib/docs/html-compiler-preview";
@@ -125,6 +125,32 @@ function writeColor(writer: BinaryWriter, value: string): void {
   for (const channel of color(value)) writer.f64(channel);
 }
 
+/** Versioned native subset for text paints. Solid/none are represented by the
+ * existing color field; gradients carry their geometry and stops explicitly. */
+function writePaint(writer: BinaryWriter, paint: PaintFill | undefined): void {
+  if (!paint || paint.type === "none" || paint.type === "solid") {
+    writer.u8(0);
+    return;
+  }
+  if (paint.type === "pattern") {
+    throw new Error("Native text export does not support pattern paints yet");
+  }
+  writer.u8(paint.type === "linear-gradient" ? 1 : paint.type === "radial-gradient" ? 2 : 3);
+  const values = [paint.x1, paint.y1, paint.x2, paint.y2, paint.angle, paint.from, paint.cx, paint.cy, paint.radius, paint.radiusX, paint.radiusY, paint.fx, paint.fy, paint.fr];
+  for (const value of values) writer.f64(value ?? Number.NaN);
+  writer.u8(paint.spreadMethod === "reflect" ? 1 : paint.spreadMethod === "repeat" ? 2 : 0);
+  writer.u8(paint.gradientUnits === "userSpaceOnUse" ? 1 : 0);
+  const transform = paint.gradientTransform;
+  writer.u8(transform ? 1 : 0);
+  if (transform) for (const value of [transform.a, transform.b, transform.c, transform.d, transform.e, transform.f]) writer.f64(value);
+  writer.u32(paint.stops.length);
+  for (const stop of paint.stops) {
+    writer.f64(stop.offset);
+    writeColor(writer, stop.color);
+    writer.f64(stop.stopOpacity ?? 1);
+  }
+}
+
 function writeMatrix(writer: BinaryWriter, matrix: readonly number[]): void {
   if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) {
     throw new Error("Native benchmark protocol requires a finite Matrix4");
@@ -214,6 +240,7 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     writer.u8(7);
     writer.u32(command.glyphs?.length ?? 0);
     writeColor(writer, command.fill);
+    writePaint(writer, command.fillPaint);
     for (const glyph of command.glyphs ?? []) {
       writer.string(glyph.path);
       writer.f64(glyph.x); writer.f64(glyph.y); writer.f64(glyph.pathScale);
@@ -221,6 +248,7 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
       writer.f64(glyph.rotation ?? 0); writer.f64(glyph.scaleX ?? 1);
       writer.u8(glyph.fill === undefined ? 0 : 1);
       if (glyph.fill !== undefined) writeColor(writer, glyph.fill);
+      writePaint(writer, glyph.fillPaint);
       writer.u8(glyph.stroke === undefined ? 0 : 1);
       if (glyph.stroke !== undefined) writeColor(writer, glyph.stroke);
       writer.f64(glyph.strokeWidth ?? 0); writer.f64(glyph.strokeOpacity ?? 1);
@@ -422,7 +450,8 @@ async function writeProtocolChunk(value: Buffer): Promise<void> {
 if (protocolTransport === "file") protocolFile = await openFile(protocolPath, "w");
 
 const header = new BinaryWriter();
-header.bytes(Buffer.from("NXSKIA01", "ascii"));
+  // NXSKIA02 adds versioned text fill-paint payloads after command/glyph fill colors.
+  header.bytes(Buffer.from("NXSKIA02", "ascii"));
 header.u32(width);
 header.u32(height);
 header.u32(frameCount);

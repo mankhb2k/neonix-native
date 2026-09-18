@@ -159,6 +159,8 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "path.markers",
   "path.gradient",
   "path.pattern",
+  "text.gradient",
+  "text.pattern",
   "path.morph",
   "path.transform",
   "path.timing",

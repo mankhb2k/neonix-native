@@ -219,6 +219,7 @@ export type VisualRuntimeTextSpan = {
   letterSpacing?: number;
   wordSpacing?: number;
   fill?: string;
+  fillPaint?: PaintFill;
 };
 
 /** Text stays semantic until the host has resolved the exact font binary. */
@@ -258,6 +259,9 @@ export type VisualRuntimeText = {
   language: string;
   fill: string;
   spanFills?: Array<{ start: number; end: number; fill: string }>;
+  /** Paint values for the complete text and inline spans. */
+  fillPaint?: PaintFill;
+  spanPaints?: Array<{ start: number; end: number; fill: string; fillPaint?: PaintFill }>;
   /** Full inline font runs. `spanFills` remains for paint-only consumers. */
   spanStyles?: VisualRuntimeTextSpan[];
   wordSpacing?: number;

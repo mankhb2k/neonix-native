@@ -9,6 +9,7 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColor.h"
 #include "include/core/SkColorSpace.h"
+#include "include/effects/SkGradient.h"
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkMatrix.h"
 #include "include/core/SkPaint.h"
@@ -44,6 +45,7 @@ extern "C" {
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -79,6 +81,20 @@ struct Transform {
     bool present = false;
 };
 
+// Native text paint subset. Type 0 means the command's solid color is used;
+// 1/2/3 are linear/radial/sweep gradients respectively.
+struct PaintSpec {
+    uint8_t type = 0;
+    double values[14]{};
+    uint8_t spread = 0;
+    uint8_t units = 0;
+    bool hasTransform = false;
+    double transform[6]{};
+    std::vector<Color> colors;
+    std::vector<double> offsets;
+    std::vector<double> stopOpacity;
+};
+
 struct TextGlyph {
     SkPath path;
     double x = 0;
@@ -90,6 +106,8 @@ struct TextGlyph {
     double scaleX = 1;
     bool hasFill = false;
     Color fill;
+    bool hasFillPaint = false;
+    PaintSpec fillPaint;
     bool hasStroke = false;
     Color stroke;
     double strokeWidth = 0;
@@ -179,6 +197,27 @@ bool read_matrix(Reader& reader, Matrix4& matrix) {
 bool read_color(Reader& reader, Color& color) {
     return reader.value(color.red) && reader.value(color.green) &&
            reader.value(color.blue) && reader.value(color.alpha);
+}
+
+bool read_paint(Reader& reader, PaintSpec& paint) {
+    uint8_t type = 0;
+    if (!reader.value(type)) return false;
+    paint = PaintSpec{};
+    paint.type = type;
+    if (type == 0) return true;
+    if (type > 3) return false;
+    for (double& value : paint.values) if (!reader.value(value)) return false;
+    if (!reader.value(paint.spread) || !reader.value(paint.units) || !reader.value(paint.hasTransform)) return false;
+    if (paint.hasTransform) for (double& value : paint.transform) if (!reader.value(value)) return false;
+    uint32_t stopCount = 0;
+    if (!reader.value(stopCount) || stopCount > 64) return false;
+    paint.colors.resize(stopCount);
+    paint.offsets.resize(stopCount);
+    paint.stopOpacity.resize(stopCount);
+    for (uint32_t index = 0; index < stopCount; ++index) {
+        if (!reader.value(paint.offsets[index]) || !read_color(reader, paint.colors[index]) || !reader.value(paint.stopOpacity[index])) return false;
+    }
+    return true;
 }
 
 std::string ffmpeg_error(int error) {
@@ -760,6 +799,79 @@ bool draw_shape(SkCanvas* canvas, uint8_t shape, double width, double height,
     return true;
 }
 
+SkTileMode paint_tile_mode(uint8_t spread) {
+    if (spread == 1) return SkTileMode::kMirror;
+    if (spread == 2) return SkTileMode::kRepeat;
+    return SkTileMode::kClamp;
+}
+
+double paint_value(const PaintSpec& paint, size_t index, double fallback) {
+    return index < 14 && std::isfinite(paint.values[index]) ? paint.values[index] : fallback;
+}
+
+sk_sp<SkShader> make_text_gradient_shader(const PaintSpec& paint, double width, double height) {
+    if (paint.type < 1 || paint.type > 3 || paint.colors.size() < 2) return nullptr;
+    std::vector<SkColor4f> colors;
+    std::vector<SkScalar> offsets;
+    colors.reserve(paint.colors.size());
+    offsets.reserve(paint.offsets.size());
+    for (size_t index = 0; index < paint.colors.size(); ++index) {
+        const Color& color = paint.colors[index];
+        const double alpha = std::max(0.0, std::min(1.0, color.alpha * paint.stopOpacity[index]));
+        colors.push_back({
+            static_cast<float>(std::max(0.0, std::min(1.0, color.red))),
+            static_cast<float>(std::max(0.0, std::min(1.0, color.green))),
+            static_cast<float>(std::max(0.0, std::min(1.0, color.blue))),
+            static_cast<float>(alpha),
+        });
+        offsets.push_back(static_cast<SkScalar>(paint.offsets[index]));
+    }
+    const auto x = [&](double value, double extent, double fallback) {
+        return static_cast<SkScalar>(paint.units == 0 ? value * extent : value);
+    };
+    SkMatrix localMatrix;
+    const SkMatrix* localMatrixPtr = nullptr;
+    if (paint.hasTransform) {
+        localMatrix.setAll(
+            static_cast<SkScalar>(paint.transform[0]), static_cast<SkScalar>(paint.transform[2]), static_cast<SkScalar>(paint.transform[4]),
+            static_cast<SkScalar>(paint.transform[1]), static_cast<SkScalar>(paint.transform[3]), static_cast<SkScalar>(paint.transform[5]),
+            0, 0, 1);
+        localMatrixPtr = &localMatrix;
+    }
+    const SkGradient gradient(
+        SkGradient::Colors(
+            SkSpan<const SkColor4f>(colors.data(), colors.size()),
+            SkSpan<const float>(offsets.data(), offsets.size()),
+            paint_tile_mode(paint.spread)),
+        SkGradient::Interpolation());
+    if (paint.type == 1) {
+        const double angle = paint_value(paint, 4, 0) * 3.14159265358979323846 / 180.0;
+        const double defaultX1 = 0.5 - std::cos(angle) * 0.5;
+        const double defaultY1 = 0.5 - std::sin(angle) * 0.5;
+        const double defaultX2 = 0.5 + std::cos(angle) * 0.5;
+        const double defaultY2 = 0.5 + std::sin(angle) * 0.5;
+        const SkPoint points[2] = {
+            {x(paint_value(paint, 0, defaultX1), width, defaultX1), x(paint_value(paint, 1, defaultY1), height, defaultY1)},
+            {x(paint_value(paint, 2, defaultX2), width, defaultX2), x(paint_value(paint, 3, defaultY2), height, defaultY2)},
+        };
+        return SkShaders::LinearGradient(points, gradient, localMatrixPtr);
+    }
+    const SkScalar cx = x(paint_value(paint, 6, 0.5), width, 0.5);
+    const SkScalar cy = x(paint_value(paint, 7, 0.5), height, 0.5);
+    if (paint.type == 2) {
+        const double defaultRadius = paint_value(paint, 8, 0.5);
+        const SkScalar radius = static_cast<SkScalar>(paint.units == 0 ? defaultRadius * std::min(width, height) : defaultRadius);
+        return SkShaders::RadialGradient(SkPoint::Make(cx, cy), radius, gradient, localMatrixPtr);
+    }
+    const float startAngle = static_cast<float>(paint_value(paint, 4, 0));
+    return SkShaders::SweepGradient(SkPoint::Make(cx, cy), startAngle, startAngle + 360.0f, gradient, localMatrixPtr);
+}
+
+void apply_text_paint(SkPaint& paint, const Color& fallback, const PaintSpec& paintSpec, double alpha, double width, double height) {
+    paint.setColor4f(color_with_alpha(fallback, alpha));
+    if (auto shader = make_text_gradient_shader(paintSpec, width, height)) paint.setShader(std::move(shader));
+}
+
 bool draw_path(SkCanvas* canvas, SkPath& path, const Color& fill, bool hasFill,
                double fillOpacity, const Color& stroke, bool hasStroke,
                double strokeWidth, double strokeOpacity, double transformAlpha,
@@ -894,7 +1006,7 @@ int main(int argc, char** argv) {
         input = &inputFile;
     }
     Reader reader(*input);
-    const char expectedMagic[8] = {'N', 'X', 'S', 'K', 'I', 'A', '0', '1'};
+    const char expectedMagic[8] = {'N', 'X', 'S', 'K', 'I', 'A', '0', '2'};
     char magic[8]{};
     if (!reader.bytes(magic, sizeof(magic)) || std::memcmp(magic, expectedMagic, sizeof(magic)) != 0) {
         print_error("protocol", "invalid_magic");
@@ -1121,7 +1233,8 @@ int main(int argc, char** argv) {
             } else if (opcode == 7) {  // drawText using Runtime-shaped SVG glyph outlines
                 uint32_t glyphCount = 0;
                 Color commandFill;
-                if (!reader.value(glyphCount) || glyphCount > 100000 || !read_color(reader, commandFill)) {
+                PaintSpec commandFillPaint;
+                if (!reader.value(glyphCount) || glyphCount > 100000 || !read_color(reader, commandFill) || !read_paint(reader, commandFillPaint)) {
                     print_error("protocol", "truncated_text_header");
                     return 42;
                 }
@@ -1133,6 +1246,8 @@ int main(int argc, char** argv) {
                         for (int valueIndex = 0; valueIndex < 7; ++valueIndex) { double value = 0; if (!reader.value(value)) return 42; }
                         if (!reader.value(ignored)) return 42;
                         if (ignored && !read_color(reader, commandFill)) return 42;
+                        PaintSpec ignoredPaint;
+                        if (!read_paint(reader, ignoredPaint)) return 42;
                         if (!reader.value(ignored)) return 42;
                         if (ignored && !read_color(reader, commandFill)) return 42;
                         double value = 0; if (!reader.value(value) || !reader.value(value)) return 42;
@@ -1148,13 +1263,14 @@ int main(int argc, char** argv) {
                     if (!read_string(reader, pathData) || !reader.value(glyph.x) || !reader.value(glyph.y) ||
                         !reader.value(glyph.pathScale) || !reader.value(glyph.outlineX) || !reader.value(glyph.outlineY) ||
                         !reader.value(glyph.rotation) || !reader.value(glyph.scaleX) || !reader.value(hasFill) ||
-                        (hasFill && !read_color(reader, glyph.fill)) || !reader.value(hasStroke) ||
+                        (hasFill && !read_color(reader, glyph.fill)) || !read_paint(reader, glyph.fillPaint) || !reader.value(hasStroke) ||
                         (hasStroke && !read_color(reader, glyph.stroke)) || !reader.value(glyph.strokeWidth) ||
                         !reader.value(glyph.strokeOpacity)) {
                         print_error("protocol", "truncated_text_glyph");
                         return 43;
                     }
                     glyph.hasFill = hasFill != 0;
+                    glyph.hasFillPaint = glyph.fillPaint.type != 0;
                     glyph.hasStroke = hasStroke != 0;
                     if (!SkParsePath::FromSVGString(pathData.c_str(), &glyph.path)) {
                         print_error("replay", "invalid_glyph_path");
@@ -1168,10 +1284,11 @@ int main(int argc, char** argv) {
                 canvas->concat(to_canvas_matrix(projection, transform.matrix, static_cast<int>(width), static_cast<int>(height)));
                 for (const TextGlyph& glyph : glyphs) {
                     const Color& fillColor = glyph.hasFill ? glyph.fill : commandFill;
+                    const PaintSpec& fillPaint = glyph.hasFillPaint ? glyph.fillPaint : commandFillPaint;
                     SkPaint paint;
                     paint.setAntiAlias(true);
                     paint.setStyle(SkPaint::kFill_Style);
-                    paint.setColor4f(color_with_alpha(fillColor, transform.alpha));
+                    apply_text_paint(paint, fillColor, fillPaint, transform.alpha, static_cast<double>(width), static_cast<double>(height));
                     canvas->save();
                     canvas->concat(text_glyph_matrix(glyph.x, glyph.y, glyph.pathScale, glyph.outlineX, glyph.outlineY, glyph.rotation, glyph.scaleX));
                     canvas->drawPath(glyph.path, paint);

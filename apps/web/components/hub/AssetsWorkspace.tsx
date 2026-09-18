@@ -470,7 +470,7 @@ export function AssetsWorkspace() {
 
       <div className="mt-6 flex gap-1 border-b border-[var(--hub-border)]">
         {(["assets", "fonts"] as const).map((tab) => (
-          <button key={tab} type="button" onClick={() => { setActiveTab(tab); setSearch(""); }} className={`border-b-2 px-4 py-2 text-sm font-medium ${activeTab === tab ? "border-[var(--hub-accent)] text-[var(--fg-primary)]" : "border-transparent text-[var(--fg-muted)]"}`}>
+          <button key={tab} type="button" onClick={() => { setActiveTab(tab); setSearch(""); }} className={`border-b-2 px-4 py-2 text-base font-medium ${activeTab === tab ? "border-[var(--hub-accent)] text-[var(--fg-primary)]" : "border-transparent text-[var(--fg-muted)]"}`}>
             {tab === "assets" ? "Assets" : "Fonts"}
           </button>
         ))}

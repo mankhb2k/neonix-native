@@ -1420,12 +1420,15 @@ export function replaySkiaCommands(
       let colorFallbacks = 0;
       const fillPaints = new Map<string, ReturnType<typeof createSkiaPaint>>();
       const batchedFillGlyphs = new Set<number>();
+      const paintSignature = (paint: unknown): string => paint ? JSON.stringify(paint) : "";
       const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
       if (paintOrder[0] === "fill") {
         const glyphs = command.glyphs ?? [];
         for (let start = 0; start < glyphs.length;) {
           const first = glyphs[start]!;
           const color = first.fill ?? command.fill ?? "#000000";
+          const firstPaint = first.fillPaint ?? command.fillPaint;
+          const firstPaintSignature = paintSignature(firstPaint);
           const fontAssetId = first.fontAssetId ?? command.fontAssetId;
           const fontSize = first.fontSize ?? command.fontSize;
           let end = start + 1;
@@ -1433,15 +1436,16 @@ export function replaySkiaCommands(
             const candidate = glyphs[end]!;
             if (!canDrawNativeTextGlyph(candidate)
               || (candidate.fill ?? command.fill ?? "#000000") !== color
+              || paintSignature(candidate.fillPaint ?? command.fillPaint) !== firstPaintSignature
               || (candidate.fontAssetId ?? command.fontAssetId) !== fontAssetId
               || (candidate.fontSize ?? command.fontSize) !== fontSize) break;
             end += 1;
           }
           if (end - start >= 2 && canDrawNativeTextGlyph(first)) {
-            const paintKey = `${color}\0${commandAlpha}`;
+            const paintKey = `${color}\0${firstPaintSignature}\0${commandAlpha}`;
             let sharedPaint = fillPaints.get(paintKey);
             if (!sharedPaint) {
-              sharedPaint = createSkiaPaint(kit, color, commandAlpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+              sharedPaint = createSkiaPaint(kit, color, commandAlpha, kit.PaintStyle.Fill, firstPaint, command.width, command.height);
               fillPaints.set(paintKey, sharedPaint);
             }
             if (drawNativeTextGlyphRun(kit, canvas, command, glyphs.slice(start, end), sharedPaint, fontFor)) {
@@ -1458,10 +1462,11 @@ export function replaySkiaCommands(
           if (paintType === "fill") {
             if (batchedFillGlyphs.has(glyphIndex)) continue;
             const color = glyph.fill ?? command.fill ?? "#000000";
-            const paintKey = `${color}\0${commandAlpha}`;
+            const glyphPaint = glyph.fillPaint ?? command.fillPaint;
+            const paintKey = `${color}\0${paintSignature(glyphPaint)}\0${commandAlpha}`;
             let sharedPaint = fillPaints.get(paintKey);
             if (!sharedPaint) {
-              sharedPaint = createSkiaPaint(kit, color, commandAlpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+              sharedPaint = createSkiaPaint(kit, color, commandAlpha, kit.PaintStyle.Fill, glyphPaint, command.width, command.height);
               fillPaints.set(paintKey, sharedPaint);
             }
             const result = drawTextGlyph(kit, canvas, command, glyph, glyphIndex, commandAlpha, assets, fontFor, sharedPaint);

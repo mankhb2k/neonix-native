@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { SwaggerApiReference } from "@/components/docs/SwaggerApiReference";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "API preview",
@@ -8,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function ApiPreviewPage() {
+  if (process.env.NODE_ENV === "production") notFound();
   return <SwaggerApiReference />;
 }

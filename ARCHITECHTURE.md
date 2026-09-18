@@ -127,19 +127,20 @@ HTML/CSS is an optional high-level authoring format for AI agents, MCP and
 developers. It is not a second canonical project format.
 
 ```text
-HTML document
-    |
-    v
-@motionvideo/html-compiler
-    |
-    v
-MotionProtocolV2 JSON  <-- canonical source of truth
-    |
-    v
-motion-compiler
-    |
-    v
-RuntimeProjectV3 -> preview / export
+HTML / CSS / agent intent
+          |
+          v
+Neonix JSON V2  <-- canonical source of truth
+          |
+          v
+compiler pipe
+          |
+          v
+RuntimeProjectV3 / RuntimeFrameV3
+          |
+          +--> browser SVG
+          +--> Native preview
+          +--> export renderer
 ```
 
 The direction is strictly one-way:

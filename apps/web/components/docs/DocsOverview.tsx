@@ -31,17 +31,16 @@ const pillars = [
     icon: ShieldCheck,
     eyebrow: "Validation",
     title: "Safe to hand off",
-    body: "Zod and JSON Schema reject unknown fields and invalid references before runtime.",
+    body: "Schema validation rejects unknown fields and invalid references before a document is accepted.",
     href: "/docs/validation",
   },
 ];
 
 const pipeline = [
-  ["01", "Human, agent or template", "idea and intent"],
-  ["02", "HTML", "the authoring source"],
-  ["03", "Compiler", "lowering and diagnostics"],
-  ["04", "Neonix JSON V2", "canonical editable JSON"],
-  ["05", "Output", "preview or export"],
+  ["01", "HTML / CSS / agent intent", "the authoring input"],
+  ["02", "Compiler", "validation and normalization"],
+  ["03", "Neonix JSON V2", "canonical editable JSON"],
+  ["04", "Output", "preview or video export"],
 ];
 
 export function DocsOverview() {
@@ -76,11 +75,11 @@ export function DocsOverview() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="font-mono text-sm font-semibold tracking-[0.16em] text-[#0d9488] uppercase">The mental model</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-[var(--fg-primary)] md:text-3xl">Five steps from idea to output.</h2>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-[var(--fg-primary)] md:text-3xl">Four steps from intent to output.</h2>
           </div>
           <Zap className="hidden h-6 w-6 text-[#0d9488] md:block" />
         </div>
-        <div className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--border-subtle)] md:grid-cols-5">
+        <div className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--border-subtle)] md:grid-cols-4">
           {pipeline.map(([number, title, body], index) => (
             <div key={title} className="bg-[var(--bg-elevated)] p-4 md:min-h-32">
               <div className="flex items-center justify-between">

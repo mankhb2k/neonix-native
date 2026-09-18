@@ -1366,6 +1366,7 @@ function compileVisualRuntimeInternal(
         ...(span.letterSpacing === undefined || span.letterSpacing === "normal" ? {} : { letterSpacing: resolveSvgLength(span.letterSpacing, layer.frame.width, fontSize) ?? 0 }),
         ...(span.wordSpacing === undefined || span.wordSpacing === "normal" ? {} : { wordSpacing: resolveSvgLength(span.wordSpacing, layer.frame.width, fontSize) ?? 0 }),
         ...(paintColor(span.fill, paintServers, context.currentColor) ? { fill: paintColor(span.fill, paintServers, context.currentColor) } : {}),
+        ...(span.fill === undefined ? {} : { fillPaint: runtimePaint(span.fill, layer.frame.width, layer.frame.height, paintServers, context.currentColor) }),
       })));
       const resolvedFontAssetIds = [...new Set(runtimeSpanStyles.flatMap((span) => span.fontAssetIds))];
       const resolvedFontAssets = resolvedFontAssetIds
@@ -1442,6 +1443,7 @@ function compileVisualRuntimeInternal(
         "text.layout.glyphs",
         ...(layer.payload.layout?.textOverflow === "ellipsis" || layer.clipPath ? ["text.layout.overflow"] : []),
         "text.fill",
+        ...((firstSpan.fill && typeof firstSpan.fill !== "string" && firstSpan.fill.type !== "solid") ? [firstSpan.fill.type === "pattern" ? "text.pattern" : "text.gradient"] : []),
         ...(textLength !== undefined ? ["text.length"] : []),
         ...((firstChunk.dx || firstChunk.dy || firstChunk.rotate) ? ["text.positioning"] : []),
         ...(textPathContours ? ["text.textPath"] : []),
@@ -1517,9 +1519,16 @@ function compileVisualRuntimeInternal(
           writingMode: layer.payload.source.writingMode,
           language: layer.payload.source?.language ?? "und",
           fill: paintColor(firstSpan.fill, paintServers, context.currentColor) ?? "#000000",
+          ...(firstSpan.fill === undefined ? {} : { fillPaint: runtimePaint(firstSpan.fill, layer.frame.width, layer.frame.height, paintServers, context.currentColor) }),
           spanFills: layer.payload.chunks.flatMap((chunk) => chunk.spans.flatMap((span) => {
             const fill = paintColor(span.fill, paintServers, context.currentColor);
             return fill ? [{ start: span.sourceRange.start, end: span.sourceRange.end, fill }] : [];
+          })),
+          spanPaints: layer.payload.chunks.flatMap((chunk) => chunk.spans.flatMap((span) => {
+            const fill = paintColor(span.fill, paintServers, context.currentColor);
+            if (!fill) return [];
+            const fillPaint = span.fill === undefined ? undefined : runtimePaint(span.fill, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
+            return [{ start: span.sourceRange.start, end: span.sourceRange.end, fill, ...(fillPaint ? { fillPaint } : {}) }];
           })),
           ...(runtimeSpanStyles.length > 1 || runtimeSpanStyles.some((span) => span.fontWeight !== undefined || span.fontStyle !== undefined || span.fontSize !== fontSize)
             ? { spanStyles: runtimeSpanStyles }

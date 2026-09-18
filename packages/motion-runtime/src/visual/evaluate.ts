@@ -535,6 +535,7 @@ export function evaluatePreparedVisualRuntimeProject(
         lineHeight: content.lineHeight,
         letterSpacing: content.letterSpacing,
         fill: content.fill,
+        ...(content.fillPaint ? { fillPaint: content.fillPaint } : {}),
         width: content.width,
         height: content.height,
         glyphs: content.layout!.glyphs,

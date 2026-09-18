@@ -99,6 +99,7 @@ export const SKIA_VIDEO_CASES: readonly SkiaPreviewFixture[] = [
  * shaping, color emoji fallback, emoji-only, ZWJ and variation-selector
  * clusters. */
 export const SKIA_TEXT_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("text.linear-gradient", "Text fill gradient carried through Runtime and PaintCommandBuffer.", ["drawText", "fillPaint", "linear-gradient"]),
   fixture("text.single-line.alignment", "Runtime-shaped Noto Sans glyph outlines.", ["drawText", "glyphs", "font"]),
   fixture("text.left.alignment", "Left-aligned glyph placement.", ["drawText", "alignment"]),
   fixture("text.right.alignment", "Right-aligned glyph placement.", ["drawText", "alignment"]),

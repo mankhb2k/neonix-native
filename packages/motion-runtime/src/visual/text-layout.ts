@@ -1,5 +1,5 @@
 import type * as HarfBuzz from "harfbuzzjs";
-import type { PaintTextDecoration, PaintTextGlyph } from "../paint/paint-types";
+import type { PaintFill, PaintTextDecoration, PaintTextGlyph } from "../paint/paint-types";
 import { flattenPathContourAny, glyphPathToMesh, glyphPathToStrokeMesh, measureContour, sampleContourAtDistance, transformPathMesh } from "../geometry/path";
 import type { GlyphRun, GlyphRunGlyph, VisualRuntimeDiagnostic, VisualRuntimeProject, VisualRuntimeTextLayout, VisualRuntimeText, VisualRuntimeTextSpan } from "./types";
 
@@ -532,7 +532,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
 function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], layout: UnmaterializedTextLayout): VisualRuntimeTextLayout {
   const fontsById = new Map(fonts.map((font) => [font.source.assetId, font]));
   const useMask = shouldUseMask(text);
-  const fills = text.spanFills ?? [];
+  const fills: Array<{ start: number; end: number; fill: string; fillPaint?: PaintFill }> = text.spanPaints ?? text.spanFills ?? [];
   const variation = variationKey(text);
   const glyphs: PaintTextGlyph[] = [];
   for (const run of layout.runs) {
@@ -540,12 +540,13 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
     if (!resolved) continue;
     for (const glyph of run.glyphs) {
       const path = resolved.font.glyphToPath(glyph.glyphId);
-      const fill = fills.find((span) => glyph.cluster < span.end && glyph.clusterEnd > span.start)?.fill;
+      const spanPaint = fills.find((span) => glyph.cluster < span.end && glyph.clusterEnd > span.start);
+      const fill = spanPaint?.fill;
       const glyphScale = glyph.fontSize / resolved.face.upem;
       const outline = { x: glyph.xBearing, y: glyph.yBearing, width: glyph.width / glyphScale, height: -glyph.height / glyphScale };
       const renderMode = useMask ? "grayscale-mask" as const : "vector" as const;
       const paintGlyph: PaintTextGlyph = {
-        glyphId: glyph.glyphId, cluster: glyph.cluster, clusterEnd: glyph.clusterEnd, ...(fill ? { fill } : {}),
+        glyphId: glyph.glyphId, cluster: glyph.cluster, clusterEnd: glyph.clusterEnd, ...(fill ? { fill } : {}), ...(spanPaint?.fillPaint ? { fillPaint: spanPaint.fillPaint } : {}),
         x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height,
         advanceStart: glyph.advanceStart,
         advanceX: glyph.advanceX,

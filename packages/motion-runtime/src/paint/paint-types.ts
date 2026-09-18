@@ -191,6 +191,8 @@ export type PaintTextGlyph = {
   clusterEnd: number;
   /** Optional resolved span paint. Atlas coverage remains color-independent. */
   fill?: string;
+  /** Optional resolved span paint. When present, it overrides the text command paint. */
+  fillPaint?: PaintFill;
   x: number;
   y: number;
   width: number;

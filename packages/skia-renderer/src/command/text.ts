@@ -213,7 +213,7 @@ export function drawTextGlyph(
     // CanvasKit/Skia can consume COLRv1 directly from the font. Try that
     // first so the glyph remains vector-backed at the final device scale.
     if (glyph.colorGlyph.kind === "paint-graph") {
-      const nativePaint = createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+      const nativePaint = createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, glyph.fillPaint ?? command.fillPaint, command.width, command.height);
       const native = drawNativeTextGlyph(kit, canvas, command, glyph, nativePaint, fontFor, true);
       nativePaint.delete();
       if (native) return { drawn: true, fallback: false, mode: "native-color" };
@@ -221,7 +221,7 @@ export function drawTextGlyph(
     const colored = drawColorGlyph(kit, canvas, glyph, glyphIndex, alpha, command.width, command.height, command.key, assets);
     if (colored.drawn) return { ...colored, mode: "color" };
   }
-  const paint = sharedPaint ?? createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+  const paint = sharedPaint ?? createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, glyph.fillPaint ?? command.fillPaint, command.width, command.height);
   const ownsPaint = !sharedPaint;
   const native = drawNativeTextGlyph(kit, canvas, command, glyph, paint, fontFor);
   if (native) {

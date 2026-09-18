@@ -2305,6 +2305,7 @@ function textLayer(options: {
   transform: TextLayer["transform"];
   frame?: { width: number; height: number };
   fontSize?: number;
+  fill?: TextSpan["fill"];
   lineHeight?: number;
   fontFamilies?: string[];
   language?: string;
@@ -2356,7 +2357,7 @@ function textLayer(options: {
             .filter((asset) => (options.fontFamilies ?? [PREVIEW_NOTO_SANS_REGULAR_FONT.family]).includes(asset.family))
             .map((asset) => asset.id),
           font: { families: options.fontFamilies ?? [PREVIEW_NOTO_SANS_REGULAR_FONT.family], size: fontSize },
-          fill: "#f8fafc",
+          fill: options.fill ?? "#f8fafc",
           ...(options.wordSpacing !== undefined ? { wordSpacing: options.wordSpacing } : {}),
           ...(options.textLength !== undefined ? { textLength: options.textLength, lengthAdjust: options.lengthAdjust ?? "spacing" } : {}),
           ...(options.stroke ? { stroke: options.stroke } : {}),
@@ -2369,6 +2370,40 @@ function textLayer(options: {
     },
   };
 }
+
+export const TEXT_GRADIENT_PROJECT = project(
+  "preview-text-gradient-v2",
+  [
+    rectangle({
+      id: "text-gradient-frame",
+      order: 0,
+      fill: "#101827",
+      frame: { width: 1400, height: 300 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 390, z: 0 } },
+    }),
+    textLayer({
+      id: "text-gradient",
+      order: 1,
+      text: "Native gradient text",
+      align: "center",
+      verticalAlign: "middle",
+      frame: { width: 1400, height: 300 },
+      fontSize: 104,
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 390, z: 0 } },
+      fill: {
+        type: "linear-gradient",
+        angle: 0,
+        stops: [
+          { offset: 0, color: "#22d3ee" },
+          { offset: 0.5, color: "#60a5fa" },
+          { offset: 1, color: "#c084fc" },
+        ],
+      },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
+);
 
 const TEXT_ALIGNMENT_PROJECT = project(
   "preview-text-alignment-v2",
@@ -3326,6 +3361,13 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     hint: "Two independent instances address different source windows from one asset, proving asset identity is separate from playback ownership.",
     project: VIDEO_MULTI_INSTANCE_PROJECT,
     previewTime: 1,
+  },
+  {
+    id: "text.linear-gradient",
+    label: "Text / linear gradient",
+    group: "Task 10 / Text",
+    hint: "One canonical PaintFill is carried from the text span through RuntimeFrameV3 and PaintCommandBuffer into the CanvasKit and native paint backends.",
+    project: TEXT_GRADIENT_PROJECT,
   },
   {
     id: "text.single-line.alignment",
