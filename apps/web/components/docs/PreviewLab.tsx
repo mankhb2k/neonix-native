@@ -25,8 +25,6 @@ const backendOptions: Array<{
 }> = [
   { id: "auto", label: "Auto" },
   { id: "skia", label: "Native renderer" },
-  { id: "webgpu", label: "WebGPU" },
-  { id: "webgl2", label: "WebGL2" },
 ];
 
 /** Audio fixture values are Protocol V2 milliseconds; this panel displays seconds. */
@@ -39,11 +37,7 @@ export function PreviewLab() {
   const backend: PreviewLabBackendPreference =
     searchParams.get("backend") === "skia" || searchParams.get("backend") === "native"
       ? "skia"
-      : searchParams.get("backend") === "webgpu"
-      ? "webgpu"
-      : searchParams.get("backend") === "webgl2"
-        ? "webgl2"
-        : "auto";
+      : "auto";
   const requestedTime = Number(searchParams.get("time"));
   const time =
     Number.isFinite(requestedTime) && requestedTime >= 0

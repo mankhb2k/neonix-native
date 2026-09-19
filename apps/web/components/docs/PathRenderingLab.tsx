@@ -76,11 +76,11 @@ export function PathRenderingLab() {
     let cancelled = false;
     let timer = 0;
     const measureWhenReady = () => {
-      const canvases = ["path-debug-webgl2", "path-debug-webgpu"]
+      const canvases = ["path-debug-skia"]
         .map((id) => document.querySelector<HTMLCanvasElement>(`[data-testid="${id}"]`))
         .filter((canvas): canvas is HTMLCanvasElement => canvas !== null);
       if (cancelled) return;
-      if (canvases.length !== 2 || canvases.some((canvas) => !canvas.dataset.backend)) {
+      if (canvases.length !== 1 || canvases.some((canvas) => !canvas.dataset.backend)) {
         timer = window.setTimeout(measureWhenReady, 100);
         return;
       }
@@ -94,10 +94,9 @@ export function PathRenderingLab() {
   return <main className="min-h-screen bg-[#080c11] p-6 text-slate-200" data-testid="path-rendering-lab">
     <div className="mb-5 flex flex-wrap items-center gap-3"><h1 className="text-xl font-semibold">Path rendering parity lab</h1><Link className="text-cyan-300 underline" href="/docs/preview">Protocol preview</Link></div>
     <label className="mb-5 block text-sm">Case <select className="ml-2 rounded border border-slate-700 bg-slate-950 p-2" value={fixtureId} onChange={(event) => setFixtureId(event.target.value)}>{PATH_RENDERING_FIXTURES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-    <div className="grid gap-4 xl:grid-cols-3">
+    <div className="grid gap-4 xl:grid-cols-2">
       <Panel title="SVG reference"><SvgReference fixture={fixture} /></Panel>
-      <Panel title="WebGL2"><PreviewStage project={fixture.project} backend="webgl2" preserveDrawingBuffer testId="path-debug-webgl2" /></Panel>
-      <Panel title="WebGPU"><PreviewStage project={fixture.project} backend="webgpu" preserveDrawingBuffer testId="path-debug-webgpu" /></Panel>
+      <Panel title="Skia"><PreviewStage project={fixture.project} backend="skia" preserveDrawingBuffer testId="path-debug-skia" /></Panel>
     </div>
     <div className="mt-5 grid gap-4 xl:grid-cols-2"><pre className="overflow-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs">{JSON.stringify(fixture.project, null, 2)}</pre><pre className="overflow-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs" data-testid="path-rendering-measurements" data-fixture-id={fixture.id}>{JSON.stringify(measurements, null, 2)}</pre></div>
   </main>;

@@ -213,7 +213,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "composition pixels"
     ],
     "hint": "Explicit width and height resolve directly to a composition-space frame that both browser reference and Neonix JSON V2 share.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-explicit-size.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/explicit-size.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -234,7 +234,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "max-height"
     ],
     "hint": "Four child shapes make each size constraint visible: minimum width, maximum width, minimum height and maximum height are resolved before lowering.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-min-max.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/min-max.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -255,7 +255,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "solid paint"
     ],
     "hint": "A leaf div is the smallest visual tag: the compiler lowers it to one Neonix JSON V2 rectangle shape layer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-div-shape.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/div-shape.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -276,7 +276,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "two shapes"
     ],
     "hint": "A div with children becomes a group; each child div becomes a rectangle layer parented to that group.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-div-group.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/div-group.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -297,7 +297,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "cubic contour"
     ],
     "hint": "An svg container becomes a group and its path child lowers to a Neonix JSON V2 path with fill and stroke semantics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-svg-path.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/svg-path.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -341,7 +341,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "padding + border"
     ],
     "hint": "Two equal-width objects show how aspect-ratio derives height and how box-sizing changes whether padding and border expand the final frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-aspect-box-sizing.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/aspect-box-sizing.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -363,7 +363,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "margin-left"
     ],
     "hint": "Static block children make the four margin shorthand forms and the individual longhands visible in deterministic composition-space flow.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-margin.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/margin.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -385,7 +385,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "padding-left"
     ],
     "hint": "Four fixed objects show how padding shorthand and longhands expand the content box into the final Neonix JSON V2 frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-padding.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/padding.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -407,7 +407,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "inset offset"
     ],
     "hint": "Static stays in normal flow and ignores inset values; relative keeps its flow slot while offsetting its paint; absolute leaves flow and uses the positioned container.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-position.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/position.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -430,7 +430,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "auto size"
     ],
     "hint": "Inset expands to top/right/bottom/left; when an absolute box has auto dimensions, opposite edges resolve the remaining width and height inside its containing block.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-inset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/inset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -452,7 +452,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "visibility: hidden"
     ],
     "hint": "Block creates a normal visual box, contents promotes its children into the parent flow, none removes the subtree, and hidden keeps geometry while disabling the emitted layer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-display-visibility.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/display-visibility.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -474,7 +474,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "clipPath"
     ],
     "hint": "Opacity lowers to layer alpha, numeric z-index controls sibling paint order, and overflow hidden creates a composition-space rectangular clip for descendants.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry-opacity-z-index-overflow.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/opacity-z-index-overflow.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -497,7 +497,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "skew"
     ],
     "hint": "The transform list is preserved in source order and lowered to Neonix JSON V2 operations; transform-origin becomes the local anchor for the complete list.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/transform-functions.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/transform/functions.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -518,7 +518,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "edge rasterization"
     ],
     "hint": "A single rectangle isolates transform geometry from multi-layer overlap so browser and native edge rasterization can be compared directly.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/transform-rotate-single.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/transform/rotate-single.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -539,7 +539,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "paint order"
     ],
     "hint": "Solid background declarations and comma-separated background layers lower to ordered rectangle paints; the first CSS layer remains visually on top of the last one.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-background-basics.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/background-basics.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -562,7 +562,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "border-radius"
     ],
     "hint": "The color property resolves currentColor for paint, border shorthand and longhand declarations lower to a solid stroke, none removes the stroke, and one radius value becomes a uniform rounded rectangle.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-color-border.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/color-border.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -584,7 +584,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "path"
     ],
     "hint": "SVG fill is lowered to path style, fill-opacity becomes alpha, and evenodd preserves the hole between nested contours.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-svg-fill.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/svg-fill.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -606,7 +606,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "stroke-linecap"
     ],
     "hint": "An open SVG path isolates stroke paint, width, opacity, join and cap semantics without a fill pass.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-svg-stroke.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/svg-stroke.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -628,7 +628,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "stroke"
     ],
     "hint": "A closed path keeps dashed stroke geometry, dash offset and explicit stroke-before-fill paint order in the lowered path style.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-svg-dash-order.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/svg-dash-order.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -649,7 +649,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "background"
     ],
     "hint": "A multi-stop linear gradient is lowered to semantic stops and a runtime angle in composition pixels.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-linear-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/linear-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -670,7 +670,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "background"
     ],
     "hint": "A centered radial gradient preserves its normalized center and color-stop sequence for Neonix JSON V2.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-radial-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/radial-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -691,7 +691,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "multi-stop"
     ],
     "hint": "A conic gradient uses the Neonix JSON V2 conic primitive with an explicit start angle and normalized center.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-conic-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/conic-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -712,7 +712,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "asset"
     ],
     "hint": "Contain preserves the image aspect ratio inside a fixed composition viewport and keeps the source centered.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/media-object-fit-contain.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/media/object-fit-contain.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -733,7 +733,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "clipping"
     ],
     "hint": "Cover fills the viewport, clips the overflow and uses object-position to choose the visible crop region.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/media-object-fit-cover-position.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/media/object-fit-cover-position.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -754,7 +754,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "asset"
     ],
     "hint": "Fill maps to a non-uniform image viewport; pixelated is lowered to nearest-neighbor sampling where the renderer can guarantee it.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/media-object-fit-fill-rendering.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/media/object-fit-fill-rendering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -775,7 +775,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "overflow: hidden"
     ],
     "hint": "None keeps the intrinsic image scale and relies on the image viewport plus its overflow-hidden parent for deterministic clipping.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/media-object-fit-none-clipping.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/media/object-fit-none-clipping.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -801,7 +801,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "justify-all"
     ],
     "hint": "Eight CSS text-align inputs are normalized into the Neonix JSON V2 text layout contract; match-parent resolves to left for the compiler's fixed LTR text and justify-all preserves its base justify alignment.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-text-align-values.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/text-align-values.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -827,7 +827,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "break-spaces"
     ],
     "hint": "CSS letter-spacing and word-spacing are lowered into text spans; white-space preserves or collapses source whitespace before runtime wrapping and shaping.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-text-spacing-whitespace.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/text-spacing-whitespace.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -855,7 +855,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "line-through"
     ],
     "hint": "CSS direction and writing-mode are emitted on the text source; text-decoration is lowered into Neonix JSON V2 decoration paints and thickness.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-direction-writing-decoration.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/direction-writing-decoration.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -878,7 +878,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "Roboto"
     ],
     "hint": "Three exact font assets are resolved from the ordered CSS family and weight, then emitted as semantic Neonix JSON V2 text layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-font-family-three-fonts.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/font-family-three-fonts.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -899,7 +899,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "font-family"
     ],
     "hint": "Emoji glyphs use the explicit Noto Color Emoji fallback while the mixed line keeps Inter as its primary text face.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-emoji-fallback.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/emoji-fallback.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -919,7 +919,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "600 → 700 fallback"
     ],
     "hint": "When a requested CSS weight is unavailable, the compiler selects the deterministic nearest catalog face and records its asset ID.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-weight-fallback.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/weight-fallback.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -939,7 +939,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "catalog lookup"
     ],
     "hint": "A missing user-like family is skipped and the next concrete system family is selected without relying on browser-installed fonts.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-family-fallback.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/family-fallback.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -962,7 +962,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "weight 700"
     ],
     "hint": "Style and stretch are semantic span values; the two condensed lines prove that weight 400 and 700 resolve to different catalog faces.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-style-stretch.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/style-stretch.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -983,7 +983,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "64px"
     ],
     "hint": "A short paragraph with an explicit line-height is lowered to a numeric line box in composition pixels.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-line-height-short.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/line-height-short.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1004,7 +1004,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "1.2 normalization"
     ],
     "hint": "The CSS normal keyword is normalized deterministically to 1.2 times the computed font size.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-line-height-normal.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/line-height-normal.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1025,7 +1025,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "1.75"
     ],
     "hint": "A longer paragraph uses a unitless line-height, which the compiler resolves against the computed font size.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-line-height-long.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/line-height-long.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1047,7 +1047,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "deterministic clipping"
     ],
     "hint": "Ellipsis is emitted only for a clipped single-line text box; the runtime trims grapheme clusters before shaping the final ellipsis glyph.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-text-overflow-ellipsis.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/text-overflow-ellipsis.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1068,7 +1068,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "geometricPrecision"
     ],
     "hint": "The authored rendering intent is preserved in Neonix JSON V2; optimizeSpeed may use a mask while geometricPrecision selects vector glyphs.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography-text-rendering-capability.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/text-rendering-capability.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1097,7 +1097,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "group"
     ],
     "hint": "The document shell is non-visual; section and article remain container aliases and lower through CSS into groups or shape layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-document-shell-container.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/document-shell-container.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1121,7 +1121,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "nested text"
     ],
     "hint": "Heading and paragraph tags lower to Protocol text layers; strong remains nested text content and br becomes a newline.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-text-lowering.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/text-lowering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1144,7 +1144,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "asset registry"
     ],
     "hint": "Image and video tags select media layer lowering and register deterministic Protocol assets instead of becoming generic containers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-media-lowering.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/media-lowering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1166,7 +1166,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "audio asset"
     ],
     "hint": "Audio is non-visual: the tag creates a root Protocol audio track and clip rather than a visual layer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-audio-lowering.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/audio-lowering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1190,7 +1190,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "path layers"
     ],
     "hint": "SVG containers remain groups while visual primitives are normalized to canonical path layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-svg-lowering.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/svg-lowering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1216,7 +1216,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "groups"
     ],
     "hint": "Video composition containers share the CSS-driven group/shape lowering contract; their semantic names do not create browser-only layer types.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-container-aliases.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/container-aliases.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1243,7 +1243,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "code"
     ],
     "hint": "All supported text tags lower to semantic Protocol text layers while tag defaults and whitespace-sensitive tags remain visible in computed style.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-text-tag-matrix.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/text-tag-matrix.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1267,7 +1267,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "path layers"
     ],
     "hint": "Nested SVG groups preserve the parent coordinate space while path, ellipse and polyline primitives lower to independent Protocol path layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags-svg-primitive-matrix.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/tags/svg-primitive-matrix.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1292,7 +1292,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "text layer"
     ],
     "hint": "The compiler must preserve a <br> as a semantic hard break while keeping normal whitespace collapsing available to the runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text-compiler-br-hard-break.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/compiler-br-hard-break.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1315,7 +1315,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "text layer"
     ],
     "hint": "Nested inline tags contribute text content to one semantic text layer while preserving source order, character ranges and per-span font semantics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text-compiler-nested-inline-content.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/compiler-nested-inline-content.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1337,7 +1337,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "wrap policy"
     ],
     "hint": "The compiler emits the source text and computed whitespace mode separately so normal and pre layout can be evaluated without conflating source newlines with hard breaks.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text-compiler-whitespace-contract.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/compiler-whitespace-contract.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1359,7 +1359,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "baseline"
     ],
     "hint": "Explicit line-height and hard breaks produce deterministic line boxes inside a fixed text frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text-layout-fixed-line-height.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/layout-fixed-line-height.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1381,7 +1381,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "line count"
     ],
     "hint": "A constrained width creates multiple runtime line boxes while the Protocol frame remains the authored fixed width.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text-layout-wrap-width.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/layout-wrap-width.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1403,7 +1403,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "wrapping"
     ],
     "hint": "When width is authored but height is auto, compiler layout estimates the wrapped text height and emits a usable frame for runtime shaping.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text-layout-auto-height.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/layout-auto-height.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1428,7 +1428,7 @@ export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
       "anchor-size()"
     ],
     "hint": "The label is positioned from the subject's right edge and inherits its width through compiler-side anchor resolution.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-anchor-positioning.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/anchor-positioning.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1451,7 +1451,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
       "fixed items"
     ],
     "hint": "A single-line row places fixed-size children in source order inside the composition frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-row-fixed.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-row-fixed.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1472,7 +1472,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
       "column-gap"
     ],
     "hint": "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside this primitive case.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-column-gap.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-column-gap.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1492,7 +1492,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
       "align-self"
     ],
     "hint": "Main-axis distribution and cross-axis centering resolve to explicit composition coordinates.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-justify-align.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-justify-align.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1513,7 +1513,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
       "flex-basis"
     ],
     "hint": "The flex shorthand expands to grow, shrink and basis before free space is distributed.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-grow-shrink.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-grow-shrink.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1533,7 +1533,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
       "paint order"
     ],
     "hint": "Order changes the flex placement sequence while the lowered layers retain deterministic paint ordering.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-order.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-order.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1556,7 +1556,7 @@ export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
       "column-gap"
     ],
     "hint": "Items form deterministic flex lines when the main-axis content box is full; row and column gaps stay in their CSS axes.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-wrap-lines.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-wrap-lines.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1576,7 +1576,7 @@ export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
       "align-items:center"
     ],
     "hint": "After line formation, align-content distributes the remaining cross-axis space between flex lines.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-align-content.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-align-content.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1596,7 +1596,7 @@ export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
       "align-self"
     ],
     "hint": "wrap-reverse reverses the cross-axis line order while IDs and source order remain stable.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-wrap-reverse.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-wrap-reverse.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1621,7 +1621,7 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
       "fr"
     ],
     "hint": "Explicit px and fr columns resolve to fixed composition tracks; unassigned children use deterministic row-major placement.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-grid-explicit-columns.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-explicit-columns.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1641,7 +1641,7 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
       "explicit cells"
     ],
     "hint": "Explicit grid line placement maps directly to deterministic track rectangles.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-grid-explicit-placement.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-explicit-placement.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1662,7 +1662,7 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
       "align-content"
     ],
     "hint": "Track gaps, track-area alignment and item alignment are resolved independently inside the composition content box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-grid-gap-alignment.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-gap-alignment.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1682,7 +1682,7 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
       "span"
     ],
     "hint": "The grid shorthand and span syntax expand to explicit start/end lines before the item is lowered.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-grid-spans.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-spans.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1706,7 +1706,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
       "flex distribution"
     ],
     "hint": "Flex order is applied before placement and min/max constraints are enforced after free-space distribution.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-flex-order-minmax.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-order-minmax.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1726,7 +1726,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
       "stable ids"
     ],
     "hint": "Grid auto-placement follows the order-modified sequence while the source IDs remain stable in Neonix JSON V2.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-grid-order.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-order.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1746,7 +1746,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
       "non-collapsing margins"
     ],
     "hint": "Relative offsets move the painted item after its flex slot is resolved; adjacent flex margins are summed, not collapsed.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-relative-margins.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/relative-margins.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1766,7 +1766,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
       "parent layer"
     ],
     "hint": "A display:contents wrapper contributes no layer; its visual child is placed and parented directly under the formatting context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-contents-parent.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/contents-parent.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1786,7 +1786,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
       "overflow:hidden"
     ],
     "hint": "A flex container establishes the absolute child's containing block and its overflow clip remains attached to the parent group.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-containing-block-clip.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/containing-block-clip.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1810,7 +1810,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "baseline"
     ],
     "hint": "The element frame remains layout geometry while glyphs are painted from the content line box and baseline.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-frame-baseline.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-frame-baseline.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1831,7 +1831,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "content origin"
     ],
     "hint": "A uniform border paints around the resolved border-box frame and is not added a second time by the runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-border-uniform.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-uniform.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1851,7 +1851,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "content origin"
     ],
     "hint": "Different border widths move the content origin by each corresponding edge while the final frame remains one border box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-border-asymmetric.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-asymmetric.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1872,7 +1872,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "baseline offset"
     ],
     "hint": "Padding separates the glyph line box from the border, and both contribute to the border-box frame without changing glyph metrics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-border-padding.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-padding.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1893,7 +1893,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "border expansion"
     ],
     "hint": "With content-box sizing, authored width excludes padding and border; the emitted frame expands to the complete border box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-content-box.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-content-box.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1914,7 +1914,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "border inclusion"
     ],
     "hint": "With border-box sizing, authored width is the final border-box width; padding and border reduce the available content width.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-border-box.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-box.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1935,7 +1935,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "border"
     ],
     "hint": "Normal line-height resolves from selected font metrics and remains distinct from the visible glyph bounds.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-line-height-normal.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-line-height-normal.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1956,7 +1956,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "border"
     ],
     "hint": "A fixed line-height changes the line box and baseline placement while glyph bounds remain independent paint geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-line-height-fixed.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-line-height-fixed.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1977,7 +1977,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "border-box"
     ],
     "hint": "Wrapping happens inside the content box; the border stays outside the line boxes and the final frame includes every wrapped line.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-wrapping-border.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-wrapping-border.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1998,7 +1998,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
       "rounded border-box"
     ],
     "hint": "The rounded border follows the same border-box frame as text layout; radius changes paint contours, not frame dimensions.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout-text-border-radius.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-radius.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2022,7 +2022,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "no-repeat"
     ],
     "hint": "A URL background is lowered to an image atomic with deterministic cover sizing, center positioning and a border-box clip.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-background-image-position-size.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/background-image-position-size.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2043,7 +2043,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "content-box"
     ],
     "hint": "The image is positioned from the padding box while its paint is clipped to the content box inside an explicit border and padding.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-background-origin-clip.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/background-origin-clip.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2065,7 +2065,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "clip"
     ],
     "hint": "An explicitly sized image is tiled into bounded image atomics and each tile is clipped to the owner paint box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-background-image-repeat.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/background-image-repeat.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2086,7 +2086,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "size list"
     ],
     "hint": "CSS image layers retain their authored order while the compiler emits independent image atomics above the solid base paint.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-background-image-list.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/background-image-list.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2107,7 +2107,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "cover"
     ],
     "hint": "The image() URL source remains an image atomic with the same position, sizing and clipping contract as a direct background URL.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-image-function-url.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/image-function-url.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2128,7 +2128,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "paint source"
     ],
     "hint": "A gradient image candidate is lowered to a paint shape; the fallback color remains available without introducing a synthetic asset source.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-image-function-gradient-fallback.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/image-function-gradient-fallback.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2149,7 +2149,7 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
       "stable order"
     ],
     "hint": "The two cross-fade sources become ordered image atomics with complementary opacity weights, preserving the CSS source order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-cross-fade-images.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/cross-fade-images.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2174,7 +2174,7 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
       "image asset"
     ],
     "hint": "A photographic image is composited over a solid card at fractional opacity so image alpha, sampling and source-over blending can be compared directly.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/opacity-image.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/opacity/image.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2196,7 +2196,7 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
       "child compositing"
     ],
     "hint": "A grid container and its child cells share one fractional opacity boundary, while thin repeating lines expose coverage and alpha differences.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/opacity-grid.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/opacity/grid.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2218,7 +2218,7 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
       "independent opacity"
     ],
     "hint": "Overlapping rectangle and ellipse shapes use independent opacity values, making solid paint alpha and overlap compositing easy to inspect.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/opacity-shape.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/opacity/shape.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2241,7 +2241,7 @@ export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [
       "wrap boundary"
     ],
     "hint": "A short normalized stop period repeats across the full paint box while preserving the authored angle.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-repeating-linear-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/repeating-linear-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2261,7 +2261,7 @@ export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [
       "wrap boundary"
     ],
     "hint": "An off-center radial gradient repeats from its normalized center, including samples on both sides of the period.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-repeating-radial-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/repeating-radial-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2281,7 +2281,7 @@ export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [
       "off-center"
     ],
     "hint": "The repeating conic primitive keeps its start angle and off-center normalized origin while wrapping through the period.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-repeating-conic-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/repeating-conic-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2301,7 +2301,7 @@ export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [
       "layer order"
     ],
     "hint": "The repeating image layer remains above the solid background layer, with both bounded by the same paint box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-repeating-gradient-background.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/repeating-gradient-background.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2325,7 +2325,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "color"
     ],
     "hint": "Each border side resolves independently, so width, style and color do not leak across adjacent edges.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-four-sides.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-four-sides.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2345,7 +2345,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "per-side resolution"
     ],
     "hint": "A none side contributes no visible border while neighboring solid sides remain deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-none-mixed.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-none-mixed.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2366,7 +2366,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "side paths"
     ],
     "hint": "Dashed and dotted borders lower to fitted edge fragments: rectangles for dashes and ellipses for dots.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-dashed-dotted.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-dashed-dotted.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2386,7 +2386,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "stable side order"
     ],
     "hint": "The double style becomes two deterministic inset strokes on each side; it does not change the layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-double.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-double.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2406,7 +2406,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "paint bands"
     ],
     "hint": "Groove is lowered to two fixed-lighting bands per side; the shading is paint-only and does not change the layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-groove.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-groove.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2426,7 +2426,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "paint bands"
     ],
     "hint": "Ridge reverses the fixed groove lighting contract while preserving the same border geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-ridge.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-ridge.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2446,7 +2446,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "paint-only"
     ],
     "hint": "Inset applies the fixed recessed side shading contract without adding border width to layout twice.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-inset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-inset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2466,7 +2466,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "paint-only"
     ],
     "hint": "Outset applies the inverse fixed side shading contract and keeps the authored box geometry unchanged.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-outset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-outset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2486,7 +2486,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "clamped corners"
     ],
     "hint": "A single radius remains the compact rectangle atom and is clamped to half of the resolved box dimensions.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-radius-uniform.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-radius-uniform.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2506,7 +2506,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "path contour"
     ],
     "hint": "Four independent corner radii are clamped by adjacent sums and lowered to a rounded path contour.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-radius-per-corner.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-radius-per-corner.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2526,7 +2526,7 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
       "ellipse arcs"
     ],
     "hint": "The slash form resolves horizontal radii against width and vertical radii against height before CSS adjacent-sum clamping.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-border-radius-elliptical.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-radius-elliptical.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2549,7 +2549,7 @@ export const HTML_COMPILER_PAINT_PHASE2_3_CASES: HtmlCompilerPreviewCase[] = [
       "sibling position"
     ],
     "hint": "The outline expands only the paint bounds; the flex sibling keeps the same layout slot and gap.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-outline-layout-preserving.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/outline-layout-preserving.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2570,7 +2570,7 @@ export const HTML_COMPILER_PAINT_PHASE2_3_CASES: HtmlCompilerPreviewCase[] = [
       "outline-offset"
     ],
     "hint": "Positive offset moves the outline outward and negative offset moves it into the border box without changing either frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-outline-offsets.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/outline-offsets.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2590,7 +2590,7 @@ export const HTML_COMPILER_PAINT_PHASE2_3_CASES: HtmlCompilerPreviewCase[] = [
       "per-corner radius"
     ],
     "hint": "The outline reuses the normalized four-corner geometry and follows the same elliptical corner radii without changing layout.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-outline-per-corner-radius.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/outline-per-corner-radius.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2614,7 +2614,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "color"
     ],
     "hint": "A box shadow is lowered to the Neonix JSON V2 box shadow effect without changing the owner's frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-box-shadow.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/box-shadow.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2634,7 +2634,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "source order"
     ],
     "hint": "Comma-separated box shadows remain separate ordered effects in the normalized layer contract.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-box-shadow-list.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/box-shadow-list.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2654,7 +2654,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "blur"
     ],
     "hint": "Text shadow uses the text alpha silhouette, so the shadow follows glyphs and fallback-font runs.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-text-shadow.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/text-shadow.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2674,7 +2674,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "zero blur"
     ],
     "hint": "A zero-blur text shadow isolates the glyph alpha silhouette and tint from the blur kernel.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-text-shadow-alpha.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/text-shadow-alpha.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2694,7 +2694,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "blur only"
     ],
     "hint": "A centered text shadow isolates the CSS blur radius-to-sigma conversion.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-text-shadow-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/text-shadow-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2714,7 +2714,7 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
       "offset only"
     ],
     "hint": "A zero-blur offset shadow isolates translation and compositing from the blur kernel.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-text-shadow-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/text-shadow-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2737,7 +2737,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "spatial effect"
     ],
     "hint": "CSS blur lowers to an ordered blur operator over the element surface without changing its layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2757,7 +2757,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color-adjust"
     ],
     "hint": "Brightness is lowered to the existing color-adjust atom as an exact channel multiplication for the supported range.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-brightness.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-brightness.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2777,7 +2777,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color-adjust"
     ],
     "hint": "Contrast lowers to a color-adjust operator and remains in the authored filter position.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-contrast.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-contrast.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2797,7 +2797,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color matrix"
     ],
     "hint": "Grayscale lowers to a runtime color-matrix operator with its own input and output surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-grayscale.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-grayscale.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2817,7 +2817,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color matrix"
     ],
     "hint": "Sepia is represented as an interpolated color matrix rather than a backend-specific shader shortcut.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-sepia.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-sepia.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2837,7 +2837,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color matrix"
     ],
     "hint": "Invert lowers to the ordered color-matrix path and keeps partial amounts deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-invert.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-invert.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2858,7 +2858,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "separate alpha stages"
     ],
     "hint": "filter:opacity() is an ordered source-surface alpha operator; CSS opacity remains the layer alpha and is not merged into it.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-opacity-layer-opacity.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-opacity-layer-opacity.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2878,7 +2878,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "alpha shadow"
     ],
     "hint": "drop-shadow() uses the element alpha silhouette, unlike box-shadow which uses the box geometry atom.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-drop-shadow.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2899,7 +2899,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "zero blur"
     ],
     "hint": "A zero-blur drop shadow still follows the rounded alpha silhouette and keeps the filter separate from layer opacity.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-drop-shadow-alpha.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-alpha.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2920,7 +2920,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "blur"
     ],
     "hint": "The blur-only drop shadow uses the element alpha silhouette rather than the rectangular box geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-drop-shadow-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2941,7 +2941,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "offset"
     ],
     "hint": "The offset-only drop shadow makes the alpha-source translation observable without changing the blur radius.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-drop-shadow-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2962,7 +2962,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "ordered list"
     ],
     "hint": "Consecutive color filters remain separate ordered atoms; a backend may fuse only when that preserves the same order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-color-chain.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-color-chain.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2983,7 +2983,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "spatial order"
     ],
     "hint": "The blur remains between the two color operators; it is never reordered into a fused color-only pass.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-blur-between-colors.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-blur-between-colors.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3003,7 +3003,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "source/output surfaces"
     ],
     "hint": "The drop shadow samples the preceding blurred surface, proving that spatial filter order is preserved end to end.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-filter-drop-shadow-after-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-after-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3026,7 +3026,7 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
       "composite"
     ],
     "hint": "The layer is isolated for compositing and blends with the colored backdrop without changing its layout order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-blend-multiply.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/blend-multiply.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3047,7 +3047,7 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
       "backdrop"
     ],
     "hint": "Two overlapping siblings keep their source order while each blend mode samples the backdrop at its own paint position.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-blend-sibling-order.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/blend-sibling-order.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3067,7 +3067,7 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
       "child blend"
     ],
     "hint": "The group forms an offscreen compositing boundary, so the child blends with the group backdrop rather than an outside sibling.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-blend-isolated-group.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/blend-isolated-group.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3088,7 +3088,7 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
       "offscreen group"
     ],
     "hint": "Layer opacity is applied at the compositing boundary while the filter remains an ordered effect program inside that boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-blend-opacity-filter.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/blend-opacity-filter.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3111,7 +3111,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "reference box"
     ],
     "hint": "An inset clip lowers to a normalized rounded local path without creating a mask alpha surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-inset-round.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-inset-round.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3131,7 +3131,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "geometric clip"
     ],
     "hint": "The circle center resolves against the element reference box, not against the composition.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-circle-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-circle-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3151,7 +3151,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "percentage center"
     ],
     "hint": "Horizontal and vertical radii resolve independently while the center stays in local element coordinates.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-ellipse-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-ellipse-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3171,7 +3171,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "normalized percentages"
     ],
     "hint": "A triangle is lowered as one closed path contour with percentage points resolved in the border box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-polygon-three.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-polygon-three.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3191,7 +3191,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "closed path"
     ],
     "hint": "A five-point polygon remains one deterministic contour and keeps source point order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-polygon-five.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-polygon-five.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3211,7 +3211,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "closed path"
     ],
     "hint": "A six-point polygon exercises the general point-list lowering path independently from the triangle and pentagon cases.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-polygon-six.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-polygon-six.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3231,7 +3231,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "hole contour"
     ],
     "hint": "The path keeps two closed contours and lowers evenodd as geometric fill semantics, so the inner contour remains a hole.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-path-hole-evenodd.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-path-hole-evenodd.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3252,7 +3252,7 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
       "intersection"
     ],
     "hint": "The geometric clip and overflow rectangle are intersected in one layer scope before the transformed subtree is composited.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-clip-transform-overflow.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/clip-transform-overflow.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3275,7 +3275,7 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
       "mask-mode: alpha"
     ],
     "hint": "The gradient is rendered on a private mask surface; its alpha coverage clips the blue rectangle without creating a visible sibling.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-mask-alpha-gradient.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/mask-alpha-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3296,7 +3296,7 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
       "mask-size"
     ],
     "hint": "The image asset is registered in Neonix JSON V2 and sampled as luminance coverage inside the mask source surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-mask-luminance-image.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/mask-luminance-image.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3317,7 +3317,7 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
       "layer order"
     ],
     "hint": "Two authored mask layers remain ordered in JSON: the first is added, then the second intersects the accumulated coverage.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-mask-add-intersect.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/mask-add-intersect.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3337,7 +3337,7 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
       "composition clipping"
     ],
     "hint": "The subtractive mask operation is evaluated on the private surface before the result is clipped by the composition boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-mask-subtract-edge.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/mask-subtract-edge.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3358,7 +3358,7 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
       "mix-blend-mode"
     ],
     "hint": "The mask surface is applied inside the isolated group after clip-path coverage and before the group opacity/blend boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint-mask-clip-isolation.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/mask-clip-isolation.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3382,7 +3382,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "animation-fill-mode"
     ],
     "hint": "The runtime samples opacity from the shared V2 track, including the backwards delay sample and forwards end sample.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-opacity-delay-fill.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/opacity-delay-fill.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3404,7 +3404,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "cubic-bezier"
     ],
     "hint": "Transform components are typed tracks; alternate reverses the sampled direction on the second iteration.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-transform-alternate.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/transform-alternate.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3424,7 +3424,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "animation-play-state"
     ],
     "hint": "A color track keeps its typed RGBA values while steps(4, jump-start) produces deterministic discrete plateaus.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-steps-color.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/steps-color.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3444,7 +3444,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "transform-origin"
     ],
     "hint": "A scale track keeps the element's layout frame fixed and applies the declared center pivot at runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-transform-scale.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/transform-scale.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3464,7 +3464,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "transform-origin"
     ],
     "hint": "Rotation is sampled around a non-central percentage origin, matching the browser's local pivot.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-transform-rotate-origin.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/transform-rotate-origin.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3484,7 +3484,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "color track"
     ],
     "hint": "Background color is interpolated as a typed RGBA track, including alpha, instead of a CSS string.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-background-color-rgba.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/background-color-rgba.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3505,7 +3505,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "frame tracks"
     ],
     "hint": "Width and height animate the V2 frame directly under border-box without changing the element's layout origin.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-frame-size-border-box.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/frame-size-border-box.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3525,7 +3525,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "to"
     ],
     "hint": "The canonical from/to declaration becomes a two-point opacity track with millisecond timestamps.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-keyframes-from-to.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-from-to.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3546,7 +3546,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "ordered stops"
     ],
     "hint": "Three authored offsets remain three ordered runtime keyframes instead of being collapsed to endpoints.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-keyframes-three-stops.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-three-stops.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3566,7 +3566,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "underlying value"
     ],
     "hint": "When 0% is absent, the compiler inserts the element's underlying computed opacity before the first authored offset.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-keyframes-missing-start.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-missing-start.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3586,7 +3586,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "independent tracks"
     ],
     "hint": "Two sibling layers resolve separate @keyframes definitions without sharing declarations or track state.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-keyframes-two-names.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-two-names.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3606,7 +3606,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "cascade"
     ],
     "hint": "At 50%, the later keyframe block wins for opacity, so the runtime receives one deterministic keyframe at that timestamp.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-keyframes-duplicate-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-duplicate-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3626,7 +3626,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "unsupported reference"
     ],
     "hint": "An animation-name without a matching @keyframes rule is a compiler diagnostic, never a silent no-op.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-keyframes-unknown-name.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-unknown-name.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3645,7 +3645,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "fill-mode: none"
     ],
     "hint": "During the positive delay and after the animation, the underlying opacity remains active because no fill is requested.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-delay-fill-none.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-fill-none.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3664,7 +3664,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "fill-mode: backwards"
     ],
     "hint": "The first keyframe is visible during the positive delay, then the active animation begins at the scheduled time.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-delay-fill-backwards.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-fill-backwards.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3683,7 +3683,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "end sample"
     ],
     "hint": "After the active interval, the final keyframe remains applied instead of returning to the underlying opacity.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-fill-forwards.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/fill-forwards.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3702,7 +3702,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "animation-fill-mode: both"
     ],
     "hint": "Both applies the first keyframe during delay and keeps the final keyframe after completion.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-fill-both.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/fill-both.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3721,7 +3721,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "initial progress"
     ],
     "hint": "A negative delay starts the sample inside the animation rather than waiting for a future start time.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-delay-negative.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-negative.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3740,7 +3740,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "transport"
     ],
     "hint": "An authored paused animation stays at its initial sample until transport explicitly changes the preview state.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-play-state-paused.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/play-state-paused.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3759,7 +3759,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "cycle boundary"
     ],
     "hint": "Two complete cycles reuse one normalized keyframe track without duplicating runtime geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-iteration-two.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-two.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3778,7 +3778,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "fractional endpoint"
     ],
     "hint": "A 2.5 iteration animation ends halfway through its third cycle, including at the exact active-duration boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-iteration-fractional.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-fractional.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3797,7 +3797,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "loop"
     ],
     "hint": "Infinite playback keeps a bounded track and wraps sampled progress without accumulating timeline drift.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-iteration-infinite.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-infinite.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3815,7 +3815,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "animation-direction: normal"
     ],
     "hint": "Normal samples each iteration from the first keyframe toward the last keyframe.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-direction-normal.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-normal.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3833,7 +3833,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "animation-direction: reverse"
     ],
     "hint": "Reverse starts at the last keyframe and samples toward the first keyframe.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-direction-reverse.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-reverse.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3852,7 +3852,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "iteration boundary"
     ],
     "hint": "Alternate reverses every second iteration while keeping the same authored keyframe sequence.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-direction-alternate.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-alternate.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3871,7 +3871,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "iteration boundary"
     ],
     "hint": "Alternate-reverse starts reversed, then alternates direction at each iteration boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-direction-alternate-reverse.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-alternate-reverse.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3890,7 +3890,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "opacity"
     ],
     "hint": "Linear easing keeps equal progress between each pair of keyframes.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-easing-linear.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-linear.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3909,7 +3909,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "discrete plateaus"
     ],
     "hint": "Jump-end holds the current plateau until each step boundary, then advances.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-easing-steps-end.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-end.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3928,7 +3928,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "first instant"
     ],
     "hint": "Jump-start advances to the first plateau at the first instant of the active interval.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-easing-steps-start.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-start.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3947,7 +3947,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "transform"
     ],
     "hint": "The canonical ease curve is stored as typed cubic-bezier control points in each track.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-easing-cubic-bezier.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-cubic-bezier.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3967,7 +3967,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "cubic-bezier()"
     ],
     "hint": "Each segment keeps the timing function authored on its starting keyframe; the global value is only the fallback.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-easing-per-segment.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-per-segment.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3987,7 +3987,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "no silent fallback"
     ],
     "hint": "Invalid step counts and cubic-bezier control points fail compilation with a specific diagnostic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-easing-invalid.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-invalid.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4007,7 +4007,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "one animation"
     ],
     "hint": "Transform and layer opacity remain separate typed tracks while sharing the same animation playback metadata.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-transform-opacity.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-transform-opacity.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4028,7 +4028,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "different easing"
     ],
     "hint": "Two authored animations keep transform and background-color as independent tracks with their own easing list entries.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-transform-color.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-transform-color.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4048,7 +4048,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "separate alpha"
     ],
     "hint": "The animated layer alpha stays on the group while filter: opacity() remains an ordered source-surface effect.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-filter-opacity.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-filter-opacity.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4068,7 +4068,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "paint-only track"
     ],
     "hint": "Animated border color and width target the generated border paint pass without adding a second layout computation.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-border-paint.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-border-paint.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4089,7 +4089,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "geometric clip"
     ],
     "hint": "The clip-path remains geometric and fixed while the animated shape transform and opacity are sampled on the layer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-clip-path.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-clip-path.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4109,7 +4109,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "child animation"
     ],
     "hint": "The child animation is sampled inside the isolated group boundary so its blend does not leak into the outside backdrop.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-isolated-blend.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-isolated-blend.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4130,7 +4130,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "composition edge"
     ],
     "hint": "The image transform is animated inside a fixed overflow viewport and remains clipped at the composition boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-combo-image-clipping.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-image-clipping.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4150,7 +4150,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "linear path"
     ],
     "hint": "A layer-owned path keeps the CSS element frame while offset-distance samples a normalized point along the parent-local line.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-path-line-distance.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-line-distance.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4170,7 +4170,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "cubic tangent"
     ],
     "hint": "The runtime follows a cubic path and aligns the layer to the sampled tangent, making direction changes visible at the midpoint.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-path-cubic-auto.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-cubic-auto.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4190,7 +4190,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "path endpoint"
     ],
     "hint": "Reverse adds the CSS half-turn after tangent alignment while the bottom-center anchor keeps the layer attached to the path.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-path-reverse-anchor.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-reverse-anchor.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4210,7 +4210,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "composition clip"
     ],
     "hint": "Motion remains layer-owned and is clipped by the composition boundary when the path carries the frame beyond the right edge.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion-path-clip-edge.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-clip-edge.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4234,7 +4234,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "Matrix4"
     ],
     "hint": "A parent perspective becomes a group render3d context while the child keeps translateZ in its ordered Matrix4 transform.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-group-translate-z.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/group-translate-z.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4254,7 +4254,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "transform-origin"
     ],
     "hint": "The child plane rotates around its center in 3D; the compiler preserves the authored transform origin and parent camera context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-rotate-x.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/rotate-x.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4274,7 +4274,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "translateZ"
     ],
     "hint": "An off-center perspective-origin changes the convergence point without changing the child's layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-origin-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/origin-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4295,7 +4295,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "nested groups"
     ],
     "hint": "Two independent group contexts keep transform-style explicit in JSON so the runtime can apply the intended flattening boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-flat-preserve-3d.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/flat-preserve-3d.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4315,7 +4315,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "rotateY"
     ],
     "hint": "transform: perspective() remains an ordered motion.perspective operation and is kept distinct from a parent perspective context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-transform-function.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/transform-function.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4335,7 +4335,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "layer state"
     ],
     "hint": "backface-visibility is preserved on the transformed layer; the runtime decides whether the reverse surface is paintable.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-backface-hidden.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backface-hidden.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4355,7 +4355,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "near/far clip"
     ],
     "hint": "The perspective context keeps the layer's authored frame while Runtime V2 clips projected geometry at the camera planes.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-near-far-clipping.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/near-far-clipping.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4376,7 +4376,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "tracks"
     ],
     "hint": "3D transform keyframes lower to typed Matrix4 operations on the shared timeline; no CSS animation engine is introduced in Runtime V2.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animated-3d.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animated-3d.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4396,7 +4396,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "solid paint"
     ],
     "hint": "The parent establishes the minimum camera context while flat is tested without filters, masks, blending or animation.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-atomic-transform-style-flat.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-transform-style-flat.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4416,7 +4416,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "solid paint"
     ],
     "hint": "The same camera and child geometry as the flat fixture isolates the preserve-3d boundary contract.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-atomic-transform-style-preserve-3d.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-transform-style-preserve-3d.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4436,7 +4436,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "solid paint"
     ],
     "hint": "A reversed solid plane remains paintable when backface visibility is explicitly visible.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-atomic-backface-visible.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-backface-visible.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4456,7 +4456,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "solid paint"
     ],
     "hint": "The same reversed plane becomes non-paintable only because its backface is explicitly hidden.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-atomic-backface-hidden.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-backface-hidden.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4477,7 +4477,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
       "Matrix4"
     ],
     "hint": "CSS affine and projective matrix functions lower to the existing ordered V2 matrix atoms without a second transform path.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-matrix-functions.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/matrix-functions.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4500,7 +4500,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "Matrix4 chain"
     ],
     "hint": "Each nested group keeps its own perspective distance; Runtime composes both contexts instead of collapsing them into one camera.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-distance.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-distance.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4521,7 +4521,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "rotateY"
     ],
     "hint": "Outer and inner perspective-origin values remain local to their own boxes, so convergence changes twice without changing layout frames.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-origins.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-origins.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4541,7 +4541,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "flatten boundary"
     ],
     "hint": "The inner group declares a flat boundary while its own perspective remains explicit for its direct child surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-flat-boundary.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-flat-boundary.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4562,7 +4562,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "paint order"
     ],
     "hint": "Two descendants retain independent depth inside the nested preserve-3d context while their paint order remains deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-preserve-depth.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-preserve-depth.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4582,7 +4582,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "partial surface clip"
     ],
     "hint": "Only the inner perspective surface crosses its homogeneous camera plane; the outer surface remains visible and is not clipped as a whole.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4602,7 +4602,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "composition clip"
     ],
     "hint": "The inner perspective result is clipped by its own overflow boundary and then by the composition edge without leaking outside either scope.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-overflow-clip.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-overflow-clip.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4622,7 +4622,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "rotateY(180deg)"
     ],
     "hint": "Backface visibility is evaluated after the accumulated nested Matrix4 transform, not at an isolated child transform.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-backface.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-backface.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4642,7 +4642,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "center convergence"
     ],
     "hint": "Matching percentage origins are resolved in each local box; equal percentages do not imply a shared absolute point.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-same-origin.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-same-origin.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4662,7 +4662,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "stable ancestor order"
     ],
     "hint": "A direct child surface and a nested perspective subtree retain separate ancestor chains instead of inheriting the inner camera.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-between-boundaries.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-between-boundaries.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4683,7 +4683,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "composition clip"
     ],
     "hint": "Geometric clip-path and nested overflow are intersected after the complete Matrix4 chain, before the composition edge clip.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-nested-clip-path.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-clip-path.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4705,7 +4705,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
       "circle + triangle + rectangle stroke"
     ],
     "hint": "A slow looping camera shot travels through three flat stroke planes. The circle is nearest, the triangle is intermediate, and the rectangle is farthest, so their apparent scale changes at different rates.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-parallax-three-depths.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/parallax-three-depths.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4729,7 +4729,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "distance"
     ],
     "hint": "The group camera distance is a numeric render3d track; the child keeps translateZ while the perspective matrix is rebuilt per sample.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-distance-linear.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-distance-linear.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4749,7 +4749,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "typed number track"
     ],
     "hint": "Cubic-bezier easing stays on the distance track segment and is evaluated by the shared Runtime V2 sampler.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-distance-cubic.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-distance-cubic.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4769,7 +4769,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "discrete camera plateaus"
     ],
     "hint": "Steps easing creates deterministic discrete perspective distances without a separate CSS animation engine.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-distance-steps.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-distance-steps.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4790,7 +4790,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "vec2"
     ],
     "hint": "Perspective-origin animates as one typed vec2 track while X and Y resolve against the group's own frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-origin-corner.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-corner.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4811,7 +4811,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "simultaneous interpolation"
     ],
     "hint": "Both origin coordinates interpolate independently, preserving local percentage resolution and the named object contract.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-origin-xy.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-xy.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4831,7 +4831,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "backwards fill"
     ],
     "hint": "During the positive delay, backwards fill exposes the first camera distance through the shared playback metadata.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-delay-backwards.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-delay-backwards.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4852,7 +4852,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "cycle boundary"
     ],
     "hint": "Alternate playback reverses the distance track on the second iteration while preserving the local perspective origin.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-alternate.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-alternate.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4873,7 +4873,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "transport"
     ],
     "hint": "The authored paused state remains playback metadata; the preview transport can still seek a deterministic sample.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-paused.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-paused.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4894,7 +4894,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "combined tracks"
     ],
     "hint": "Camera distance and child rotateY remain independent typed tracks while the transform order is preserved.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-rotate.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-rotate.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4915,7 +4915,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "ancestor chain"
     ],
     "hint": "Only the inner camera origin animates; the outer perspective remains a separate ancestor context in the Matrix4 chain.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-nested-origin.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-nested-origin.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4936,7 +4936,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "no clamp"
     ],
     "hint": "Origin coordinates outside the border-box remain valid local camera coordinates and are not clamped during lowering.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-origin-outside.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-outside.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4957,7 +4957,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
       "independent tracks"
     ],
     "hint": "Sibling perspective groups keep independent distance and origin tracks; no track is merged across layer scope.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-animation-sibling-tracks.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-sibling-tracks.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -4981,7 +4981,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "projective UV"
     ],
     "hint": "Contain resolves the source and destination rectangles before the image plane is projected by the accumulated Matrix4.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-contain-rotate-y.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-contain-rotate-y.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5002,7 +5002,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "perspective-origin"
     ],
     "hint": "Cover cropping and object-position are resolved in image space; the cropped quad then follows the off-center perspective camera.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-cover-off-center.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-cover-off-center.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5023,7 +5023,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "transparent texture"
     ],
     "hint": "Transparent pixels remain texture alpha on the projective surface instead of becoming a solid bounding rectangle.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-alpha-tilt.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-alpha-tilt.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5044,7 +5044,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "shared texture path"
     ],
     "hint": "Video uses the same projective textured-surface path as image; only the decoded frame source changes per playback timestamp.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-video-projective-quad.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/video-projective-quad.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5065,7 +5065,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "projective plane"
     ],
     "hint": "Object-position changes UV crop selection without changing the projected layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-media-object-position.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/media-object-position.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5086,7 +5086,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "edge"
     ],
     "hint": "The projected image is clipped at the composition edge after projective placement, without leaking pixels outside the frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-composition-edge.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-composition-edge.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5107,7 +5107,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "projective UV"
     ],
     "hint": "A geometric clip remains a clip path intersected with the textured projective surface, not a sibling alpha image.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-clip-path.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-clip-path.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5128,7 +5128,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "offscreen"
     ],
     "hint": "Video texture is sampled first, then layer opacity and blend scope are applied to the rendered surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-video-opacity-blend.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/video-opacity-blend.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5149,7 +5149,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "typed texture track"
     ],
     "hint": "The texture stays attached to the image plane while translateZ changes over the shared Runtime V2 timeline.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-animated-z.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-animated-z.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5170,7 +5170,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "homogeneous clip"
     ],
     "hint": "Only the part of the image plane outside the near camera plane is removed before perspective division.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5191,7 +5191,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "Matrix4 chain"
     ],
     "hint": "Nested cameras compose in order and the image receives the final projective transform as one textured surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-nested-image-perspective.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/nested-image-perspective.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5212,7 +5212,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
       "seam check"
     ],
     "hint": "A strongly inclined plane exercises the projective texture path and its subdivision/seam contract.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/texture-image-high-distortion.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/texture/image-high-distortion.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5238,7 +5238,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "homogeneous clip"
     ],
     "hint": "The alpha mask follows the projective surface and remains partially visible across the near camera plane.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-alpha-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-alpha-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5261,7 +5261,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "near-plane"
     ],
     "hint": "Luminance coverage is sampled from the projective image mask and converted to deterministic alpha.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-luminance-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-luminance-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5284,7 +5284,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "near-plane"
     ],
     "hint": "Mask sources remain ordered: the first establishes coverage and the second intersects it on the projective plane.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-add-intersect-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-add-intersect-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5307,7 +5307,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "private surface"
     ],
     "hint": "Subtract is evaluated on the private mask surface before the layer is clipped at the composition boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-subtract-composition-edge.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-subtract-composition-edge.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5330,7 +5330,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "rotateY"
     ],
     "hint": "Exclude preserves the symmetric difference of two coverage sources while the visible surface is inclined.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-exclude-inclined.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-exclude-inclined.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5353,7 +5353,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "offscreen surface"
     ],
     "hint": "Blur is applied to the projectively clipped source surface and cannot leak outside the composition edge.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-filter-blur-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-blur-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5376,7 +5376,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "near-plane"
     ],
     "hint": "The drop-shadow samples the preceding blurred source, preserving CSS filter order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-filter-drop-shadow-after-blur-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-drop-shadow-after-blur-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5399,7 +5399,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "intersected coverage"
     ],
     "hint": "Geometric clip coverage is intersected with the mask before the filtered projective surface is composited.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-filter-mask-clip-path.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-mask-clip-path.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5422,7 +5422,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "projective group"
     ],
     "hint": "The isolated group owns its mask and filter offscreen surface; its child blend remains inside that boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-isolated-mask-filter-projective.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/isolated-mask-filter-projective.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5445,7 +5445,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "Matrix4 chain"
     ],
     "hint": "The mask source is resolved in the element box while the visible child inherits a different nested perspective context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-different-perspective-boundary.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-different-perspective-boundary.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5468,7 +5468,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "composition clip"
     ],
     "hint": "The filtered surface keeps expanded offscreen bounds while far-plane and composition clipping remain deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-filter-far-plane-bounds.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-far-plane-bounds.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5491,7 +5491,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "partial source clip"
     ],
     "hint": "Only one corner of the mask source crosses the near plane; remaining coverage is retained without alpha inversion.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-mask-one-corner-near-plane.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-one-corner-near-plane.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5514,7 +5514,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "layer opacity"
     ],
     "hint": "The backdrop is captured before the translucent card is painted; blur affects the colored backdrop only and remains separate from the card's own filter.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-backdrop-filter-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backdrop-filter-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -5537,7 +5537,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
       "ordered effects"
     ],
     "hint": "Backdrop effects retain CSS token order and never become a visible sibling or a source filter on the translucent panel.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective-backdrop-filter-order.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backdrop-filter-order.html",
     "composition": {
       "width": 1920,
       "height": 1080,

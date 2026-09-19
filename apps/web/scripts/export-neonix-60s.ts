@@ -69,7 +69,7 @@ function requiredProtocol(result: ReturnType<typeof compileDocument>): NonNullab
 
 async function main(): Promise<void> {
   const root = repoRoot();
-  const sourceFile = join(root, "apps", "web", "public", "docs", "html-compiler", "fixtures", "neonix-overview-60s.html");
+  const sourceFile = join(root, "apps", "web", "public", "docs", "html-compiler", "fixtures", "neonix", "overview-60s.html");
   const outputRoot = join(root, "tmp");
   const runtimeFile = join(outputRoot, "neonix-overview-60s.runtime.json");
   const benchmarkFile = join(outputRoot, "neonix-overview-60s.benchmark.json");
