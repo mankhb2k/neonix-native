@@ -5,6 +5,7 @@ import {
   V2SvgDefinitionTransformSchema,
   type V2SvgDefinitionNode,
 } from "./clip";
+import { V2TrackListSchema } from "./animation";
 
 /** SVG mask units. The default follows SVG/usvg: objectBoundingBox. */
 export const V2MaskUnitsSchema = z.enum(["userSpaceOnUse", "objectBoundingBox"]);
@@ -53,6 +54,8 @@ export const V2MaskSchema = z
     transform: V2SvgDefinitionTransformSchema.optional(),
     children: z.array(V2ClipPathNodeSchema).min(1).optional(),
     image: V2MaskImageSourceSchema.optional(),
+    /** Project-level animation, sampled at absolute composition time (no `timing.start`); see `sampleMotionProjectDefsAtTime`. */
+    tracks: V2TrackListSchema.optional(),
   })
   .strict()
   .superRefine((mask, ctx) => {

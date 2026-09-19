@@ -23,12 +23,25 @@ import {
   compileVisualProject,
   type CompileProtocolOptions,
 } from "./compiler";
-import { sampleMotionLayerAtTime, sampleMotionProtocolAtTime } from "./animation/sampler";
+import { sampleMotionLayerAtTime, sampleMotionProjectDefsAtTime, sampleMotionProtocolAtTime } from "./animation/sampler";
+import { expandMotionProjectTextRangeSelectors } from "./text/range-selectors";
 
 const RATE = 48000 as const;
 /** Protocol V2 stores all authoring time values in milliseconds. */
 const MILLISECONDS_TO_SECONDS = 1 / 1000;
 const toRuntimeSeconds = (milliseconds: number): number => milliseconds * MILLISECONDS_TO_SECONDS;
+
+/** Filters/masks/paintServers have no `timing.start`; any of their tracks makes the def-relevant part of a frame time-dependent. */
+function hasDefAnimation(protocol: MotionProtocolV2): boolean {
+  return (protocol.filters?.some((filter) => (filter.tracks?.length ?? 0) > 0) ?? false)
+    || (protocol.masks?.some((mask) => (mask.tracks?.length ?? 0) > 0) ?? false)
+    || (protocol.paintServers?.some((paintServer) => (paintServer.tracks?.length ?? 0) > 0) ?? false);
+}
+
+/** Samples both layer tracks and project-level def tracks for one timeline position. */
+function sampleProtocolFullyAtTime(protocol: MotionProtocolV2, timeSeconds: number): MotionProtocolV2 {
+  return sampleMotionProjectDefsAtTime(sampleMotionProtocolAtTime(protocol, timeSeconds), timeSeconds);
+}
 
 function mediaIdAliases(id: string): readonly string[] {
   return id.startsWith("asset-") ? [id, id.slice("asset-".length)] : [id, `asset-${id}`];
@@ -77,13 +90,19 @@ export function compileProtocol(
 }
 
 function compileParsedProtocol(
-  protocol: MotionProtocolV2,
+  parsedProtocol: MotionProtocolV2,
   options: CompileProtocolV3Options,
   bakeVisualTimeline: boolean,
 ): RuntimeProjectV3 {
-  const hasVisualAnimation = protocol.layers.some((layer) => (layer.tracks?.length ?? 0) > 0);
+  // Range selectors are pure authoring sugar over real per-character spans
+  // and tracks; expand them before anything else touches `layers` so every
+  // downstream step (sampling, media/video/audio lowering, visual timeline
+  // baking) only ever sees ordinary, already-addressable tracks.
+  const protocol = expandMotionProjectTextRangeSelectors(parsedProtocol);
+  const hasLayerAnimation = protocol.layers.some((layer) => (layer.tracks?.length ?? 0) > 0);
+  const hasVisualAnimation = hasLayerAnimation || hasDefAnimation(protocol);
   const visualSource = bakeVisualTimeline && hasVisualAnimation
-    ? sampleMotionProtocolAtTime(protocol, 0)
+    ? sampleProtocolFullyAtTime(protocol, 0)
     : protocol;
   const visual = compileVisualProject(visualSource, options);
   const mediaCatalog = options.mediaCatalog ?? buildMediaCatalog(protocol);
@@ -164,7 +183,7 @@ export function compileProtocolAtTime(
   options: CompileProtocolV3Options = {},
 ): RuntimeProjectV3 {
   const protocol = parseMotionProtocol(input);
-  return compileParsedProtocol(sampleMotionProtocolAtTime(protocol, timeSeconds), options, false);
+  return compileParsedProtocol(sampleProtocolFullyAtTime(protocol, timeSeconds), options, false);
 }
 
 function runtimeValuesEqual(left: unknown, right: unknown): boolean {
@@ -229,8 +248,13 @@ function compileVisualTimeline(
   const frames: RuntimeVisualTimelineV3["frames"] = [{ nodes: [] }];
   const animatedLayers = protocol.layers.filter((layer) => (layer.tracks?.length ?? 0) > 0);
   const animatedLayerIds = new Set(animatedLayers.map((layer) => layer.id));
-  const opacityOnly = animatedLayers.every((layer) => layer.tracks?.every((track) => track.path === "opacity") ?? false);
-  const simpleTransformAnimation = isSimpleTransformAnimation(protocol, animatedLayers);
+  // Def tracks (filters/masks/paintServers) affect frames independently of
+  // any layer's own tracks, so the opacity/transform-only fast paths below —
+  // which only reason about `animatedLayers` — cannot be trusted while any
+  // def is animated; fall back to a full per-frame recompile instead.
+  const animatingDefs = hasDefAnimation(protocol);
+  const opacityOnly = !animatingDefs && animatedLayers.every((layer) => layer.tracks?.every((track) => track.path === "opacity") ?? false);
+  const simpleTransformAnimation = !animatingDefs && isSimpleTransformAnimation(protocol, animatedLayers);
   const staticVisual = opacityOnly || simpleTransformAnimation
     ? new Map(
         compileVisualProject(
@@ -276,7 +300,7 @@ function compileVisualTimeline(
       });
     } else {
       fallbackFrameCount += 1;
-      const sampled = sampleMotionProtocolAtTime(protocol, time);
+      const sampled = sampleProtocolFullyAtTime(protocol, time);
       const visual = compileVisualProject(sampled, options);
       nodes = visual.nodes.flatMap((node) => {
         const baseNode = baseNodes.get(node.id);

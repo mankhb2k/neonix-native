@@ -62,6 +62,7 @@ export {
   V2TextPathSchema,
   V2TextChunkSchema,
   V2TextSourceSchema,
+  V2TextRangeSelectorSchema,
   V2TextLayerSchema,
   type V2TextRange,
   type V2TextFont,
@@ -71,6 +72,7 @@ export {
   type V2TextPath,
   type V2TextChunk,
   type V2TextSource,
+  type V2TextRangeSelector,
   type V2TextLayer,
 } from "./text";
 export {

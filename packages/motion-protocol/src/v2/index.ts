@@ -208,6 +208,7 @@ export {
   V2TextPathSchema,
   V2TextChunkSchema,
   V2TextSourceSchema,
+  V2TextRangeSelectorSchema,
   V2TextLayerSchema,
   type V2Frame,
   type V2BlendMode,
@@ -233,6 +234,7 @@ export {
   type V2TextPath,
   type V2TextChunk,
   type V2TextSource,
+  type V2TextRangeSelector,
   type V2TextLayer,
 } from "./layers";
 export { V2TimingSchema, type V2Timing } from "./timing";

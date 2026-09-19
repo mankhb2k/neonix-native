@@ -6,6 +6,9 @@ import type {
 } from "@motionvideo/motion-protocol/v2";
 
 type V2Layer = MotionProtocolV2["layers"][number];
+type V2Filter = NonNullable<MotionProtocolV2["filters"]>[number];
+type V2Mask = NonNullable<MotionProtocolV2["masks"]>[number];
+type V2PaintServerDefinition = NonNullable<MotionProtocolV2["paintServers"]>[number];
 
 /**
  * Samples V2 tracks at the authoring timeline position. Keeping this in the
@@ -23,6 +26,72 @@ export function sampleMotionProtocolAtTime(
     return sampledLayer;
   });
   return changed ? { ...project, layers } : project;
+}
+
+/**
+ * Samples project-level def collections (filters/masks/paintServers). Defs
+ * have no `timing.start` like a layer, so their tracks are sampled against
+ * the absolute composition time, not a layer-relative local time.
+ */
+export function sampleMotionProjectDefsAtTime(
+  project: MotionProtocolV2,
+  timeSeconds: number,
+): MotionProtocolV2 {
+  const timeMs = Math.max(0, timeSeconds * 1000);
+  let changed = false;
+
+  const filters = project.filters?.map((filter) => {
+    const sampled = sampleDefAtTime(filter, timeMs, applyFilterTrackValue);
+    if (sampled !== filter) changed = true;
+    return sampled;
+  });
+  const masks = project.masks?.map((mask) => {
+    const sampled = sampleDefAtTime(mask, timeMs, (target, path, value) => assignPath(target, path.split("."), value) as V2Mask);
+    if (sampled !== mask) changed = true;
+    return sampled;
+  });
+  const paintServers = project.paintServers?.map((paintServer) => {
+    const sampled = sampleDefAtTime(paintServer, timeMs, (target, path, value) => assignPath(target, path.split("."), value) as V2PaintServerDefinition);
+    if (sampled !== paintServer) changed = true;
+    return sampled;
+  });
+
+  if (!changed) return project;
+  return {
+    ...project,
+    ...(filters ? { filters } : {}),
+    ...(masks ? { masks } : {}),
+    ...(paintServers ? { paintServers } : {}),
+  };
+}
+
+function sampleDefAtTime<T extends { tracks?: readonly V2Track[] }>(
+  def: T,
+  timeMs: number,
+  applyValue: (def: T, path: string, value: unknown) => T,
+): T {
+  if (!def.tracks?.length) return def;
+  let sampled = def;
+  for (const track of def.tracks) {
+    const value = sampleTrack(track, timeMs);
+    if (value === undefined) continue;
+    sampled = applyValue(sampled, track.path, toPropertyValue(value));
+  }
+  return sampled;
+}
+
+/** Filter primitives are addressed by id (`primitives.<id>.field>`), like layer effects. */
+function applyFilterTrackValue(filter: V2Filter, path: string, value: unknown): V2Filter {
+  const segments = path.split(".");
+  if (segments[0] !== "primitives") return filter;
+  const primitiveId = segments[1];
+  if (!primitiveId) return filter;
+  return {
+    ...filter,
+    primitives: filter.primitives.map((primitive) => (
+      primitive.id === primitiveId ? assignPath(primitive, segments.slice(2), value) as typeof primitive : primitive
+    )),
+  };
 }
 
 /** Sample one Protocol V2 layer using the canonical runtime animation policy. */

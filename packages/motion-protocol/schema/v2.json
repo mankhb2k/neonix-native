@@ -2179,6 +2179,439 @@
                   "height"
                 ],
                 "additionalProperties": false
+              },
+              "tracks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$"
+                    },
+                    "keyframes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "time": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "number"
+                                  },
+                                  "value": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "vec2"
+                                  },
+                                  "value": {
+                                    "type": "array",
+                                    "minItems": 2,
+                                    "maxItems": 2,
+                                    "items": [
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "vec3"
+                                  },
+                                  "value": {
+                                    "type": "array",
+                                    "minItems": 3,
+                                    "maxItems": 3,
+                                    "items": [
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "vec4"
+                                  },
+                                  "value": {
+                                    "type": "array",
+                                    "minItems": 4,
+                                    "maxItems": 4,
+                                    "items": [
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "color"
+                                  },
+                                  "value": {
+                                    "type": "array",
+                                    "minItems": 4,
+                                    "maxItems": 4,
+                                    "items": [
+                                      {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "boolean"
+                                  },
+                                  "value": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "enum"
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "easing": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "linear"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "step"
+                                  },
+                                  "count": {
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "default": 1
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "jump-start",
+                                      "jump-end",
+                                      "jump-none",
+                                      "jump-both"
+                                    ],
+                                    "default": "jump-end"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "cubicBezier"
+                                  },
+                                  "x1": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "y1": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "x2": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "y2": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "x1",
+                                  "y1",
+                                  "x2",
+                                  "y2"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "spring"
+                                  },
+                                  "mass": {
+                                    "type": "number",
+                                    "exclusiveMinimum": 0
+                                  },
+                                  "stiffness": {
+                                    "type": "number",
+                                    "exclusiveMinimum": 0
+                                  },
+                                  "damping": {
+                                    "type": "number",
+                                    "minimum": 0
+                                  },
+                                  "velocity": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "mass",
+                                  "stiffness",
+                                  "damping"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "time",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "minItems": 1
+                    },
+                    "interpolation": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "linear",
+                            "discrete"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "animation": {
+                      "type": "object",
+                      "properties": {
+                        "durationMs": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                        },
+                        "delayMs": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "iterations": {
+                          "anyOf": [
+                            {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                            },
+                            {
+                              "type": "string",
+                              "const": "infinite"
+                            }
+                          ]
+                        },
+                        "direction": {
+                          "type": "string",
+                          "enum": [
+                            "normal",
+                            "reverse",
+                            "alternate",
+                            "alternate-reverse"
+                          ]
+                        },
+                        "fillMode": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "forwards",
+                            "backwards",
+                            "both"
+                          ]
+                        },
+                        "playState": {
+                          "type": "string",
+                          "enum": [
+                            "running",
+                            "paused"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "durationMs",
+                        "delayMs",
+                        "iterations",
+                        "direction",
+                        "fillMode",
+                        "playState"
+                      ],
+                      "additionalProperties": false,
+                      "default": {
+                        "durationMs": 1,
+                        "delayMs": 0,
+                        "iterations": 1,
+                        "direction": "normal",
+                        "fillMode": "none",
+                        "playState": "running"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "path",
+                    "keyframes"
+                  ],
+                  "additionalProperties": false
+                }
               }
             },
             "required": [
@@ -3353,6 +3786,9 @@
                 },
                 "minItems": 1,
                 "maxItems": 128
+              },
+              "tracks": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/masks/items/properties/tracks"
               }
             },
             "required": [
@@ -3415,6 +3851,9 @@
                     "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3"
                   }
                 ]
+              },
+              "tracks": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/masks/items/properties/tracks"
               }
             },
             "required": [
@@ -4333,437 +4772,7 @@
                     "additionalProperties": false
                   },
                   "tracks": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
-                        },
-                        "path": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200,
-                          "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$"
-                        },
-                        "keyframes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "time": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
-                              },
-                              "value": {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "number"
-                                      },
-                                      "value": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "vec2"
-                                      },
-                                      "value": {
-                                        "type": "array",
-                                        "minItems": 2,
-                                        "maxItems": 2,
-                                        "items": [
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          }
-                                        ]
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "vec3"
-                                      },
-                                      "value": {
-                                        "type": "array",
-                                        "minItems": 3,
-                                        "maxItems": 3,
-                                        "items": [
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          }
-                                        ]
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "vec4"
-                                      },
-                                      "value": {
-                                        "type": "array",
-                                        "minItems": 4,
-                                        "maxItems": 4,
-                                        "items": [
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          }
-                                        ]
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "color"
-                                      },
-                                      "value": {
-                                        "type": "array",
-                                        "minItems": 4,
-                                        "maxItems": 4,
-                                        "items": [
-                                          {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "maximum": 1
-                                          },
-                                          {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "maximum": 1
-                                          },
-                                          {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "maximum": 1
-                                          },
-                                          {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "maximum": 1
-                                          }
-                                        ]
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "boolean"
-                                      },
-                                      "value": {
-                                        "type": "boolean"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "string"
-                                      },
-                                      "value": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "enum"
-                                      },
-                                      "value": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "value"
-                                    ],
-                                    "additionalProperties": false
-                                  }
-                                ]
-                              },
-                              "easing": {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "linear"
-                                      }
-                                    },
-                                    "required": [
-                                      "type"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "step"
-                                      },
-                                      "count": {
-                                        "type": "integer",
-                                        "exclusiveMinimum": 0,
-                                        "default": 1
-                                      },
-                                      "position": {
-                                        "type": "string",
-                                        "enum": [
-                                          "jump-start",
-                                          "jump-end",
-                                          "jump-none",
-                                          "jump-both"
-                                        ],
-                                        "default": "jump-end"
-                                      }
-                                    },
-                                    "required": [
-                                      "type"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "cubicBezier"
-                                      },
-                                      "x1": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 1
-                                      },
-                                      "y1": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "x2": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 1
-                                      },
-                                      "y2": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "x1",
-                                      "y1",
-                                      "x2",
-                                      "y2"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "spring"
-                                      },
-                                      "mass": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0
-                                      },
-                                      "stiffness": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0
-                                      },
-                                      "damping": {
-                                        "type": "number",
-                                        "minimum": 0
-                                      },
-                                      "velocity": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "mass",
-                                      "stiffness",
-                                      "damping"
-                                    ],
-                                    "additionalProperties": false
-                                  }
-                                ]
-                              }
-                            },
-                            "required": [
-                              "time",
-                              "value"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "minItems": 1
-                        },
-                        "interpolation": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "linear",
-                                "discrete"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "animation": {
-                          "type": "object",
-                          "properties": {
-                            "durationMs": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                            },
-                            "delayMs": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                            },
-                            "iterations": {
-                              "anyOf": [
-                                {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
-                                },
-                                {
-                                  "type": "string",
-                                  "const": "infinite"
-                                }
-                              ]
-                            },
-                            "direction": {
-                              "type": "string",
-                              "enum": [
-                                "normal",
-                                "reverse",
-                                "alternate",
-                                "alternate-reverse"
-                              ]
-                            },
-                            "fillMode": {
-                              "type": "string",
-                              "enum": [
-                                "none",
-                                "forwards",
-                                "backwards",
-                                "both"
-                              ]
-                            },
-                            "playState": {
-                              "type": "string",
-                              "enum": [
-                                "running",
-                                "paused"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "durationMs",
-                            "delayMs",
-                            "iterations",
-                            "direction",
-                            "fillMode",
-                            "playState"
-                          ],
-                          "additionalProperties": false,
-                          "default": {
-                            "durationMs": 1,
-                            "delayMs": 0,
-                            "iterations": 1,
-                            "direction": "normal",
-                            "fillMode": "none",
-                            "playState": "running"
-                          }
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "path",
-                        "keyframes"
-                      ],
-                      "additionalProperties": false
-                    }
+                    "$ref": "#/definitions/MotionProtocolV2/properties/masks/items/properties/tracks"
                   },
                   "type": {
                     "type": "string",
@@ -5734,6 +5743,67 @@
                           "additionalProperties": false
                         },
                         "minItems": 1
+                      },
+                      "rangeSelectors": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "enum": [
+                                "character",
+                                "word"
+                              ]
+                            },
+                            "range": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": "all"
+                                },
+                                {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/chunks/items/properties/sourceRange"
+                                }
+                              ]
+                            },
+                            "stagger": {
+                              "type": "object",
+                              "properties": {
+                                "perUnitDelayMs": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                                },
+                                "direction": {
+                                  "type": "string",
+                                  "enum": [
+                                    "forward",
+                                    "reverse"
+                                  ],
+                                  "default": "forward"
+                                }
+                              },
+                              "required": [
+                                "perUnitDelayMs"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "track": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/masks/items/properties/tracks/items"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "unit",
+                            "range",
+                            "stagger",
+                            "track"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 32
                       }
                     },
                     "required": [

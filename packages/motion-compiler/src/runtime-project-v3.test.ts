@@ -114,6 +114,24 @@ describe("canonical compiler V3 projection", () => {
     });
   });
 
+  it("animates a project-level filter's blur radius via its tracks, sampled at absolute composition time", () => {
+    const pulsingGlowFilter = {
+      id: "pulsing-glow",
+      primitives: [{ id: "blur", type: "feGaussianBlur", stdDeviation: { x: 0, y: 0 } }],
+      tracks: [
+        { id: "x", path: "primitives.blur.stdDeviation.x", keyframes: [{ time: 0, value: { type: "number", value: 0 } }, { time: 1000, value: { type: "number", value: 20 } }] },
+        { id: "y", path: "primitives.blur.stdDeviation.y", keyframes: [{ time: 0, value: { type: "number", value: 0 } }, { time: 1000, value: { type: "number", value: 20 } }] },
+      ],
+    };
+    const project = filterProject(pulsingGlowFilter);
+
+    const beginLayerAt = (time: number) => compileProtocolToPaintCommands(project, { time })
+      .commands.find((command) => command.op === "beginLayer");
+
+    expect(beginLayerAt(0.5)).toMatchObject({ effectProgram: { ops: [{ kind: "blur", radius: 10 }] } });
+    expect(beginLayerAt(1)).toMatchObject({ effectProgram: { ops: [{ kind: "blur", radius: 20 }] } });
+  });
+
   it("preserves SVG linearRGB for color-matrix operations", () => {
     const project = filterProject({
       id: "hue-rotate",
@@ -530,6 +548,32 @@ describe("canonical compiler V3 projection", () => {
     const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
     expect(node?.worldMatrix[12]).toBeCloseTo(300);
     expect(node?.worldMatrix[13]).toBeCloseTo(100);
+  });
+
+  it("rejects a compound (multi-contour) motion path instead of silently dropping every subpath but the first", () => {
+    const project = filterProject({ id: "motion-path-compound", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].motion = {
+      offsetPath: {
+        type: "path",
+        contours: [
+          { id: "first", start: { x: 100, y: 100 }, segments: [{ kind: "line", to: { x: 500, y: 100 } }], closed: false },
+          { id: "second", start: { x: 0, y: 0 }, segments: [{ kind: "line", to: { x: 300, y: 0 } }], closed: false },
+        ],
+        coordinateSpace: "parent-local",
+        referenceBox: "border-box",
+      },
+      offsetDistance: 0,
+      offsetRotate: { mode: "auto", angle: 0 },
+      offsetAnchor: { x: 0, y: 0 },
+    };
+    try {
+      compileProtocol(project);
+      throw new Error("expected throw");
+    } catch (error) {
+      expect(error).toMatchObject({ code: "UNSUPPORTED_MOTION_PATH_CONTOURS" });
+    }
   });
 
   it("adds static layout placement to CSS motion path coordinates", () => {

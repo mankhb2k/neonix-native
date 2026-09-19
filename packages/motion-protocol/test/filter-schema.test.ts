@@ -73,4 +73,34 @@ describe("Protocol V2 semantic CSS filter effects", () => {
       primitives: [{ id: "kernel", type: "feConvolveMatrix", order: { x: 3, y: 3 }, kernelMatrix: [1] }],
     })).toThrow(/kernelMatrix length/);
   });
+
+  it("requires feGaussianBlur/feDropShadow stdDeviation.x and .y tracks to animate in lockstep", () => {
+    // The runtime only executes an isotropic blur/shadow radius, so an
+    // independently-animated x or y would make ANISOTROPIC_FILTER_UNSUPPORTED
+    // depend on the sampled time instead of failing at parse time.
+    const base = {
+      id: "pulsing-glow",
+      primitives: [{ id: "blur1", type: "feGaussianBlur" as const, stdDeviation: { x: 4, y: 4 } }],
+    };
+    const track = (path: string, value: number) => ({ id: path, path, keyframes: [{ time: 0, value: { type: "number" as const, value } }] });
+
+    expect(() => V2FilterSchema.parse({
+      ...base,
+      tracks: [track("primitives.blur1.stdDeviation.x", 4)],
+    })).toThrow(/requires animating both x and y together/);
+
+    expect(() => V2FilterSchema.parse({
+      ...base,
+      tracks: [
+        track("primitives.blur1.stdDeviation.x", 4),
+        { id: "y", path: "primitives.blur1.stdDeviation.y", keyframes: [{ time: 0, value: { type: "number" as const, value: 8 } }] },
+      ],
+    })).toThrow(/must share identical keyframes/);
+
+    const synced = {
+      ...base,
+      tracks: [track("primitives.blur1.stdDeviation.x", 4), track("primitives.blur1.stdDeviation.y", 4)],
+    };
+    expect(V2FilterSchema.parse(synced)).toMatchObject(synced);
+  });
 });

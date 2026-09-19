@@ -1032,4 +1032,109 @@ describe("Motion Protocol V2 schema", () => {
     ).toThrow();
   });
 
+  it("accepts animating gradient sub-properties by stop index and rejects a field the gradient type doesn't declare", () => {
+    const gradientLayer = {
+      ...RECTANGLE_PROJECT.layers[0],
+      style: {
+        fill: {
+          type: "linear-gradient" as const,
+          x1: 0,
+          y1: 0,
+          x2: 1,
+          y2: 0,
+          stops: [
+            { offset: 0, color: "#ff0000" },
+            { offset: 1, color: "#0000ff" },
+          ],
+        },
+      },
+      tracks: [
+        {
+          id: "stop-color",
+          path: "style.fill.stops.0.color",
+          keyframes: [{ time: 0, value: { type: "color" as const, value: [1, 0, 0, 1] } }],
+        },
+        {
+          id: "stop-offset",
+          path: "style.fill.stops.1.offset",
+          keyframes: [{ time: 0, value: { type: "number" as const, value: 1 } }],
+        },
+        {
+          id: "angle",
+          path: "style.fill.x2",
+          keyframes: [{ time: 0, value: { type: "number" as const, value: 1 } }],
+        },
+      ],
+    };
+    expect(MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [gradientLayer],
+    }).layers[0]?.tracks).toHaveLength(3);
+
+    expect(() => MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...gradientLayer,
+        // `radius` is a radial-gradient field, not linear-gradient.
+        tracks: [{ id: "bad", path: "style.fill.radius", keyframes: [{ time: 0, value: { type: "number" as const, value: 1 } }] }],
+      }],
+    })).toThrow(/does not identify an animatable property/);
+  });
+
+  it("accepts project-level def tracks (filter/mask/paintServer) sampled at absolute composition time", () => {
+    const withDefs = {
+      ...RECTANGLE_PROJECT,
+      filters: [{
+        id: "glow",
+        primitives: [{ id: "blur1", type: "feGaussianBlur" as const, stdDeviation: { x: 0, y: 0 } }],
+        // Isotropic blur/shadow requires x and y to animate in lockstep
+        // (see the "requires animating both x and y" check below).
+        tracks: [
+          { id: "blur-x", path: "primitives.blur1.stdDeviation.x", keyframes: [{ time: 0, value: { type: "number" as const, value: 0 } }] },
+          { id: "blur-y", path: "primitives.blur1.stdDeviation.y", keyframes: [{ time: 0, value: { type: "number" as const, value: 0 } }] },
+        ],
+      }],
+      masks: [{
+        id: "reveal",
+        width: 96,
+        children: [{ type: "rect" as const, x: 0, y: 0, width: 10, height: 10 }],
+        tracks: [{
+          id: "width",
+          path: "width",
+          keyframes: [{ time: 0, value: { type: "number" as const, value: 96 } }],
+        }],
+      }],
+      paintServers: [{
+        id: "sweep",
+        paint: {
+          type: "linear-gradient" as const,
+          stops: [{ offset: 0, color: "#ff0000" }, { offset: 1, color: "#0000ff" }],
+        },
+        tracks: [{
+          id: "stop-color",
+          path: "paint.stops.0.color",
+          keyframes: [{ time: 0, value: { type: "color" as const, value: [1, 0, 0, 1] } }],
+        }],
+      }],
+    };
+    const parsed = MotionProtocolV2Schema.parse(withDefs);
+    expect(parsed.filters?.[0]?.tracks).toHaveLength(2);
+    expect(parsed.masks?.[0]?.tracks).toHaveLength(1);
+    expect(parsed.paintServers?.[0]?.tracks).toHaveLength(1);
+
+    expect(() => MotionProtocolV2Schema.parse({
+      ...withDefs,
+      filters: [{ ...withDefs.filters[0], tracks: [{ id: "bad", path: "primitives.blur1.radius", keyframes: withDefs.filters[0].tracks[0]!.keyframes }] }],
+    })).toThrow(/does not identify an animatable property on filters/);
+
+    expect(() => MotionProtocolV2Schema.parse({
+      ...withDefs,
+      masks: [{ ...withDefs.masks[0], tracks: [{ id: "bad", path: "maskType", keyframes: withDefs.masks[0].tracks[0]!.keyframes }] }],
+    })).toThrow(/does not identify an animatable property on masks/);
+
+    expect(() => MotionProtocolV2Schema.parse({
+      ...withDefs,
+      paintServers: [{ ...withDefs.paintServers[0], tracks: [{ id: "bad", path: "paint.radius", keyframes: withDefs.paintServers[0].tracks[0]!.keyframes }] }],
+    })).toThrow(/does not identify an animatable property on paintServers/);
+  });
 });

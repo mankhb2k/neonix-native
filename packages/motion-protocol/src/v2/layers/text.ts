@@ -9,6 +9,7 @@ import {
   V2SvgLengthSchema,
 } from "../common";
 import { V2PaintSchema } from "../paint";
+import { V2TrackSchema } from "../animation";
 import { V2LayerBaseSchema } from "./base";
 
 const V2NfcTextSchema = z.string().refine(
@@ -214,6 +215,38 @@ export const V2TextSourceSchema = z
   })
   .strict();
 
+/**
+ * Authoring shorthand for a typewriter/stagger effect: expand at compile time
+ * into real per-character spans and id-addressed tracks (see
+ * `expandTextRangeSelectors` in `motion-compiler`), rather than requiring the
+ * author to hand-split spans and duplicate a track per character. `unit:
+ * "word"` is reserved but not yet implemented; the compiler fails closed with
+ * a diagnostic instead of silently ignoring it.
+ */
+export const V2TextRangeSelectorSchema = z
+  .object({
+    id: V2IdSchema,
+    unit: z.enum(["character", "word"]),
+    /** UTF-16 offsets into the layer's source text; "all" covers the whole source. */
+    range: z.union([
+      z.literal("all"),
+      V2TextRangeSchema,
+    ]),
+    stagger: z
+      .object({
+        perUnitDelayMs: V2NonNegativeNumberSchema,
+        direction: z.enum(["forward", "reverse"]).default("forward"),
+      })
+      .strict(),
+    /**
+     * Template track cloned once per unit. `path` is relative to the
+     * synthetic per-character span this selector generates (e.g.
+     * "fillOpacity"), not the layer-root `payload.chunks.spans.<id>.` form.
+     */
+    track: V2TrackSchema,
+  })
+  .strict();
+
 export const V2TextLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("text"),
   payload: z
@@ -222,6 +255,14 @@ export const V2TextLayerSchema = V2LayerBaseSchema.extend({
       /** Optional for backward compatibility; required when CSS text layout is authored. */
       layout: V2TextLayoutSchema.optional(),
       chunks: z.array(V2TextChunkSchema).min(1),
+      /**
+       * Authoring shorthand expanded at compile time into real per-character
+       * spans and tracks (see `expandTextRangeSelectors` in motion-compiler).
+       * Scoped under `payload` (not the layer root) so this cross-check can
+       * validate a selector's range against `source.text.length` in the same
+       * refinement that already validates chunk/span ranges here.
+       */
+      rangeSelectors: z.array(V2TextRangeSelectorSchema).max(32).optional(),
     })
     .strict()
     .superRefine((payload, ctx) => {
@@ -257,9 +298,15 @@ export const V2TextLayerSchema = V2LayerBaseSchema.extend({
           }
         }
       }
+      for (const [index, selector] of (payload.rangeSelectors ?? []).entries()) {
+        if (selector.range !== "all" && selector.range.end > sourceLength) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text range selector end exceeds source text", path: ["rangeSelectors", index, "range", "end"] });
+        }
+      }
     }),
 }).strict();
 
+export type V2TextRangeSelector = z.infer<typeof V2TextRangeSelectorSchema>;
 export type V2TextRange = z.infer<typeof V2TextRangeSchema>;
 export type V2TextFont = z.infer<typeof V2TextFontSchema>;
 export type V2TextDecorationStyle = z.infer<typeof V2TextDecorationStyleSchema>;

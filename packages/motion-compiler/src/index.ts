@@ -25,4 +25,9 @@ export {
 export {
   sampleMotionLayerAtTime,
   sampleMotionProtocolAtTime,
+  sampleMotionProjectDefsAtTime,
 } from "./animation/sampler";
+export {
+  expandTextRangeSelectors,
+  expandMotionProjectTextRangeSelectors,
+} from "./text/range-selectors";

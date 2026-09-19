@@ -421,7 +421,11 @@ export class MotionCompilerLoweringError extends Error {
       | "UNKNOWN_FILTER_REFERENCE"
       | "UNSUPPORTED_FILTER_GRAPH"
       | "UNSUPPORTED_FILTER_PRIMITIVE"
-      | "ANISOTROPIC_FILTER_UNSUPPORTED",
+      | "ANISOTROPIC_FILTER_UNSUPPORTED"
+      | "UNSUPPORTED_TEXT_RANGE_UNIT"
+      | "INVALID_TEXT_RANGE_TRACK_PATH"
+      | "TEXT_RANGE_SELECTOR_OUT_OF_BOUNDS"
+      | "UNSUPPORTED_MOTION_PATH_CONTOURS",
     message: string,
     readonly path: string,
   ) {
@@ -1037,6 +1041,17 @@ function isHiddenBackface(matrix: Matrix4, visibility: MotionProtocolV2["layers"
 function motionPathLocalMatrix(layer: MotionProtocolV2["layers"][number]): Matrix4 {
   const motion = layer.motion;
   if (!motion) return composeLocalMatrix4(layer.transform);
+  // Only the first contour is measured/sampled below; a compound path (more
+  // than one contour) would silently drop every subpath after the first
+  // instead of failing, so reject it explicitly until multi-contour path
+  // length composition is implemented.
+  if (motion.offsetPath.contours.length > 1) {
+    throw new MotionCompilerLoweringError(
+      "UNSUPPORTED_MOTION_PATH_CONTOURS",
+      `Motion path ${layer.id} has ${motion.offsetPath.contours.length} contours; only a single-contour offset-path is supported`,
+      `layers.${layer.id}.motion.offsetPath.contours`,
+    );
+  }
   const contour = motion.offsetPath.contours[0];
   if (!contour) throw new Error(`Motion path ${layer.id} has no contour`);
   const measured = measureContour(flattenPathContourAny(contour));

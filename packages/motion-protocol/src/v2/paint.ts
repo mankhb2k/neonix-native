@@ -9,6 +9,7 @@ import {
   V2SvgLengthSchema,
 } from "./common";
 import { V2PathContourSchema } from "./path-geometry";
+import { V2TrackListSchema } from "./animation";
 
 /** SVG 2D matrix: matrix(a b c d e f). */
 export const V2PaintTransformSchema = z
@@ -256,6 +257,8 @@ export const V2PaintServerDefinitionSchema = z
       V2GradientFillSchema,
       V2PatternFillSchema,
     ]),
+    /** Project-level animation, sampled at absolute composition time (no `timing.start`); see `sampleMotionProjectDefsAtTime`. */
+    tracks: V2TrackListSchema.optional(),
   })
   .strict();
 export const V2PaintServerListSchema = z

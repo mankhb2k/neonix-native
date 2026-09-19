@@ -6,9 +6,9 @@ import { V2AudioDomainSchema } from "./audio";
 import { V2LayerListSchema } from "./layers";
 import { V2MarkerListSchema } from "./markers";
 import { V2ClipPathListSchema } from "./clip";
-import { V2MaskListSchema } from "./mask";
-import { V2FilterListSchema } from "./filter";
-import { V2PaintServerListSchema, type V2Paint, type V2PatternContent } from "./paint";
+import { V2MaskListSchema, type V2Mask } from "./mask";
+import { V2FilterListSchema, type V2Filter } from "./filter";
+import { V2PaintServerListSchema, type V2Paint, type V2PaintServerDefinition, type V2PatternContent } from "./paint";
 import type { MotionProtocolV2 } from "./types";
 
 const COMMON_NUMBER_PATHS = new Set([
@@ -43,6 +43,38 @@ const COMMON_ENUM_PATHS = new Set([
 
 const COMMON_BOOLEAN_PATHS = new Set(["enabled"]);
 
+const GRADIENT_TYPES = new Set(["linear-gradient", "radial-gradient", "conic-gradient"]);
+
+/**
+ * Resolves an animatable field inside a gradient paint object (a linear,
+ * radial or conic gradient — see `V2GradientFillSchema`). Reused for both a
+ * layer's `style.fill`/`style.stroke` and a project paint-server's `paint`,
+ * since both hold the exact same gradient shape. Gradient stops have no id
+ * (see `V2GradientStopSchema`), so they are addressed by array index; the
+ * generic `assignPath` writer in the compiler's sampler already resolves a
+ * numeric segment after an array, so no sampler changes are needed here.
+ */
+function gradientFieldKind(paint: unknown, field: string): Set<string> | null {
+  if (typeof paint !== "object" || paint === null) return null;
+  const record = paint as Record<string, unknown>;
+  if (typeof record.type !== "string" || !GRADIENT_TYPES.has(record.type)) return null;
+
+  const stopMatch = /^stops\.(\d+)\.(color|offset|stopOpacity)$/.exec(field);
+  if (stopMatch) {
+    const stops = record.stops;
+    const index = Number(stopMatch[1]);
+    const stopField = stopMatch[2]!;
+    if (!Array.isArray(stops) || !stops[index] || typeof stops[index] !== "object" || !(stopField in stops[index])) return null;
+    return stopField === "color" ? new Set(["color"]) : new Set(["number"]);
+  }
+  // Every other animatable gradient field (angle/x1/y1/x2/y2, cx/cy/radius/
+  // radiusX/radiusY/fx/fy/fr, from) is a plain finite number already present
+  // on the currently-authored gradient object; a field the current gradient
+  // type does not declare (e.g. `radius` on a conic gradient) is simply
+  // absent here rather than needing a per-type allowlist.
+  return field in record && typeof record[field] === "number" ? new Set(["number"]) : null;
+}
+
 function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]): Set<string> | null {
   if (COMMON_NUMBER_PATHS.has(path)) return new Set(["number"]);
   if (COMMON_ENUM_PATHS.has(path)) return new Set(["enum"]);
@@ -72,7 +104,7 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
       const span = layer.payload.chunks.flatMap((chunk) => chunk.spans).find((candidate) => candidate.id === segments[3]);
       if (!span) return null;
       const field = segments.slice(4).join(".");
-      const spanNumberFields = ["letterSpacing", "wordSpacing", "strokeWidth", "strokeOpacity", "textLength"];
+      const spanNumberFields = ["letterSpacing", "wordSpacing", "strokeWidth", "strokeOpacity", "textLength", "fillOpacity"];
       if (spanNumberFields.includes(field)) return new Set(["number"]);
       if (field === "fill" || field === "stroke") return new Set(["color"]);
       if (field === "font.size") return new Set(["number"]);
@@ -96,6 +128,13 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
       ? new Set(["style.fill", "style.stroke"])
       : new Set<string>();
   if (colorPaths.has(path)) return new Set(["color"]);
+
+  if ((layer.type === "shape" || layer.type === "path") && (path.startsWith("style.fill.") || path.startsWith("style.stroke."))) {
+    const paintProperty = path.startsWith("style.fill.") ? "fill" : "stroke";
+    const field = path.slice(`style.${paintProperty}.`.length);
+    const kind = gradientFieldKind(layer.style[paintProperty], field);
+    if (kind) return kind;
+  }
 
   const enumPaths = layer.type === "image"
       ? new Set(["payload.fit", "payload.preserveAspectRatio.align", "payload.preserveAspectRatio.meetOrSlice", "payload.imageRendering"])
@@ -131,6 +170,71 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
   }
   if (effect.type === "shadow" && effectField === "inset") return new Set(["boolean"]);
   return null;
+}
+
+/**
+ * Animatable fields for a project-level SVG filter definition (`V2Filter`).
+ * A filter has no `timing.start`; its tracks are sampled at absolute
+ * composition time by `sampleMotionProjectDefsAtTime`, not this schema.
+ */
+function filterTrackValueKinds(filter: V2Filter, path: string): Set<string> | null {
+  const segments = path.split(".");
+  if (segments[0] !== "primitives" || segments.length < 3) return null;
+  const primitive = filter.primitives.find((candidate) => candidate.id === segments[1]);
+  if (!primitive) return null;
+  const field = segments.slice(2).join(".");
+  const numberFieldsByType: Record<string, readonly string[]> = {
+    feGaussianBlur: ["stdDeviation.x", "stdDeviation.y"],
+    feDropShadow: ["dx", "dy", "stdDeviation.x", "stdDeviation.y", "floodOpacity"],
+    feFlood: ["opacity"],
+    feOffset: ["dx", "dy"],
+    feColorMatrix: (primitive.type === "feColorMatrix" ? (primitive.values ?? []).map((_, i) => `values.${i}`) : []),
+  };
+  if (numberFieldsByType[primitive.type]?.includes(field)) return new Set(["number"]);
+  if (primitive.type === "feDropShadow" && field === "floodColor") return new Set(["color"]);
+  if (primitive.type === "feFlood" && field === "color") return new Set(["color"]);
+  return null;
+}
+
+/** Animatable fields for a project-level mask definition (`V2Mask`). */
+function maskTrackValueKinds(mask: V2Mask, path: string): Set<string> | null {
+  const numberPaths = new Set(["x", "y", "width", "height", "image.x", "image.y", "image.width", "image.height", "image.opacity"]);
+  if (!numberPaths.has(path)) return null;
+  // `x`/`y`/`width`/`height` accept a plain number or an explicit
+  // `{ value, unit: "percent" }` object (V2MaskLengthSchema); only the plain
+  // number form is animatable through the generic path writer today.
+  const value = path.split(".").reduce<unknown>((current, segment) => (
+    current && typeof current === "object" ? (current as Record<string, unknown>)[segment] : undefined
+  ), mask);
+  return typeof value === "number" ? new Set(["number"]) : null;
+}
+
+/** Animatable fields for a project-level paint-server definition, reusing the gradient sub-property rules from a layer's `style.fill`. */
+function paintServerTrackValueKinds(definition: V2PaintServerDefinition, path: string): Set<string> | null {
+  if (!path.startsWith("paint.")) return null;
+  return gradientFieldKind(definition.paint, path.slice("paint.".length));
+}
+
+/** Validates every def collection's `tracks` (filters/masks/paintServers) against its own field allowlist, reporting under the given JSON path prefix. */
+function validateDefTracks<T extends { id: string; tracks?: readonly { id: string; path: string; keyframes: readonly { time: number; value: { type: string } }[] }[] }>(
+  definitions: readonly T[] | undefined,
+  collectionPath: string,
+  valueKinds: (definition: T, path: string) => Set<string> | null,
+  ctx: z.RefinementCtx,
+): void {
+  (definitions ?? []).forEach((definition, definitionIndex) => {
+    (definition.tracks ?? []).forEach((track, trackIndex) => {
+      const allowedKinds = valueKinds(definition, track.path);
+      const path = [collectionPath, definitionIndex, "tracks", trackIndex, "path"];
+      if (!allowedKinds) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Track path does not identify an animatable property on ${collectionPath}[${definitionIndex}] (${definition.id}): ${track.path}`, path });
+        return;
+      }
+      if (track.keyframes.some((keyframe) => !allowedKinds.has(keyframe.value.type))) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Track value type does not match property path: ${track.path}`, path: [collectionPath, definitionIndex, "tracks", trackIndex, "keyframes"] });
+      }
+    });
+  });
 }
 
 export const MotionProtocolV2Schema = z
@@ -408,6 +512,9 @@ export const MotionProtocolV2Schema = z
         }
       }
     }
+    validateDefTracks(project.filters, "filters", filterTrackValueKinds, ctx);
+    validateDefTracks(project.masks, "masks", maskTrackValueKinds, ctx);
+    validateDefTracks(project.paintServers, "paintServers", paintServerTrackValueKinds, ctx);
   }) as z.ZodType<MotionProtocolV2>;
 
 export type { MotionProtocolV2 } from "./types";

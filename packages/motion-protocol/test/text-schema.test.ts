@@ -206,4 +206,52 @@ describe("Protocol V2 semantic SVG text", () => {
       payload: { source: { text: "A" }, layout: {} },
     })).toThrow();
   });
+
+  it("accepts a typewriter rangeSelector template (expanded later by the compiler, not the schema)", () => {
+    const layer = {
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        rangeSelectors: [
+          {
+            id: "typewriter",
+            unit: "character" as const,
+            range: "all" as const,
+            stagger: { perUnitDelayMs: 40, direction: "forward" as const },
+            track: {
+              id: "reveal",
+              path: "fillOpacity",
+              keyframes: [
+                { time: 0, value: { type: "number" as const, value: 0 } },
+                { time: 50, value: { type: "number" as const, value: 1 } },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(V2TextLayerSchema.parse(layer).payload.rangeSelectors).toHaveLength(1);
+  });
+
+  it("rejects a rangeSelector range that exceeds the source text", () => {
+    expect(() => V2TextLayerSchema.parse({
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        rangeSelectors: [
+          {
+            id: "typewriter",
+            unit: "character" as const,
+            range: { start: 0, end: 99 },
+            stagger: { perUnitDelayMs: 40, direction: "forward" as const },
+            track: {
+              id: "reveal",
+              path: "fillOpacity",
+              keyframes: [{ time: 0, value: { type: "number" as const, value: 1 } }],
+            },
+          },
+        ],
+      },
+    })).toThrow(/exceeds source text/);
+  });
 });

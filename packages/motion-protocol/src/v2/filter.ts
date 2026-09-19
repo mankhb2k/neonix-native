@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { V2ColorSchema, V2FiniteNumberSchema, V2IdSchema } from "./common";
 import { V2BlendModeSchema } from "./blend";
+import { V2TrackListSchema } from "./animation";
 
 /** SVG filter length. Bare numbers are kept as user-space values. */
 export const V2FilterLengthSchema = z.union([
@@ -216,6 +217,13 @@ export const V2FilterSchema = z
     primitiveUnits: V2FilterUnitsSchema.default("userSpaceOnUse"),
     colorInterpolationFilters: V2FilterColorInterpolationSchema.default("linearRGB"),
     primitives: z.array(V2FilterPrimitiveSchema).min(1).max(128),
+    /**
+     * Project-level animation. A filter has no `timing.start` like a layer,
+     * so its track keyframe times are sampled against the absolute
+     * composition time (see `sampleMotionProjectDefsAtTime`), not a
+     * layer-relative local time.
+     */
+    tracks: V2TrackListSchema.optional(),
   })
   .strict()
   .superRefine((filter, ctx) => {
@@ -238,8 +246,30 @@ export const V2FilterSchema = z
       if (primitive.type === "feConvolveMatrix" && primitive.kernelMatrix.length !== primitive.order.x * primitive.order.y) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "feConvolveMatrix kernelMatrix length must match order", path: ["primitives", index, "kernelMatrix"] });
       }
+      // The current runtime only executes an isotropic blur/shadow radius
+      // (see `isotropicFilterRadius` in motion-compiler, which throws
+      // ANISOTROPIC_FILTER_UNSUPPORTED once x !== y). Animating only one axis
+      // would make that throw depend on the sampled time instead of failing
+      // deterministically at parse time, so require both axes to be animated
+      // in exact lockstep whenever either one is.
+      if (primitive.type === "feGaussianBlur" || primitive.type === "feDropShadow") {
+        const xTrack = filter.tracks?.find((track) => track.path === `primitives.${primitive.id}.stdDeviation.x`);
+        const yTrack = filter.tracks?.find((track) => track.path === `primitives.${primitive.id}.stdDeviation.y`);
+        if (Boolean(xTrack) !== Boolean(yTrack)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Isotropic stdDeviation requires animating both x and y together: ${primitive.id}`, path: ["primitives", index, "stdDeviation"] });
+        } else if (xTrack && yTrack && !sameNumericKeyframes(xTrack.keyframes, yTrack.keyframes)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `stdDeviation.x and stdDeviation.y tracks must share identical keyframes for isotropic blur/shadow: ${primitive.id}`, path: ["primitives", index, "stdDeviation"] });
+        }
+      }
     });
   });
+
+function sameNumericKeyframes(left: readonly { time: number; value: { type: string; value?: unknown } }[], right: readonly { time: number; value: { type: string; value?: unknown } }[]): boolean {
+  return left.length === right.length && left.every((keyframe, index) => {
+    const other = right[index]!;
+    return keyframe.time === other.time && keyframe.value.type === "number" && other.value.type === "number" && keyframe.value.value === other.value.value;
+  });
+}
 
 export const V2FilterListSchema = z
   .array(V2FilterSchema)
