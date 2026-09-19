@@ -210,6 +210,43 @@ function applyTrackValue(layer: V2Layer, path: string, value: unknown): V2Layer 
     if (!effectId || !("effects" in layer) || !layer.effects) return layer;
     return { ...layer, effects: layer.effects.map((effect) => effect.id === effectId ? assignPath(effect, segments.slice(2), value) : effect) } as V2Layer;
   }
+  if (segments[0] === "backdropEffects") {
+    const effectId = segments[1];
+    if (!effectId || !layer.backdropEffects) return layer;
+    return { ...layer, backdropEffects: layer.backdropEffects.map((effect) => effect.id === effectId ? assignPath(effect, segments.slice(2), value) : effect) } as V2Layer;
+  }
+  // Text spans/chunks are addressed by id, not array index, so the authoring
+  // path omits the chunk index entirely (`payload.chunks.spans.<spanId>...`).
+  // The generic writer below cannot resolve a non-numeric segment after an
+  // array; find the owning chunk/span explicitly and rewrite only that span.
+  if (layer.type === "text" && segments[0] === "payload" && segments[1] === "chunks" && segments[2] === "spans") {
+    const spanId = segments[3];
+    if (!spanId) return layer;
+    const rest = segments.slice(4);
+    let found = false;
+    const chunks = layer.payload.chunks.map((chunk) => {
+      if (!chunk.spans.some((span) => span.id === spanId)) return chunk;
+      found = true;
+      return { ...chunk, spans: chunk.spans.map((span) => span.id === spanId ? assignPath(span, rest, value) : span) };
+    });
+    if (!found) return layer;
+    return { ...layer, payload: { ...layer.payload, chunks } } as V2Layer;
+  }
+  // Chunks are addressed by their own id directly (not a literal "spans"
+  // segment); this must run after the span branch above so a chunk id can
+  // never collide with the reserved "spans" literal.
+  if (layer.type === "text" && segments[0] === "payload" && segments[1] === "chunks" && segments[2] !== undefined) {
+    const chunkId = segments[2];
+    const rest = segments.slice(3);
+    let found = false;
+    const chunks = layer.payload.chunks.map((chunk) => {
+      if (chunk.id !== chunkId) return chunk;
+      found = true;
+      return assignPath(chunk, rest, value) as typeof chunk;
+    });
+    if (!found) return layer;
+    return { ...layer, payload: { ...layer.payload, chunks } } as V2Layer;
+  }
   return assignPath(layer, segments, value) as V2Layer;
 }
 

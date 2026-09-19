@@ -10,7 +10,6 @@ import {
 } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
-import { V2EffectListSchema } from "../effects";
 
 const V2NfcTextSchema = z.string().refine(
   (value) => value === value.normalize("NFC"),
@@ -217,7 +216,6 @@ export const V2TextSourceSchema = z
 
 export const V2TextLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("text"),
-  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       source: V2TextSourceSchema,

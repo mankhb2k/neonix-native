@@ -297,7 +297,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "cubic contour"
     ],
     "hint": "An svg container becomes a group and its path child lowers to a Neonix JSON V2 path with fill and stroke semantics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags/svg-path.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/path.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -584,7 +584,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "path"
     ],
     "hint": "SVG fill is lowered to path style, fill-opacity becomes alpha, and evenodd preserves the hole between nested contours.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/svg-fill.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/fill.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -606,7 +606,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "stroke-linecap"
     ],
     "hint": "An open SVG path isolates stroke paint, width, opacity, join and cap semantics without a fill pass.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/svg-stroke.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/stroke.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -628,7 +628,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "stroke"
     ],
     "hint": "A closed path keeps dashed stroke geometry, dash offset and explicit stroke-before-fill paint order in the lowered path style.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/svg-dash-order.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/dash-order.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1190,7 +1190,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "path layers"
     ],
     "hint": "SVG containers remain groups while visual primitives are normalized to canonical path layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags/svg-lowering.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/lowering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1267,7 +1267,7 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
       "path layers"
     ],
     "hint": "Nested SVG groups preserve the parent coordinate space while path, ellipse and polyline primitives lower to independent Protocol path layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/tags/svg-primitive-matrix.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/primitive-matrix.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2737,7 +2737,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "spatial effect"
     ],
     "hint": "CSS blur lowers to an ordered blur operator over the element surface without changing its layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2757,7 +2757,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color-adjust"
     ],
     "hint": "Brightness is lowered to the existing color-adjust atom as an exact channel multiplication for the supported range.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-brightness.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/brightness.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2777,7 +2777,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color-adjust"
     ],
     "hint": "Contrast lowers to a color-adjust operator and remains in the authored filter position.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-contrast.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/contrast.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2797,7 +2797,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color matrix"
     ],
     "hint": "Grayscale lowers to a runtime color-matrix operator with its own input and output surface.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-grayscale.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/grayscale.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2817,7 +2817,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color matrix"
     ],
     "hint": "Sepia is represented as an interpolated color matrix rather than a backend-specific shader shortcut.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-sepia.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/sepia.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2837,7 +2837,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "color matrix"
     ],
     "hint": "Invert lowers to the ordered color-matrix path and keeps partial amounts deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-invert.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/invert.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2858,7 +2858,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "separate alpha stages"
     ],
     "hint": "filter:opacity() is an ordered source-surface alpha operator; CSS opacity remains the layer alpha and is not merged into it.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-opacity-layer-opacity.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/opacity-layer-opacity.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2878,7 +2878,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "alpha shadow"
     ],
     "hint": "drop-shadow() uses the element alpha silhouette, unlike box-shadow which uses the box geometry atom.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/drop-shadow.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2899,7 +2899,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "zero blur"
     ],
     "hint": "A zero-blur drop shadow still follows the rounded alpha silhouette and keeps the filter separate from layer opacity.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-alpha.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/drop-shadow-alpha.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2920,7 +2920,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "blur"
     ],
     "hint": "The blur-only drop shadow uses the element alpha silhouette rather than the rectangular box geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/drop-shadow-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2941,7 +2941,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "offset"
     ],
     "hint": "The offset-only drop shadow makes the alpha-source translation observable without changing the blur radius.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-offset.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/drop-shadow-offset.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2962,7 +2962,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "ordered list"
     ],
     "hint": "Consecutive color filters remain separate ordered atoms; a backend may fuse only when that preserves the same order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-color-chain.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/color-chain.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2983,7 +2983,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "spatial order"
     ],
     "hint": "The blur remains between the two color operators; it is never reordered into a fused color-only pass.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-blur-between-colors.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/blur-between-colors.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3003,7 +3003,7 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
       "source/output surfaces"
     ],
     "hint": "The drop shadow samples the preceding blurred surface, proving that spatial filter order is preserved end to end.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/filter-drop-shadow-after-blur.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/effect/drop-shadow-after-blur.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3094,6 +3094,26 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
       "height": 1080,
       "fps": 30,
       "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.blend-mode-matrix",
+    "phase": "P2.6",
+    "topic": "Paint",
+    "label": "Paint / blend mode matrix (13 modes)",
+    "properties": [
+      "darken", "color-burn", "lighten", "color-dodge", "overlay",
+      "soft-light", "hard-light", "difference", "exclusion",
+      "hue", "saturation", "color", "luminosity"
+    ],
+    "hint": "Every mix-blend-mode value not already covered by the multiply/screen fixtures, laid out as a grid over a shared gradient backdrop so each mode's compositing math stays independently comparable.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/blend-mode-matrix.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#0f172a",
       "colorSpace": "srgb"
     }
   }
@@ -3929,6 +3949,63 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
     ],
     "hint": "Jump-start advances to the first plateau at the first instant of the active interval.",
     "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-start.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.motion.easing-steps-jump-none",
+    "phase": "P3",
+    "topic": "Motion & animation",
+    "label": "Motion / easing steps jump-none",
+    "properties": [
+      "animation-timing-function: steps(5, jump-none)",
+      "no start or end plateau"
+    ],
+    "hint": "Jump-none omits both the first and last plateau, so the value never holds at the boundary steps.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-jump-none.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.motion.easing-steps-jump-both",
+    "phase": "P3",
+    "topic": "Motion & animation",
+    "label": "Motion / easing steps jump-both",
+    "properties": [
+      "animation-timing-function: steps(5, jump-both)",
+      "extra plateau at both ends"
+    ],
+    "hint": "Jump-both adds a plateau at both boundaries, one more discrete step than jump-start or jump-end alone.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-jump-both.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.motion.easing-ease",
+    "phase": "P3",
+    "topic": "Motion & animation",
+    "label": "Motion / easing ease keyword",
+    "properties": [
+      "animation-timing-function: ease",
+      "bare keyword easing"
+    ],
+    "hint": "The bare ease keyword resolves to its canonical cubic-bezier control points, distinct from an author-specified cubic-bezier() function.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-ease.html",
     "composition": {
       "width": 1920,
       "height": 1080,

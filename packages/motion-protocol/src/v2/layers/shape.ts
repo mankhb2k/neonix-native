@@ -10,7 +10,6 @@ import {
 } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
-import { V2EffectListSchema } from "../effects";
 import { V2MarkerReferenceSchema } from "../markers";
 
 const V2ShapePointSchema = z.object({
@@ -23,7 +22,6 @@ export type { V2GradientFill, V2GradientStop, V2PatternFill } from "../paint";
 
 export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("shape"),
-  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       shape: z.enum(["rectangle", "circle", "ellipse", "line", "polyline", "polygon"]),

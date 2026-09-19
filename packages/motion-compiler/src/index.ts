@@ -6,6 +6,7 @@
  */
 export {
   compileVisualProject,
+  MotionCompilerLoweringError,
   type CompileProtocolOptions,
 } from "./compiler";
 export {

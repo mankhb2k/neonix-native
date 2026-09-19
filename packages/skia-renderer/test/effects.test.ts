@@ -48,6 +48,12 @@ function createKit() {
       MakeBlend(mode: unknown, background: unknown, foreground: unknown) {
         return makeFilter("blend", undefined, { mode, background, foreground });
       },
+      MakeDilate(radiusX: number, radiusY: number, input?: unknown) {
+        return makeFilter("dilate", input, { radiusX, radiusY });
+      },
+      MakeErode(radiusX: number, radiusY: number, input?: unknown) {
+        return makeFilter("erode", input, { radiusX, radiusY });
+      },
     },
   } as unknown as SkiaCanvasKit;
   return { kit, filters };
@@ -221,5 +227,100 @@ describe("Skia CSS effect lowering", () => {
     expect(result.supported).toBe(true);
     expect(result.filter).toBeTruthy();
     expect(filters.every((filter) => filter.kind === "color-filter")).toBe(true);
+  });
+
+  // Regression: `noise` combined with any other op used to make the whole
+  // program report `supported: false`, silently dropping every effect (the
+  // layer painted with no filter at all, with no diagnostic beyond the
+  // generic "effect unsupported" replay warning).
+  it("keeps a blur usable when a noise op shares the same effect program", () => {
+    const { kit } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "blur", kind: "blur", input: "source", output: "effect:blur", radius: 8 },
+        { id: "grain", kind: "noise", input: "effect:blur", output: "effect:grain", scale: 4, amount: 0.3, opacity: 1, seed: 1 },
+      ],
+      output: "effect:grain",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    expect(result.filter).toBeTruthy();
+  });
+
+  it("keeps a color-adjust usable when noise runs first in the authored order", () => {
+    const { kit } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "grain", kind: "noise", input: "source", output: "effect:grain", scale: 4, amount: 0.3, opacity: 1, seed: 1 },
+        { id: "adjust", kind: "color-adjust", input: "effect:grain", output: "effect:adjust", brightness: 0.1, contrast: 1, saturation: 1, hueRotate: 0 },
+      ],
+      output: "effect:adjust",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    expect(result.filter).toBeTruthy();
+  });
+
+  it("still recognizes a noise-only program as supported with no filter", () => {
+    const { kit } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [{ id: "grain", kind: "noise", input: "source", output: "effect:grain", scale: 4, amount: 0.3, opacity: 1, seed: 1 }],
+      output: "effect:grain",
+      requiresOffscreen: true,
+    };
+    expect(effectFilterFor(kit, program)).toEqual({ filter: null, supported: true });
+  });
+
+  // Regression: `shadow.spread` was schema-legal but the runtime backing it
+  // threw before this file's pattern matcher ever ran. This exercises the
+  // Skia-side dilate/erode wiring for the common single-shadow-with-offset shape.
+  it("dilates the silhouette for a box shadow with positive spread", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "shadow:alpha", kind: "alpha-mask", input: "source", output: "effect:shadow:alpha", source: "box" },
+        { id: "shadow:spread", kind: "morphology", input: "effect:shadow:alpha", output: "effect:shadow:spread", operator: "dilate", radius: 8 },
+        { id: "shadow:blur", kind: "blur", input: "effect:shadow:spread", output: "effect:shadow:blur", radius: 12 },
+        { id: "shadow:tint", kind: "tint", input: "effect:shadow:blur", output: "effect:shadow:tint", color: "#000000", opacity: 1 },
+        { id: "shadow:offset", kind: "offset", input: "effect:shadow:tint", output: "effect:shadow:offset", x: 4, y: 4 },
+        { id: "shadow:composite", kind: "composite", backdrop: "effect:shadow:offset", source: "source", output: "effect:shadow", mode: "source-over" },
+      ],
+      output: "effect:shadow",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    expect(result.filter).toBeTruthy();
+    expect(filters.some((filter) => filter.kind === "dilate" && filter.meta?.radiusX === 8)).toBe(true);
+  });
+
+  it("erodes the silhouette for a box shadow with negative spread", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "shadow:alpha", kind: "alpha-mask", input: "source", output: "effect:shadow:alpha", source: "box" },
+        { id: "shadow:spread", kind: "morphology", input: "effect:shadow:alpha", output: "effect:shadow:spread", operator: "erode", radius: 5 },
+        { id: "shadow:blur", kind: "blur", input: "effect:shadow:spread", output: "effect:shadow:blur", radius: 12 },
+        { id: "shadow:tint", kind: "tint", input: "effect:shadow:blur", output: "effect:shadow:tint", color: "#000000", opacity: 1 },
+        { id: "shadow:offset", kind: "offset", input: "effect:shadow:tint", output: "effect:shadow:offset", x: 0, y: 0 },
+        { id: "shadow:composite", kind: "composite", backdrop: "effect:shadow:offset", source: "source", output: "effect:shadow", mode: "source-over" },
+      ],
+      output: "effect:shadow",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    expect(filters.some((filter) => filter.kind === "erode" && filter.meta?.radiusX === 5)).toBe(true);
   });
 });

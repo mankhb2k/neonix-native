@@ -76,10 +76,10 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(6);
     expect(HTML_COMPILER_PAINT_PHASE2_5_CASES).toHaveLength(14);
-    expect(HTML_COMPILER_PAINT_PHASE2_6_CASES).toHaveLength(4);
+    expect(HTML_COMPILER_PAINT_PHASE2_6_CASES).toHaveLength(5);
     expect(HTML_COMPILER_PAINT_PHASE2_7_CASES).toHaveLength(8);
     expect(HTML_COMPILER_PAINT_PHASE2_8_CASES).toHaveLength(5);
-    expect(HTML_COMPILER_MOTION_PHASE3_CASES).toHaveLength(43);
+    expect(HTML_COMPILER_MOTION_PHASE3_CASES).toHaveLength(46);
     expect(HTML_COMPILER_PERSPECTIVE_PHASE5_CASES).toHaveLength(13);
     expect(HTML_COMPILER_PERSPECTIVE_PHASE6_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PERSPECTIVE_PHASE7_CASES).toHaveLength(12);

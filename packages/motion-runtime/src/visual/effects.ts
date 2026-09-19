@@ -49,10 +49,8 @@ export function buildRuntimeEffectProgram(
   let previousEffectWasShadow = false;
   for (const effect of effects) {
     if (effect.type === "shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") {
-      if (effect.type === "shadow" && effect.spread !== 0) {
-        throw new Error(`Runtime shadow spread is not lowered yet: ${effect.id}`);
-      }
       const alpha = `effect:${effect.id}:alpha`;
+      const spread = `effect:${effect.id}:spread`;
       const offset = `effect:${effect.id}:offset`;
       const blurred = `effect:${effect.id}:blur`;
       const inner = `effect:${effect.id}:inner-alpha`;
@@ -61,6 +59,7 @@ export function buildRuntimeEffectProgram(
       const alphaInput = previousEffectWasShadow ? RUNTIME_EFFECT_SOURCE_SURFACE : input;
       const isInnerGlow = effect.type === "inner-glow" || (effect.type === "shadow" && effect.inset);
       const hasInsetOffset = effect.type === "shadow" && effect.inset && (effect.offset.x !== 0 || effect.offset.y !== 0);
+      const hasSpread = effect.type === "shadow" && effect.spread !== 0;
       ops.push(
         // Consecutive comma-separated shadows all use the owner's silhouette.
         // A shadow after another spatial/color filter instead uses that
@@ -73,21 +72,35 @@ export function buildRuntimeEffectProgram(
           ...(effect.type === "shadow" ? { source: effect.source } : {}),
         },
       );
+      // CSS box-shadow spread expands (positive) or contracts (negative) the
+      // silhouette before it is blurred. Alpha shadows never carry spread
+      // (schema forces it to 0), so this only ever applies to box shadows.
+      if (hasSpread && effect.type === "shadow") {
+        ops.push({
+          id: `${effect.id}:spread`,
+          kind: "morphology",
+          input: alpha,
+          output: spread,
+          operator: effect.spread > 0 ? "dilate" : "erode",
+          radius: Math.abs(effect.spread),
+        });
+      }
+      const silhouette = hasSpread ? spread : alpha;
       if (hasInsetOffset) {
         // CSS translates the inset shadow silhouette before it is blurred.
         // Keep the unshifted alpha as inner-alpha's clip boundary so the glow
         // remains inside the original box.
-        ops.push({ id: `${effect.id}:offset`, kind: "offset", input: alpha, output: offset, x: effect.offset.x, y: effect.offset.y });
+        ops.push({ id: `${effect.id}:offset`, kind: "offset", input: silhouette, output: offset, x: effect.offset.x, y: effect.offset.y });
       }
       ops.push({
         id: `${effect.id}:blur`,
         kind: "blur",
-        input: hasInsetOffset ? offset : alpha,
+        input: hasInsetOffset ? offset : silhouette,
         output: blurred,
         radius: effect.type === "shadow" ? effect.blur : effect.radius,
       });
       if (isInnerGlow) {
-        ops.push({ id: `${effect.id}:inner`, kind: "inner-alpha", source: alpha, blurred, output: inner });
+        ops.push({ id: `${effect.id}:inner`, kind: "inner-alpha", source: silhouette, blurred, output: inner });
       }
       ops.push({
         id: `${effect.id}:tint`,

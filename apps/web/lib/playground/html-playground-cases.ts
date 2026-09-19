@@ -22,7 +22,8 @@ export type HtmlPlaygroundCaseGroup =
   | "media"
   | "opacity"
   | "transform"
-  | "neonix";
+  | "neonix"
+  | "svg";
 
 export type HtmlPlaygroundCase = {
   id: string;
@@ -49,6 +50,7 @@ export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
   "opacity",
   "transform",
   "neonix",
+  "svg",
 ];
 
 export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, string> = {
@@ -66,6 +68,7 @@ export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, strin
   opacity: "Opacity",
   transform: "Transform",
   neonix: "Neonix",
+  svg: "SVG",
 };
 
 const HTML_PLAYGROUND_GROUP_SET: ReadonlySet<string> = new Set(HTML_PLAYGROUND_GROUP_ORDER);

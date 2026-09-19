@@ -107,6 +107,7 @@ export function effectFilterExpansionPadding(program: EffectProgram): number {
   if (!program) return 0;
   let blurPad = 0;
   let offsetPad = 0;
+  let morphologyPad = 0;
   const usesInsetAlpha = program.ops.some((op) => op.kind === "inner-alpha");
   for (const op of program.ops) {
     if (op.kind === "blur") {
@@ -114,9 +115,12 @@ export function effectFilterExpansionPadding(program: EffectProgram): number {
       blurPad = Math.max(blurPad, Math.ceil(sigma * 3 + 1));
     } else if (op.kind === "offset") {
       offsetPad = Math.max(offsetPad, Math.ceil(Math.max(Math.abs(op.x), Math.abs(op.y))));
+    } else if (op.kind === "morphology" && op.operator === "dilate") {
+      // Erode only shrinks the silhouette, so it needs no extra padding.
+      morphologyPad = Math.max(morphologyPad, Math.ceil(op.radius));
     }
   }
-  return blurPad + offsetPad;
+  return blurPad + offsetPad + morphologyPad;
 }
 
 function makeShadowFilter(
@@ -164,6 +168,18 @@ function makeOffsetFilter(
     { filter: kit.FilterMode?.Linear ?? 1, mipmap: kit.MipmapMode?.None ?? 0 },
     null,
   );
+}
+
+/** CSS box-shadow spread: dilate the silhouette outward (positive) or erode it inward (negative). */
+function makeMorphologyFilter(
+  kit: SkiaCanvasKit,
+  op: Extract<RuntimeEffectOp, { kind: "morphology" }>,
+  input: SkiaImageFilter | null = null,
+): SkiaImageFilter | null {
+  if (op.radius === 0) return input;
+  return op.operator === "dilate"
+    ? kit.ImageFilter.MakeDilate?.(op.radius, op.radius, input) ?? null
+    : kit.ImageFilter.MakeErode?.(op.radius, op.radius, input) ?? null;
 }
 
 function matchEffectGraph(program: NonNullable<EffectProgram>, kinds: string[]): boolean {
@@ -340,16 +356,41 @@ function makeMixedBoxShadowFilter(
       );
 }
 
-export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): EffectFilterResult {
-  if (!program) return { filter: null, supported: true };
+/**
+ * Noise is applied to the rasterized layer by the Skia backend as a separate
+ * CPU pass after readback (see `applyNoise` in backend.ts); it never
+ * participates in the ImageFilter graph. Strip every noise op out of the
+ * program before pattern-matching the rest, bypassing its input/output link
+ * so a downstream op that read the noise op's surface now reads straight
+ * through to what fed the noise op. This means noise's authored position
+ * relative to other effects is not preserved (it is always effectively a
+ * final full-layer pass) but the remaining effects are no longer dropped.
+ */
+function stripNoiseOps(program: NonNullable<EffectProgram>): NonNullable<EffectProgram> {
+  const noiseOps = program.ops.filter((op): op is Extract<RuntimeEffectOp, { kind: "noise" }> => op.kind === "noise");
+  if (noiseOps.length === 0) return program;
+  const bypass = new Map(noiseOps.map((op) => [op.output, op.input]));
+  const remap = (surface: string): string => bypass.get(surface) ?? surface;
+  const ops = program.ops
+    .filter((op) => op.kind !== "noise")
+    .map((op) => {
+      if (op.kind === "composite") return { ...op, backdrop: remap(op.backdrop), source: remap(op.source) };
+      if (op.kind === "inner-alpha") return { ...op, source: remap(op.source), blurred: remap(op.blurred) };
+      return { ...op, input: remap(op.input) };
+    });
+  return { ...program, ops, output: remap(program.output) };
+}
+
+export function effectFilterFor(kit: SkiaCanvasKit, fullProgram: EffectProgram): EffectFilterResult {
+  if (!fullProgram) return { filter: null, supported: true };
+  const program = stripNoiseOps(fullProgram);
+  if (program.ops.length === 0) return { filter: null, supported: true };
   const ops = program.ops;
-  // Noise is applied to the rasterized layer by the Skia backend after
-  // readback; recognizing it here keeps it from being reported as unsupported.
-  if (ops.length === 1 && ops[0]?.kind === "noise") return { filter: null, supported: true };
   const blur = ops.find((op) => op.kind === "blur");
   const alpha = ops.find((op) => op.kind === "alpha-mask");
   const tint = ops.find((op) => op.kind === "tint");
   const offset = ops.find((op) => op.kind === "offset");
+  const morphology = ops.find((op) => op.kind === "morphology");
   const shadows = shadowBlocks(program);
   const mixedBoxBranches = boxShadowBranches(program);
   if (mixedBoxBranches) {
@@ -386,6 +427,19 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
       if (!blended) return { filter: null, supported: false };
       filter = blended;
     }
+    return { filter, supported: Boolean(filter) };
+  }
+  // Box-shadow spread inserts one morphology op between the silhouette and
+  // the blur. This only ever occurs for box shadows (alpha shadows force
+  // spread to 0 in the schema), and only covers the single-shadow-with-offset
+  // shape here; a spread combined with a comma-separated shadow list or an
+  // inset shadow's own offset falls through to the existing block/branch
+  // parsers below, which already fail closed (return null/[]) on an
+  // unexpected "morphology" op instead of misreading the sequence.
+  if (matchEffectGraph(program, ["alpha-mask", "morphology", "blur", "tint", "offset", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && morphology?.kind === "morphology" && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadow && kit.ImageFilter.MakeDilate && kit.ImageFilter.MakeErode) {
+    const morphed = makeMorphologyFilter(kit, morphology);
+    const filter = makeShadowFilter(kit, offset, blur.radius, tint.color, tint.opacity, false, morphed, cssShadowBlurRadiusToSkiaSigma);
+    morphed?.delete();
     return { filter, supported: Boolean(filter) };
   }
   if (matchEffectGraph(program, ["alpha-mask", "blur", "tint", "offset", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadow) {

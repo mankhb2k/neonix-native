@@ -64,6 +64,8 @@ export const V2LayerBaseSchema = z
     maskLayers: V2MaskLayerListSchema.optional(),
     /** SVG filter reference resolved against project filter definitions. */
     filter: V2IdSchema.optional(),
+    /** Ordered atomic render effects applied to this layer's own rasterized result. */
+    effects: V2EffectListSchema.optional(),
     /** CSS backdrop-filter effects applied to the already-painted backdrop. */
     backdropEffects: V2EffectListSchema.optional(),
     /** CSS offset-* semantics owned by this layer; motion does not affect layout. */

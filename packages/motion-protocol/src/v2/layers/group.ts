@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { V2LayerBaseSchema } from "./base";
 import { V2Render3DSchema } from "../render3d";
-import { V2EffectListSchema } from "../effects";
 
 /**
  * SVG `g` semantic container.
@@ -13,7 +12,6 @@ import { V2EffectListSchema } from "../effects";
 export const V2GroupLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("group"),
   /** SVG filter/effect list applied to the rendered group subtree. */
-  effects: V2EffectListSchema.optional(),
   /** Optional local 3D context for this group's descendants. */
   render3d: V2Render3DSchema.optional(),
 }).strict();

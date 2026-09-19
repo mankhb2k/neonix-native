@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0f172a","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0f172a; }
+      #blend-matrix-backdrop {
+        position: absolute; left: 130px; top: 70px; width: 1660px; height: 940px;
+        background: linear-gradient(120deg, #f97316 0%, #22d3ee 45%, #a855f7 100%);
+      }
+      .blend-swatch {
+        position: absolute; width: 300px; height: 260px;
+        background: #ec4899;
+      }
+      .r0 { top: 70px; }
+      .r1 { top: 370px; }
+      .r2 { top: 670px; }
+      .c0 { left: 130px; }
+      .c1 { left: 470px; }
+      .c2 { left: 810px; }
+      .c3 { left: 1150px; }
+      .c4 { left: 1490px; }
+      #blend-darken { mix-blend-mode: darken; }
+      #blend-color-burn { mix-blend-mode: color-burn; }
+      #blend-lighten { mix-blend-mode: lighten; }
+      #blend-color-dodge { mix-blend-mode: color-dodge; }
+      #blend-overlay { mix-blend-mode: overlay; }
+      #blend-soft-light { mix-blend-mode: soft-light; }
+      #blend-hard-light { mix-blend-mode: hard-light; }
+      #blend-difference { mix-blend-mode: difference; }
+      #blend-exclusion { mix-blend-mode: exclusion; }
+      #blend-hue { mix-blend-mode: hue; }
+      #blend-saturation { mix-blend-mode: saturation; }
+      #blend-color { mix-blend-mode: color; }
+      #blend-luminosity { mix-blend-mode: luminosity; }
+    </style>
+  </head>
+  <body>
+    <div id="blend-matrix-backdrop"></div>
+    <div id="blend-darken" class="blend-swatch r0 c0"></div>
+    <div id="blend-color-burn" class="blend-swatch r0 c1"></div>
+    <div id="blend-lighten" class="blend-swatch r0 c2"></div>
+    <div id="blend-color-dodge" class="blend-swatch r0 c3"></div>
+    <div id="blend-overlay" class="blend-swatch r0 c4"></div>
+    <div id="blend-soft-light" class="blend-swatch r1 c0"></div>
+    <div id="blend-hard-light" class="blend-swatch r1 c1"></div>
+    <div id="blend-difference" class="blend-swatch r1 c2"></div>
+    <div id="blend-exclusion" class="blend-swatch r1 c3"></div>
+    <div id="blend-hue" class="blend-swatch r1 c4"></div>
+    <div id="blend-saturation" class="blend-swatch r2 c0"></div>
+    <div id="blend-color" class="blend-swatch r2 c1"></div>
+    <div id="blend-luminosity" class="blend-swatch r2 c2"></div>
+  </body>
+</html>

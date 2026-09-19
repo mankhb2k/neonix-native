@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { V2FiniteNumberSchema, V2IdSchema, V2PositiveNumberSchema } from "../common";
 import { V2LayerBaseSchema } from "./base";
-import { V2EffectListSchema } from "../effects";
 
 export const V2ImageAlignSchema = z.enum([
   "none",
@@ -40,7 +39,6 @@ export const V2ImageFitSchema = z.enum(["contain", "cover", "fill", "none"]);
 
 export const V2ImageLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("image"),
-  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       assetId: V2IdSchema,

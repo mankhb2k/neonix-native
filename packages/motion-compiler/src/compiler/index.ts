@@ -407,12 +407,36 @@ function lowerMarkers(
   return result.length ? result : undefined;
 }
 
+/**
+ * Structured diagnostic for effect/filter/blend lowering failures. Carries a
+ * stable `code` and a JSON Pointer-style `path` into the source Protocol V2
+ * document so an authoring/AI-agent loop can react programmatically instead
+ * of pattern-matching a free-text message.
+ */
+export class MotionCompilerLoweringError extends Error {
+  constructor(
+    readonly code:
+      | "UNCERTIFIED_EFFECT"
+      | "UNCERTIFIED_BLEND_MODE"
+      | "UNKNOWN_FILTER_REFERENCE"
+      | "UNSUPPORTED_FILTER_GRAPH"
+      | "UNSUPPORTED_FILTER_PRIMITIVE"
+      | "ANISOTROPIC_FILTER_UNSUPPORTED",
+    message: string,
+    readonly path: string,
+  ) {
+    super(message);
+    this.name = "MotionCompilerLoweringError";
+  }
+}
+
 function lowerEffects(
   effects: ProtocolEffect[] | undefined,
+  path: string,
 ): RuntimeEffect[] | undefined {
   if (!effects?.length) return undefined;
   // Preserve authoring order. A later effect always receives the prior result.
-  return effects.map((effect) => {
+  return effects.map((effect, index) => {
     const capability = effect.type === "blur"
       ? "effect.blur"
       : effect.type === "shadow"
@@ -427,7 +451,7 @@ function lowerEffects(
                 ? "effect.color-adjust"
                 : `effect.${effect.type}`;
     if (!isV2AtomCertified(capability)) {
-      throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+      throw new MotionCompilerLoweringError("UNCERTIFIED_EFFECT", `Uncertified Protocol V2 atom: ${capability}`, `${path}[${index}]`);
     }
     return { ...effect } as RuntimeEffect;
   });
@@ -449,7 +473,11 @@ function isotropicFilterRadius(filter: V2Filter, primitive: V2FilterPrimitive): 
   if (primitive.type !== "feGaussianBlur" && primitive.type !== "feDropShadow") return 0;
   const deviation = primitive.stdDeviation;
   if (deviation.x !== deviation.y) {
-    throw new Error(`SVG filter ${filter.id} requires isotropic stdDeviation for runtime parity: ${primitive.id}`);
+    throw new MotionCompilerLoweringError(
+      "ANISOTROPIC_FILTER_UNSUPPORTED",
+      `SVG filter ${filter.id} requires isotropic stdDeviation for runtime parity: ${primitive.id}`,
+      `filters.${filter.id}.primitives.${primitive.id}.stdDeviation`,
+    );
   }
   return deviation.x;
 }
@@ -483,7 +511,7 @@ function lowerSvgFilter(filter: V2Filter): RuntimeEffect[] {
       merge.nodes.length !== 2 ||
       merge.nodes[0]!.in !== resultOf(composite, 2) ||
       merge.nodes[1]!.in !== "SourceGraphic"
-    ) throw new Error(`Unsupported SVG outer glow graph: ${filter.id}`);
+    ) throw new MotionCompilerLoweringError("UNSUPPORTED_FILTER_GRAPH", `Unsupported SVG outer glow graph: ${filter.id}`, `filters.${filter.id}.primitives`);
     effects.push({ id: filter.id, type: "outer-glow", radius: isotropicFilterRadius(filter, blur), color: flood.color, opacity: flood.opacity ?? 1 });
     return effects;
   }
@@ -511,7 +539,7 @@ function lowerSvgFilter(filter: V2Filter): RuntimeEffect[] {
       merge.nodes.length !== 2 ||
       merge.nodes[0]!.in !== resultOf(tint, 3) ||
       merge.nodes[1]!.in !== "SourceGraphic"
-    ) throw new Error(`Unsupported SVG inner glow graph: ${filter.id}`);
+    ) throw new MotionCompilerLoweringError("UNSUPPORTED_FILTER_GRAPH", `Unsupported SVG inner glow graph: ${filter.id}`, `filters.${filter.id}.primitives`);
     effects.push({ id: filter.id, type: "inner-glow", radius: isotropicFilterRadius(filter, blur), color: flood.color, opacity: flood.opacity ?? 1 });
     return effects;
   }
@@ -520,7 +548,11 @@ function lowerSvgFilter(filter: V2Filter): RuntimeEffect[] {
   for (const [index, primitive] of primitives.entries()) {
     const input = filterInputName(primitive, index, primitives);
     if (input !== previousResult) {
-      throw new Error(`SVG filter ${filter.id} is not a linear runtime graph at primitive ${primitive.id}`);
+      throw new MotionCompilerLoweringError(
+        "UNSUPPORTED_FILTER_GRAPH",
+        `SVG filter ${filter.id} is not a linear runtime graph at primitive ${primitive.id}`,
+        `filters.${filter.id}.primitives.${primitive.id}.in`,
+      );
     }
     const id = `${filter.id}:${primitive.id}`;
     if (primitive.type === "feGaussianBlur") {
@@ -532,29 +564,33 @@ function lowerSvgFilter(filter: V2Filter): RuntimeEffect[] {
     } else if (primitive.type === "feColorMatrix" && primitive.kind === "hueRotate") {
       effects.push({ id, type: "color-adjust", brightness: 0, contrast: 1, saturation: 1, hueRotate: primitive.values?.[0] ?? 0, colorInterpolationFilters: primitive.colorInterpolationFilters ?? filter.colorInterpolationFilters });
     } else {
-      throw new Error(`SVG filter primitive ${primitive.type} is not executable by the current GPU runtime: ${primitive.id}`);
+      throw new MotionCompilerLoweringError(
+        "UNSUPPORTED_FILTER_PRIMITIVE",
+        `SVG filter primitive ${primitive.type} is not executable by the current GPU runtime: ${primitive.id}`,
+        `filters.${filter.id}.primitives.${primitive.id}.type`,
+      );
     }
     previousResult = filterResultName(primitive, index);
   }
   return effects;
 }
 
-function lowerLayerEffects(layer: ProtocolLayer, project: MotionProtocolV2): RuntimeEffect[] | undefined {
+function lowerLayerEffects(layer: ProtocolLayer, project: MotionProtocolV2, layerPath: string): RuntimeEffect[] | undefined {
   const semantic = layer.filter === undefined
     ? undefined
     : lowerSvgFilter(project.filters?.find((filter) => filter.id === layer.filter)
-      ?? (() => { throw new Error(`Unknown SVG filter reference: ${layer.filter}`); })());
-  const effects = "effects" in layer ? lowerEffects(layer.effects) : undefined;
+      ?? (() => { throw new MotionCompilerLoweringError("UNKNOWN_FILTER_REFERENCE", `Unknown SVG filter reference: ${layer.filter}`, `${layerPath}.filter`); })());
+  const effects = "effects" in layer ? lowerEffects(layer.effects, `${layerPath}.effects`) : undefined;
   if (!semantic) return effects;
   if (!effects) return semantic;
   return [...semantic, ...effects];
 }
 
-function lowerBlendMode(layer: ProtocolLayer): VisualRuntimeNode["blendMode"] {
+function lowerBlendMode(layer: ProtocolLayer, layerPath: string): VisualRuntimeNode["blendMode"] {
   const blendMode = layer.composite?.blendMode ?? "normal";
   const capability = `composite.blend.${blendMode}`;
   if (!isV2AtomCertified(capability)) {
-    throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+    throw new MotionCompilerLoweringError("UNCERTIFIED_BLEND_MODE", `Uncertified Protocol V2 atom: ${capability}`, `${layerPath}.composite.blendMode`);
   }
   return blendMode;
 }
@@ -1142,7 +1178,8 @@ function compileVisualRuntimeInternal(
     return context;
   };
 
-  const compiledLayerNodes = project.layers.map((layer): VisualRuntimeNode | null => {
+  const compiledLayerNodes = project.layers.map((layer, layerIndex): VisualRuntimeNode | null => {
+    const layerPath = `layers[${layerIndex}]`;
     const context = resolveLayerContext(layer);
     for (const capability of [
       ...(is3DMatrix4(context.localMatrix) || is3DMatrix4(context.worldMatrix)
@@ -1178,10 +1215,10 @@ function compileVisualRuntimeInternal(
         }
       }
     }
-    const blendMode = lowerBlendMode(layer);
+    const blendMode = lowerBlendMode(layer, layerPath);
     const isolation = layer.composite?.isolation;
-    const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project) : undefined;
-    const backdropEffects = layer.backdropEffects ? lowerEffects(layer.backdropEffects) : undefined;
+    const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project, layerPath) : undefined;
+    const backdropEffects = layer.backdropEffects ? lowerEffects(layer.backdropEffects, `${layerPath}.backdropEffects`) : undefined;
     const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
     semanticMaskNodes.push(...semanticMask.nodes);
     const semanticState = {
@@ -1246,7 +1283,7 @@ function compileVisualRuntimeInternal(
       if (asset && asset.kind !== "image") {
         throw new Error(`Protocol V2 image layer ${layer.id} references a non-image asset`);
       }
-      const effects = lowerLayerEffects(layer, project);
+      const effects = lowerLayerEffects(layer, project, layerPath);
       const imageAsset = asset?.kind === "image" ? asset : undefined;
       const intrinsicWidth = imageAsset?.width ?? layer.frame.width;
       const intrinsicHeight = imageAsset?.height ?? layer.frame.height;
@@ -1309,7 +1346,7 @@ function compileVisualRuntimeInternal(
       const sourceFps = asset?.kind === "video" && asset.fps !== undefined
         ? asset.fps
         : project.composition.fps;
-      const effects = lowerLayerEffects(layer, project);
+      const effects = lowerLayerEffects(layer, project, layerPath);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -1345,6 +1382,7 @@ function compileVisualRuntimeInternal(
           // Embedded audio is lowered by the canonical Runtime V3 compiler.
           muted: true,
           framePolicy: layer.payload.framePolicy ?? "floor",
+          ...(layer.payload.playbackRate !== undefined ? { playbackRate: layer.payload.playbackRate } : {}),
           ...(effects ? { effects } : {}),
         },
       };
@@ -1455,7 +1493,7 @@ function compileVisualRuntimeInternal(
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
       }
-      const effects = lowerLayerEffects(layer, project);
+      const effects = lowerLayerEffects(layer, project, layerPath);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -1631,7 +1669,7 @@ function compileVisualRuntimeInternal(
       if (pathStrokePaintCapability && !isV2AtomCertified(pathStrokePaintCapability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${pathStrokePaintCapability}`);
       }
-      const effects = lowerLayerEffects(layer, project);
+      const effects = lowerLayerEffects(layer, project, layerPath);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -1771,7 +1809,7 @@ function compileVisualRuntimeInternal(
       }
     }
 
-    const effects = lowerLayerEffects(layer, project);
+    const effects = lowerLayerEffects(layer, project, layerPath);
     const paintOrder = lowerPaintOrder(layer.style.paintOrder);
     const shapeContour = {
       ...primitivePathContour(layer.payload, layer.frame.width, layer.frame.height),

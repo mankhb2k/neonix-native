@@ -39,6 +39,10 @@ export type SkiaCanvasKit = {
     MakeDropShadow?(dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: SkiaImageFilter | null): SkiaImageFilter | null;
     MakeDropShadowOnly?(dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: SkiaImageFilter | null): SkiaImageFilter | null;
     MakeBlend?(mode: unknown, background: SkiaImageFilter | null, foreground: SkiaImageFilter | null): SkiaImageFilter | null;
+    /** Morphological expand; used for CSS box-shadow spread > 0. */
+    MakeDilate?(radiusX: number, radiusY: number, input?: SkiaImageFilter | null): SkiaImageFilter | null;
+    /** Morphological contract; used for CSS box-shadow spread < 0. */
+    MakeErode?(radiusX: number, radiusY: number, input?: SkiaImageFilter | null): SkiaImageFilter | null;
   };
   Path: { MakeFromSVGString(value: string): SkiaPath | null };
   PathBuilder: new (path?: SkiaPath) => SkiaPathBuilder;

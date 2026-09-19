@@ -114,7 +114,7 @@ function compileParsedProtocol(
           ...(layer.payload.trimEnd !== undefined
             ? { sourceEndUs: Math.round(toRuntimeSeconds(layer.payload.trimEnd) * 1e6) }
             : {}),
-          playbackRate: 1,
+          playbackRate: layer.payload.playbackRate ?? 1,
           framePolicy: layer.payload.framePolicy ?? "floor" as const,
         }];
       }),

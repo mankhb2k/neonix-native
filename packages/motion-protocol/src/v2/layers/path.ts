@@ -2,7 +2,6 @@ import { z } from "zod";
 import { V2FiniteNumberSchema, V2NonNegativeSvgLengthSchema, V2PaintOrderSchema, V2PositiveSvgLengthSchema, V2SvgLengthSchema, V2VectorEffectSchema } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
-import { V2EffectListSchema } from "../effects";
 import { V2MarkerReferenceSchema } from "../markers";
 import {
   V2PathContourSchema,
@@ -23,7 +22,6 @@ const V2PathMorphSchema = z
 
 export const V2PathLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("path"),
-  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       contours: z.array(V2PathContourSchema).min(1),

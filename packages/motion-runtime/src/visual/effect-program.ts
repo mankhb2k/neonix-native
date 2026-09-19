@@ -50,6 +50,17 @@ export type RuntimeAlphaMaskEffectOp = {
   source?: "alpha" | "box";
 };
 
+/** CSS box-shadow spread: dilate (positive) or erode (negative) the silhouette before blur. */
+export type RuntimeMorphologyEffectOp = {
+  id: string;
+  kind: "morphology";
+  input: SurfaceRef;
+  output: SurfaceRef;
+  operator: "dilate" | "erode";
+  /** Non-negative expansion/contraction radius in output pixels. */
+  radius: number;
+};
+
 /** Inside-only coverage from original alpha minus its blurred alpha. */
 export type RuntimeInnerAlphaEffectOp = {
   id: string;
@@ -103,6 +114,7 @@ export type RuntimeEffectOp =
   | RuntimeAlphaEffectOp
   | RuntimeBlurEffectOp
   | RuntimeAlphaMaskEffectOp
+  | RuntimeMorphologyEffectOp
   | RuntimeInnerAlphaEffectOp
   | RuntimeTintEffectOp
   | RuntimeOffsetEffectOp
@@ -176,6 +188,10 @@ function validateOpFields(
   } else if (op.kind === "offset") {
     if (!finite(op.x) || !finite(op.y)) {
       invalid(`Effect operator "${op.id}" offset values must be finite`);
+    }
+  } else if (op.kind === "morphology") {
+    if (!finite(op.radius) || op.radius < 0 || op.radius > 256) {
+      invalid(`Effect operator "${op.id}" morphology radius must be finite and within [0, 256]`);
     }
   } else if (op.kind === "noise") {
     if (!finite(op.scale) || op.scale <= 0 || op.scale > 256 || !finite(op.amount) || op.amount < 0 || op.amount > 1 || !finite(op.opacity) || op.opacity < 0 || op.opacity > 1 || !finite(op.seed) || op.seed < 0 || op.seed > 0xffffffff || !Number.isInteger(op.seed)) {

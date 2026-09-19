@@ -53,38 +53,45 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
   }
 
   const layerPaths: Record<string, Set<string>> = {
-    shape: new Set(["payload.cornerRadius", "style.fillOpacity", "style.strokeWidth", "style.strokeOpacity"]),
-    path: new Set(["style.fillOpacity", "style.strokeWidth", "style.strokeOpacity", "payload.morph.progress"]),
+    shape: new Set(["payload.cornerRadius", "style.fillOpacity", "style.strokeWidth", "style.strokeOpacity", "style.strokeDash.offset"]),
+    path: new Set(["style.fillOpacity", "style.strokeWidth", "style.strokeOpacity", "style.strokeDash.offset", "payload.morph.progress"]),
     text: new Set(),
     image: new Set(["payload.x", "payload.y", "payload.width", "payload.height"]),
-    video: new Set(["payload.trimStart", "payload.trimEnd"]),
+    // `playbackRate` is a video-only speed multiplier (see layers/video.ts);
+    // animating it enables speed ramps the same way trim already does.
+    video: new Set(["payload.trimStart", "payload.trimEnd", "payload.playbackRate"]),
     group: new Set(),
   };
   if (layerPaths[layer.type]?.has(path)) return new Set(["number"]);
 
   if (layer.type === "text") {
     const segments = path.split(".");
-    if (segments.length === 5
-      && segments[0] === "payload"
-      && segments[1] === "chunks"
-      && segments[2] === "spans"
-      && segments[4] === "fill"
-      && layer.payload.chunks.some((chunk) => chunk.spans.some((span) => span.id === segments[3]))) {
-      return new Set(["color"]);
+    // Spans are addressed by id across every chunk (span ids are unique for
+    // the whole layer) so authoring never needs to know a span's chunk index.
+    if (segments[0] === "payload" && segments[1] === "chunks" && segments[2] === "spans" && segments.length >= 4) {
+      const span = layer.payload.chunks.flatMap((chunk) => chunk.spans).find((candidate) => candidate.id === segments[3]);
+      if (!span) return null;
+      const field = segments.slice(4).join(".");
+      const spanNumberFields = ["letterSpacing", "wordSpacing", "strokeWidth", "strokeOpacity", "textLength"];
+      if (spanNumberFields.includes(field)) return new Set(["number"]);
+      if (field === "fill" || field === "stroke") return new Set(["color"]);
+      if (field === "font.size") return new Set(["number"]);
+      return null;
     }
-    if (segments.length === 6
-      && segments[0] === "payload"
-      && segments[1] === "chunks"
-      && segments[2] === "spans"
-      && segments[4] === "font"
-      && segments[5] === "size"
-      && layer.payload.chunks.some((chunk) => chunk.spans.some((span) => span.id === segments[3]))) {
-      return new Set(["number"]);
+    // Chunks are addressed by id directly (not nested under a literal
+    // "spans" segment); a chunk id equal to the literal "spans" is not
+    // representable this way and must use a different id.
+    if (segments[0] === "payload" && segments[1] === "chunks" && segments[2] !== undefined && segments[2] !== "spans" && segments.length >= 4) {
+      const chunk = layer.payload.chunks.find((candidate) => candidate.id === segments[2]);
+      if (!chunk) return null;
+      const field = segments.slice(3).join(".");
+      if (field === "textPath.startOffset") return new Set(["number"]);
+      return null;
     }
   }
 
   const colorPaths = layer.type === "shape"
-    ? new Set(["style.fill"])
+    ? new Set(["style.fill", "style.stroke"])
     : layer.type === "path"
       ? new Set(["style.fill", "style.stroke"])
       : new Set<string>();
@@ -98,11 +105,12 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
   if (enumPaths.has(path)) return new Set(["enum"]);
 
   const segments = path.split(".");
-  if (segments[0] !== "effects" || segments.length < 3) return null;
+  if ((segments[0] !== "effects" && segments[0] !== "backdropEffects") || segments.length < 3) return null;
   const effectId = segments[1]!;
-  const effect = "effects" in layer
-    ? layer.effects?.find((candidate) => candidate.id === effectId)
-    : undefined;
+  const effectList = segments[0] === "effects"
+    ? ("effects" in layer ? layer.effects : undefined)
+    : layer.backdropEffects;
+  const effect = effectList?.find((candidate) => candidate.id === effectId);
   if (!effect) return null;
   const effectNumberFields: Record<string, readonly string[]> = {
     "color-adjust": ["brightness", "contrast", "saturation", "hueRotate"],

@@ -131,7 +131,7 @@ function resolveVideoMedia(
     return { mediaTime: trimStart, visible: false };
   }
 
-  const elapsed = localTime;
+  const elapsed = localTime * (video.playbackRate ?? 1);
   if (elapsed >= span) {
     return {
       mediaTime: Math.max(trimStart, (trimEnd ?? trimStart) - 1 / video.sourceFps),

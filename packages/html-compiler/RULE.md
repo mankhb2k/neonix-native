@@ -14,6 +14,40 @@ them in document order before parsing visual HTML. External stylesheets and
 inline `style="..."` attributes are not part of this contract. The supported
 `<title>` tag is document metadata only and never becomes a visual layer.
 
+## Protocol V2 capabilities intentionally not exposed via HTML
+
+HTML/CSS is an authoring surface for Protocol V2, not a mirror of it.
+`MotionProtocolV2` JSON is the canonical source of truth (see
+[`ARCHITECHTURE.md`](../../ARCHITECHTURE.md), "HTML authoring boundary
+(one-way)"); the compiler is only required to expose the subset of Protocol V2
+that has a natural, deterministic HTML/CSS syntax. A capability existing in
+the Protocol V2 schema is not, by itself, evidence that html-compiler must
+also accept HTML/CSS syntax for it. The following are deliberate scope
+boundaries, not gaps to close with more fixtures:
+
+- **Audio track/clip richness.** Protocol V2's root `audio.tracks[].clips[]`
+  supports per-track `gainDb`/`pan`/`muted` and per-clip
+  `trim`/`playbackRate`/`gainDb`/`pan`/`fadeIn`/`fadeOut`. HTML authoring only
+  lowers a plain `audio` tag into a single audio track/clip (see "4. Media
+  tags"); there is no CSS or attribute surface for the richer per-track/per-clip
+  fields. A document that needs multiple audio tracks or clip-level gain/pan/fade
+  must express that directly in Protocol V2 JSON, not through HTML.
+- **Raw SVG paint/graph primitives.** The SVG tag allowlist (see "5. SVG
+  tags") covers shape primitives only (`svg`, `g`, `path`, `rect`, `circle`,
+  `ellipse`, `line`, `polyline`, `polygon`). Protocol V2's SVG paint graph
+  (`linearGradient`/`radialGradient` with `spreadMethod`, `pattern`, `marker`,
+  `clipPath`, `mask`, `filter` primitive chains, `use`/`symbol`) has no HTML
+  element equivalent; the same visual results are authored through the CSS
+  paint/filter/mask/clip-path properties instead (see "CSS property
+  contract"). Fixtures should not attempt raw `<linearGradient>`/`<pattern>`/
+  `<marker>`/`<clipPath>`/`<mask>`/`<filter>`/`<use>`/`<symbol>` elements; the
+  compiler does not lower them.
+- **`spring` easing.** Protocol V2 track easing supports `spring` in addition
+  to `linear`/`step`/`cubicBezier`. There is no CSS syntax for a physics-based
+  spring curve, so `animation-timing-function` only accepts `linear`, `ease`,
+  `steps(...)`, and `cubic-bezier(...)` (see "Animation values"). A spring
+  easing curve must be authored directly in Protocol V2 JSON.
+
 ## Supported HTML vocabulary
 
 `html-compiler` chỉ hỗ trợ các tag nằm trong allowlist dưới đây. Đây là danh sách chính thức dành cho authoring HTML tạo video.

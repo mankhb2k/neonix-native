@@ -114,4 +114,47 @@ describe("runtime shadow effects", () => {
     });
     expect(program?.ops.map((op) => op.input)).toEqual(["source", "effect:blur"]);
   });
+
+  // Regression: `shadow.spread` was schema-legal but the runtime threw
+  // "Runtime shadow spread is not lowered yet" for any non-zero value.
+  it("dilates the silhouette before blur for a positive box-shadow spread", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "spread-shadow", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 12, spread: 8, color: "#000000", inset: false },
+    ]);
+
+    expect(program?.ops.map((op) => op.kind)).toEqual(["alpha-mask", "morphology", "blur", "tint", "offset", "composite"]);
+    const morphology = program?.ops.find((op) => op.kind === "morphology");
+    expect(morphology).toMatchObject({ operator: "dilate", radius: 8, input: "effect:spread-shadow:alpha" });
+    const blur = program?.ops.find((op) => op.kind === "blur");
+    expect(blur).toMatchObject({ input: morphology && "output" in morphology ? morphology.output : undefined });
+  });
+
+  it("erodes the silhouette before blur for a negative box-shadow spread", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "spread-shadow", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 12, spread: -6, color: "#000000", inset: false },
+    ]);
+
+    const morphology = program?.ops.find((op) => op.kind === "morphology");
+    expect(morphology).toMatchObject({ operator: "erode", radius: 6 });
+  });
+
+  it("does not insert a morphology op when spread is 0", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "plain-shadow", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 12, spread: 0, color: "#000000", inset: false },
+    ]);
+    expect(program?.ops.some((op) => op.kind === "morphology")).toBe(false);
+  });
+
+  // Regression: a `noise` effect combined with any other effect used to be
+  // reported as fully unsupported by the Skia backend (see skia-renderer
+  // effects.test.ts for the consumer-side assertion); the runtime program
+  // itself already threaded noise through the ops chain like any other op.
+  it("keeps noise as an ordinary chained op alongside other effects", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "blur", type: "blur", radius: 8 },
+      { id: "grain", type: "noise", scale: 4, amount: 0.3, opacity: 1, seed: 1 },
+    ]);
+    expect(program?.ops.map((op) => op.kind)).toEqual(["blur", "noise"]);
+    expect(program?.ops[1]).toMatchObject({ input: "effect:blur", output: "effect:grain" });
+  });
 });

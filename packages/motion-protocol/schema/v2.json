@@ -3811,7 +3811,7 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
-                  "backdropEffects": {
+                  "effects": {
                     "type": "array",
                     "items": {
                       "anyOf": [
@@ -4024,7 +4024,7 @@
                                   "$ref": "#/definitions/MotionProtocolV2/properties/id"
                                 },
                                 "type": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects/items/anyOf/6/anyOf/0/properties/type"
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects/items/anyOf/6/anyOf/0/properties/type"
                                 },
                                 "source": {
                                   "type": "string",
@@ -4034,7 +4034,7 @@
                                   "$ref": "#/definitions/MotionProtocolV2/properties/clipPaths/items/properties/transform/items/anyOf/2/properties/center"
                                 },
                                 "blur": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects/items/anyOf/6/anyOf/0/properties/blur"
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects/items/anyOf/6/anyOf/0/properties/blur"
                                 },
                                 "spread": {
                                   "type": "number",
@@ -4172,6 +4172,9 @@
                       ]
                     },
                     "maxItems": 8
+                  },
+                  "backdropEffects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
                   },
                   "motion": {
                     "type": "object",
@@ -4766,9 +4769,6 @@
                     "type": "string",
                     "const": "group"
                   },
-                  "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
-                  },
                   "render3d": {
                     "type": "object",
                     "properties": {
@@ -4856,6 +4856,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
+                  },
                   "backdropEffects": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
@@ -4874,9 +4877,6 @@
                   "type": {
                     "type": "string",
                     "const": "image"
-                  },
-                  "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
                   "payload": {
                     "type": "object",
@@ -5012,6 +5012,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
+                  },
                   "backdropEffects": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
@@ -5030,9 +5033,6 @@
                   "type": {
                     "type": "string",
                     "const": "shape"
-                  },
-                  "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
                   "payload": {
                     "type": "object",
@@ -5242,6 +5242,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
+                  },
                   "backdropEffects": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
@@ -5260,9 +5263,6 @@
                   "type": {
                     "type": "string",
                     "const": "text"
-                  },
-                  "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
                   "payload": {
                     "type": "object",
@@ -5800,6 +5800,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
+                  },
                   "backdropEffects": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
@@ -5818,9 +5821,6 @@
                   "type": {
                     "type": "string",
                     "const": "path"
-                  },
-                  "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
                   "payload": {
                     "type": "object",
@@ -6018,6 +6018,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
+                  },
                   "backdropEffects": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
@@ -6036,9 +6039,6 @@
                   "type": {
                     "type": "string",
                     "const": "video"
-                  },
-                  "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backdropEffects"
                   },
                   "payload": {
                     "type": "object",
@@ -6059,6 +6059,9 @@
                         "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
                       },
                       "trimEnd": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                      },
+                      "playbackRate": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                       },
                       "audio": {

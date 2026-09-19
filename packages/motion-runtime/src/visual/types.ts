@@ -159,6 +159,8 @@ export type VisualRuntimeVideo = {
   sourceFps: number;
   muted: boolean;
   framePolicy: "floor" | "round" | "ceil";
+  /** Visual playback speed multiplier; 1 is source rate. Omitted means 1. */
+  playbackRate?: number;
   effects?: RuntimeEffect[];
 };
 

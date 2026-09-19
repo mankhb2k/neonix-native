@@ -883,9 +883,10 @@ export function replaySkiaCommands(
         maskMode: command.mask?.mode === "alpha" || command.mask?.mode === "luma" ? command.mask.mode : undefined,
         maskSourceKeys,
         maskLayers: command.mask?.layers?.flatMap((maskLayer) => maskLayer.mode === "clip" ? [] : [{ mode: maskLayer.mode, sourceKeys: maskLayer.sourceKeys, composite: maskLayer.composite }]),
-        noiseEffect: command.effectProgram?.ops.length === 1 && command.effectProgram.ops[0]?.kind === "noise"
-          ? command.effectProgram.ops[0]
-          : undefined,
+        // A noise op is a separate CPU pass applied after readback (see
+        // `applyNoise` in backend.ts), independent of position within the
+        // effect program, so it is found rather than required to be the sole op.
+        noiseEffect: command.effectProgram?.ops.find((op) => op.kind === "noise"),
         projectiveFilterTransform,
         projectiveFilter,
         projectiveFilterProgram: projectiveFilter ? command.effectProgram : undefined,
