@@ -817,22 +817,129 @@ double paint_value(const PaintSpec& paint, size_t index, double fallback) {
     return index < 14 && std::isfinite(paint.values[index]) ? paint.values[index] : fallback;
 }
 
+struct MaterializedStop {
+    double offset = 0;
+    Color color;
+    double stopOpacity = 1;
+};
+
+double clamp01(double value) {
+    return std::max(0.0, std::min(1.0, value));
+}
+
+Color interpolate_color(const Color& left, const Color& right, double amount) {
+    return {
+        left.red + (right.red - left.red) * amount,
+        left.green + (right.green - left.green) * amount,
+        left.blue + (right.blue - left.blue) * amount,
+        left.alpha + (right.alpha - left.alpha) * amount,
+    };
+}
+
+/** Port of `sampleGradientStop` in packages/skia-renderer/src/paint.ts. `stops` must be offset-ascending. */
+MaterializedStop sample_gradient_stop(const std::vector<MaterializedStop>& stops, double offset) {
+    const MaterializedStop& first = stops.front();
+    const MaterializedStop& last = stops.back();
+    if (offset <= first.offset) { MaterializedStop result = first; result.offset = offset; return result; }
+    if (offset >= last.offset) { MaterializedStop result = last; result.offset = offset; return result; }
+    for (size_t index = 1; index < stops.size(); ++index) {
+        const MaterializedStop& right = stops[index];
+        const MaterializedStop& left = stops[index - 1];
+        if (offset > right.offset) continue;
+        const double span = right.offset - left.offset;
+        if (span <= 0) { MaterializedStop result = right; result.offset = offset; return result; }
+        const double amount = (offset - left.offset) / span;
+        MaterializedStop result;
+        result.offset = offset;
+        result.color = interpolate_color(left.color, right.color, amount);
+        result.stopOpacity = left.stopOpacity + (right.stopOpacity - left.stopOpacity) * amount;
+        return result;
+    }
+    MaterializedStop result = last;
+    result.offset = offset;
+    return result;
+}
+
+/**
+ * Port of `resolveGradient` in packages/skia-renderer/src/paint.ts. Skia's
+ * native repeat tile mode is not reliable for a short (< 1.0) stop period —
+ * CanvasKit works around this by explicitly enumerating every visible cycle
+ * as literal "pad" stops instead of relying on `SkTileMode::kRepeat`, and
+ * this must match exactly or native and CanvasKit render different bands.
+ * Returns true (with `outStops` filled) when materialization applied;
+ * `paint.spread` should then be treated as clamp/pad, not repeat.
+ */
+bool materialize_repeating_gradient(const PaintSpec& paint, std::vector<MaterializedStop>& outStops) {
+    if (paint.spread != 2 || paint.colors.size() < 2) return false;
+    const double start = paint.offsets.front();
+    const double period = paint.offsets.back() - start;
+    if (!std::isfinite(period) || period <= 0 || period >= 1) return false;
+
+    std::vector<MaterializedStop> baseStops;
+    baseStops.reserve(paint.colors.size());
+    for (size_t index = 0; index < paint.colors.size(); ++index) {
+        baseStops.push_back({ paint.offsets[index] - start, paint.colors[index], paint.stopOpacity[index] });
+    }
+
+    std::vector<MaterializedStop> stops;
+    const int cycles = static_cast<int>(std::ceil(1.0 / period));
+    const double terminalEpsilon = std::min(period * 0.5, 1e-7);
+    const double terminalOffset = 1.0 - terminalEpsilon;
+    for (int cycle = 0; cycle <= cycles; ++cycle) {
+        for (const MaterializedStop& stop : baseStops) {
+            const double offset = cycle * period + stop.offset;
+            if (offset >= -1e-9 && offset < 1.0 - 1e-9) {
+                MaterializedStop placed = stop;
+                placed.offset = clamp01(offset);
+                stops.push_back(placed);
+            }
+        }
+    }
+
+    const double rawTerminalPhase = std::fmod(std::fmod(1.0, period) + period, period);
+    const double phaseTolerance = std::min(1e-5, period * 1e-3);
+    const double terminalPhase = (rawTerminalPhase < phaseTolerance || period - rawTerminalPhase < phaseTolerance) ? 0.0 : rawTerminalPhase;
+    const double phaseEpsilon = std::min(1e-7, period * 1e-4);
+    const double preTerminalPhase = terminalPhase == 0.0 ? std::max(0.0, period - phaseEpsilon) : std::max(0.0, terminalPhase - phaseEpsilon);
+
+    std::vector<MaterializedStop> interiorStops;
+    for (const MaterializedStop& stop : stops) {
+        if (stop.offset < terminalOffset - 1e-9) interiorStops.push_back(stop);
+    }
+    MaterializedStop preTerminalStop = sample_gradient_stop(baseStops, preTerminalPhase);
+    preTerminalStop.offset = terminalOffset;
+    interiorStops.push_back(preTerminalStop);
+    MaterializedStop terminalStop = sample_gradient_stop(baseStops, terminalPhase);
+    terminalStop.offset = 1.0;
+    interiorStops.push_back(terminalStop);
+
+    outStops = std::move(interiorStops);
+    return true;
+}
+
 sk_sp<SkShader> make_gradient_shader(const PaintSpec& paint, double width, double height) {
     if (paint.type < 1 || paint.type > 3 || paint.colors.size() < 2) return nullptr;
+    std::vector<MaterializedStop> materialized;
+    const bool didMaterialize = materialize_repeating_gradient(paint, materialized);
+    const size_t stopCount = didMaterialize ? materialized.size() : paint.colors.size();
     std::vector<SkColor4f> colors;
     std::vector<SkScalar> offsets;
-    colors.reserve(paint.colors.size());
-    offsets.reserve(paint.offsets.size());
-    for (size_t index = 0; index < paint.colors.size(); ++index) {
-        const Color& color = paint.colors[index];
-        const double alpha = std::max(0.0, std::min(1.0, color.alpha * paint.stopOpacity[index]));
+    colors.reserve(stopCount);
+    offsets.reserve(stopCount);
+    for (size_t index = 0; index < stopCount; ++index) {
+        const double red = didMaterialize ? materialized[index].color.red : paint.colors[index].red;
+        const double green = didMaterialize ? materialized[index].color.green : paint.colors[index].green;
+        const double blue = didMaterialize ? materialized[index].color.blue : paint.colors[index].blue;
+        const double rawAlpha = didMaterialize ? materialized[index].color.alpha : paint.colors[index].alpha;
+        const double stopOpacity = didMaterialize ? materialized[index].stopOpacity : paint.stopOpacity[index];
+        const double alpha = std::max(0.0, std::min(1.0, rawAlpha * stopOpacity));
         colors.push_back({
-            static_cast<float>(std::max(0.0, std::min(1.0, color.red))),
-            static_cast<float>(std::max(0.0, std::min(1.0, color.green))),
-            static_cast<float>(std::max(0.0, std::min(1.0, color.blue))),
+            static_cast<float>(std::max(0.0, std::min(1.0, red))),
+            static_cast<float>(std::max(0.0, std::min(1.0, green))),
+            static_cast<float>(std::max(0.0, std::min(1.0, blue))),
             static_cast<float>(alpha),
         });
-        offsets.push_back(static_cast<SkScalar>(paint.offsets[index]));
+        offsets.push_back(static_cast<SkScalar>(didMaterialize ? materialized[index].offset : paint.offsets[index]));
     }
     const auto x = [&](double value, double extent, double fallback) {
         return static_cast<SkScalar>(paint.units == 0 ? value * extent : value);
@@ -850,7 +957,7 @@ sk_sp<SkShader> make_gradient_shader(const PaintSpec& paint, double width, doubl
         SkGradient::Colors(
             SkSpan<const SkColor4f>(colors.data(), colors.size()),
             SkSpan<const float>(offsets.data(), offsets.size()),
-            paint_tile_mode(paint.spread)),
+            didMaterialize ? SkTileMode::kClamp : paint_tile_mode(paint.spread)),
         SkGradient::Interpolation());
     if (paint.type == 1) {
         const double angle = paint_value(paint, 4, 0) * 3.14159265358979323846 / 180.0;
@@ -871,8 +978,18 @@ sk_sp<SkShader> make_gradient_shader(const PaintSpec& paint, double width, doubl
         const SkScalar radius = static_cast<SkScalar>(paint.units == 0 ? defaultRadius * std::min(width, height) : defaultRadius);
         return SkShaders::RadialGradient(SkPoint::Make(cx, cy), radius, gradient, localMatrixPtr);
     }
-    const float startAngle = static_cast<float>(paint_value(paint, 4, 0));
-    return SkShaders::SweepGradient(SkPoint::Make(cx, cy), startAngle, startAngle + 360.0f, gradient, localMatrixPtr);
+    // `from` is wire index 5 (index 4 is the *linear* gradient's `angle` —
+    // conic gradients carry their own separate field). Skia's SweepGradient
+    // angle-range overload is not reliable across raster/GPU builds (see
+    // CanvasKit's `conicLocalMatrix` in packages/skia-renderer/src/paint.ts,
+    // which hits the same issue), so mirror that exact workaround here:
+    // keep the sweep fixed at 0->360 and rotate the shader's local matrix
+    // around the gradient center instead, by the negated CSS start angle.
+    const double fromDegrees = paint_value(paint, 5, 0);
+    SkMatrix rotation;
+    rotation.setRotate(static_cast<SkScalar>(-fromDegrees), cx, cy);
+    if (localMatrixPtr) rotation.preConcat(*localMatrixPtr);
+    return SkShaders::SweepGradient(SkPoint::Make(cx, cy), 0, 360, gradient, &rotation);
 }
 
 void apply_text_paint(SkPaint& paint, const Color& fallback, const PaintSpec& paintSpec, double alpha, double width, double height) {
