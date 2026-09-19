@@ -21,6 +21,14 @@ const fixtureUrl = (fileName: string) => `${PLAYGROUND_HTML_FIXTURE_ROOT}/${file
  */
 export const HTML_PLAYGROUND_CASES: readonly HtmlPlaygroundCase[] = [
   {
+    id: "paint-linear-gradient",
+    label: "Paint / Linear gradient",
+    description: "4-stop linear gradient at 135deg for CanvasKit gradient parity.",
+    url: fixtureUrl("paint-linear-gradient.html"),
+    category: "review",
+    nativeStage: true,
+  },
+  {
     id: "inset-stroke-rounded-medium-halo-medium",
     label: "Inset glow / Stroke radius medium · halo medium",
     description: "8px solid stroke, 64px radius and white inset shadow(18px).",

@@ -1,5 +1,17 @@
 # Neonix Cloud Run export-renderer
 
+## Directory layout
+
+- `skia-command-cpu-bench/` — **production**. This is the only Dockerfile
+  `deploy.ps1` builds and deploys. It owns its own copy of
+  `neonix_skia_target.gni` (the Skia GN target definition appended to
+  `BUILD.gn` during the build) so it never depends on `_archive/`.
+- `_archive/*` — historical benchmark/POC Dockerfiles (`canvaskit-cpu-bench`,
+  `gpu-probe`, `libyuv-color-contract`, `skia-command-cpu-libyuv-sandbox`,
+  `skia-cpu-bench`, `skia-gpu-poc`). None of these are built by CI or
+  `deploy.ps1`; they are kept only because dated reports under
+  `docs/benchmark/` reference the measurements taken from them.
+
 The production shape uses one immutable export-renderer image in three Cloud
 Run roles:
 

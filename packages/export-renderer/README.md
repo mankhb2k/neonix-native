@@ -562,7 +562,10 @@ Media preparation request:
 
 ## Docker
 
-Build from the repository root so workspace packages are available:
+This package has no Dockerfile of its own. The only production Dockerfile
+lives at `infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile`
+(see that directory's README for the full layout). Build from the repository
+root so workspace packages are available:
 
 ```bash
 docker build --platform linux/amd64 -f infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile -t neonix-skia-command-cpu-native .
