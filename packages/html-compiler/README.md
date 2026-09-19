@@ -528,7 +528,7 @@ validated with `MotionProtocolV2Schema`; unsupported syntax fails closed with a
 diagnostic instead of being silently dropped. Protocol timing is milliseconds.
 
 Normalization tests are in `test/normalization.test.ts`; Phase 3A layout
-tests are in `test/phase3.test.ts`. Preview Lab exposes the corresponding
+tests are in `test/layout-box.test.ts`. Preview Lab exposes the corresponding
 Phase 3 cases under **HTML compiler / Phase 3**.
 
 ## Visual-only compiler foundation

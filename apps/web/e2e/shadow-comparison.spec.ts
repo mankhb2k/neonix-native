@@ -4,14 +4,14 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
-const REPORT_ROOT = resolve(process.cwd(), "..", "..", "tmp", "phase8-core-shadow-comparison");
+const REPORT_ROOT = resolve(process.cwd(), "..", "..", "tmp", "shadow-comparison");
 const CASES = [
-  "phase8-outer-glow-plain",
-  "phase8-outer-glow-stack",
-  "phase8-outer-glow-overlay-only",
-  "phase8-inner-glow-mask-only",
-  "phase8-mixed-glow-order-colors",
-  "phase8-inner-outer-glow-order",
+  "outer-glow-plain",
+  "outer-glow-stack",
+  "outer-glow-overlay-only",
+  "inner-glow-mask-only",
+  "mixed-glow-order-colors",
+  "inner-outer-glow-order",
 ] as const;
 
 async function captureSurface(page: Page, surface: Locator): Promise<Buffer> {

@@ -2,25 +2,25 @@ import { expect, test } from "@playwright/test";
 import path from "node:path";
 
 const FOCUSED_FIXTURES = [
-  "phase8-inset-stroke-rounded-medium-halo-medium",
-  "phase8-inset-stroke-rounded-medium-halo-large",
-  "phase8-inset-stroke-rounded-large-halo-medium",
-  "phase8-inset-stroke-rounded-large-halo-large",
-  "phase8-outer-glow-plain",
-  "phase8-outer-glow-rounded",
-  "phase8-outer-glow-border",
-  "phase8-outer-glow-offset",
-  "phase8-outer-inner-glow-combined",
-  "phase8-outer-glow-stack",
-  "phase8-inner-glow-stack",
-  "phase8-outer-inner-glow-order",
-  "phase8-inner-outer-glow-order",
-  "phase8-outer-glow-overlay-only",
-  "phase8-inner-glow-mask-only",
-  "phase8-mixed-glow-order-colors",
+  "inset-stroke-rounded-medium-halo-medium",
+  "inset-stroke-rounded-medium-halo-large",
+  "inset-stroke-rounded-large-halo-medium",
+  "inset-stroke-rounded-large-halo-large",
+  "outer-glow-plain",
+  "outer-glow-rounded",
+  "outer-glow-border",
+  "outer-glow-offset",
+  "outer-inner-glow-combined",
+  "outer-glow-stack",
+  "inner-glow-stack",
+  "outer-inner-glow-order",
+  "inner-outer-glow-order",
+  "outer-glow-overlay-only",
+  "inner-glow-mask-only",
+  "mixed-glow-order-colors",
 ] as const;
 
-const DIAGNOSTIC_FIXTURES = ["phase8-outer-glow-spread"] as const;
+const DIAGNOSTIC_FIXTURES = ["outer-glow-spread"] as const;
 
 test.describe("HTML compiler playground", () => {
   test("mounts the Browser and Runtime/Skia screens", async ({ page }) => {
@@ -43,18 +43,18 @@ test.describe("HTML compiler playground", () => {
   });
 
   test("persists the selected fixture in the URL across reloads", async ({ page }) => {
-    await page.goto("/playground?fixture=phase8-inset-stroke-rounded-medium-halo-medium", { waitUntil: "domcontentloaded" });
+    await page.goto("/playground?fixture=inset-stroke-rounded-medium-halo-medium", { waitUntil: "domcontentloaded" });
     const picker = page.getByTestId("playground-fixture-picker");
-    await expect(picker).toHaveValue("phase8-inset-stroke-rounded-medium-halo-medium");
+    await expect(picker).toHaveValue("inset-stroke-rounded-medium-halo-medium");
     await expect(page.getByTestId("playground-source")).toContainText("inset-stroke-rounded-medium-halo-medium");
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(picker).toHaveValue("phase8-inset-stroke-rounded-medium-halo-medium");
+    await expect(picker).toHaveValue("inset-stroke-rounded-medium-halo-medium");
     await expect(page.getByTestId("playground-source")).toContainText("inset-stroke-rounded-medium-halo-medium");
-    await picker.selectOption("phase8-inset-stroke-rounded-large-halo-large");
-    await expect(picker).toHaveValue("phase8-inset-stroke-rounded-large-halo-large");
+    await picker.selectOption("inset-stroke-rounded-large-halo-large");
+    await expect(picker).toHaveValue("inset-stroke-rounded-large-halo-large");
     await expect(page.getByTestId("playground-source")).toContainText("inset-stroke-rounded-large-halo-large");
-    await expect(page).toHaveURL(/\/playground\?fixture=phase8-inset-stroke-rounded-large-halo-large$/);
+    await expect(page).toHaveURL(/\/playground\?fixture=inset-stroke-rounded-large-halo-large$/);
   });
 
   test("exposes only focused effect fixtures", async ({ page }) => {
@@ -80,6 +80,6 @@ test.describe("HTML compiler playground", () => {
       await expect(canvas).not.toHaveAttribute("data-diagnostics", /invalid matrix argument|effect_program|skia_effect_unsupported/);
     }
 
-    await expect(picker.locator('option[value="phase8-outer-glow-spread"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="outer-glow-spread"]')).toHaveCount(1);
   });
 });

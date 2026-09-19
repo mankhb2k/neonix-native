@@ -11,28 +11,28 @@ import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "@/lib/docs/html-compiler-prev
 import { HTML_PLAYGROUND_CASES } from "@/lib/playground/html-playground-cases";
 
 const INSET_CASE_IDS = [
-  "phase8-inset-stroke-rounded-medium-halo-medium",
-  "phase8-inset-stroke-rounded-medium-halo-large",
-  "phase8-inset-stroke-rounded-large-halo-medium",
-  "phase8-inset-stroke-rounded-large-halo-large",
+  "inset-stroke-rounded-medium-halo-medium",
+  "inset-stroke-rounded-medium-halo-large",
+  "inset-stroke-rounded-large-halo-medium",
+  "inset-stroke-rounded-large-halo-large",
 ] as const;
 
 const OUTER_CASE_IDS = [
-  "phase8-outer-glow-plain",
-  "phase8-outer-glow-rounded",
-  "phase8-outer-glow-border",
-  "phase8-outer-glow-offset",
-  "phase8-outer-inner-glow-combined",
-  "phase8-outer-glow-stack",
-  "phase8-inner-glow-stack",
-  "phase8-outer-inner-glow-order",
-  "phase8-inner-outer-glow-order",
-  "phase8-outer-glow-overlay-only",
-  "phase8-inner-glow-mask-only",
-  "phase8-mixed-glow-order-colors",
+  "outer-glow-plain",
+  "outer-glow-rounded",
+  "outer-glow-border",
+  "outer-glow-offset",
+  "outer-inner-glow-combined",
+  "outer-glow-stack",
+  "inner-glow-stack",
+  "outer-inner-glow-order",
+  "inner-outer-glow-order",
+  "outer-glow-overlay-only",
+  "inner-glow-mask-only",
+  "mixed-glow-order-colors",
 ] as const;
 
-const SPREAD_CASE_ID = "phase8-outer-glow-spread" as const;
+const SPREAD_CASE_ID = "outer-glow-spread" as const;
 
 function fixtureHtml(id: string): string {
   if (!HTML_PLAYGROUND_CASES.some((candidate) => candidate.id === id)) {
@@ -76,7 +76,7 @@ describe("Focused HTML playground Runtime command contract", () => {
   });
 
   it("provides an effect box for an ordered outer-shadow list", () => {
-    const buffer = compileFixture("phase8-outer-glow-stack");
+    const buffer = compileFixture("outer-glow-stack");
     const layer = buffer.commands.find(
       (command): command is Extract<PaintCommandBuffer["commands"][number], { op: "beginLayer" }> =>
         command.op === "beginLayer",
