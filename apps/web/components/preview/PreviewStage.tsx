@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 import {
   PreviewResourceRegistry,
   previewResourceKey,
@@ -23,12 +22,7 @@ import {
   type RuntimeProjectV3,
   type RuntimeTextShaperLoaderV3,
 } from "@motionvideo/motion-runtime";
-import {
-  createPreviewRenderer,
-  type PreviewAsset,
-  type PreviewBackendKind,
-  type PreviewBackendPreference,
-} from "@motionvideo/preview-renderer";
+import { type PreviewAsset } from "@motionvideo/preview-renderer";
 import { createSkiaRenderer, skiaTextGlyphAssetId } from "@motionvideo/skia-renderer";
 import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-v3";
 
@@ -48,7 +42,10 @@ export type PreviewStageProps = {
   registerPlaybackFrameSink?: (sink: (event: PlaybackFrameEventV3) => void) => () => void;
   backend?: PreviewStageBackendPreference;
   onBackendReady?: (backend: PreviewStageBackendKind | null) => void;
-  /** Keep the WebGL backbuffer only for capture/test scenarios. */
+  /**
+   * Retained for caller compatibility. The Skia/CanvasKit backend manages its
+   * own presentation surface and ignores this flag.
+   */
   preserveDrawingBuffer?: boolean;
   /** Stable identifier for diagnostic pages with more than one renderer. */
   testId?: string;
@@ -61,8 +58,8 @@ export type PreviewStageProps = {
   ) => void | (() => void);
 };
 
-type PreviewStageBackendKind = PreviewBackendKind | "skia";
-type PreviewStageBackendPreference = PreviewBackendPreference | "skia";
+type PreviewStageBackendKind = "skia";
+type PreviewStageBackendPreference = "skia" | "auto";
 
 type StageRenderer = {
   readonly backend: PreviewStageBackendKind;
@@ -163,14 +160,12 @@ export function PreviewStage({
   registerPlaybackFrameSink,
   backend = "skia",
   onBackendReady,
-  preserveDrawingBuffer = false,
   testId = "preview-v2-canvas",
   onFrameReady,
   onVideoElement,
 }: PreviewStageProps) {
   // `auto` is retained as a public compatibility preference for callers that
-  // used the pre-Skia preview API. In the 2D MVP it must resolve to Skia; the
-  // legacy GPU backends remain opt-in via an explicit preference.
+  // used the pre-Skia preview API. Skia/CanvasKit is the only preview backend.
   const effectiveBackend: PreviewStageBackendKind = backend === "auto" ? "skia" : backend;
   const hostRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<StageRenderer | null>(null);
@@ -478,25 +473,20 @@ export function PreviewStage({
           loadBrowserHarfBuzz,
         )
         : null;
-      const textAtlasRasterizer = effectiveBackend !== "skia" && compiled.visual.nodes.some((node) => node.content.kind === "text")
-        ? await createCanvasKitTextAtlasRasterizer((assetId) => resources.fontBytes.get(assetId) ?? null).catch(() => undefined)
-        : undefined;
-      canvas.dataset.textRasterizer = textAtlasRasterizer ? "canvaskit" : "canvas2d";
+      canvas.dataset.textRasterizer = "canvas2d";
       canvas.dataset.skiaTextAssets = "0";
       if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
         resources.release();
         return;
       }
       const runtime = prepared?.project ?? compiled;
-      const skiaTextAssets = effectiveBackend === "skia"
-        ? externalPlayback
-          ? await loadSkiaTextAssetsFromRuntime(runtime)
-          : await loadSkiaTextAssets(evaluateRuntimeProjectV3(
-            runtime,
-            frameIndexAtTime(timeRef.current, activeProject.composition.fps),
-            { time: timeRef.current },
-          ))
-        : new Map<string, PreviewAsset>();
+      const skiaTextAssets = externalPlayback
+        ? await loadSkiaTextAssetsFromRuntime(runtime)
+        : await loadSkiaTextAssets(evaluateRuntimeProjectV3(
+          runtime,
+          frameIndexAtTime(timeRef.current, activeProject.composition.fps),
+          { time: timeRef.current },
+        ));
       canvas.dataset.skiaTextAssets = String(skiaTextAssets.size);
       if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
         releaseSkiaTextAssets(skiaTextAssets);
@@ -504,11 +494,7 @@ export function PreviewStage({
         return;
       }
       let renderer = rendererRef.current;
-      const requestedTextRasterizer = effectiveBackend === "skia"
-        ? "skia-glyphs"
-        : textAtlasRasterizer
-          ? "canvaskit"
-          : "canvas2d";
+      const requestedTextRasterizer = "skia-glyphs";
       // The backend captures the atlas rasterizer when it is created. A docs
       // fixture can change from a non-text case to an emoji case without
       // remounting PreviewStage, so recreate the backend when that dependency
@@ -521,29 +507,18 @@ export function PreviewStage({
       if (!renderer) {
         canvas.dataset.previewState = "creating-renderer";
         rendererCreationStarted = true;
-        const nextRenderer = effectiveBackend === "skia"
-          ? await createSkiaRenderer({
-            canvas,
-            width: activeProject.composition.width,
-            height: activeProject.composition.height,
-            devicePixelRatio: initialRenderDpr,
-            assets: new Map([...resources.assets, ...skiaTextAssets]),
-            fonts: resources.fontBytes,
-            // Keep live Skia preview on CanvasKit's GPU presentation surface.
-            // Export and pixel-test callers do not set this flag and retain
-            // the explicit RGBA readback contract.
-            directPresentation: true,
-          })
-          : await createPreviewRenderer({
-            canvas,
-            backend: effectiveBackend,
-            width: activeProject.composition.width,
-            height: activeProject.composition.height,
-            devicePixelRatio: initialRenderDpr,
-            preserveDrawingBuffer,
-            assets: resources.assets,
-            textAtlasRasterizer,
-          });
+        const nextRenderer = await createSkiaRenderer({
+          canvas,
+          width: activeProject.composition.width,
+          height: activeProject.composition.height,
+          devicePixelRatio: initialRenderDpr,
+          assets: new Map([...resources.assets, ...skiaTextAssets]),
+          fonts: resources.fontBytes,
+          // Keep live Skia preview on CanvasKit's GPU presentation surface.
+          // Export and pixel-test callers do not set this flag and retain
+          // the explicit RGBA readback contract.
+          directPresentation: true,
+        });
         if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
           nextRenderer.dispose();
           releaseSkiaTextAssets(skiaTextAssets);
@@ -660,7 +635,7 @@ export function PreviewStage({
       for (const dispose of videoRegistrationDisposersRef.current) dispose();
       videoRegistrationDisposersRef.current = [];
     };
-  }, [effectiveBackend, canvasReadyToken, externalPlayback, handleDecodedVideoFrame, preparationFingerprint, preserveDrawingBuffer, resourceRegistry, runtimePreparationKey]);
+  }, [effectiveBackend, canvasReadyToken, externalPlayback, handleDecodedVideoFrame, preparationFingerprint, resourceRegistry, runtimePreparationKey]);
 
   // Geometry-only document edits should update the compiled scene and repaint,
   // but must not restart resource loading or unregister existing media.

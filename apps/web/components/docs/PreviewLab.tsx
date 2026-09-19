@@ -12,12 +12,8 @@ import {
 } from "@/lib/docs/preview-lab";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
-import type {
-  PreviewBackendKind,
-  PreviewBackendPreference,
-} from "@motionvideo/preview-renderer";
 
-type PreviewLabBackendPreference = PreviewBackendPreference | "skia";
+type PreviewLabBackendPreference = "skia" | "auto";
 
 const backendOptions: Array<{
   id: PreviewLabBackendPreference;
@@ -296,9 +292,7 @@ function PreviewCaseRenderer({
   const [currentTime, setCurrentTime] = useState(firstTime);
   const [isPlaying, setIsPlaying] = useState(false);
   const playheadRef = useRef(firstTime);
-  const [activeBackend, setActiveBackend] = useState<(PreviewBackendKind | "skia") | null>(
-    null,
-  );
+  const [activeBackend, setActiveBackend] = useState<"skia" | null>(null);
 
   useEffect(() => {
     playheadRef.current = currentTime;
@@ -374,9 +368,7 @@ function PreviewCaseRenderer({
           className="font-mono text-[11px] text-slate-500"
           data-testid="preview-active-backend"
         >
-          {activeBackend
-            ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : activeBackend === "skia" ? "Native renderer" : "WebGL2"}`
-            : "Loading renderer..."}
+          {activeBackend ? "Active: Native renderer" : "Loading renderer..."}
         </span>
       </div>
       <div className="aspect-video w-full">

@@ -35,12 +35,14 @@ const OUTER_CASE_IDS = [
 const SPREAD_CASE_ID = "outer-glow-spread" as const;
 
 function fixtureHtml(id: string): string {
-  if (!HTML_PLAYGROUND_CASES.some((candidate) => candidate.id === id)) {
+  const item = HTML_PLAYGROUND_CASES.find((candidate) => candidate.id === id);
+  if (!item) {
     throw new Error(`Unknown playground fixture: ${id}`);
   }
+  const relativePath = item.url.replace(/^\//, "");
   const candidates = [
-    resolve(process.cwd(), "public/playground/fixtures", `${id}.html`),
-    resolve(process.cwd(), "apps/web/public/playground/fixtures", `${id}.html`),
+    resolve(process.cwd(), "public", relativePath),
+    resolve(process.cwd(), "apps/web/public", relativePath),
   ];
   const path = candidates.find((candidate) => existsSync(candidate));
   if (!path) throw new Error(`Fixture file is missing: ${id}`);

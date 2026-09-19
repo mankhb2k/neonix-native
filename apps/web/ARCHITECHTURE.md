@@ -36,6 +36,53 @@ USER / AI / MCP / EDITOR
               Media Engine → MP4 → R2
 ```
 
+## Luồng production export render
+
+Web là control plane; request export không truyền toàn bộ MP4 qua Web và Web
+không tự render video. Cả UI API và MCP `create_export` đều đi qua cùng một
+pipeline:
+
+```text
+Editor / MCP
+    │
+    ├─ POST /api/v1/renders hoặc create_export
+    │
+    ├─ xác thực Supabase, kiểm tra ownership
+    ├─ compile Protocol V2 → RuntimeProjectV3
+    ├─ ghi render_jobs (runtime manifest bất biến)
+    └─ gửi PGMQ message { jobId }
+             │
+             ▼
+      render-queue-worker
+             │
+             ├─ RENDER_DISPATCH_MODE=cloud-run-job
+             └─ POST /v1/render-job-executions tới Cloud Run control service
+                              │
+                              ▼
+                    Cloud Run Job (RENDER_JOB_ID)
+                              │
+                              ├─ claim lease và đọc manifest từ Supabase
+                              ├─ Native Skia CPU render → libyuv → libx264/MP4
+                              ├─ ffprobe/checksum verify
+                              ├─ upload artifact vào R2
+                              └─ cập nhật render_jobs = done/failed
+                                      │
+                                      ▼
+                         get_export / download route
+                         → signed R2 URL có thời hạn
+```
+
+Trong production, queue message chỉ là tín hiệu đánh thức; Supabase
+`render_jobs` mới là source of truth cho manifest, lease, progress và trạng
+thái. Cloud Run control service dùng `CLOUD_RUN_PROJECT_ID`, region và tên Job
+để gọi Cloud Run Jobs API; web chỉ cần biết `EXPORT_RENDERER_URL` và không
+chọn trực tiếp project Cloud Run.
+
+Luồng mặc định là một sequential Job. Chỉ khi bật
+`RENDER_CHUNK_EXECUTION_ENABLED=true` mới dùng thêm Chunk Job và Finalizer Job.
+Queue worker phải chạy liên tục; nếu không, API có thể tạo job ở trạng thái
+`queued` nhưng chưa có Cloud Run execution.
+
 ## Dữ liệu Web sở hữu
 
 | Domain | Dữ liệu và trách nhiệm |

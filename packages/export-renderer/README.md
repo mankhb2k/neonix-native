@@ -62,6 +62,33 @@ Skia Vulkan is a future GPU candidate behind the same command-buffer contract.
 FFmpeg is an encoder/muxer in this architecture. It must not be responsible
 for evaluating the scene, rasterizing HTML, or taking browser screenshots.
 
+## Production boundary
+
+The web application owns authentication, project revisions, immutable runtime
+manifests, `render_jobs`, the PGMQ wake-up message, and the final signed
+download URL. The renderer owns only the render execution:
+
+```text
+Web API / MCP
+  -> Supabase render_jobs + PGMQ { jobId }
+  -> queue worker
+  -> Cloud Run control service
+  -> Cloud Run Job with RENDER_JOB_ID
+  -> Supabase manifest
+  -> Native Skia CPU -> MP4 verification
+  -> R2 publication -> render_jobs = done
+```
+
+The control service submits the Cloud Run Job using its configured project,
+region, and job name. The queue message does not carry the runtime document;
+the Job reads the persisted manifest from Supabase. This keeps retries,
+leases, cancellation, and idempotency in the control plane while the renderer
+remains stateless apart from its temporary `/tmp` workspace.
+
+See [`apps/web/ARCHITECHTURE.md`](../../apps/web/ARCHITECHTURE.md) for the
+end-to-end production flow and [`infra/cloud-run/export-renderer/README.md`](../../infra/cloud-run/export-renderer/README.md)
+for deployment and secret requirements.
+
 ## Current implementation
 
 There is one MP4 export path. The implementation is intentionally fail-closed

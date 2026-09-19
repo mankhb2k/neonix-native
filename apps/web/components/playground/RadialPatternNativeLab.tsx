@@ -5,14 +5,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
 import { fetchPlaygroundFixture } from "@/lib/api/playground";
-import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "@/lib/docs/html-compiler-preview";
-import { HTML_PLAYGROUND_NATIVE_CASES } from "@/lib/playground/html-playground-cases";
+import { HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS } from "@/lib/docs/html-compiler-preview";
+import {
+  htmlPlaygroundCaseGroups,
+  HTML_PLAYGROUND_NATIVE_CASES,
+  type HtmlPlaygroundCaseGroup,
+} from "@/lib/playground/html-playground-cases";
 import { compileDocument } from "@motionvideo/html-compiler";
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
 const REPEAT_CASES = HTML_PLAYGROUND_NATIVE_CASES;
+const REPEAT_CASE_GROUPS = htmlPlaygroundCaseGroups(REPEAT_CASES);
+const ALL_GROUPS_ID = "all" as const;
+type GroupFilter = HtmlPlaygroundCaseGroup | typeof ALL_GROUPS_ID;
 
 const STAGE_STYLE = `<style id="neonix-native-resolution-stage">
 html, body {
@@ -35,12 +42,34 @@ export function RadialPatternNativeLab() {
   const animationFrameRef = useRef<number | null>(null);
   const requestRef = useRef(0);
   const [html, setHtml] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<GroupFilter>(
+    REPEAT_CASES[0].group,
+  );
   const [selectedCase, setSelectedCase] = useState<
     (typeof REPEAT_CASES)[number]["id"]
   >(REPEAT_CASES[0].id);
   const [caseLoading, setCaseLoading] = useState(true);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+
+  const visibleCases = useMemo(
+    () =>
+      selectedGroup === ALL_GROUPS_ID
+        ? REPEAT_CASES
+        : REPEAT_CASES.filter((item) => item.group === selectedGroup),
+    [selectedGroup],
+  );
+
+  function selectGroup(nextGroup: GroupFilter) {
+    setSelectedGroup(nextGroup);
+    const nextCases =
+      nextGroup === ALL_GROUPS_ID
+        ? REPEAT_CASES
+        : REPEAT_CASES.filter((item) => item.group === nextGroup);
+    if (!nextCases.some((item) => item.id === selectedCase)) {
+      setSelectedCase(nextCases[0].id);
+    }
+  }
 
   useEffect(() => {
     const selected =
@@ -68,7 +97,7 @@ export function RadialPatternNativeLab() {
       html
         ? compileDocument(
             { html },
-            { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS },
+            { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS },
           )
         : null,
     [html],
@@ -150,23 +179,42 @@ export function RadialPatternNativeLab() {
           </div>
           <div className="flex items-center gap-2">
             <label className="flex h-8 items-center rounded-md border border-[#b8dcd6] bg-white px-2 text-sm text-[#0f766e]">
+              <span className="sr-only">Test type</span>
+              <select
+                className="w-[130px] bg-transparent text-sm font-medium outline-none"
+                value={selectedGroup}
+                onChange={(event) =>
+                  selectGroup(event.target.value as GroupFilter)
+                }
+                aria-label="Test type"
+                data-testid="radial-native-group-picker"
+              >
+                <option value={ALL_GROUPS_ID}>All</option>
+                {REPEAT_CASE_GROUPS.map((section) => (
+                  <option key={section.group} value={section.group}>
+                    {section.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex h-8 items-center rounded-md border border-[#b8dcd6] bg-white px-2 text-sm text-[#0f766e]">
               <span className="sr-only">Native debug fixture</span>
               <select
                 className="w-[230px] bg-transparent text-sm font-medium outline-none"
                 value={selectedCase}
-                onChange={(event) =>
-                  setSelectedCase(
-                    event.target.value as (typeof REPEAT_CASES)[number]["id"],
-                  )
-                }
+                onChange={(event) => setSelectedCase(event.target.value)}
                 aria-label="Native debug fixture"
                 data-testid="radial-native-case-picker"
                 disabled={caseLoading}
               >
-                {REPEAT_CASES.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
+                {htmlPlaygroundCaseGroups(visibleCases).map((section) => (
+                  <optgroup key={section.group} label={section.label}>
+                    {section.cases.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
