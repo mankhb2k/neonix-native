@@ -10,7 +10,7 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_TAG_LOWERING_CASES, HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES, HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_LAYOUT_TEXT_CASES, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_OPACITY_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_TAG_LOWERING_CASES, HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES, HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_LAYOUT_TEXT_CASES, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_OPACITY_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PAINT_PHASE2_9_CASES, HTML_COMPILER_PAINT_GRADIENT_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 
 const fixtureHtml = (fixture: { fixtureUrl: string }) =>
   readFileSync(join(resolve(__dirname, "../../public"), fixture.fixtureUrl.replace(/^\//, "")), "utf8");
@@ -61,7 +61,8 @@ describe("Protocol V2 preview lab fixtures", () => {
   });
 
   it("keeps the HTML compiler sidebar backed by the primitive fixture catalog", () => {
-    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(41);
+    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(38);
+    expect(HTML_COMPILER_PAINT_GRADIENT_CASES).toHaveLength(4);
     expect(HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES).toHaveLength(6);
     expect(HTML_COMPILER_PHASE1_1_CASES).toHaveLength(5);
     expect(HTML_COMPILER_PHASE1_2_CASES).toHaveLength(3);
@@ -70,6 +71,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_LAYOUT_TEXT_CASES).toHaveLength(10);
     expect(HTML_COMPILER_ANCHOR_CASES).toHaveLength(1);
     expect(HTML_COMPILER_PAINT_PHASE2_0_CASES).toHaveLength(7);
+    expect(HTML_COMPILER_PAINT_PHASE2_9_CASES).toHaveLength(1);
     expect(HTML_COMPILER_OPACITY_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(11);
@@ -147,6 +149,18 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect(compiled.status, fixture.id).toBe("success");
       expect(compiled.protocol?.layers.some((layer) => (layer.maskLayers?.length ?? 0) > 0), fixture.id).toBe(true);
       expect(compiled.protocol?.masks?.length, fixture.id).toBeGreaterThan(0);
+    }
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_9_CASES) {
+      const compiled = compileFixture(fixture);
+      expect(compiled.status, fixture.id).toBe("success");
+      const fills = (compiled.protocol?.layers ?? [])
+        .map((layer) => (layer.type === "shape" ? layer.style?.fill : undefined))
+        .filter((fill): fill is string => typeof fill === "string");
+      for (const expectedColor of ["#ff0000", "#00ff00", "#0000ff", "#00ffff", "#ff00ff", "#ffff00", "#ffffff", "#000000", "#808080"]) {
+        expect(fills.some((fill) => fill.toLowerCase().startsWith(expectedColor)), `${fixture.id}: missing ${expectedColor}`).toBe(true);
+      }
+      const hasAnimatedColor = compiled.protocol?.layers.some((layer) => layer.tracks?.some((track) => track.path === "style.fill"));
+      expect(hasAnimatedColor, fixture.id).toBe(true);
     }
     for (const fixture of HTML_COMPILER_MOTION_PHASE3_CASES) {
       const compiled = compileFixture(fixture, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
@@ -272,19 +286,19 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[20]!)).toContain('id="dash-order"');
     expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[20]!)).toContain("stroke-dasharray: 30px 16px");
     expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[20]!)).toContain("paint-order: stroke fill");
-    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[21]!)).toContain('id="linear-gradient"');
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[21]!)).toContain("linear-gradient(90deg");
-    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[22]!)).toContain('id="radial-gradient"');
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[22]!)).toContain("radial-gradient(circle at 50% 50%");
-    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[23]!)).toContain('id="conic-gradient"');
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[23]!)).toContain("conic-gradient(from 45deg at 50% 50%");
-    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[24]!)).toContain('src="/preview/image/photo-landscape.jpg"');
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[24]!)).toContain("object-fit: contain");
-    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[25]!)).toContain('src="/preview/image/photo-portrait.jpg"');
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[25]!)).toContain("object-position: right top");
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[26]!)).toContain("image-rendering: pixelated");
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[27]!)).toContain("object-fit: none");
-    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[27]!)).toContain("overflow: hidden");
+    expect(fixtureHtml(HTML_COMPILER_PAINT_GRADIENT_CASES[0]!)).toContain('id="linear-gradient"');
+    expect(fixtureCss(HTML_COMPILER_PAINT_GRADIENT_CASES[0]!)).toContain("linear-gradient(90deg");
+    expect(fixtureHtml(HTML_COMPILER_PAINT_GRADIENT_CASES[2]!)).toContain('id="radial-gradient"');
+    expect(fixtureCss(HTML_COMPILER_PAINT_GRADIENT_CASES[2]!)).toContain("radial-gradient(circle at 50% 50%");
+    expect(fixtureHtml(HTML_COMPILER_PAINT_GRADIENT_CASES[3]!)).toContain('id="conic-gradient"');
+    expect(fixtureCss(HTML_COMPILER_PAINT_GRADIENT_CASES[3]!)).toContain("conic-gradient(from 45deg at 50% 50%");
+    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[21]!)).toContain('src="/preview/image/photo-landscape.jpg"');
+    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[21]!)).toContain("object-fit: contain");
+    expect(fixtureHtml(HTML_COMPILER_PHASE0_CASES[22]!)).toContain('src="/preview/image/photo-portrait.jpg"');
+    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[22]!)).toContain("object-position: right top");
+    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[23]!)).toContain("image-rendering: pixelated");
+    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[24]!)).toContain("object-fit: none");
+    expect(fixtureCss(HTML_COMPILER_PHASE0_CASES[24]!)).toContain("overflow: hidden");
     expect(fixtureHtml(htmlCompilerPreviewCaseById("html-compiler.typography.font-family-three-fonts"))).toContain('id="font-inter"');
     expect(fixtureCss(htmlCompilerPreviewCaseById("html-compiler.typography.font-family-three-fonts"))).toContain('font-family: "Lora"');
     expect(fixtureCss(htmlCompilerPreviewCaseById("html-compiler.typography.font-family-three-fonts"))).toContain("font-weight: 700");
@@ -482,25 +496,25 @@ describe("Protocol V2 preview lab fixtures", () => {
       },
     });
 
-    const linearGradient = compileFixture(HTML_COMPILER_PHASE0_CASES[21]!);
+    const linearGradient = compileFixture(HTML_COMPILER_PAINT_GRADIENT_CASES[0]!);
     expect(linearGradient.status).toBe("success");
     expect(linearGradient.protocol?.layers.find((layer) => layer.id === "linear-gradient")).toMatchObject({
       style: { fill: { type: "linear-gradient", angle: 0, stops: [{ offset: 0 }, { offset: 0.5 }, { offset: 1 }] } },
     });
 
-    const radialGradient = compileFixture(HTML_COMPILER_PHASE0_CASES[22]!);
+    const radialGradient = compileFixture(HTML_COMPILER_PAINT_GRADIENT_CASES[2]!);
     expect(radialGradient.status).toBe("success");
     expect(radialGradient.protocol?.layers.find((layer) => layer.id === "radial-gradient")).toMatchObject({
       style: { fill: { type: "radial-gradient", cx: 0.5, cy: 0.5, radius: expect.closeTo(Math.sqrt(5) / 2, 6), stops: [{ offset: 0 }, { offset: 0.42 }, { offset: 1 }] } },
     });
 
-    const conicGradient = compileFixture(HTML_COMPILER_PHASE0_CASES[23]!);
+    const conicGradient = compileFixture(HTML_COMPILER_PAINT_GRADIENT_CASES[3]!);
     expect(conicGradient.status).toBe("success");
     expect(conicGradient.protocol?.layers.find((layer) => layer.id === "conic-gradient")).toMatchObject({
       style: { fill: { type: "conic-gradient", from: 45, cx: 0.5, cy: 0.5, stops: [{ offset: 0 }, { offset: 0.33 }, { offset: 0.66 }, { offset: 1 }] } },
     });
 
-    const mediaCases = HTML_COMPILER_PHASE0_CASES.slice(24);
+    const mediaCases = HTML_COMPILER_PHASE0_CASES.slice(21);
     const mediaResults = mediaCases.slice(0, 4).map((fixture) => compileFixture(fixture));
     expect(mediaResults.every((result) => result.status === "success")).toBe(true);
     expect(mediaResults[0]?.protocol?.layers.find((layer) => layer.id === "media-contain")).toMatchObject({

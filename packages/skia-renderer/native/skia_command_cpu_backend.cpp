@@ -6,6 +6,7 @@
 // for the benchmark fixture (beginFrame, setTransform, drawShape, endFrame);
 // unsupported commands fail closed instead of being silently approximated.
 
+#include "include/core/SkBlendMode.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColor.h"
 #include "include/core/SkColorSpace.h"
@@ -753,9 +754,14 @@ SkColor4f color_with_alpha(const Color& color, double multiplier) {
     };
 }
 
+// Forward declaration: shared by draw_shape/draw_path (below) and text glyph
+// painting (apply_text_paint, further down); the full definition lives near
+// its other gradient helpers (paint_tile_mode/paint_value).
+sk_sp<SkShader> make_gradient_shader(const PaintSpec& paint, double width, double height);
+
 bool draw_shape(SkCanvas* canvas, uint8_t shape, double width, double height,
-                double corner_radius, const Color& fill, bool has_fill,
-                double fill_opacity, const Color& stroke, bool has_stroke,
+                double corner_radius, const Color& fill, bool has_fill, const PaintSpec& fill_paint,
+                double fill_opacity, const Color& stroke, bool has_stroke, const PaintSpec& stroke_paint,
                 double stroke_width, double stroke_opacity, double transform_alpha,
                 bool anti_alias) {
     if (has_fill) {
@@ -763,6 +769,7 @@ bool draw_shape(SkCanvas* canvas, uint8_t shape, double width, double height,
         paint.setAntiAlias(anti_alias);
         paint.setStyle(SkPaint::kFill_Style);
         paint.setColor4f(color_with_alpha(fill, transform_alpha * fill_opacity));
+        if (auto shader = make_gradient_shader(fill_paint, width, height)) paint.setShader(std::move(shader));
         if (shape == 1) {
             const SkRect rect = SkRect::MakeWH(static_cast<SkScalar>(width), static_cast<SkScalar>(height));
             if (corner_radius > 0) {
@@ -782,6 +789,7 @@ bool draw_shape(SkCanvas* canvas, uint8_t shape, double width, double height,
         paint.setStyle(SkPaint::kStroke_Style);
         paint.setStrokeWidth(static_cast<SkScalar>(stroke_width));
         paint.setColor4f(color_with_alpha(stroke, transform_alpha * stroke_opacity));
+        if (auto shader = make_gradient_shader(stroke_paint, width, height)) paint.setShader(std::move(shader));
         if (shape == 1) {
             if (corner_radius > 0) {
                 canvas->drawRoundRect(
@@ -809,7 +817,7 @@ double paint_value(const PaintSpec& paint, size_t index, double fallback) {
     return index < 14 && std::isfinite(paint.values[index]) ? paint.values[index] : fallback;
 }
 
-sk_sp<SkShader> make_text_gradient_shader(const PaintSpec& paint, double width, double height) {
+sk_sp<SkShader> make_gradient_shader(const PaintSpec& paint, double width, double height) {
     if (paint.type < 1 || paint.type > 3 || paint.colors.size() < 2) return nullptr;
     std::vector<SkColor4f> colors;
     std::vector<SkScalar> offsets;
@@ -869,19 +877,20 @@ sk_sp<SkShader> make_text_gradient_shader(const PaintSpec& paint, double width, 
 
 void apply_text_paint(SkPaint& paint, const Color& fallback, const PaintSpec& paintSpec, double alpha, double width, double height) {
     paint.setColor4f(color_with_alpha(fallback, alpha));
-    if (auto shader = make_text_gradient_shader(paintSpec, width, height)) paint.setShader(std::move(shader));
+    if (auto shader = make_gradient_shader(paintSpec, width, height)) paint.setShader(std::move(shader));
 }
 
 bool draw_path(SkCanvas* canvas, SkPath& path, const Color& fill, bool hasFill,
-               double fillOpacity, const Color& stroke, bool hasStroke,
-               double strokeWidth, double strokeOpacity, double transformAlpha,
-               uint8_t fillRule, bool antiAlias) {
+               double fillOpacity, const PaintSpec& fillPaint, const Color& stroke, bool hasStroke,
+               double strokeWidth, double strokeOpacity, const PaintSpec& strokePaint, double transformAlpha,
+               uint8_t fillRule, bool antiAlias, double width = 1, double height = 1) {
     path.setFillType(fillRule == 1 ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding);
     if (hasFill) {
         SkPaint paint;
         paint.setAntiAlias(antiAlias);
         paint.setStyle(SkPaint::kFill_Style);
         paint.setColor4f(color_with_alpha(fill, transformAlpha * fillOpacity));
+        if (auto shader = make_gradient_shader(fillPaint, width, height)) paint.setShader(std::move(shader));
         canvas->drawPath(path, paint);
     }
     if (hasStroke) {
@@ -890,6 +899,7 @@ bool draw_path(SkCanvas* canvas, SkPath& path, const Color& fill, bool hasFill,
         paint.setStyle(SkPaint::kStroke_Style);
         paint.setStrokeWidth(static_cast<SkScalar>(std::max(0.0, strokeWidth)));
         paint.setColor4f(color_with_alpha(stroke, transformAlpha * strokeOpacity));
+        if (auto shader = make_gradient_shader(strokePaint, width, height)) paint.setShader(std::move(shader));
         canvas->drawPath(path, paint);
     }
     return hasFill || hasStroke;
@@ -1147,12 +1157,14 @@ int main(int argc, char** argv) {
                 double strokeOpacity = 1;
                 Color fill;
                 Color stroke;
+                PaintSpec fillPaint;
+                PaintSpec strokePaint;
                 if (!reader.value(shape) || !reader.value(shapeWidth) || !reader.value(shapeHeight) ||
                     !reader.value(hasFill) || (hasFill && !read_color(reader, fill)) ||
-                    !reader.value(fillOpacity) || !reader.value(hasCornerRadius) ||
+                    !reader.value(fillOpacity) || !read_paint(reader, fillPaint) || !reader.value(hasCornerRadius) ||
                     (hasCornerRadius && !reader.value(cornerRadius)) || !reader.value(hasStroke) ||
                     (hasStroke && !read_color(reader, stroke)) || !reader.value(strokeWidth) ||
-                    !reader.value(strokeOpacity)) {
+                    !reader.value(strokeOpacity) || !read_paint(reader, strokePaint)) {
                     print_error("protocol", "truncated_shape");
                     return 30;
                 }
@@ -1185,12 +1197,13 @@ int main(int argc, char** argv) {
                     SkPathBuilder polygonBuilder;
                     polygonBuilder.addPolygon(points, true);
                     SkPath polygon = polygonBuilder.detach();
-                    drawn = draw_path(canvas, polygon, fill, hasFill, fillOpacity, stroke, hasStroke,
-                                      strokeWidth, strokeOpacity, transform.alpha, 0, antiAlias);
+                    drawn = draw_path(canvas, polygon, fill, hasFill, fillOpacity, fillPaint, stroke, hasStroke,
+                                      strokeWidth, strokeOpacity, strokePaint, transform.alpha, 0, antiAlias,
+                                      shapeWidth, shapeHeight);
                 } else {
                     drawn = draw_shape(canvas, shape, shapeWidth, shapeHeight,
-                        hasCornerRadius ? cornerRadius : 0, fill, hasFill, fillOpacity,
-                        stroke, hasStroke, strokeWidth, strokeOpacity, transform.alpha, antiAlias);
+                        hasCornerRadius ? cornerRadius : 0, fill, hasFill, fillPaint, fillOpacity,
+                        stroke, hasStroke, strokePaint, strokeWidth, strokeOpacity, transform.alpha, antiAlias);
                 }
                 canvas->restore();
                 renderMilliseconds += milliseconds(renderStart, Clock::now());
@@ -1204,16 +1217,23 @@ int main(int argc, char** argv) {
                 SkPath path;
                 Color fill;
                 Color stroke;
+                PaintSpec fillPaint;
+                PaintSpec strokePaint;
                 uint8_t hasFill = 0;
                 uint8_t hasStroke = 0;
                 uint8_t fillRule = 0;
                 double fillOpacity = 1;
                 double strokeWidth = 0;
                 double strokeOpacity = 1;
+                double pathWidth = 1;
+                double pathHeight = 1;
                 if (!read_path(reader, path) || !reader.value(hasFill) ||
                     (hasFill && !read_color(reader, fill)) || !reader.value(fillOpacity) ||
+                    !read_paint(reader, fillPaint) ||
                     !reader.value(hasStroke) || (hasStroke && !read_color(reader, stroke)) ||
-                    !reader.value(strokeWidth) || !reader.value(strokeOpacity) || !reader.value(fillRule)) {
+                    !reader.value(strokeWidth) || !reader.value(strokeOpacity) ||
+                    !read_paint(reader, strokePaint) || !reader.value(fillRule) ||
+                    !reader.value(pathWidth) || !reader.value(pathHeight)) {
                     print_error("protocol", "truncated_path");
                     return 40;
                 }
@@ -1222,8 +1242,9 @@ int main(int argc, char** argv) {
                 SkCanvas* canvas = surface->getCanvas();
                 canvas->save();
                 canvas->concat(to_canvas_matrix(projection, transform.matrix, static_cast<int>(width), static_cast<int>(height)));
-                const bool drawn = draw_path(canvas, path, fill, hasFill, fillOpacity, stroke, hasStroke,
-                                              strokeWidth, strokeOpacity, transform.alpha, fillRule, true);
+                const bool drawn = draw_path(canvas, path, fill, hasFill, fillOpacity, fillPaint, stroke, hasStroke,
+                                              strokeWidth, strokeOpacity, strokePaint, transform.alpha, fillRule, true,
+                                              pathWidth, pathHeight);
                 canvas->restore();
                 renderMilliseconds += milliseconds(renderStart, Clock::now());
                 if (!drawn) {
@@ -1307,14 +1328,47 @@ int main(int argc, char** argv) {
             } else if (opcode == 8) {  // beginLayer
                 uint8_t offscreen = 0;
                 double compositeAlpha = 1;
-                if (!reader.value(offscreen) || !reader.value(compositeAlpha)) {
+                uint8_t blendModeCode = 0;
+                if (!reader.value(offscreen) || !reader.value(compositeAlpha) || !reader.value(blendModeCode)) {
                     print_error("protocol", "truncated_layer");
                     return 45;
                 }
+                // Wire order for blendModeCode must match NATIVE_BLEND_MODES in
+                // benchmark-native-skia-command-cpu.ts exactly (positional
+                // protocol, not self-describing).
+                static const SkBlendMode kBlendModes[] = {
+                    SkBlendMode::kSrcOver,     // normal
+                    SkBlendMode::kDarken,
+                    SkBlendMode::kMultiply,
+                    SkBlendMode::kColorBurn,
+                    SkBlendMode::kLighten,
+                    SkBlendMode::kScreen,
+                    SkBlendMode::kColorDodge,
+                    SkBlendMode::kOverlay,
+                    SkBlendMode::kSoftLight,
+                    SkBlendMode::kHardLight,
+                    SkBlendMode::kDifference,
+                    SkBlendMode::kExclusion,
+                    SkBlendMode::kHue,
+                    SkBlendMode::kSaturation,
+                    SkBlendMode::kColor,
+                    SkBlendMode::kLuminosity,
+                };
+                if (blendModeCode >= 16) {
+                    print_error("protocol", "invalid_blend_mode");
+                    return 55;
+                }
+                const bool hasBlend = blendModeCode > 0;
                 SkPaint layerPaint;
                 layerPaint.setAlphaf(static_cast<SkScalar>(std::max(0.0, std::min(1.0, compositeAlpha))));
+                if (hasBlend) layerPaint.setBlendMode(kBlendModes[blendModeCode]);
                 const auto compositeStart = Clock::now();
-                if (offscreen || compositeAlpha < 0.999999) surface->getCanvas()->saveLayer(nullptr, &layerPaint);
+                // A non-normal blend mode only takes effect through saveLayer:
+                // it is applied to layerPaint when the layer composites back
+                // onto its parent at restore(); a plain save() has no paint
+                // and would silently drop the blend, same failure mode the
+                // missing wire field had before this fix.
+                if (offscreen || compositeAlpha < 0.999999 || hasBlend) surface->getCanvas()->saveLayer(nullptr, &layerPaint);
                 else surface->getCanvas()->save();
                 const double compositeElapsed = milliseconds(compositeStart, Clock::now());
                 compositeMilliseconds += compositeElapsed;

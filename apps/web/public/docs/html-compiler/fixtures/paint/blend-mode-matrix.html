@@ -9,20 +9,23 @@
         background: linear-gradient(120deg, #f97316 0%, #22d3ee 45%, #a855f7 100%);
       }
       .blend-swatch {
-        position: absolute; width: 300px; height: 260px;
+        position: absolute; width: 400px; height: 220px;
         background: #ec4899;
       }
       .r0 { top: 70px; }
-      .r1 { top: 370px; }
-      .r2 { top: 670px; }
+      .r1 { top: 310px; }
+      .r2 { top: 550px; }
+      .r3 { top: 790px; }
       .c0 { left: 130px; }
-      .c1 { left: 470px; }
-      .c2 { left: 810px; }
-      .c3 { left: 1150px; }
-      .c4 { left: 1490px; }
+      .c1 { left: 550px; }
+      .c2 { left: 970px; }
+      .c3 { left: 1390px; }
+      #blend-normal { mix-blend-mode: normal; }
       #blend-darken { mix-blend-mode: darken; }
+      #blend-multiply { mix-blend-mode: multiply; }
       #blend-color-burn { mix-blend-mode: color-burn; }
       #blend-lighten { mix-blend-mode: lighten; }
+      #blend-screen { mix-blend-mode: screen; }
       #blend-color-dodge { mix-blend-mode: color-dodge; }
       #blend-overlay { mix-blend-mode: overlay; }
       #blend-soft-light { mix-blend-mode: soft-light; }
@@ -37,18 +40,21 @@
   </head>
   <body>
     <div id="blend-matrix-backdrop"></div>
-    <div id="blend-darken" class="blend-swatch r0 c0"></div>
-    <div id="blend-color-burn" class="blend-swatch r0 c1"></div>
-    <div id="blend-lighten" class="blend-swatch r0 c2"></div>
-    <div id="blend-color-dodge" class="blend-swatch r0 c3"></div>
-    <div id="blend-overlay" class="blend-swatch r0 c4"></div>
-    <div id="blend-soft-light" class="blend-swatch r1 c0"></div>
-    <div id="blend-hard-light" class="blend-swatch r1 c1"></div>
-    <div id="blend-difference" class="blend-swatch r1 c2"></div>
-    <div id="blend-exclusion" class="blend-swatch r1 c3"></div>
-    <div id="blend-hue" class="blend-swatch r1 c4"></div>
-    <div id="blend-saturation" class="blend-swatch r2 c0"></div>
-    <div id="blend-color" class="blend-swatch r2 c1"></div>
-    <div id="blend-luminosity" class="blend-swatch r2 c2"></div>
+    <div id="blend-normal" class="blend-swatch r0 c0"></div>
+    <div id="blend-darken" class="blend-swatch r0 c1"></div>
+    <div id="blend-multiply" class="blend-swatch r0 c2"></div>
+    <div id="blend-color-burn" class="blend-swatch r0 c3"></div>
+    <div id="blend-lighten" class="blend-swatch r1 c0"></div>
+    <div id="blend-screen" class="blend-swatch r1 c1"></div>
+    <div id="blend-color-dodge" class="blend-swatch r1 c2"></div>
+    <div id="blend-overlay" class="blend-swatch r1 c3"></div>
+    <div id="blend-soft-light" class="blend-swatch r2 c0"></div>
+    <div id="blend-hard-light" class="blend-swatch r2 c1"></div>
+    <div id="blend-difference" class="blend-swatch r2 c2"></div>
+    <div id="blend-exclusion" class="blend-swatch r2 c3"></div>
+    <div id="blend-hue" class="blend-swatch r3 c0"></div>
+    <div id="blend-saturation" class="blend-swatch r3 c1"></div>
+    <div id="blend-color" class="blend-swatch r3 c2"></div>
+    <div id="blend-luminosity" class="blend-swatch r3 c3"></div>
   </body>
 </html>

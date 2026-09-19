@@ -151,6 +151,25 @@ function writePaint(writer: BinaryWriter, paint: PaintFill | undefined): void {
   }
 }
 
+/**
+ * Wire order for `beginLayer.blendMode`. Must match `kBlendModes` in
+ * `skia_command_cpu_backend.cpp` exactly — this is a positional binary
+ * protocol, not a self-describing one, so the two tables can only be kept in
+ * sync by hand.
+ */
+const NATIVE_BLEND_MODES = [
+  "normal", "darken", "multiply", "color-burn",
+  "lighten", "screen", "color-dodge", "overlay",
+  "soft-light", "hard-light", "difference", "exclusion",
+  "hue", "saturation", "color", "luminosity",
+] as const;
+
+function blendModeCode(mode: string | undefined): number {
+  const index = NATIVE_BLEND_MODES.indexOf((mode ?? "normal") as (typeof NATIVE_BLEND_MODES)[number]);
+  if (index === -1) throw new Error(`Native benchmark protocol does not support blend mode: ${mode}`);
+  return index;
+}
+
 function writeMatrix(writer: BinaryWriter, matrix: readonly number[]): void {
   if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) {
     throw new Error("Native benchmark protocol requires a finite Matrix4");
@@ -206,12 +225,14 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     writer.u8(1);
     writeColor(writer, command.fill);
     writer.f64(command.fillOpacity ?? 1);
+    writePaint(writer, command.fillPaint);
     writer.u8(command.cornerRadius === undefined ? 0 : 1);
     if (command.cornerRadius !== undefined) writer.f64(command.cornerRadius);
     writer.u8(command.stroke === undefined ? 0 : 1);
     if (command.stroke !== undefined) writeColor(writer, command.stroke);
     writer.f64(command.strokeWidth ?? 0);
     writer.f64(command.strokeOpacity ?? 1);
+    writePaint(writer, command.strokePaint);
     writer.u32(command.points?.length ?? 0);
     for (const point of command.points ?? []) { writer.f64(point.x); writer.f64(point.y); }
     return;
@@ -229,11 +250,18 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     writer.u8(command.fill === undefined ? 0 : 1);
     if (command.fill !== undefined) writeColor(writer, command.fill);
     writer.f64(command.fillOpacity ?? 1);
+    writePaint(writer, command.fillPaint);
     writer.u8(command.stroke === undefined ? 0 : 1);
     if (command.stroke !== undefined) writeColor(writer, command.stroke);
     writer.f64(command.strokeWidth ?? 0);
     writer.f64(command.strokeOpacity ?? 1);
+    writePaint(writer, command.strokePaint);
     writer.u8(command.fillRule === "evenodd" ? 1 : 0);
+    // Local frame used to resolve objectBoundingBox-relative gradient
+    // coordinates; mirrors CanvasKit's own `command.width ?? 1` fallback
+    // (see replay.ts) so both backends agree when a path omits it.
+    writer.f64(command.width ?? 1);
+    writer.f64(command.height ?? 1);
     return;
   }
   if (command.op === "drawText") {
@@ -261,6 +289,7 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     writer.u8(8);
     writer.u8(command.offscreen || command.isolation ? 1 : 0);
     writer.f64(command.compositeAlpha ?? 1);
+    writer.u8(blendModeCode(command.blendMode));
     return;
   }
   if (command.op === "endLayer") {

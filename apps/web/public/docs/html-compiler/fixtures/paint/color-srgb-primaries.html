@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#srgb-grid {
+  position: absolute;
+  left: 120px;
+  top: 120px;
+  width: 1680px;
+  height: 840px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 24px;
+}
+
+#swatch-red { background: #ff0000; }
+#swatch-green { background: #00ff00; }
+#swatch-blue { background: #0000ff; }
+#swatch-cyan { background: #00ffff; }
+#swatch-magenta { background: #ff00ff; }
+#swatch-yellow { background: #ffff00; }
+#swatch-white { background: #ffffff; }
+#swatch-black { background: #000000; }
+#swatch-gray { background: #808080; }
+
+#swatch-alpha { position: relative; }
+#swatch-alpha-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  background: #0000ff;
+}
+#swatch-alpha-fg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  background: rgba(255, 0, 0, 0.5);
+}
+
+@keyframes swatch-color-cycle { from { background-color: #ff0000; } to { background-color: #00ff00; } }
+#swatch-animated {
+  animation-name: swatch-color-cycle;
+  animation-duration: 1000ms;
+  animation-fill-mode: both;
+}
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="srgb-grid">
+    <div id="swatch-red"></div>
+    <div id="swatch-green"></div>
+    <div id="swatch-blue"></div>
+    <div id="swatch-cyan"></div>
+    <div id="swatch-magenta"></div>
+    <div id="swatch-yellow"></div>
+    <div id="swatch-white"></div>
+    <div id="swatch-black"></div>
+    <div id="swatch-gray"></div>
+    <div id="swatch-alpha">
+      <div id="swatch-alpha-bg"></div>
+      <div id="swatch-alpha-fg"></div>
+    </div>
+    <div id="swatch-animated"></div>
+  </div>
+</body>
+</html>

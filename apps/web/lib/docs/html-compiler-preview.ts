@@ -28,7 +28,7 @@ export type HtmlCompilerPreviewClassification = "primitive" | "combined";
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P2.9" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
   category?: HtmlCompilerPreviewCategory;
   classification?: HtmlCompilerPreviewClassification;
   classificationLabel?: string;
@@ -629,69 +629,6 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     ],
     "hint": "A closed path keeps dashed stroke geometry, dash offset and explicit stroke-before-fill paint order in the lowered path style.",
     "fixtureUrl": "/docs/html-compiler/fixtures/svg/dash-order.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.paint.linear-gradient",
-    "phase": "P0",
-    "topic": "Paint",
-    "label": "Paint / linear gradient",
-    "properties": [
-      "linear-gradient",
-      "angle",
-      "multi-stop",
-      "background"
-    ],
-    "hint": "A multi-stop linear gradient is lowered to semantic stops and a runtime angle in composition pixels.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/linear-gradient.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.paint.radial-gradient",
-    "phase": "P0",
-    "topic": "Paint",
-    "label": "Paint / radial gradient",
-    "properties": [
-      "radial-gradient",
-      "center",
-      "multi-stop",
-      "background"
-    ],
-    "hint": "A centered radial gradient preserves its normalized center and color-stop sequence for Neonix JSON V2.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/radial-gradient.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.paint.conic-gradient",
-    "phase": "P0",
-    "topic": "Paint",
-    "label": "Paint / conic gradient",
-    "properties": [
-      "conic-gradient",
-      "from",
-      "center",
-      "multi-stop"
-    ],
-    "hint": "A conic gradient uses the Neonix JSON V2 conic primitive with an explicit start angle and normalized center.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/paint/conic-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2160,6 +2097,30 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
+export const HTML_COMPILER_PAINT_PHASE2_9_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    "id": "html-compiler.paint.color-srgb-primaries",
+    "phase": "P2.9",
+    "topic": "Paint",
+    "label": "Paint / sRGB primaries, secondaries, gray, alpha and animated color",
+    "properties": [
+      "background",
+      "rgba()",
+      "display: grid",
+      "animation-name (color)"
+    ],
+    "hint": "A CSS grid of solid-fill rects covers the full RGB primary/secondary set plus black, white and 50% gray for sRGB fidelity, one cell composites a 50%-alpha rect over a solid backdrop, and one cell animates background-color to exercise track-based color interpolation. Also exercises grid layout placement (11 cells, 4 columns).",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/color-srgb-primaries.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  }
+];
+
 export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.opacity.image",
@@ -2219,6 +2180,99 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
     ],
     "hint": "Overlapping rectangle and ellipse shapes use independent opacity values, making solid paint alpha and overlap compositing easy to inspect.",
     "fixtureUrl": "/docs/html-compiler/fixtures/opacity/shape.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  }
+];
+
+/**
+ * Kept as its own array purely so every basic gradient fixture (non-repeating
+ * here, repeating in PHASE2_1 right after) sits together as one contiguous
+ * run in the Paint dropdown, instead of being split across the far larger
+ * PHASE0 catalog by unrelated background/image-function fixtures.
+ */
+export const HTML_COMPILER_PAINT_GRADIENT_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    "id": "html-compiler.paint.linear-gradient",
+    "phase": "P0",
+    "topic": "Paint",
+    "label": "Paint / linear gradient",
+    "properties": [
+      "linear-gradient",
+      "angle",
+      "multi-stop",
+      "background"
+    ],
+    "hint": "A multi-stop linear gradient is lowered to semantic stops and a runtime angle in composition pixels.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/linear-gradient.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.linear-gradient-4stop",
+    "phase": "P0",
+    "topic": "Paint",
+    "label": "Paint / linear gradient (4-stop diagonal)",
+    "properties": [
+      "linear-gradient",
+      "135deg",
+      "4-stop",
+      "background"
+    ],
+    "hint": "A 4-stop diagonal (135deg) linear gradient for CanvasKit/native gradient shader parity, distinct from the axis-aligned 3-stop fixture above.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/linear-gradient-4stop.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#000000",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.radial-gradient",
+    "phase": "P0",
+    "topic": "Paint",
+    "label": "Paint / radial gradient",
+    "properties": [
+      "radial-gradient",
+      "center",
+      "multi-stop",
+      "background"
+    ],
+    "hint": "A centered radial gradient preserves its normalized center and color-stop sequence for Neonix JSON V2.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/radial-gradient.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.conic-gradient",
+    "phase": "P0",
+    "topic": "Paint",
+    "label": "Paint / conic gradient",
+    "properties": [
+      "conic-gradient",
+      "from",
+      "center",
+      "multi-stop"
+    ],
+    "hint": "A conic gradient uses the Neonix JSON V2 conic primitive with an explicit start angle and normalized center.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/conic-gradient.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -3101,13 +3155,14 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
     "id": "html-compiler.paint.blend-mode-matrix",
     "phase": "P2.6",
     "topic": "Paint",
-    "label": "Paint / blend mode matrix (13 modes)",
+    "label": "Paint / blend mode matrix (16 modes)",
     "properties": [
-      "darken", "color-burn", "lighten", "color-dodge", "overlay",
+      "normal", "darken", "multiply", "color-burn",
+      "lighten", "screen", "color-dodge", "overlay",
       "soft-light", "hard-light", "difference", "exclusion",
       "hue", "saturation", "color", "luminosity"
     ],
-    "hint": "Every mix-blend-mode value not already covered by the multiply/screen fixtures, laid out as a grid over a shared gradient backdrop so each mode's compositing math stays independently comparable.",
+    "hint": "Every mix-blend-mode value (including normal, multiply and screen, which also have dedicated combined fixtures elsewhere) laid out as one clean 4x4 grid over a shared gradient backdrop, so each mode's compositing math is independently comparable with no other confounding variable (isolation/opacity/sibling order) — the reference oracle for CanvasKit vs native-Skia blendMode parity.",
     "fixtureUrl": "/docs/html-compiler/fixtures/paint/blend-mode-matrix.html",
     "composition": {
       "width": 1920,
@@ -5638,7 +5693,9 @@ const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PHASE1_4_CASES,
   ...HTML_COMPILER_LAYOUT_TEXT_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_0_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_9_CASES,
   ...HTML_COMPILER_OPACITY_CASES,
+  ...HTML_COMPILER_PAINT_GRADIENT_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_1_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_2_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_3_CASES,

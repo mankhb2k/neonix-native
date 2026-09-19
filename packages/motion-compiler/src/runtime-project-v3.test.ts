@@ -754,6 +754,52 @@ describe("canonical compiler V3 projection", () => {
     });
   });
 
+  it("lowers a gradient stroke to strokePaint for both path and rectangle layers — CSS/SVG cannot author this directly, but JSON V2 is the source of truth and must still compile it", () => {
+    // `stroke: linear-gradient(...)` has no CSS equivalent (border-color only
+    // accepts a solid color) and SVG `stroke="url(#...)"` is not lowered by
+    // the HTML compiler's path parser yet, so this can only be authored by
+    // hand-writing Protocol V2 JSON directly — exactly the source-of-truth
+    // path this test exercises instead of an .html fixture.
+    //
+    // Both a "path" layer and a "shape" (rectangle) layer are checked here
+    // because the compiler always flattens rectangle/ellipse shapes into path
+    // geometry (`content.kind` is unconditionally "path" in compiler/index.ts)
+    // — the `drawShape` PaintCommand variant is never actually emitted by the
+    // real compiler, so asserting against it would silently test nothing.
+    const gradientStroke = {
+      type: "linear-gradient" as const,
+      x1: 0,
+      y1: 0,
+      x2: 1,
+      y2: 0,
+      stops: [{ offset: 0, color: "#00aa88" }, { offset: 1, color: "#ff3366" }],
+    };
+
+    const pathProject = filterProject({ id: "unused-path", primitives: [] });
+    pathProject.filters = [];
+    pathProject.layers[0] = {
+      ...pathProject.layers[0]!,
+      filter: undefined,
+      style: { fill: "none", stroke: gradientStroke, strokeWidth: 6 },
+    };
+    const pathBuffer = compileProtocolToPaintCommands(pathProject);
+    const path = pathBuffer.commands.find((command) => command.op === "drawPath");
+    expect(path).toMatchObject({ strokeWidth: 6, strokePaint: { type: "linear-gradient", stops: expect.any(Array) } });
+
+    const shapeProject = filterProject({ id: "unused-shape", primitives: [] });
+    shapeProject.filters = [];
+    shapeProject.layers[0] = {
+      ...shapeProject.layers[0]!,
+      type: "shape",
+      filter: undefined,
+      payload: { shape: "rectangle" },
+      style: { fill: "#00aa88", stroke: gradientStroke, strokeWidth: 6 },
+    } as never;
+    const shapeBuffer = compileProtocolToPaintCommands(shapeProject);
+    const shape = shapeBuffer.commands.find((command) => command.op === "drawPath");
+    expect(shape).toMatchObject({ strokeWidth: 6, strokePaint: { type: "linear-gradient", stops: expect.any(Array) } });
+  });
+
 });
 
 function fixtureProject(id: string) {
