@@ -38,11 +38,11 @@ export type ExportRenderStats = {
   projectId: string;
   /** Actual renderer identity; never infer this from the requested mode. */
   backendIdentity?: {
-    requestedBackend: "raster" | "skia-gpu" | "svg";
+    requestedBackend: "raster" | "svg";
     actualBackend: string;
     adapterName?: string;
     driverVersion?: string;
-    surfaceKind: "raster" | "vulkan" | "webgl" | "unknown";
+    surfaceKind: "raster" | "unknown";
     softwareRenderer: boolean;
     fallbackReason?: string;
   };

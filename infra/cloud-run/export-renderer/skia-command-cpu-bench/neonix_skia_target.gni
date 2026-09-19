@@ -1,40 +1,10 @@
-if (skia_use_vulkan && skia_enable_ganesh) {
-  test_app("neonix_skia_gpu_backend") {
-    # Keep this target aligned with Skia's VulkanBasic example. The helper is
-    # deliberately used only to bootstrap the POC; production will own the
-    # Vulkan instance/device lifecycle in the Neonix native host.
-    all_dependent_configs = [
-      ":use_skia_vulkan_headers",
-      ":vulkan_memory_allocator",
-    ]
-    sources = [ "neonix/skia_gpu_backend.cpp" ]
-    sources += [
-      "tools/gpu/vk/VkTestMemoryAllocator.h",
-      "tools/gpu/vk/VkTestMemoryAllocator.cpp",
-      "tools/gpu/vk/VkTestUtils.h",
-      "tools/gpu/vk/VkTestUtils.cpp",
-    ]
-    deps = [
-      ":load_dynamic_library",
-      ":skia",
-    ]
-  }
-}
-
-test_app("neonix_skia_cpu_backend") {
-  sources = [ "neonix/skia_cpu_backend.cpp" ]
-  deps = [ ":skia" ]
-}
-
-test_app("neonix_skia_command_cpu_backend") {
-  sources = [ "neonix/skia_command_cpu_backend.cpp" ]
-  deps = [ ":skia" ]
-  libs = [ "avcodec", "avformat", "avutil", "swscale" ]
-}
-
 # Native production target. It uses the same command-buffer protocol and
-# in-process FFmpeg encoder, but has no libswscale dependency. Keep the
-# libswscale target above as the sandbox fallback/control implementation.
+# in-process FFmpeg encoder, and links libyuv for BT.709 color conversion.
+# This is the only target this Dockerfile's `ninja` invocation builds; every
+# other variant (GPU/Vulkan backend, non-libyuv backend, libyuv/swscale A/B
+# sandbox, standalone color contract test) lived in the archived benchmark
+# Dockerfiles and referenced source files this production image never copies
+# in — keep this file limited to what this Dockerfile actually builds.
 test_app("neonix_skia_command_cpu_backend_libyuv") {
   sources = [ "neonix/skia_command_cpu_backend.cpp" ]
   deps = [ ":skia" ]
@@ -42,23 +12,4 @@ test_app("neonix_skia_command_cpu_backend_libyuv") {
   include_dirs = [ "/opt/libyuv-install/include" ]
   lib_dirs = [ "/opt/libyuv-install/lib" ]
   libs = [ "avcodec", "avformat", "avutil", "yuv" ]
-}
-
-# Sandbox-only A/B target. It links both converters so the harness can compare
-# libyuv against libswscale, while the production target above stays libyuv-only.
-test_app("neonix_skia_command_cpu_backend_libyuv_sandbox") {
-  sources = [ "neonix/skia_command_cpu_backend.cpp" ]
-  deps = [ ":skia" ]
-  defines = [ "NEONIX_ENABLE_LIBYUV", "NEONIX_EXPLICIT_COLOR_CONTRACT" ]
-  include_dirs = [ "/opt/libyuv-install/include" ]
-  lib_dirs = [ "/opt/libyuv-install/lib" ]
-  libs = [ "avcodec", "avformat", "avutil", "swscale", "yuv" ]
-}
-
-test_app("neonix_libyuv_color_ab_test") {
-  sources = [ "neonix/neonix_libyuv_color_ab_test.cpp" ]
-  defines = [ "NEONIX_ENABLE_LIBYUV" ]
-  include_dirs = [ "/opt/libyuv-install/include" ]
-  lib_dirs = [ "/opt/libyuv-install/lib" ]
-  libs = [ "avutil", "swscale", "yuv" ]
 }

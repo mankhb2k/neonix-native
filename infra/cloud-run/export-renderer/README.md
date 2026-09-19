@@ -5,12 +5,20 @@
 - `skia-command-cpu-bench/` — **production**. This is the only Dockerfile
   `deploy.ps1` builds and deploys. It owns its own copy of
   `neonix_skia_target.gni` (the Skia GN target definition appended to
-  `BUILD.gn` during the build) so it never depends on `_archive/`.
+  `BUILD.gn` during the build), trimmed to the single
+  `neonix_skia_command_cpu_backend_libyuv` target this Dockerfile builds, so
+  it never depends on `_archive/`. The image is CPU-only: `gn gen` sets
+  `skia_use_vulkan=false skia_enable_ganesh=false`, and no GPU device is ever
+  created. There is no GPU export path anywhere in this infra tree.
 - `_archive/*` — historical benchmark/POC Dockerfiles (`canvaskit-cpu-bench`,
-  `gpu-probe`, `libyuv-color-contract`, `skia-command-cpu-libyuv-sandbox`,
-  `skia-cpu-bench`, `skia-gpu-poc`). None of these are built by CI or
-  `deploy.ps1`; they are kept only because dated reports under
-  `docs/benchmark/` reference the measurements taken from them.
+  `libyuv-color-contract`, `skia-command-cpu-libyuv-sandbox`,
+  `skia-cpu-bench`). None of these are built by CI or `deploy.ps1`; they are
+  kept only because dated reports under `docs/benchmark/` reference the
+  measurements taken from them. The GPU-only benchmarks that used to live here
+  (`gpu-probe`, `skia-gpu-poc`) have been deleted outright, along with
+  `infra/gce/skia-gpu-l4-bench/` (a standalone, unreferenced GCE GPU probe) and
+  `packages/skia-renderer/native/skia_gpu_backend.cpp` — git history still has
+  them if needed.
 
 The production shape uses one immutable export-renderer image in three Cloud
 Run roles:
