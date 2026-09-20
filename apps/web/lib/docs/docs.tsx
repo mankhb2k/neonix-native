@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 export type DocsPageView = {
   title: string;
+  description?: string;
   toc: Array<{ id: string; title: string }>;
   showToc?: boolean;
   previewProject?: unknown;
@@ -16,7 +17,7 @@ function withOnThisPage(page: DocsPageView): DocsPageView {
   return { ...page, showToc: page.showToc ?? true };
 }
 
-type V2Page = { title: string; markdown: string };
+type V2Page = { title: string; description: string; markdown: string };
 
 const FENCE = String.fromCharCode(96).repeat(3);
 const BT = String.fromCharCode(96);
@@ -24,6 +25,8 @@ const BT = String.fromCharCode(96);
 const V2_PAGES: Record<string, V2Page> = {
   "": {
     title: "Neonix V2 documentation",
+    description:
+      "Static guide to Neonix's current authoring vocabulary and the Neonix JSON V2 document contract.",
     markdown: String.raw`# Neonix V2
 
 This is the static guide to Neonix's current authoring vocabulary and Neonix JSON V2. The examples on these pages are display-only teaching material and are not submitted as projects.
@@ -73,6 +76,8 @@ ${FENCE}
   },
   authoring: {
     title: "Authoring model",
+    description:
+      "The boundary between high-level authoring intent and explicit Neonix JSON V2 fields, and how MCP agents should patch a document.",
     markdown: String.raw`# Authoring model
 
 ## Intent first
@@ -146,6 +151,8 @@ JSON blocks in this guide teach structure. They are not validated or rendered by
   },
   atoms: {
     title: "Neonix JSON V2",
+    description:
+      "Reference catalog of Neonix JSON V2 atoms: composition, view, group, shape, path, text, image, video, transform, timing, animation and effects.",
     markdown: String.raw`# Neonix JSON V2
 
 ## Atom catalog
@@ -178,6 +185,8 @@ An atom is documented as supported only after its static contract, preview behav
   },
   "atoms/composition": {
     title: "Composition and view",
+    description:
+      "How composition (canvas size, frame rate, background) and view (projection, camera transform) define a Neonix JSON V2 document's output.",
     markdown: String.raw`# Composition and view
 
 Composition and view are the two global settings that define how a Neonix JSON V2 document becomes a visual output. Composition defines the canvas and time base. View defines how world coordinates are projected into that canvas.
@@ -351,6 +360,8 @@ Continue with [Transform and Matrix4](/docs/atoms/transform) for layer transform
   },
   "atoms/transform": {
     title: "Transform and Matrix4",
+    description:
+      "How translate, rotate, scale, anchor and skew place a layer, and the Matrix4 model shared by 2D and 3D motion in Neonix JSON V2.",
     markdown: String.raw`# Transform and Matrix4
 
 Transform controls where a layer is placed, how it rotates and scales, and which local point acts as its pivot. Every layer has a required transform object, and the same model works for flat 2D motion and 3D motion.
@@ -570,6 +581,8 @@ For the global camera, read [Composition and view](/docs/atoms/composition). For
   },
   "atoms/shape": {
     title: "Shape",
+    description:
+      "The Shape atom for rectangles, circles, ellipses, lines, polylines and polygons, including its geometry payload and fill/stroke style.",
     markdown: String.raw`# Shape
 
 ## Responsibility
@@ -734,6 +747,8 @@ Rounded corners are geometry semantics, not a renderer resource. The ${BT}corner
   },
   "atoms/path": {
     title: "Path",
+    description:
+      "The Path atom for freeform vector geometry: named contours with line, quadratic, cubic and arc segments, fill, stroke and morphing rules.",
     markdown: String.raw`# Path
 
 ## Responsibility
@@ -905,6 +920,8 @@ Morphing requires matching contour and segment structure. If the topology differ
   },
   "atoms/text": {
     title: "Text",
+    description:
+      "How Text combines source content, font selection, layout and paint in Neonix JSON V2, including gradients and the public font CDN.",
     markdown: String.raw`# Text
 
 Text combines source content, font selection, layout and paint. Choose an explicit family, weight and style so the same document remains predictable in preview and export.
@@ -1085,6 +1102,8 @@ See [Assets](/docs/atoms/assets) for the asset identity boundary and [HTML autho
   },
   "atoms/image": {
     title: "Image",
+    description:
+      "The Image atom: referencing an asset, frame and fit policy for placing image content inside a Neonix JSON V2 composition.",
     markdown: String.raw`# Image
 
 ## Responsibility
@@ -1117,6 +1136,8 @@ The atom refers to an asset. Loading, decoding, caching, and delivery belong to 
   },
   "atoms/video": {
     title: "Video",
+    description:
+      "The Video atom: referencing a media asset with deterministic frame selection, trim and timing for preview and export.",
     markdown: String.raw`# Video
 
 ## Responsibility
@@ -1145,6 +1166,8 @@ The asset reference is stable. File URLs, decoding, and caching are delivery con
   },
   "atoms/assets": {
     title: "Assets",
+    description:
+      "How Neonix JSON V2 stores portable image, video, audio and font references and metadata instead of embedding file contents.",
     markdown: String.raw`# Assets
 
 ## Portable references
@@ -1333,6 +1356,8 @@ See [Text](/docs/atoms/text) for font selection, fallback and ${BT}@font-face${B
   },
   "atoms/layers": {
     title: "Layers and hierarchy",
+    description:
+      "How the flat layers array expresses parent-child hierarchy with parentLayerId, sibling order and the shared layer contract.",
     markdown: String.raw`# Layers and hierarchy
 
 ## A flat array, a tree in meaning
@@ -1382,6 +1407,8 @@ Every layer carries id, parentLayerId, order, frame, transform, timing, type and
   },
   "atoms/paint": {
     title: "Paint and SVG definitions",
+    description:
+      "How fill, stroke, gradients, patterns and named paint servers work as semantic, SVG-compatible paint data in Neonix JSON V2.",
     markdown: String.raw`# Paint and SVG definitions
 
 ## Paint is semantic data
@@ -1424,6 +1451,8 @@ Stroke width, opacity, cap, join, miter limit, dash and vectorEffect map directl
   },
   "atoms/group": {
     title: "Group",
+    description:
+      "How the Group layer type composes a hierarchy of child layers that share a coordinate space, timing, opacity or 3D context.",
     markdown: String.raw`# Group
 
 ## What a group does
@@ -1631,6 +1660,8 @@ Group is a container and coordinate scope. High-level component behavior, respon
   },
   "atoms/effects": {
     title: "Effects, masks, and composite",
+    description:
+      "The ordered atomic effects (blur, shadow, glow, color-adjust), masks and composite/blend model available on a Neonix JSON V2 layer.",
     markdown: String.raw`# Effects, masks, and composite
 
 ## Ordered operators
@@ -1752,6 +1783,8 @@ The figures in the web guide are explanatory pictures. They do not execute an of
   },
   animation: {
     title: "Animation and timing",
+    description:
+      "How typed keyframe tracks, easing and each layer's local time window drive deterministic animation in Neonix JSON V2.",
     markdown: String.raw`# Animation and timing
 
 ## Two clocks
@@ -1801,6 +1834,8 @@ Preview and export evaluate the same track at the same composition time. No brow
   },
   "animation/motion-paths": {
     title: "Motion paths",
+    description:
+      "How a layer-owned motion path moves content along an offset path with distance, rotation and anchor controls.",
     markdown: String.raw`# Motion paths
 
 ## A layer-owned path
@@ -1851,6 +1886,8 @@ Only supported deterministic path grammar is accepted. Empty paths, zero-length 
   },
   audio: {
     title: "Audio",
+    description:
+      "How Neonix JSON V2 models audio as a required parallel timeline of tracks and clips alongside visual layers.",
     markdown: String.raw`# Audio
 
 ## A parallel timeline
@@ -1896,6 +1933,8 @@ Embedded video audio stays on video.payload.audio so its visual trim and origina
   },
   compiler: {
     title: "Compiler",
+    description:
+      "How the compiler turns HTML, CSS or agent intent into the canonical, portable Neonix JSON V2 document.",
     markdown: String.raw`# Compiler
 
 ## From authoring input to JSON V2
@@ -1925,6 +1964,8 @@ Neonix JSON V2 contains authoring meaning rather than browser state, device reso
   },
   rendering: {
     title: "Output",
+    description:
+      "How one Neonix JSON V2 document drives both interactive preview and video export, plus a pre-export checklist.",
     markdown: String.raw`# Output
 
 ## One document, two ways to use it
@@ -1988,6 +2029,8 @@ Keep output-related meaning in documented JSON V2 fields: composition settings, 
   },
   html: {
     title: "HTML authoring",
+    description:
+      "The HTML authoring contract: required document metadata and how an HTML/CSS source compiles into a Neonix project.",
     markdown: String.raw`# HTML authoring
 
 HTML projects are compiled into the same Neonix project model used by the editor, preview and export flows. The document metadata defines the video composition; the browser page around it is only a convenient authoring surface.
@@ -2171,6 +2214,8 @@ For an interactive compiler test, open [HTML compiler preview](/docs/preview/htm
   },
   validation: {
     title: "Validation and schema",
+    description:
+      "What Neonix JSON V2 validation checks — required fields, types, references and ranges — plus an AI authoring checklist.",
     markdown: String.raw`# Validation and schema
 
 ## Why validation matters
@@ -2269,6 +2314,8 @@ Validation reports document problems; it does not invent missing assets, silentl
   },
   examples: {
     title: "Static examples",
+    description:
+      "Teaching examples of Neonix JSON V2 documents and high-level authoring intent, shown as static, non-rendered reference code.",
     markdown: String.raw`# Static examples
 
 ## Example: a centered card
@@ -2316,6 +2363,8 @@ Static figures may show the expected visual idea. They must not claim to be a pi
   },
   "examples/project": {
     title: "Complete project",
+    description:
+      "A complete, minimal Neonix JSON V2 project example combining a root document, a shape layer and a typed animation track.",
     markdown: String.raw`# Complete project
 
 ## A small animated composition
@@ -2390,6 +2439,7 @@ export function getV2DocsPage(slug: string): DocsPageView | null {
   if (!page) return null;
   return withOnThisPage({
     title: page.title,
+    description: page.description,
     toc: tocFromMarkdown(page.markdown),
     body: slug === "" ? createElement(DocsOverview) : createElement(DocsMarkdown, { markdown: page.markdown }),
   });

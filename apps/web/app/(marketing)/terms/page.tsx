@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms of Service | Neonix",
   description: "The terms that apply when you use Neonix.",
+  alternates: { canonical: "/terms" },
 };
 
 const updated = "September 9, 2026";

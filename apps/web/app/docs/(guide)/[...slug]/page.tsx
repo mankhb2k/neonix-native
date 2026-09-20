@@ -28,6 +28,8 @@ export async function generateMetadata({
   const page = getDocsPage(key);
   return {
     title: `${page.title} — Motion JSON docs`,
+    description: page.description,
+    alternates: { canonical: `/docs/${key}` },
   };
 }
 

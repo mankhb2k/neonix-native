@@ -427,6 +427,12 @@ function StructuredMotion() {
               </p>
             ))}
           </div>
+          <Link
+            href="/html-to-video"
+            className="mt-6 inline-flex items-center gap-1.5 font-semibold text-[var(--accent-text)] no-underline hover:underline"
+          >
+            How HTML compiles to motion video <ArrowRight className="h-4 w-4" />
+          </Link>
         </Reveal>
         <Reveal delay={100}>
           <div className="overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[#15212A] p-5 shadow-[0_20px_45px_rgba(16,24,40,0.16)]">

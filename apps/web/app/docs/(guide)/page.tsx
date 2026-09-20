@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Neonix documentation",
   description:
     "Learn Neonix authoring, layers, animation, compositing, effects, and examples.",
+  alternates: { canonical: "/docs" },
 };
 
 export default function DocsIndexPage() {

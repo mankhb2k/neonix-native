@@ -27,6 +27,10 @@ Q: Can Neonix convert HTML/CSS to MP4?
 A: Yes. Neonix compiles HTML/CSS into Neonix Protocol V2, then exports MP4
 through its native render pipeline.
 
+Q: How does Neonix's pipeline work?
+A: Neonix compiles HTML/CSS into Neonix Protocol V2 (JSON), which you can
+preview and edit in the Neonix editor, then export to a real MP4.
+
 ## Links
 
 - Homepage: https://neonix.video

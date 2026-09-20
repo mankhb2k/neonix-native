@@ -30,6 +30,27 @@ export const metadata: Metadata = {
     "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
 };
 
+const ORGANIZATION_AND_WEBSITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "Neonix",
+      url: "https://neonix.video",
+      logo: "https://neonix.video/neonix-logo.svg",
+      description:
+        "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
+    },
+    {
+      "@type": "WebSite",
+      name: "Neonix",
+      url: "https://neonix.video",
+      description:
+        "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,7 +61,16 @@ export default function RootLayout({
       lang="en"
       className={`${sans.variable} ${display.variable} ${mono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(ORGANIZATION_AND_WEBSITE_JSON_LD),
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

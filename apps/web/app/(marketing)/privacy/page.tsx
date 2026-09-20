@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy | Neonix",
   description: "How Neonix collects, uses, and protects information.",
+  alternates: { canonical: "/privacy" },
 };
 
 const updated = "September 19, 2026";

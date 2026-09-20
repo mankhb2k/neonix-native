@@ -4,6 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Support | Neonix",
   description: "Get help with Neonix projects, HTML/CSS compilation, MCP, and video export.",
+  alternates: { canonical: "/support" },
 };
 
 const supportTopics = [
