@@ -16,6 +16,6 @@ export function getProtectedResourceMetadata(request: Request) {
       ...MCP_STANDARD_SCOPES,
       ...(operationScopesEnabled() ? MCP_OPERATION_SCOPES : []),
     ],
-    resource_documentation: "https://neonix.video/docs",
+    resource_documentation: "https://www.neonix.video/docs",
   };
 }

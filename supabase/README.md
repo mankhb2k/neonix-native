@@ -34,10 +34,10 @@ values from the Dashboard instead.
 - Authentication → Providers → Email: enable email/password sign-in. Decide
   whether email confirmation is required; the UI supports both modes.
 - Authentication → Providers → Google: enable the provider.
-- Authentication → URL Configuration → Site URL: `https://neonix.video`.
+- Authentication → URL Configuration → Site URL: `https://www.neonix.video`.
 - Redirect allow-list:
-  - `https://neonix.video/api/auth/callback`
-  - `https://neonix.video/oauth/consent`
+  - `https://www.neonix.video/api/auth/callback`
+  - `https://www.neonix.video/oauth/consent`
   - `https://app.neonix.video/api/auth/callback`
   - `http://localhost:3000/api/auth/callback`
   - `http://localhost:3000/oauth/consent`

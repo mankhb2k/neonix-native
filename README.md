@@ -22,7 +22,7 @@ Neonix MCP (/api/mcp)
 Supabase Auth + Postgres (RLS-protected project revisions)
   │
   ▼
-Neonix dashboard (neonix.video/dashboard)
+Neonix dashboard (www.neonix.video/dashboard)
   │ MotionProtocolV2 → compile → RuntimeFrameV2
   ├── Native browser preview (WebGPU, WebGL2 fallback)
   └── Export jobs (/api/v1/renders → Remotion/Lambda when configured)
@@ -145,7 +145,7 @@ pnpm --filter @motionvideo/web dev
 ```
 
 Open `http://localhost:3000/dashboard`. The production dashboard is
-`https://neonix.video/dashboard`; the isolated editor and preview workspace is
+`https://www.neonix.video/dashboard`; the isolated editor and preview workspace is
 `https://app.neonix.video`.
 
 ### Environment
