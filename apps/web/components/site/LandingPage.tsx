@@ -305,7 +305,7 @@ function Hero() {
             export.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button href="/docs/preview/html-compiler">
+            <Button href="/playground">
               <Play className="h-4 w-4" /> Try the compiler
             </Button>
             <Button href="#workflow" secondary>

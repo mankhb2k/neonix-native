@@ -139,7 +139,7 @@ export default function HtmlToVideoPage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              href="/docs/preview/html-compiler"
+              href="/playground"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-transparent bg-[var(--accent)] px-4 text-base font-semibold text-[var(--accent-on)] shadow-sm no-underline transition hover:bg-[var(--accent-hover)]"
             >
               Try the compiler
