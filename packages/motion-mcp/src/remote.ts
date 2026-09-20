@@ -143,7 +143,7 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: "0.1.0" },
     {
       instructions:
-        "For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, edit it, validate_html, then save it with update_project_html. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and may make the HTML source stale. Never convert JSON back to HTML.",
+        "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, edit it, validate_html, then save it with update_project_html. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and may make the HTML source stale. Never convert JSON back to HTML.",
     },
   );
   registerNeonixGuidance(server);

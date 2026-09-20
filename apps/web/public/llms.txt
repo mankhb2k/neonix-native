@@ -1,0 +1,35 @@
+# Neonix
+
+> Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.
+
+Neonix is an HTML-to-motion-video compiler. Users — or AI agents like Claude,
+ChatGPT, and Grok, connected over Remote MCP — write HTML and CSS describing
+a scene. Neonix validates and compiles it into a canonical motion-video
+document (Neonix Protocol V2), then renders it to a real, exportable MP4. It
+is not a template generator or a prompt-only video tool.
+
+## FAQ
+
+Q: What is Neonix?
+A: Neonix is an HTML-to-motion-video compiler that turns HTML and CSS into a
+real, exportable video.
+
+Q: How do AI agents use Neonix?
+A: AI agents such as Claude connect to Neonix's Remote MCP server
+(neonix.video/api/mcp) and call tools like create_project_html to compile
+HTML/CSS into a video project, then export it as MP4.
+
+Q: What makes Neonix different from template-based AI video tools?
+A: Neonix compiles arbitrary HTML/CSS into a canonical protocol document and
+renders it deterministically — it does not fill in a fixed template.
+
+Q: Can Neonix convert HTML/CSS to MP4?
+A: Yes. Neonix compiles HTML/CSS into Neonix Protocol V2, then exports MP4
+through its native render pipeline.
+
+## Links
+
+- Homepage: https://neonix.video
+- Docs: https://neonix.video/docs
+- Remote MCP endpoint: https://neonix.video/api/mcp
+- Editor: https://app.neonix.video

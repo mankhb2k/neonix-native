@@ -25,7 +25,8 @@ const mono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "Neonix",
-  description: "AI Studio — neon cyber motion graphics from brief to export",
+  description:
+    "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
 };
 
 export default function RootLayout({
