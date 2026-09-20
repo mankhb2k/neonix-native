@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: same corner-isolation idea as border-corner-dashed-zoom.html,
+      but for border-style:dotted. Our compiler always places a FULL CIRCLE
+      dot exactly at the corner (cornerRun === runIndex 0 or last), clipped
+      to that side's region. Does the real browser also center a full dot
+      exactly on the corner point, or does it do something else (e.g. two
+      half-dots, one from each adjacent edge)?
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; background: #172554; box-sizing: border-box; border: 60px dotted #fb7185; }
+      #square    { left: 100px; top: 100px; width: 400px; height: 400px; }
+      #rectangle { left: 700px; top: 100px; width: 300px; height: 600px; }
+    </style>
+  </head>
+  <body>
+    <div id="square" class="box"></div>
+    <div id="rectangle" class="box"></div>
+  </body>
+</html>

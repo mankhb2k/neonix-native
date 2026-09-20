@@ -76,7 +76,12 @@ function parsePathNumber(value: string | undefined, property: string, positive =
 function parsePathDash(value: string | undefined): { array: number[]; offset?: number } | undefined {
   if (value === undefined || value.trim().toLowerCase() === "none") return undefined;
   const parts = value.split(/\s*,\s*|\s+/).filter(Boolean);
-  return { array: parts.map((part) => parsePathNumber(part, "stroke-dasharray", true)!) };
+  const array = parts.map((part) => parsePathNumber(part, "stroke-dasharray", true)!);
+  // SVG requires an odd-length dasharray to be repeated so every renderer
+  // (real browsers included) sees an even on/off interval list; Skia's own
+  // PathEffect.MakeDash throws outright on an odd-length array instead of
+  // doing this itself, so it must happen here, once, for every consumer.
+  return { array: array.length % 2 === 0 ? array : [...array, ...array] };
 }
 
 function parsePaintOrder(value: string | undefined): Array<"fill" | "stroke" | "markers"> | undefined {

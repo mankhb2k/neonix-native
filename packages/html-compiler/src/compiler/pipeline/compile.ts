@@ -237,15 +237,31 @@ function circlePolygon(center: HtmlPoint, radius: number, count = 32): HtmlPoint
 }
 
 /**
- * CSS border dash lengths are not exposed as SVG dasharray values. Keep the
- * browser-compatible border rhythm deterministic by fitting a whole number
- * of runs to each physical border edge.
+ * CSS border dash lengths are not exposed as SVG dasharray values. Fitting
+ * this rhythm to match the real browser (verified pixel-for-pixel against
+ * Chrome across border-width 10-80px and edge lengths 140-600px) requires a
+ * FIXED-length dash (2x border-width) or dot (1x border-width) repeated a
+ * whole number of times N, ANCHORED at both ends of the edge, with the
+ * leftover space split evenly into (N-1) gaps -- not a periodic tiling that
+ * only anchors the start (which is what left half the corners of every
+ * dashed/dotted box without a border-radius under-filled). N is chosen to
+ * land the gap as close as possible to one border-width:
+ *   N = round((edgeLength + width) / (unit + width))
+ * If the rounded N doesn't fit (N * unit > edgeLength), Chrome falls back to
+ * a single run that spans the whole edge (dashed: one solid-looking dash;
+ * dotted: one centered dot) rather than reducing further.
  */
 function fitBorderDashRuns(length: number, width: number, style: "dashed" | "dotted"): BorderDashRun[] {
-  const desiredPeriod = style === "dashed" ? width * 3 : width * 2;
-  const count = Math.max(1, Math.round(length / Math.max(desiredPeriod, 1e-6)));
-  const period = length / count;
-  if (style === "dashed") return Array.from({ length: count }, (_, index) => ({ offset: index * period, length: period * 2 / 3 }));
+  const unit = style === "dashed" ? width * 2 : width;
+  const denominator = Math.max(unit + width, 1e-6);
+  let count = Math.max(1, Math.round((length + width) / denominator));
+  while (count > 1 && count * unit > length) count -= 1;
+  if (count <= 1 || count * unit > length) {
+    return style === "dashed" ? [{ offset: 0, length: Math.max(length, 0) }] : [{ offset: length / 2, length: width }];
+  }
+  const gap = (length - count * unit) / (count - 1);
+  const period = unit + gap;
+  if (style === "dashed") return Array.from({ length: count }, (_, index) => ({ offset: index * period, length: unit }));
   return Array.from({ length: count }, (_, index) => ({ offset: index * period + width / 2, length: width }));
 }
 

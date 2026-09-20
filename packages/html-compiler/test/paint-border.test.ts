@@ -57,7 +57,10 @@ describe("HTML/CSS compiler P2.2 borders", () => {
     const doubleBottom = layers.filter((layer) => layer.id.startsWith("box::border:bottom:"));
     expect(dashedTop).toHaveLength(11);
     expect(dashedTop.every((layer) => layer.type === "shape" && layer.payload.shape === "polygon" && layer.style.fill === "#38bdf8")).toBe(true);
-    expect(dottedRight).toHaveLength(6);
+    // 7, not 6: fitBorderDashRuns anchors a fixed-length dot (1x width) at
+    // BOTH ends of the edge with N-1 gaps (matches Chrome pixel-for-pixel),
+    // not a periodic N-dot/N-gap tiling that only anchors the start.
+    expect(dottedRight).toHaveLength(7);
     expect(dottedRight.every((layer) => layer.type === "shape" && layer.style.fill === "#a78bfa")).toBe(true);
     expect(dottedRight[0]?.type).toBe("shape");
     expect(dottedRight[0]?.type === "shape" ? dottedRight[0].payload.shape : undefined).toBe("polygon");

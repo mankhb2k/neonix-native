@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: pin down the exact ROUNDING RULE for N (dash count) in Chrome's
+      formula N = round((edgeLength + width) / (3*width)). Border-top only
+      (single straight edge, no corner) at width=40px, with edge lengths
+      chosen to land EXACTLY on the N/N+1 boundary:
+        N=1.5 boundary -> edgeLength = 140  (round(1.5) -> 1 or 2?)
+        N=2.5 boundary -> edgeLength = 260
+        N=3.5 boundary -> edgeLength = 380
+      Whichever way Chrome resolves .5 (round-half-up vs round-half-even vs
+      truncate) will show up as a different dash COUNT at each of these
+      exact lengths.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; height: 100px; background: #172554; border-top: 40px dashed #38bdf8; }
+      #edge-140 { left: 60px;  top: 120px; width: 140px; }
+      #edge-260 { left: 300px; top: 120px; width: 260px; }
+      #edge-380 { left: 660px; top: 120px; width: 380px; }
+    </style>
+  </head>
+  <body>
+    <div id="edge-140" class="box"></div>
+    <div id="edge-260" class="box"></div>
+    <div id="edge-380" class="box"></div>
+  </body>
+</html>

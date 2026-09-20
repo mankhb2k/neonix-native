@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: isolate corner geometry with a THICK border-width (60px) and
+      few, large dash runs per edge, so the corner-clip artifact (and the
+      real browser's true corner shape) are both large enough in pixels to
+      read off exact coordinates.
+        A: 400x400 square, count=2 dashes/edge on every side (uniform phase
+           at every corner: a dash from one edge always meets a dash from
+           the next).
+        B: 300x600 rectangle, horizontal edges get count=2 while vertical
+           edges get count=3 (different periods meeting at each corner) -
+           exercises a dash-meets-gap corner case instead of dash-meets-dash.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; background: #172554; box-sizing: border-box; border: 60px dashed #38bdf8; }
+      #square    { left: 100px; top: 100px; width: 400px; height: 400px; }
+      #rectangle { left: 700px; top: 100px; width: 300px; height: 600px; }
+    </style>
+  </head>
+  <body>
+    <div id="square" class="box"></div>
+    <div id="rectangle" class="box"></div>
+  </body>
+</html>

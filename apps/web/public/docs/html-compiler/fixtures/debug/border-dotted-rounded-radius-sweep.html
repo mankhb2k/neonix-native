@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: dotted counterpart of border-dashed-rounded-radius-sweep.html.
+      Same box (340x300) and border-width (40px), radius sweeps
+      0 / 20 / 64 / 120 / 150.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; top: 120px; width: 340px; height: 300px; background: #172554; border: 40px dotted #fb7185; box-sizing: border-box; }
+      #r0   { left: 40px;   border-radius: 0px; }
+      #r20  { left: 420px;  border-radius: 20px; }
+      #r64  { left: 800px;  border-radius: 64px; }
+      #r120 { left: 1180px; border-radius: 120px; }
+      #r150 { left: 1560px; border-radius: 150px; }
+    </style>
+  </head>
+  <body>
+    <div id="r0" class="box"></div>
+    <div id="r20" class="box"></div>
+    <div id="r64" class="box"></div>
+    <div id="r120" class="box"></div>
+    <div id="r150" class="box"></div>
+  </body>
+</html>

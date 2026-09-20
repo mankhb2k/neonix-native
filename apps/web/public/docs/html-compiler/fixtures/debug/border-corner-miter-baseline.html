@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: establish the GROUND-TRUTH corner miter line geometry (no dash
+      involved yet) using the classic "4 different border colors" trick,
+      which makes the exact diagonal split line at each corner unambiguous
+      in a screenshot. Box 1 = symmetric border-width on all sides (miter
+      should be a clean 45deg line). Box 2 and 3 = asymmetric widths per
+      side, to see how the miter line angle changes when adjacent sides
+      have different widths (needed because our border-style:dashed corner
+      bug might assume a symmetric 45deg miter that isn't always correct).
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; background: #0b1220; box-sizing: border-box; }
+      #symmetric {
+        left: 80px; top: 80px; width: 480px; height: 320px;
+        border-top: 60px solid #38bdf8; border-right: 60px solid #facc15;
+        border-bottom: 60px solid #a78bfa; border-left: 60px solid #fb7185;
+      }
+      #asymmetric-a {
+        left: 680px; top: 80px; width: 480px; height: 320px;
+        border-top: 80px solid #38bdf8; border-right: 20px solid #facc15;
+        border-bottom: 80px solid #a78bfa; border-left: 20px solid #fb7185;
+      }
+      #asymmetric-b {
+        left: 1280px; top: 80px; width: 480px; height: 320px;
+        border-top: 20px solid #38bdf8; border-right: 80px solid #facc15;
+        border-bottom: 20px solid #a78bfa; border-left: 80px solid #fb7185;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="symmetric" class="box"></div>
+    <div id="asymmetric-a" class="box"></div>
+    <div id="asymmetric-b" class="box"></div>
+  </body>
+</html>

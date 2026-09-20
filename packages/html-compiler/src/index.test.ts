@@ -481,13 +481,48 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol?.layers.find((layer) => layer.id === "combined")).toMatchObject({ clipPath: expect.any(String), transform: { operations: expect.any(Array) } });
   });
 
-  it("fails closed for box-shadow spread until runtime morphology is available", () => {
+  it("lowers box-shadow spread to a signed spread field the runtime morphology op consumes", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="shadow"></div>`,
       css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: 0 8px 12px 6px #00000099; }`,
     }));
-    expect(result.status).toBe("error");
-    expect(result.diagnostics[0]?.code).toBe("css-box-shadow-spread-unsupported");
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "shadow")).toMatchObject({
+      effects: [{ type: "shadow", source: "box", blur: 12, spread: 6, inset: false }],
+    });
+  });
+
+  it("lowers a negative box-shadow spread (contraction) the same way", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="shadow"></div>`,
+      css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: 0 0 12px -6px #00000099; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "shadow")).toMatchObject({
+      effects: [{ type: "shadow", source: "box", blur: 12, spread: -6, inset: false }],
+    });
+  });
+
+  it("repeats an odd-length stroke-dasharray to an even length per SVG spec", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<svg id="wrap"><path id="line" d="M 0 0 L 100 0"></path></svg>`,
+      css: `#wrap { position: absolute; width: 200px; height: 20px; } #line { stroke: #2563eb; stroke-width: 4px; stroke-dasharray: 20 10 5; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "line")).toMatchObject({
+      style: { strokeDash: { array: [20, 10, 5, 20, 10, 5] } },
+    });
+  });
+
+  it("leaves an already-even-length stroke-dasharray untouched", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<svg id="wrap"><path id="line" d="M 0 0 L 100 0"></path></svg>`,
+      css: `#wrap { position: absolute; width: 200px; height: 20px; } #line { stroke: #2563eb; stroke-width: 4px; stroke-dasharray: 20 10; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "line")).toMatchObject({
+      style: { strokeDash: { array: [20, 10] } },
+    });
   });
 
   it("lowers an inset box-shadow as an inner compositing effect", () => {

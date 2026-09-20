@@ -436,9 +436,17 @@ export function effectFilterFor(kit: SkiaCanvasKit, fullProgram: EffectProgram):
   // inset shadow's own offset falls through to the existing block/branch
   // parsers below, which already fail closed (return null/[]) on an
   // unexpected "morphology" op instead of misreading the sequence.
-  if (matchEffectGraph(program, ["alpha-mask", "morphology", "blur", "tint", "offset", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && morphology?.kind === "morphology" && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadow && kit.ImageFilter.MakeDilate && kit.ImageFilter.MakeErode) {
+  if (matchEffectGraph(program, ["alpha-mask", "morphology", "blur", "tint", "offset", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && morphology?.kind === "morphology" && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeDilate && kit.ImageFilter.MakeErode) {
+    // MakeDropShadow with a non-null `input` both computes the shadow from
+    // `input` AND redraws `input` as the foreground. Feeding it the
+    // dilated/eroded silhouette directly would visibly enlarge or shrink the
+    // box itself, not just its shadow (CSS spread only ever affects the
+    // shadow). Use DropShadowOnly to keep just the halo, then blend it
+    // behind the UNMODIFIED original content.
     const morphed = makeMorphologyFilter(kit, morphology);
-    const filter = makeShadowFilter(kit, offset, blur.radius, tint.color, tint.opacity, false, morphed, cssShadowBlurRadiusToSkiaSigma);
+    const shadowOnly = makeShadowFilter(kit, offset, blur.radius, tint.color, tint.opacity, true, morphed, cssShadowBlurRadiusToSkiaSigma);
+    const filter = shadowOnly ? kit.ImageFilter.MakeBlend(kit.BlendMode.SrcOver, shadowOnly, null) : null;
+    shadowOnly?.delete();
     morphed?.delete();
     return { filter, supported: Boolean(filter) };
   }

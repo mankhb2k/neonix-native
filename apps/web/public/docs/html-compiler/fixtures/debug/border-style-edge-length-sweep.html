@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: fitBorderDashRuns() does
+        count = round(edgeLength / desiredPeriod); period = edgeLength / count
+      to force a whole number of dash/dot runs per edge. Does the real
+      browser round the same way at awkward edge lengths that do NOT divide
+      evenly by the desired period (dashed desiredPeriod=width*3=30,
+      dotted desiredPeriod=width*2=20, at border-width=10 for every box
+      here)? border-top only, so only the horizontal edge length varies:
+      200, 305, 410, 515, 700, 733px (chosen to land at different fractional
+      positions between whole-period multiples of 30 and 20).
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; height: 90px; background: #172554; }
+      .r0 { top: 140px; }
+      .r1 { top: 420px; }
+      .w200 { left: 60px;   width: 200px; }
+      .w305 { left: 320px;  width: 305px; }
+      .w410 { left: 680px;  width: 410px; }
+      .w515 { left: 1150px; width: 515px; }
+      #dashed-200  { border-top: 10px dashed #38bdf8; }
+      #dashed-305  { border-top: 10px dashed #38bdf8; }
+      #dashed-410  { border-top: 10px dashed #38bdf8; }
+      #dashed-515  { border-top: 10px dashed #38bdf8; }
+      #dotted-200  { border-top: 10px dotted #fb7185; }
+      #dotted-305  { border-top: 10px dotted #fb7185; }
+      #dotted-410  { border-top: 10px dotted #fb7185; }
+      #dotted-515  { border-top: 10px dotted #fb7185; }
+      .label2 { left: 60px;   width: 700px; }
+      .label3 { left: 60px;   width: 733px; }
+      #dashed-700  { border-top: 10px dashed #38bdf8; top: 260px; left: 60px; width: 700px; position: absolute; height: 60px; background: #172554; }
+      #dashed-733  { border-top: 10px dashed #38bdf8; top: 260px; left: 900px; width: 733px; position: absolute; height: 60px; background: #172554; }
+      #dotted-700  { border-top: 10px dotted #fb7185; top: 540px; left: 60px; width: 700px; position: absolute; height: 60px; background: #172554; }
+      #dotted-733  { border-top: 10px dotted #fb7185; top: 540px; left: 900px; width: 733px; position: absolute; height: 60px; background: #172554; }
+    </style>
+  </head>
+  <body>
+    <div id="dashed-200" class="box r0 w200"></div>
+    <div id="dashed-305" class="box r0 w305"></div>
+    <div id="dashed-410" class="box r0 w410"></div>
+    <div id="dashed-515" class="box r0 w515"></div>
+    <div id="dashed-700"></div>
+    <div id="dashed-733"></div>
+    <div id="dotted-200" class="box r1 w200"></div>
+    <div id="dotted-305" class="box r1 w305"></div>
+    <div id="dotted-410" class="box r1 w410"></div>
+    <div id="dotted-515" class="box r1 w515"></div>
+    <div id="dotted-700"></div>
+    <div id="dotted-733"></div>
+  </body>
+</html>

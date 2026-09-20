@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: SVG stroke-dasharray/stroke-dashoffset are passed through
+      verbatim (no perimeter-fitting, unlike CSS border dashed/dotted) and
+      CanvasKit consumes them directly via PathEffect.MakeDash(array, phase).
+      Six straight 800px horizontal lines, each isolating one aspect:
+        1. dasharray "20 10"       - basic 2:1 dash:gap ratio
+        2. dasharray "10 20"       - dash shorter than gap
+        3. dasharray "20 20"       - equal dash/gap
+        4. dasharray "20 10 5"     - ODD count: SVG spec says the array is
+                                     repeated to become even (20 10 5 20 10 5)
+        5. dasharray "30 10" + dashoffset "15" - phase shift by half a dash
+        6. dasharray "2 20" + linecap round - near-zero dash + round cap
+                                     produces a row of round dots
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .lane { position: absolute; left: 160px; top: 0; width: 1600px; height: 1080px; }
+      path { fill: none; stroke-width: 14px; stroke-linecap: butt; }
+      #line-basic       { stroke: #38bdf8; stroke-dasharray: 20 10; }
+      #line-short-dash  { stroke: #facc15; stroke-dasharray: 10 20; }
+      #line-equal       { stroke: #a78bfa; stroke-dasharray: 20 20; }
+      #line-odd-count   { stroke: #fb7185; stroke-dasharray: 20 10 5; }
+      #line-phase       { stroke: #34d399; stroke-dasharray: 30 10; stroke-dashoffset: 15; }
+      #line-round-dots  { stroke: #f97316; stroke-dasharray: 2 20; stroke-linecap: round; stroke-width: 18px; }
+    </style>
+  </head>
+  <body>
+    <svg class="lane">
+      <path id="line-basic"      d="M 0 80  L 1600 80"></path>
+      <path id="line-short-dash" d="M 0 260 L 1600 260"></path>
+      <path id="line-equal"      d="M 0 440 L 1600 440"></path>
+      <path id="line-odd-count"  d="M 0 620 L 1600 620"></path>
+      <path id="line-phase"      d="M 0 800 L 1600 800"></path>
+      <path id="line-round-dots" d="M 0 980 L 1600 980"></path>
+    </svg>
+  </body>
+</html>

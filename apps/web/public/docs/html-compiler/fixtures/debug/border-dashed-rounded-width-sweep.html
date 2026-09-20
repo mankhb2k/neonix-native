@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: same box (500x300) and border-radius (64px) fixed, sweeping
+      border-width 10/20/40/80px, to check whether the rounded-corner
+      strokeDash rhythm's unit length is still 2x border-width (matching
+      the no-radius case) once a real stroke-dasharray on a curved path is
+      involved.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; width: 400px; height: 300px; border-radius: 64px; background: #172554; box-sizing: border-box; }
+      #w10 { left: 80px;  top: 80px;  border: 10px dashed #38bdf8; }
+      #w20 { left: 560px; top: 80px;  border: 20px dashed #38bdf8; }
+      #w40 { left: 1040px; top: 80px; border: 40px dashed #38bdf8; }
+      #w80 { left: 1440px; top: 40px; width: 400px; height: 380px; border-radius: 64px; border: 80px dashed #38bdf8; }
+    </style>
+  </head>
+  <body>
+    <div id="w10" class="box"></div>
+    <div id="w20" class="box"></div>
+    <div id="w40" class="box"></div>
+    <div id="w80" class="box"></div>
+  </body>
+</html>

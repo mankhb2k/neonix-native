@@ -1292,11 +1292,46 @@ EffectFilterResult build_effect_filter(bool hasProgram, const EffectProgram& pro
         }
     }
 
+    // Box-shadow spread inserts a morphology op between the silhouette and
+    // the blur: ["alpha-mask","morphology","blur","tint","offset","composite"].
+    // Spread only applies to box-shadow (alphaMaskSource==2), never to
+    // filter: drop-shadow(). Port of the matching branch in effectFilterFor.
+    if (ops.size() == 6
+        && ops[0].kind == 5 && ops[0].input == "source" && ops[0].alphaMaskSource == 2
+        && ops[1].kind == 6
+        && ops[2].kind == 4 && ops[2].input == ops[1].output
+        && ops[3].kind == 8 && ops[3].input == ops[2].output
+        && ops[4].kind == 9 && ops[4].input == ops[3].output
+        && ops[5].kind == 11 && ops[5].backdrop == ops[4].output && ops[5].source == "source") {
+        const EffectOp& morphology = ops[1];
+        const EffectOp& blur = ops[2];
+        const EffectOp& tint = ops[3];
+        const EffectOp& offset = ops[4];
+        sk_sp<SkImageFilter> morphed;
+        if (morphology.radius != 0) {
+            const SkScalar r = static_cast<SkScalar>(morphology.radius);
+            morphed = morphology.morphologyOperator == 1 ? SkImageFilters::Dilate(r, r, nullptr) : SkImageFilters::Erode(r, r, nullptr);
+        }
+        const double sigma = css_shadow_blur_radius_to_skia_sigma(blur.radius);
+        const SkColor color = sk_color_from(tint.tintColor, tint.tintOpacity);
+        // DropShadow with a non-null `input` both computes the shadow from
+        // and redraws `input` as the foreground — feeding it the dilated
+        // silhouette directly would visibly enlarge the box itself (proven
+        // empirically: a 4px border rendered 28px wide and shifted outward
+        // by exactly the spread radius). Use DropShadowOnly to keep just the
+        // halo, then blend it behind the UNDILATED original content.
+        sk_sp<SkImageFilter> shadowOnly = SkImageFilters::DropShadowOnly(
+            static_cast<SkScalar>(offset.offsetX), static_cast<SkScalar>(offset.offsetY),
+            static_cast<SkScalar>(sigma), static_cast<SkScalar>(sigma), color, morphed);
+        sk_sp<SkImageFilter> filter = shadowOnly ? SkImageFilters::Blend(SkBlendMode::kSrcOver, shadowOnly, nullptr) : nullptr;
+        return { filter, filter != nullptr };
+    }
+
     // Single alpha-based shadow/glow: ["alpha-mask","blur","tint","offset","composite"]
     // or without the offset: ["alpha-mask","blur","tint","composite"].
     const bool hasOffset = ops.size() == 5;
     const bool shapeMatches = (ops.size() == 5 || ops.size() == 4)
-        && ops[0].kind == 5 && ops[0].input == "source" && ops[0].alphaMaskSource != 2  // not box
+        && ops[0].kind == 5 && ops[0].input == "source"
         && ops[1].kind == 4 && ops[1].input == ops[0].output
         && ops[2].kind == 8 && ops[2].input == ops[1].output
         && (hasOffset
@@ -1326,6 +1361,54 @@ EffectFilterResult build_effect_filter(bool hasProgram, const EffectProgram& pro
             static_cast<SkScalar>(sigma), static_cast<SkScalar>(sigma),
             color, nullptr);
         return { filter, filter != nullptr };
+    }
+
+    // CSS filter order: blur/color*(...) drop-shadow(...) — e.g.
+    // `filter: blur(8px) drop-shadow(...)`. The prefix operators reshape the
+    // owner first; the shadow then reads that filtered silhouette, and the
+    // filtered owner (not the raw layer content) is what stays visible in
+    // front of it. Port of the matching branch in effectFilterFor.
+    if (ops.size() >= 6) {
+        // ops.size() >= 6 guarantees shadowStart >= 1, so there is always at
+        // least one prefix op and `ops[shadowStart - 1]` never underflows.
+        const size_t shadowStart = ops.size() - 5;
+        bool prefixValid = true;
+        for (size_t index = 0; index < shadowStart && prefixValid; ++index) {
+            const EffectOp& op = ops[index];
+            const std::string expectedInput = index == 0 ? "source" : ops[index - 1].output;
+            if (!is_linear_color_spatial_op(op.kind) || op.input != expectedInput) prefixValid = false;
+        }
+        const EffectOp& shadowAlpha = ops[shadowStart];
+        const EffectOp& shadowBlur = ops[shadowStart + 1];
+        const EffectOp& shadowTint = ops[shadowStart + 2];
+        const EffectOp& shadowOffset = ops[shadowStart + 3];
+        const EffectOp& shadowComposite = ops[shadowStart + 4];
+        const std::string& prefixOutput = ops[shadowStart - 1].output;
+        if (prefixValid
+            && shadowAlpha.kind == 5 && shadowAlpha.input == prefixOutput
+            && shadowBlur.kind == 4 && shadowBlur.input == shadowAlpha.output
+            && shadowTint.kind == 8 && shadowTint.input == shadowBlur.output
+            && shadowOffset.kind == 9 && shadowOffset.input == shadowTint.output
+            && shadowComposite.kind == 11
+            && shadowComposite.backdrop == shadowOffset.output
+            && shadowComposite.source == prefixOutput
+            && shadowComposite.output == program.output) {
+            std::vector<const EffectOp*> prefixRefs;
+            prefixRefs.reserve(shadowStart);
+            for (size_t index = 0; index < shadowStart; ++index) prefixRefs.push_back(&ops[index]);
+            sk_sp<SkImageFilter> filteredSource = build_linear_color_spatial_filter(prefixRefs);
+            if (filteredSource) {
+                const double sigma = css_shadow_blur_radius_to_skia_sigma(shadowBlur.radius);
+                const SkColor color = sk_color_from(shadowTint.tintColor, shadowTint.tintOpacity);
+                sk_sp<SkImageFilter> shadowOnly = SkImageFilters::DropShadowOnly(
+                    static_cast<SkScalar>(shadowOffset.offsetX), static_cast<SkScalar>(shadowOffset.offsetY),
+                    static_cast<SkScalar>(sigma), static_cast<SkScalar>(sigma), color, filteredSource);
+                sk_sp<SkImageFilter> filter = shadowOnly
+                    ? SkImageFilters::Blend(SkBlendMode::kSrcOver, shadowOnly, filteredSource)
+                    : nullptr;
+                return { filter, filter != nullptr };
+            }
+        }
     }
 
     return { nullptr, false };
@@ -2007,22 +2090,32 @@ int main(int argc, char** argv) {
                     print_error("replay", "unsupported_backdrop_effect");
                     return 57;
                 }
-                // Box-shadow / white-glow effects read the element's box
-                // geometry, not its rendered alpha, so they can never be a
-                // plain SkImageFilter on the layer content — detect them
-                // first and route them to the raster overlay path instead of
-                // build_effect_filter (which only handles content-alpha
-                // effect chains).
+                // A single OUTER box-shadow branch reads the same silhouette
+                // a plain content-alpha DropShadow filter already produces
+                // (the box's real rendered alpha matches its geometry for
+                // ordinary filled content), so it is left to build_effect_filter
+                // below — exactly like CanvasKit's effectFilterFor, which only
+                // routes to its overlay compositor for a genuine multi-shadow
+                // list or a single INSET branch. Only those two shapes read
+                // box geometry instead of rendered alpha and can never be a
+                // plain SkImageFilter on the layer content.
                 PendingLayerEffect pendingEffect;
                 bool effectIsBoxShadow = false;
                 if (hasEffectProgram && program_has_box_alpha_mask(effectProgram)) {
-                    if (!parse_box_shadow_branches(effectProgram, pendingEffect.boxBranches) || !effectBox.present) {
-                        print_error("replay", "unsupported_box_effect");
-                        return 59;
+                    std::vector<BoxShadowBranch> boxBranches;
+                    const bool parsed = parse_box_shadow_branches(effectProgram, boxBranches);
+                    const bool needsOverlay = parsed
+                        && (boxBranches.size() > 1 || (boxBranches.size() == 1 && boxBranches[0].inner));
+                    if (needsOverlay) {
+                        if (!effectBox.present) {
+                            print_error("replay", "unsupported_box_effect");
+                            return 59;
+                        }
+                        pendingEffect.hasBoxEffect = true;
+                        pendingEffect.boxBranches = std::move(boxBranches);
+                        pendingEffect.box = effectBox;
+                        effectIsBoxShadow = true;
                     }
-                    pendingEffect.hasBoxEffect = true;
-                    pendingEffect.box = effectBox;
-                    effectIsBoxShadow = true;
                 }
                 EffectFilterResult effectResult;
                 if (!effectIsBoxShadow) {

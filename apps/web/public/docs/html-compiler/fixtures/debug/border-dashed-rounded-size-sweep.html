@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: fixed border-radius (32px), fixed border-width (20px), fixed
+      aspect ratio (3:2), only overall box SIZE (hence total perimeter)
+      varies: 300x200, 500x333, 700x467. Tests whether Chrome's rounded-
+      dash count scales with total perimeter the same way the straight-edge
+      formula scaled with edge length.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; top: 100px; border-radius: 32px; background: #172554; box-sizing: border-box; border: 20px dashed #38bdf8; }
+      #small  { left: 60px;  width: 300px; height: 200px; }
+      #medium { left: 420px; width: 500px; height: 333px; }
+      #large  { left: 980px; width: 700px; height: 467px; }
+    </style>
+  </head>
+  <body>
+    <div id="small" class="box"></div>
+    <div id="medium" class="box"></div>
+    <div id="large" class="box"></div>
+  </body>
+</html>

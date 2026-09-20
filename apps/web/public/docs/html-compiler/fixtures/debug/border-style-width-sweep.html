@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: does html-compiler's fitBorderDashRuns() period model
+      (dashed: period=width*3, dash=period*2/3; dotted: period=width*2,
+      dot diameter=width) actually match the real browser's CSS border
+      rhythm as border-width scales up? Same 280x160 box, same edge
+      lengths, only border-width varies per column: 2,4,8,12,20,32px.
+      Row 1 = dashed, row 2 = dotted.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; width: 260px; height: 150px; background: #172554; }
+      .r0 { top: 110px; }
+      .r1 { top: 420px; }
+      .c0 { left: 60px; }
+      .c1 { left: 380px; }
+      .c2 { left: 700px; }
+      .c3 { left: 1020px; }
+      .c4 { left: 1340px; }
+      .c5 { left: 1660px; }
+      #dashed-2  { border: 2px  dashed #38bdf8; }
+      #dashed-4  { border: 4px  dashed #38bdf8; }
+      #dashed-8  { border: 8px  dashed #38bdf8; }
+      #dashed-12 { border: 12px dashed #38bdf8; }
+      #dashed-20 { border: 20px dashed #38bdf8; }
+      #dashed-32 { border: 32px dashed #38bdf8; }
+      #dotted-2  { border: 2px  dotted #fb7185; }
+      #dotted-4  { border: 4px  dotted #fb7185; }
+      #dotted-8  { border: 8px  dotted #fb7185; }
+      #dotted-12 { border: 12px dotted #fb7185; }
+      #dotted-20 { border: 20px dotted #fb7185; }
+      #dotted-32 { border: 32px dotted #fb7185; }
+    </style>
+  </head>
+  <body>
+    <div id="dashed-2"  class="box r0 c0"></div>
+    <div id="dashed-4"  class="box r0 c1"></div>
+    <div id="dashed-8"  class="box r0 c2"></div>
+    <div id="dashed-12" class="box r0 c3"></div>
+    <div id="dashed-20" class="box r0 c4"></div>
+    <div id="dashed-32" class="box r0 c5"></div>
+    <div id="dotted-2"  class="box r1 c0"></div>
+    <div id="dotted-4"  class="box r1 c1"></div>
+    <div id="dotted-8"  class="box r1 c2"></div>
+    <div id="dotted-12" class="box r1 c3"></div>
+    <div id="dotted-20" class="box r1 c4"></div>
+    <div id="dotted-32" class="box r1 c5"></div>
+  </body>
+</html>

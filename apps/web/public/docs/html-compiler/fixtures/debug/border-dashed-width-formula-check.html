@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: verify the discovered formula scales correctly with
+      border-width alone. Border-top only, FIXED edge length = 600px,
+      width varies 10 / 20 / 40 / 80px. Predicted dash count N =
+      round((600 + w) / (3w)):
+        w=10 -> round(610/30)  = round(20.33) = 20
+        w=20 -> round(620/60)  = round(10.33) = 10
+        w=40 -> round(640/120) = round(5.33)  = 5
+        w=80 -> round(680/240) = round(2.83)  = 3
+      dash length is fixed at 2w in every case; only the gap should adjust.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; width: 600px; height: 90px; background: #172554; }
+      #w10 { left: 100px; top: 80px;  border-top: 10px dashed #38bdf8; }
+      #w20 { left: 100px; top: 260px; border-top: 20px dashed #38bdf8; }
+      #w40 { left: 100px; top: 440px; border-top: 40px dashed #38bdf8; }
+      #w80 { left: 100px; top: 620px; border-top: 80px dashed #38bdf8; }
+    </style>
+  </head>
+  <body>
+    <div id="w10" class="box"></div>
+    <div id="w20" class="box"></div>
+    <div id="w40" class="box"></div>
+    <div id="w80" class="box"></div>
+  </body>
+</html>
