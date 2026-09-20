@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Connect Claude, ChatGPT, and Grok to Neonix through MCP.",
 };
 
-export default function McpPage() {
+export default function DashboardMcpPage() {
   return (
     <HubFrame>
       <McpWorkspace />

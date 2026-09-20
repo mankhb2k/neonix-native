@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Build editable motion projects with the Neonix API.",
 };
 
-export default function ApiPage() {
+export default function DashboardApiPage() {
   return (
     <HubFrame>
       <ApiWorkspace />

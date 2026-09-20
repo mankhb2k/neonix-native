@@ -3,7 +3,7 @@ import { mkdir, open as openFile, readFile, stat, type FileHandle } from "node:f
 import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
-import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer, type PaintFill, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, type PaintCommand, type PaintCommandBuffer, type PaintFill, type RuntimeEffectOp, type RuntimeEffectProgram, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { compileDocument } from "../../html-compiler/src/index";
 import { compileAndPrepareRuntimeProjectV3 } from "../../../apps/web/lib/server/render/project-runtime";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../../../apps/web/lib/docs/html-compiler-preview";
@@ -170,6 +170,102 @@ function blendModeCode(mode: string | undefined): number {
   return index;
 }
 
+/**
+ * Wire opcode for one `RuntimeEffectOp.kind`. Must match the `switch` in
+ * `read_effect_op` in skia_command_cpu_backend.cpp exactly.
+ */
+function effectOpCode(kind: RuntimeEffectOp["kind"]): number {
+  switch (kind) {
+    case "color-adjust": return 1;
+    case "color-matrix": return 2;
+    case "alpha": return 3;
+    case "blur": return 4;
+    case "alpha-mask": return 5;
+    case "morphology": return 6;
+    case "inner-alpha": return 7;
+    case "tint": return 8;
+    case "offset": return 9;
+    case "noise": return 10;
+    case "composite": return 11;
+  }
+}
+
+function writeEffectOp(writer: BinaryWriter, op: RuntimeEffectOp): void {
+  writer.u8(effectOpCode(op.kind));
+  writer.string(op.output);
+  if (op.kind === "color-adjust") {
+    writer.string(op.input);
+    writer.f64(op.brightness);
+    writer.f64(op.contrast);
+    writer.f64(op.saturation);
+    writer.f64(op.hueRotate);
+  } else if (op.kind === "color-matrix") {
+    writer.string(op.input);
+    if (op.matrix.length !== 20) throw new Error(`Native benchmark protocol requires a 20-value color-matrix: ${op.id}`);
+    for (const value of op.matrix) writer.f64(value);
+  } else if (op.kind === "alpha") {
+    writer.string(op.input);
+    writer.f64(op.amount);
+  } else if (op.kind === "blur") {
+    writer.string(op.input);
+    writer.f64(op.radius);
+  } else if (op.kind === "alpha-mask") {
+    writer.string(op.input);
+    writer.u8(op.source === "alpha" ? 1 : op.source === "box" ? 2 : 0);
+  } else if (op.kind === "morphology") {
+    writer.string(op.input);
+    writer.u8(op.operator === "dilate" ? 1 : 0);
+    writer.f64(op.radius);
+  } else if (op.kind === "inner-alpha") {
+    writer.string(op.source);
+    writer.string(op.blurred);
+  } else if (op.kind === "tint") {
+    writer.string(op.input);
+    writeColor(writer, op.color);
+    writer.f64(op.opacity);
+  } else if (op.kind === "offset") {
+    writer.string(op.input);
+    writer.f64(op.x);
+    writer.f64(op.y);
+  } else if (op.kind === "noise") {
+    writer.string(op.input);
+    writer.f64(op.scale);
+    writer.f64(op.amount);
+    writer.f64(op.opacity);
+    writer.u32(op.seed);
+  } else if (op.kind === "composite") {
+    writer.string(op.backdrop);
+    writer.string(op.source);
+  }
+}
+
+function writeEffectProgram(writer: BinaryWriter, program: RuntimeEffectProgram | undefined): void {
+  if (!program) {
+    writer.u8(0);
+    return;
+  }
+  writer.u8(1);
+  writer.u32(program.ops.length);
+  for (const op of program.ops) writeEffectOp(writer, op);
+  writer.string(program.output);
+}
+
+function writeEffectBox(
+  writer: BinaryWriter,
+  box: Extract<PaintCommand, { op: "beginLayer" }>["effectBox"],
+): void {
+  if (!box) {
+    writer.u8(0);
+    return;
+  }
+  writer.u8(1);
+  writer.f64(box.width);
+  writer.f64(box.height);
+  writer.u8(box.cornerRadius !== undefined ? 1 : 0);
+  if (box.cornerRadius !== undefined) writer.f64(box.cornerRadius);
+  writeMatrix(writer, box.matrix4);
+}
+
 function writeMatrix(writer: BinaryWriter, matrix: readonly number[]): void {
   if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) {
     throw new Error("Native benchmark protocol requires a finite Matrix4");
@@ -290,6 +386,9 @@ function writeCommand(writer: BinaryWriter, command: PaintCommand): void {
     writer.u8(command.offscreen || command.isolation ? 1 : 0);
     writer.f64(command.compositeAlpha ?? 1);
     writer.u8(blendModeCode(command.blendMode));
+    writeEffectProgram(writer, command.effectProgram);
+    writeEffectProgram(writer, command.backdropEffectProgram);
+    writeEffectBox(writer, command.effectBox);
     return;
   }
   if (command.op === "endLayer") {

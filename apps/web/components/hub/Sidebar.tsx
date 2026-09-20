@@ -19,13 +19,13 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Assets", href: "/assets", icon: Boxes },
-  { label: "Exports", href: "/exports", icon: Download },
-  { label: "MCP", href: "/mcp", icon: Plug },
-  { label: "API", href: "/api", icon: KeyRound },
+  { label: "Assets", href: "/dashboard/assets", icon: Boxes },
+  { label: "Exports", href: "/dashboard/exports", icon: Download },
+  { label: "MCP", href: "/dashboard/mcp", icon: Plug },
+  { label: "API", href: "/dashboard/api", icon: KeyRound },
   // { label: "Usage", href: "/usage", icon: Gauge },
   // { label: "Billing", href: "/billing", icon: CreditCard },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ] as const;
 
 function isActive(pathname: string, href: string) {
