@@ -900,7 +900,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                  ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
                  timing: { start: 0, duration },
                  payload: { contours: runs },
-                 style: { fill: "none", stroke: border.top.color, strokeWidth: border.top.width, strokeCap: border.top.style === "dotted" ? "round" : "butt", strokeJoin: "round" },
+                 style: { fill: "none", stroke: border.top.color, strokeWidth: border.top.width, strokeCap: border.top.style === "dotted" ? "round" : "butt" },
                } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
              }
              else if (uniformDashedBorder && typeof cornerRadius === "number" && cornerRadius > 0) {
@@ -912,6 +912,18 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                // fixture, independent of html-compiler's own math), so the
                // fix is to never hand CanvasKit a closed path + PathEffect
                // for this case at all.
+               // Matches Chrome's own ContouredBorderGeometry::PixelSnapped
+               // ContouredBorderWithOutsets exactly: a plain radius-width/2
+               // subtraction with no positive floor (FloatRoundedRect::Radii
+               // ::Outset), stroked with the default miter join (cc::PaintFlags
+               // ::kDefault_Join). When cornerRadius <= strokeInset this
+               // collapses to a sharp, square corner in the REAL browser too --
+               // not a bug, confirmed by reading Blink's source (see
+               // D:\NextJS\chromium-reference) and pixel-comparing against a
+               // fresh Chrome capture. Chromium even tracks this as a known
+               // rough edge for tight corners (box_border_painter.cc, crbug.com
+               // /41089993), so matching it here (not "fixing" it) is what
+               // keeps CanvasKit at 1:1 parity with the browser.
                const strokeInset = border.top.width / 2;
                const strokeWidth = Math.max(1, borderBox.width - border.top.width);
                const strokeHeight = Math.max(1, borderBox.height - border.top.width);
@@ -941,13 +953,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                  ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
                  timing: { start: 0, duration },
                  payload: { contours: runs },
-                 // When cornerRadius <= strokeInset the centerline collapses to a sharp
-                 // corner (strokeRadius clamps to 0); a miter join then spikes the outer
-                 // edge well past the box's true border-radius arc. A round join instead
-                 // draws a strokeWidth/2-radius arc at the vertex, which exactly matches
-                 // the browser when cornerRadius === strokeInset and is a much closer
-                 // approximation than a miter spike otherwise.
-                 style: { fill: "none", stroke: border.top.color, strokeWidth: border.top.width, strokeCap: border.top.style === "dotted" ? "round" : "butt", strokeJoin: "round" },
+                 style: { fill: "none", stroke: border.top.color, strokeWidth: border.top.width, strokeCap: border.top.style === "dotted" ? "round" : "butt" },
                } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
              }
              else if (uniformBorder && typeof cornerRadius === "object") layers.push({
@@ -990,7 +996,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
                timing: { start: 0, duration },
                payload: { shape: "rectangle", ...(typeof cornerRadius === "number" ? { cornerRadius: Math.max(0, cornerRadius - inset) } : {}) },
-               style: { fill: "#00000000", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width, ...(typeof cornerRadius === "number" && cornerRadius <= inset ? { strokeJoin: "round" as const } : {}) },
+               style: { fill: "#00000000", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width },
              });
              else if (
                Object.values(border).every((side) =>
