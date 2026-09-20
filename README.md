@@ -1,8 +1,9 @@
 # Neonix
 
-Neonix is an AI-first motion-video editor. Users connect Claude to the remote
-MCP server, create or update a project, open the web editor, preview the result
-in the browser, and export when the project is ready.
+Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real,
+exportable motion video. Users connect Claude to the remote MCP server, create
+or update a project, open the web editor, preview the result in the browser,
+and export when the project is ready.
 
 The repository is a pnpm monorepo. The active render path is **Protocol V2 →
 compiler → runtime → preview/export**. Protocol V1, Pixi-based rendering,
