@@ -5,6 +5,7 @@ const SITE_URL = "https://neonix.video";
 
 const STATIC_ROUTES = [
   "/",
+  "/html-to-video",
   "/privacy",
   "/terms",
   "/support",
@@ -26,6 +27,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${SITE_URL}${path}`,
     lastModified: new Date(),
     changeFrequency: path === "/" ? "weekly" : "monthly",
-    priority: path === "/" ? 1 : 0.6,
+    priority: path === "/" ? 1 : path === "/html-to-video" ? 0.9 : 0.6,
   }));
 }
