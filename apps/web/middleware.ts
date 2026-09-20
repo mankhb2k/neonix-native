@@ -13,7 +13,7 @@ function workspaceOrigin(): string {
 }
 
 function controlOrigin(): string {
-  return process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://neonix.video";
+  return process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://www.neonix.video";
 }
 
 function redirectTo(

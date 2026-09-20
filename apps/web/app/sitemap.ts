@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { DOCS_PAGE_SLUGS } from "@/lib/docs/docs";
 
-const SITE_URL = "https://neonix.video";
+const SITE_URL = "https://www.neonix.video";
 
 const STATIC_ROUTES = [
   "/",

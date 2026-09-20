@@ -16,7 +16,7 @@ real, exportable video.
 
 Q: How do AI agents use Neonix?
 A: AI agents such as Claude connect to Neonix's Remote MCP server
-(neonix.video/api/mcp) and call tools like create_project_html to compile
+(www.neonix.video/api/mcp) and call tools like create_project_html to compile
 HTML/CSS into a video project, then export it as MP4.
 
 Q: What makes Neonix different from template-based AI video tools?
@@ -33,7 +33,7 @@ preview and edit in the Neonix editor, then export to a real MP4.
 
 ## Links
 
-- Homepage: https://neonix.video
-- Docs: https://neonix.video/docs
-- Remote MCP endpoint: https://neonix.video/api/mcp
+- Homepage: https://www.neonix.video
+- Docs: https://www.neonix.video/docs
+- Remote MCP endpoint: https://www.neonix.video/api/mcp
 - Editor: https://app.neonix.video

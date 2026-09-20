@@ -16,7 +16,7 @@ const SOFTWARE_APPLICATION_JSON_LD = {
   operatingSystem: "Web",
   description:
     "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
-  url: "https://neonix.video",
+  url: "https://www.neonix.video",
   offers: {
     "@type": "Offer",
     price: "0",
