@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "HTML to Motion Video — Neonix",
   description:
     "Neonix is an HTML-to-motion-video compiler, built for AI agents like Claude, ChatGPT and Grok over Remote MCP.",
+  alternates: { canonical: "/html-to-video" },
 };
 
 const PIPELINE_STEPS = [

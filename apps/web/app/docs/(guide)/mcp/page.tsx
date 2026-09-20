@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Neonix MCP — Motion infrastructure for AI agents",
   description:
     "Connect Claude, Grok, and ChatGPT to Neonix through one secure MCP server for editable motion videos.",
+  alternates: { canonical: "/docs/mcp" },
 };
 
 export default function DocsMcpPage() {
