@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      DEBUG: isolate whether the rounded-dashed-border corruption on the
+      LEFT/RIGHT edges (found via pixel scan on
+      border-dashed-rounded-corner-symmetry.html) is a bug in html-compiler's
+      dash-fitting MATH, or a bug/limitation in how CanvasKit's own
+      PathEffect.MakeDash walks a closed rounded-rect SVG path -- this
+      bypasses compile.ts's border pipeline entirely (plain <rect rx> +
+      stroke-dasharray, no border-lowering involved) so if the same
+      left/right-edge corruption shows up here too, it is proven to be a
+      CanvasKit/runtime path-measurement issue, not a compiler value bug.
+      400x400 rect, rx=ry=60 (matches border-dashed-rounded-corner-symmetry's
+      s1 box exactly), stroke-width 30, dasharray hand-computed as [60, gap]
+      with gap chosen so 3 periods fill one straight run (matches the
+      anchored-both-ends analysis of that fixture).
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .lane { position: absolute; left: 60px; top: 120px; width: 1800px; height: 500px; }
+      rect { fill: #172554; stroke: #38bdf8; stroke-width: 30px; }
+    </style>
+  </head>
+  <body>
+    <svg class="lane">
+      <rect x="15" y="15" width="400" height="400" rx="60" ry="60" stroke-dasharray="60 28.06"></rect>
+      <rect x="480" y="15" width="400" height="400" rx="60" ry="60" stroke-dasharray="60 28.06" pathLength="1496.99"></rect>
+    </svg>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      REGRESSION: an ODD-length stroke-dasharray (here 3 values) must be
+      repeated once to become even-length before being handed to Skia's
+      PathEffect.MakeDash, which throws outright ("Intervals array must
+      have even length") on a raw odd-length array. The SVG spec requires
+      this duplication (20 10 5 -> 20 10 5 20 10 5); real browsers do it
+      silently, so a naive pass-through crashes the CanvasKit preview on a
+      pattern the browser renders fine. See
+      packages/html-compiler/src/compiler/path.ts (parsePathDash).
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .lane { position: absolute; left: 160px; top: 0; width: 1600px; height: 1080px; }
+      path { fill: none; stroke: #fb7185; stroke-width: 14px; stroke-linecap: butt; }
+    </style>
+  </head>
+  <body>
+    <svg class="lane">
+      <path id="odd-count-dasharray" stroke-dasharray="20 10 5" d="M 0 520 L 1600 520"></path>
+    </svg>
+  </body>
+</html>

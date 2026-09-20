@@ -61,7 +61,7 @@ describe("Protocol V2 preview lab fixtures", () => {
   });
 
   it("keeps the HTML compiler sidebar backed by the primitive fixture catalog", () => {
-    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(38);
+    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(39);
     expect(HTML_COMPILER_PAINT_GRADIENT_CASES).toHaveLength(4);
     expect(HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES).toHaveLength(6);
     expect(HTML_COMPILER_PHASE1_1_CASES).toHaveLength(5);
@@ -74,7 +74,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PAINT_PHASE2_9_CASES).toHaveLength(1);
     expect(HTML_COMPILER_OPACITY_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
-    expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(11);
+    expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(15);
     expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(6);
     expect(HTML_COMPILER_PAINT_PHASE2_5_CASES).toHaveLength(14);

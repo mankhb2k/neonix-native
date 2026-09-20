@@ -8,6 +8,7 @@ import { fetchPlaygroundFixture } from "@/lib/api/playground";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS } from "@/lib/docs/html-compiler-preview";
 import {
   htmlPlaygroundCaseGroups,
+  htmlPlaygroundFixturePath,
   HTML_PLAYGROUND_NATIVE_CASES,
   type HtmlPlaygroundCaseGroup,
 } from "@/lib/playground/html-playground-cases";
@@ -179,14 +180,14 @@ export function RadialPatternNativeLab() {
           </div>
           <div className="flex items-center gap-2">
             <label className="flex h-8 items-center rounded-md border border-[#b8dcd6] bg-white px-2 text-sm text-[#0f766e]">
-              <span className="sr-only">Test type</span>
+              <span className="sr-only">Fixture folder</span>
               <select
                 className="w-[130px] bg-transparent text-sm font-medium outline-none"
                 value={selectedGroup}
                 onChange={(event) =>
                   selectGroup(event.target.value as GroupFilter)
                 }
-                aria-label="Test type"
+                aria-label="Fixture folder"
                 data-testid="radial-native-group-picker"
               >
                 <option value={ALL_GROUPS_ID}>All</option>
@@ -198,12 +199,12 @@ export function RadialPatternNativeLab() {
               </select>
             </label>
             <label className="flex h-8 items-center rounded-md border border-[#b8dcd6] bg-white px-2 text-sm text-[#0f766e]">
-              <span className="sr-only">Native debug fixture</span>
+              <span className="sr-only">HTML compiler fixture</span>
               <select
-                className="w-[230px] bg-transparent text-sm font-medium outline-none"
+                className="w-[330px] bg-transparent font-mono text-xs font-medium outline-none"
                 value={selectedCase}
                 onChange={(event) => setSelectedCase(event.target.value)}
-                aria-label="Native debug fixture"
+                aria-label="HTML compiler fixture"
                 data-testid="radial-native-case-picker"
                 disabled={caseLoading}
               >
@@ -211,7 +212,7 @@ export function RadialPatternNativeLab() {
                   <optgroup key={section.group} label={section.label}>
                     {section.cases.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.label}
+                        {htmlPlaygroundFixturePath(item.url)}
                       </option>
                     ))}
                   </optgroup>
@@ -219,7 +220,7 @@ export function RadialPatternNativeLab() {
               </select>
             </label>
             <span className="rounded border border-[#b8dcd6] bg-white px-2 py-1 font-mono text-[11px] text-[#0f766e]">
-              {activeCase.label}
+              {htmlPlaygroundFixturePath(activeCase.url)}
             </span>
             <Button type="button" variant="outline" size="md" onClick={reset}>
               <RotateCcw size={14} /> Reset

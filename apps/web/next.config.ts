@@ -47,6 +47,7 @@ const nextConfig: NextConfig = {
     "@motionvideo/preview-renderer",
     "@motionvideo/skia-renderer",
     "@motionvideo/playback-engine",
+    "@motionvideo/html-compiler",
   ],
   turbopack: {
     resolveAlias: {

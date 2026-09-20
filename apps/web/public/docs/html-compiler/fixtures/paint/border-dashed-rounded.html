@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      REGRESSION: border-style:dashed WITH border-radius lowers to a single
+      continuous rounded-rect path carrying a real strokeDash (like SVG
+      stroke-dasharray), not 4 independent straight lines clipped by the
+      box's own rounded mask (the old approach, which produced a visibly
+      un-rounded, badly phased dash pattern). Two moderate radii shown here;
+      see border-rounded-pill-stroke.html for the large-radius/near-pill
+      case that also exercises the closed-perimeter dash-fitting fix. See
+      packages/html-compiler/src/compiler/pipeline/border/geometry.ts (fitRoundedBorderDash).
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; top: 120px; width: 340px; height: 300px; background: #172554; box-sizing: border-box; border: 40px dashed #38bdf8; }
+      #radius-20 { left: 100px;  border-radius: 20px; }
+      #radius-64 { left: 560px; border-radius: 64px; }
+    </style>
+  </head>
+  <body>
+    <div id="radius-20" class="box"></div>
+    <div id="radius-64" class="box"></div>
+  </body>
+</html>

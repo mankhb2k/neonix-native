@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      REGRESSION (the critical case): border-radius large enough to remove
+      the straight run on one axis (here radius=150=height/2, a near-pill
+      shape) makes the rounded border ONE CLOSED PATH -- a fixed, unadjusted
+      dash/dot array only closes onto itself cleanly when the perimeter
+      happens to be an exact multiple of its period, otherwise the pattern
+      visibly seams exactly at the path's start point. This was caught two
+      ways in the same fix:
+        1. dashed/dotted dash-count must scale with the true perimeter
+           (Ramanujan quarter-ellipse approximation), not a hardcoded ratio.
+        2. the dotted dot is a ROUND CAP on a near-zero-length dash, not a
+           dash of length = border-width -- getting that wrong turns every
+           dot into an elongated stadium/capsule shape instead of a circle.
+      See packages/html-compiler/src/compiler/pipeline/border/geometry.ts
+      (fitRoundedBorderDash) and roundedRectPerimeter.
+    -->
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .box { position: absolute; top: 120px; width: 340px; height: 300px; border-radius: 150px; background: #172554; box-sizing: border-box; }
+      #pill-dashed { left: 100px; border: 40px dashed #38bdf8; }
+      #pill-dotted { left: 560px; border: 40px dotted #fb7185; }
+    </style>
+  </head>
+  <body>
+    <div id="pill-dashed" class="box"></div>
+    <div id="pill-dotted" class="box"></div>
+  </body>
+</html>

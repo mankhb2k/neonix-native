@@ -38,14 +38,15 @@ import { svgPrimitivePath } from "../lowering/svg";
 import { createCompileContext } from "../compile-context";
 import { createAssetRegistry } from "../lowering/assets";
 import { parseNeonixDocument, isCompileError } from "../document";
+import { borderBand, borderRegion, circlePolygon, clipConvexPolygon, fitBorderDashRuns, shadeBorderColor } from "./border/geometry";
+import { buildRoundedDashRuns, buildRoundedDotRuns } from "./border/rounded-dash";
+import { rectangleContour, roundedRectContour, roundedRectContourAtInset, type HtmlPathContour } from "./shape-contours";
 
 function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
   if (value === "center") return "middle";
   if (value === "right" || (value === "end" && direction === "ltr") || (value === "start" && direction === "rtl")) return "end";
   return "start";
 }
-
-type HtmlPathContour = Extract<MotionProtocolV2["layers"][number], { type: "path" }>["payload"]["contours"][number];
 
 type HtmlTextLayer = Extract<MotionProtocolV2["layers"][number], { type: "text" }>;
 
@@ -156,171 +157,6 @@ function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: numbe
   const normalizedLines = text.replace(/[ \t]+/g, " ").split(/\r?\n/);
   const lineCount = normalizedLines.reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0);
   return Math.max(1, lineCount) * lineHeight;
-}
-
-type BorderDashRun = { offset: number; length: number };
-
-type HtmlPoint = { x: number; y: number };
-
-function polygonArea(points: readonly HtmlPoint[]): number {
-  return points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length]!;
-    return area + point.x * next.y - next.x * point.y;
-  }, 0) / 2;
-}
-
-function clipConvexPolygon(subject: readonly HtmlPoint[], clip: readonly HtmlPoint[]): HtmlPoint[] {
-  const orientation = polygonArea(clip) >= 0 ? 1 : -1;
-  const inside = (point: HtmlPoint, from: HtmlPoint, to: HtmlPoint) => orientation * ((to.x - from.x) * (point.y - from.y) - (to.y - from.y) * (point.x - from.x)) >= -1e-7;
-  const intersection = (start: HtmlPoint, end: HtmlPoint, from: HtmlPoint, to: HtmlPoint): HtmlPoint => {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const ex = to.x - from.x;
-    const ey = to.y - from.y;
-    const denominator = dx * ey - dy * ex;
-    if (Math.abs(denominator) <= 1e-9) return end;
-    const t = ((from.x - start.x) * ey - (from.y - start.y) * ex) / denominator;
-    return { x: start.x + dx * t, y: start.y + dy * t };
-  };
-  let output = [...subject];
-  for (let index = 0; index < clip.length && output.length > 0; index += 1) {
-    const from = clip[index]!;
-    const to = clip[(index + 1) % clip.length]!;
-    const input = output;
-    output = [];
-    for (let pointIndex = 0; pointIndex < input.length; pointIndex += 1) {
-      const start = input[pointIndex]!;
-      const end = input[(pointIndex + 1) % input.length]!;
-      const startInside = inside(start, from, to);
-      const endInside = inside(end, from, to);
-      if (startInside && endInside) output.push(end);
-      else if (startInside && !endInside) output.push(intersection(start, end, from, to));
-      else if (!startInside && endInside) output.push(intersection(start, end, from, to), end);
-    }
-  }
-  return output;
-}
-
-function borderRegion(side: "top" | "right" | "bottom" | "left", width: number, height: number, top: number, right: number, bottom: number, left: number): HtmlPoint[] {
-  if (side === "top") return [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width - right, y: top }, { x: left, y: top }];
-  if (side === "right") return [{ x: width, y: 0 }, { x: width, y: height }, { x: width - right, y: height - bottom }, { x: width - right, y: top }];
-  if (side === "bottom") return [{ x: 0, y: height }, { x: width, y: height }, { x: width - right, y: height - bottom }, { x: left, y: height - bottom }];
-  // Keep the same correspondence as the other sides: outer edge first,
-  // inner edge second. This lets borderBand split by thickness rather than
-  // accidentally splitting the left edge along its length.
-  return [{ x: 0, y: 0 }, { x: 0, y: height }, { x: left, y: height - bottom }, { x: left, y: top }];
-}
-
-function shadeBorderColor(color: string, amount: number): string {
-  const match = color.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
-  if (!match) return color;
-  const rgb = [0, 2, 4].map((offset) => Number.parseInt(match[1]!.slice(offset, offset + 2), 16));
-  const adjusted = rgb.map((channel) => Math.round(amount >= 0 ? channel + (255 - channel) * amount : channel * (1 + amount)));
-  return `#${adjusted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}${match[2] ?? ""}`;
-}
-
-function borderBand(region: HtmlPoint[], from: number, to: number): HtmlPoint[] {
-  const lerp = (outer: HtmlPoint, inner: HtmlPoint, amount: number): HtmlPoint => ({
-    x: outer.x + (inner.x - outer.x) * amount,
-    y: outer.y + (inner.y - outer.y) * amount,
-  });
-  const startAt = (amount: number) => lerp(region[0]!, region[3]!, amount);
-  const endAt = (amount: number) => lerp(region[1]!, region[2]!, amount);
-  return [startAt(from), endAt(from), endAt(to), startAt(to)];
-}
-
-function circlePolygon(center: HtmlPoint, radius: number, count = 32): HtmlPoint[] {
-  return Array.from({ length: count }, (_, index) => {
-    const angle = (Math.PI * 2 * index) / count;
-    return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius };
-  });
-}
-
-/**
- * CSS border dash lengths are not exposed as SVG dasharray values. Fitting
- * this rhythm to match the real browser (verified pixel-for-pixel against
- * Chrome across border-width 10-80px and edge lengths 140-600px) requires a
- * FIXED-length dash (2x border-width) or dot (1x border-width) repeated a
- * whole number of times N, ANCHORED at both ends of the edge, with the
- * leftover space split evenly into (N-1) gaps -- not a periodic tiling that
- * only anchors the start (which is what left half the corners of every
- * dashed/dotted box without a border-radius under-filled). N is chosen to
- * land the gap as close as possible to one border-width:
- *   N = round((edgeLength + width) / (unit + width))
- * If the rounded N doesn't fit (N * unit > edgeLength), Chrome falls back to
- * a single run that spans the whole edge (dashed: one solid-looking dash;
- * dotted: one centered dot) rather than reducing further.
- */
-function fitBorderDashRuns(length: number, width: number, style: "dashed" | "dotted"): BorderDashRun[] {
-  const unit = style === "dashed" ? width * 2 : width;
-  const denominator = Math.max(unit + width, 1e-6);
-  let count = Math.max(1, Math.round((length + width) / denominator));
-  while (count > 1 && count * unit > length) count -= 1;
-  if (count <= 1 || count * unit > length) {
-    return style === "dashed" ? [{ offset: 0, length: Math.max(length, 0) }] : [{ offset: length / 2, length: width }];
-  }
-  const gap = (length - count * unit) / (count - 1);
-  const period = unit + gap;
-  if (style === "dashed") return Array.from({ length: count }, (_, index) => ({ offset: index * period, length: unit }));
-  return Array.from({ length: count }, (_, index) => ({ offset: index * period + width / 2, length: width }));
-}
-
-function roundedRectContour(width: number, height: number, radius: Exclude<CornerRadius, number>): HtmlPathContour {
-  const { topLeft, topRight, bottomRight, bottomLeft } = radius;
-  const k = 0.5522847498;
-  return {
-    id: "rounded-rectangle-contour",
-    start: { x: topLeft.rx, y: 0 },
-    segments: [
-      { kind: "line", to: { x: width - topRight.rx, y: 0 } },
-      { kind: "cubic", control1: { x: width - topRight.rx + k * topRight.rx, y: 0 }, control2: { x: width, y: topRight.ry - k * topRight.ry }, to: { x: width, y: topRight.ry } },
-      { kind: "line", to: { x: width, y: height - bottomRight.ry } },
-      { kind: "cubic", control1: { x: width, y: height - bottomRight.ry + k * bottomRight.ry }, control2: { x: width - bottomRight.rx + k * bottomRight.rx, y: height }, to: { x: width - bottomRight.rx, y: height } },
-      { kind: "line", to: { x: bottomLeft.rx, y: height } },
-      { kind: "cubic", control1: { x: bottomLeft.rx - k * bottomLeft.rx, y: height }, control2: { x: 0, y: height - bottomLeft.ry + k * bottomLeft.ry }, to: { x: 0, y: height - bottomLeft.ry } },
-      { kind: "line", to: { x: 0, y: topLeft.ry } },
-      { kind: "cubic", control1: { x: 0, y: topLeft.ry - k * topLeft.ry }, control2: { x: topLeft.rx - k * topLeft.rx, y: 0 }, to: { x: topLeft.rx, y: 0 } },
-    ],
-    closed: true,
-  };
-}
-
-function rectangleContour(width: number, height: number, inset: number, id: string): HtmlPathContour {
-  return {
-    id,
-    start: { x: inset, y: inset },
-    segments: [
-      { kind: "line", to: { x: width - inset, y: inset } },
-      { kind: "line", to: { x: width - inset, y: height - inset } },
-      { kind: "line", to: { x: inset, y: height - inset } },
-      { kind: "line", to: { x: inset, y: inset } },
-    ],
-    closed: true,
-  };
-}
-
-function roundedRectContourAtInset(width: number, height: number, inset: number, radius: Exclude<CornerRadius, number>, id: string): HtmlPathContour {
-  const { topLeft, topRight, bottomRight, bottomLeft } = radius;
-  const k = 0.5522847498;
-  const left = inset;
-  const top = inset;
-  const right = width - inset;
-  const bottom = height - inset;
-  return {
-    id,
-    start: { x: left + topLeft.rx, y: top },
-    segments: [
-      { kind: "line", to: { x: right - topRight.rx, y: top } },
-      { kind: "cubic", control1: { x: right - topRight.rx + k * topRight.rx, y: top }, control2: { x: right, y: top + topRight.ry - k * topRight.ry }, to: { x: right, y: top + topRight.ry } },
-      { kind: "line", to: { x: right, y: bottom - bottomRight.ry } },
-      { kind: "cubic", control1: { x: right, y: bottom - bottomRight.ry + k * bottomRight.ry }, control2: { x: right - bottomRight.rx + k * bottomRight.rx, y: bottom }, to: { x: right - bottomRight.rx, y: bottom } },
-      { kind: "line", to: { x: left + bottomLeft.rx, y: bottom } },
-      { kind: "cubic", control1: { x: left + bottomLeft.rx - k * bottomLeft.rx, y: bottom }, control2: { x: left, y: bottom - bottomLeft.ry + k * bottomLeft.ry }, to: { x: left, y: bottom - bottomLeft.ry } },
-      { kind: "line", to: { x: left, y: top + topLeft.ry } },
-      { kind: "cubic", control1: { x: left, y: top + topLeft.ry - k * topLeft.ry }, control2: { x: left + topLeft.rx - k * topLeft.rx, y: top }, to: { x: left + topLeft.rx, y: top } },
-    ],
-    closed: true,
-  };
 }
 
 function outlineContours(width: number, height: number, radius: CornerRadius | undefined, outline: Outline, id: string): HtmlPathContour[] {
@@ -1036,7 +872,85 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                ? Math.max(0, 100000 + (zIndex as number)) + 1000000
                : paintLayerBaseOrder + paints.length + backgroundImages.length * 100000 + 1000;
              const borderId = `${groupId}::border`;
-             if (uniformBorder && typeof cornerRadius === "object") layers.push({
+             // A rounded dashed/dotted border cannot be lowered to the
+             // discrete-polygon-per-run trick used for the sharp-corner case
+             // (fitBorderDashRuns): once the perimeter has arcs, the border
+             // is one continuous curved path, so it must carry a real
+             // strokeDash the same way SVG stroke-dasharray does. Reuse the
+             // exact geometry the solid-uniform-radius branches already use
+             // below (shape+cornerRadius for a simple numeric radius,
+             // roundedRectContour for the elliptical/per-corner object
+             // form) so the border footprint matches pixel-for-pixel; only
+             // the paint (stroke -> dashed stroke) differs.
+             const uniformDashedBorder = (border.top.style === "dashed" || border.top.style === "dotted")
+               && Object.values(border).every((side) => side.style === border.top.style && side.width === border.top.width && side.color === border.top.color);
+             if (uniformDashedBorder && typeof cornerRadius === "object") {
+               const runs = border.top.style === "dotted"
+                 ? buildRoundedDotRuns(borderBox.width, borderBox.height, cornerRadius, border.top.width)
+                 : buildRoundedDashRuns(borderBox.width, borderBox.height, cornerRadius, border.top.width);
+               layers.push({
+                 id: borderId,
+                 type: "path",
+                 parentLayerId: needsPaintGroup ? groupId : parentId,
+                 order: borderOrder,
+                 frame: { width: borderBox.width, height: borderBox.height },
+                 transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup),
+                 opacity: paintOpacity,
+                 ...state,
+                 ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
+                 timing: { start: 0, duration },
+                 payload: { contours: runs },
+                 style: { fill: "none", stroke: border.top.color, strokeWidth: border.top.width, strokeCap: border.top.style === "dotted" ? "round" : "butt", strokeJoin: "round" },
+               } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
+             }
+             else if (uniformDashedBorder && typeof cornerRadius === "number" && cornerRadius > 0) {
+               // Literal pre-baked geometry (see rounded-dash.ts) instead of a
+               // runtime strokeDash cycled around a closed rounded-rect path:
+               // CanvasKit's SkPathEffect::MakeDash reproducibly corrupts one
+               // dash at a line-to-cubic verb transition on a closed bezier
+               // path (isolated via the debug/svg-rounded-rect-dash-isolation
+               // fixture, independent of html-compiler's own math), so the
+               // fix is to never hand CanvasKit a closed path + PathEffect
+               // for this case at all.
+               const strokeInset = border.top.width / 2;
+               const strokeWidth = Math.max(1, borderBox.width - border.top.width);
+               const strokeHeight = Math.max(1, borderBox.height - border.top.width);
+               const strokeRadius = Math.max(0, cornerRadius - strokeInset);
+               const strokeRadii = {
+                 topLeft: { rx: strokeRadius, ry: strokeRadius },
+                 topRight: { rx: strokeRadius, ry: strokeRadius },
+                 bottomRight: { rx: strokeRadius, ry: strokeRadius },
+                 bottomLeft: { rx: strokeRadius, ry: strokeRadius },
+               };
+               const runs = border.top.style === "dotted"
+                 ? buildRoundedDotRuns(strokeWidth, strokeHeight, strokeRadii, border.top.width)
+                 : buildRoundedDashRuns(strokeWidth, strokeHeight, strokeRadii, border.top.width);
+               layers.push({
+                 id: borderId,
+                 type: "path",
+                 parentLayerId: needsPaintGroup ? groupId : parentId,
+                 order: borderOrder,
+                 frame: { width: strokeWidth, height: strokeHeight },
+                 transform: transformFor(
+                   needsPaintGroup ? strokeInset : localX + strokeInset,
+                   needsPaintGroup ? strokeInset : localY + strokeInset,
+                   !needsPaintGroup,
+                 ),
+                 opacity: paintOpacity,
+                 ...state,
+                 ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
+                 timing: { start: 0, duration },
+                 payload: { contours: runs },
+                 // When cornerRadius <= strokeInset the centerline collapses to a sharp
+                 // corner (strokeRadius clamps to 0); a miter join then spikes the outer
+                 // edge well past the box's true border-radius arc. A round join instead
+                 // draws a strokeWidth/2-radius arc at the vertex, which exactly matches
+                 // the browser when cornerRadius === strokeInset and is a much closer
+                 // approximation than a miter spike otherwise.
+                 style: { fill: "none", stroke: border.top.color, strokeWidth: border.top.width, strokeCap: border.top.style === "dotted" ? "round" : "butt", strokeJoin: "round" },
+               } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
+             }
+             else if (uniformBorder && typeof cornerRadius === "object") layers.push({
                id: borderId,
                type: "path",
                parentLayerId: needsPaintGroup ? groupId : parentId,
@@ -1076,7 +990,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
                timing: { start: 0, duration },
                payload: { shape: "rectangle", ...(typeof cornerRadius === "number" ? { cornerRadius: Math.max(0, cornerRadius - inset) } : {}) },
-               style: { fill: "#00000000", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width },
+               style: { fill: "#00000000", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width, ...(typeof cornerRadius === "number" && cornerRadius <= inset ? { strokeJoin: "round" as const } : {}) },
              });
              else if (
                Object.values(border).every((side) =>

@@ -530,14 +530,33 @@ export function projectiveShapeScreenSvg(
   return null;
 }
 
+/**
+ * SVG path syntax has no exponential notation, but JS's default number->
+ * string conversion switches to it below ~1e-6 (e.g. Math.sin(Math.PI) is
+ * 1.2246e-16, not exactly 0) -- exactly what falls out of trig-based bezier
+ * control points at angles that are exact multiples of pi/2 (every arc
+ * corner). CanvasKit's Path.MakeFromSVGString silently stops parsing at the
+ * first token it can't read, truncating everything after it in the SAME
+ * path string -- which corrupts every subsequent subpath/contour, not just
+ * the one with the bad number. Formatting with toFixed (never exponential)
+ * instead of the default toString fixes this at the source for every caller.
+ */
+function svgNumber(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 1e-6) return "0";
+  // toFixed never emits exponential notation (unlike toString), and trimming
+  // trailing zeros/dot keeps path strings from ballooning in size.
+  return value.toFixed(6).replace(/\.?0+$/, "");
+}
+
 export function pathSvg(command: Extract<PaintCommand, { op: "drawPath" }>): string {
+  const n = svgNumber;
   return command.contours.map((contour) => {
-    let d = `M ${contour.start.x} ${contour.start.y}`;
+    let d = `M ${n(contour.start.x)} ${n(contour.start.y)}`;
     for (const segment of contour.segments) {
-      if (segment.kind === "line") d += ` L ${segment.to.x} ${segment.to.y}`;
-      else if (segment.kind === "quadratic") d += ` Q ${segment.control.x} ${segment.control.y} ${segment.to.x} ${segment.to.y}`;
-      else if (segment.kind === "cubic") d += ` C ${segment.control1.x} ${segment.control1.y} ${segment.control2.x} ${segment.control2.y} ${segment.to.x} ${segment.to.y}`;
-      else if (segment.kind === "arc") d += ` A ${segment.radii.x} ${segment.radii.y} ${segment.rotation} ${segment.largeArc ? 1 : 0} ${segment.sweep ? 1 : 0} ${segment.to.x} ${segment.to.y}`;
+      if (segment.kind === "line") d += ` L ${n(segment.to.x)} ${n(segment.to.y)}`;
+      else if (segment.kind === "quadratic") d += ` Q ${n(segment.control.x)} ${n(segment.control.y)} ${n(segment.to.x)} ${n(segment.to.y)}`;
+      else if (segment.kind === "cubic") d += ` C ${n(segment.control1.x)} ${n(segment.control1.y)} ${n(segment.control2.x)} ${n(segment.control2.y)} ${n(segment.to.x)} ${n(segment.to.y)}`;
+      else if (segment.kind === "arc") d += ` A ${n(segment.radii.x)} ${n(segment.radii.y)} ${n(segment.rotation)} ${segment.largeArc ? 1 : 0} ${segment.sweep ? 1 : 0} ${n(segment.to.x)} ${n(segment.to.y)}`;
     }
     return contour.closed ? `${d} Z` : d;
   }).join(" ");

@@ -9,6 +9,7 @@ export type HtmlPlaygroundCaseCategory = "review" | "production";
  * `apps/web/public/docs/html-compiler/fixtures/`, one per rendering concern.
  */
 export type HtmlPlaygroundCaseGroup =
+  | "root"
   | "debug"
   | "paint"
   | "text"
@@ -37,6 +38,7 @@ export type HtmlPlaygroundCase = {
 };
 
 export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
+  "root",
   "debug",
   "paint",
   "text",
@@ -56,6 +58,7 @@ export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
 ];
 
 export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, string> = {
+  root: "Root fixtures",
   debug: "Debug",
   paint: "Paint",
   text: "Text",
@@ -82,7 +85,7 @@ function groupFromFixtureUrl(url: string): HtmlPlaygroundCaseGroup | null {
   if (!url.startsWith(prefix)) return null;
   const rest = url.slice(prefix.length);
   const slashIndex = rest.indexOf("/");
-  if (slashIndex === -1) return null; // Fixture sits at the tree root, outside any category folder.
+  if (slashIndex === -1) return "root";
   const folder = rest.slice(0, slashIndex);
   return HTML_PLAYGROUND_GROUP_SET.has(folder) ? (folder as HtmlPlaygroundCaseGroup) : null;
 }
@@ -100,6 +103,24 @@ const fixtureUrl = (category: string, fileName: string) => `${HTML_COMPILER_FIXT
  * registry.
  */
 const CURATED_CASES: readonly HtmlPlaygroundCase[] = [
+  {
+    id: "debug-svg-rounded-rect-dash-isolation",
+    label: "Debug / SVG rounded-rect dash isolation",
+    description: "Plain <rect rx> + stroke-dasharray, bypassing the border pipeline entirely, to check whether left/right-edge dash corruption is a CanvasKit PathEffect issue or specific to compile.ts's border-dash math.",
+    url: fixtureUrl("debug", "svg-rounded-rect-dash-isolation.html"),
+    category: "review",
+    group: "debug",
+    nativeStage: true,
+  },
+  {
+    id: "debug-border-dashed-rounded-corner-symmetry",
+    label: "Debug / Rounded dashed corner symmetry",
+    description: "Square boxes at varying radius/size to reverse-engineer Chrome's real dash anchor rule on rounded borders (looks per-edge-anchored + corner-arc-connected, not a single arbitrary-offset cyclic tiling).",
+    url: fixtureUrl("debug", "border-dashed-rounded-corner-symmetry.html"),
+    category: "review",
+    group: "debug",
+    nativeStage: true,
+  },
   {
     id: "debug-border-dashed-rounded-radius-sweep",
     label: "Debug / Rounded dashed radius sweep",
@@ -427,6 +448,21 @@ export function htmlPlaygroundCaseGroups(
   return HTML_PLAYGROUND_GROUP_ORDER.map((group) => ({
     group,
     label: HTML_PLAYGROUND_GROUP_LABELS[group],
-    cases: cases.filter((item) => item.group === group),
+    cases: cases
+      .filter((item) => item.group === group)
+      .sort((left, right) =>
+        htmlPlaygroundFixturePath(left.url).localeCompare(
+          htmlPlaygroundFixturePath(right.url),
+          "en",
+          { numeric: true, sensitivity: "base" },
+        ),
+      ),
   })).filter((section) => section.cases.length > 0);
+}
+
+/** Returns the fixture's display path below `html-compiler/fixtures`, without `.html`. */
+export function htmlPlaygroundFixturePath(url: string): string {
+  const prefix = `${HTML_COMPILER_FIXTURE_ROOT}/`;
+  const path = url.startsWith(prefix) ? url.slice(prefix.length) : url;
+  return path.replace(/\.html$/i, "");
 }

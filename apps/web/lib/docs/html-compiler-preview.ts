@@ -1013,6 +1013,26 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "background": "#081018",
       "colorSpace": "srgb"
     }
+  },
+  {
+    "id": "html-compiler.paint.svg-stroke-dasharray-odd-count",
+    "phase": "P0",
+    "topic": "Paint",
+    "label": "Paint / odd-length stroke-dasharray",
+    "properties": [
+      "stroke-dasharray",
+      "odd length",
+      "spec repeat"
+    ],
+    "hint": "An odd-length stroke-dasharray (3 values) is repeated once to become even-length per spec before reaching Skia's PathEffect.MakeDash, which otherwise throws on a raw odd-length array.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/svg/stroke-dasharray-odd-count.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
   }
 ];
 
@@ -2581,6 +2601,89 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
     ],
     "hint": "The slash form resolves horizontal radii against width and vertical radii against height before CSS adjacent-sum clamping.",
     "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-radius-elliptical.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.border-dashed-corner-fit",
+    "phase": "P2.2",
+    "topic": "Paint",
+    "label": "Paint / dashed border corner fit",
+    "properties": [
+      "dashed",
+      "sharp corners",
+      "corner fit"
+    ],
+    "hint": "A whole number of fixed-length dashes is anchored at both ends of every edge, so every sharp corner sits fully solid instead of alternating filled/notched.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-dashed-corner-fit.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.border-dotted-corner-fit",
+    "phase": "P2.2",
+    "topic": "Paint",
+    "label": "Paint / dotted border corner fit",
+    "properties": [
+      "dotted",
+      "sharp corners",
+      "corner fit"
+    ],
+    "hint": "A whole number of fixed-diameter dots is anchored at both ends of every edge, so every sharp corner sits under a full dot instead of alternating filled/notched.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-dotted-corner-fit.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.border-dashed-rounded",
+    "phase": "P2.2",
+    "topic": "Paint",
+    "label": "Paint / dashed rounded border",
+    "properties": [
+      "dashed",
+      "border-radius",
+      "closed path",
+      "strokeDash"
+    ],
+    "hint": "A rounded dashed border lowers to one continuous rounded-rect path carrying a real strokeDash, not 4 straight lines clipped by the box's own rounded mask.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-dashed-rounded.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.paint.border-rounded-pill-stroke",
+    "phase": "P2.2",
+    "topic": "Paint",
+    "label": "Paint / rounded pill dashed + dotted",
+    "properties": [
+      "dashed",
+      "dotted",
+      "border-radius",
+      "closed perimeter",
+      "pill shape"
+    ],
+    "hint": "A near-pill radius makes the rounded border a fully closed loop: the dash/dot count and gap must scale with the true perimeter so the pattern closes onto itself with no seam at the path's start, and the dotted round-cap dot must stay a circle, not stretch into a capsule.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/paint/border-rounded-pill-stroke.html",
     "composition": {
       "width": 1920,
       "height": 1080,
