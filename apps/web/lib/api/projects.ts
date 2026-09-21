@@ -4,7 +4,14 @@ export type SaveEditorProjectResult =
   | { ok: true; revisionNo: number }
   | { ok: false; status: number };
 
-export async function createHtmlProject(input: { title?: string; html: string }): Promise<{ projectId: string }> {
+export class CreateHtmlProjectError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+    this.name = "CreateHtmlProjectError";
+  }
+}
+
+export async function createHtmlProject(input: { title?: string; html: string; idempotencyKey?: string }): Promise<{ projectId: string }> {
   const response = await fetch("/api/v1/projects/html", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -12,10 +19,13 @@ export async function createHtmlProject(input: { title?: string; html: string })
   });
   const payload = await response.json().catch(() => null) as {
     project?: { id?: unknown };
-    error?: { message?: unknown };
+    error?: { message?: unknown; code?: unknown };
   } | null;
   if (!response.ok) {
-    throw new Error(typeof payload?.error?.message === "string" ? payload.error.message : "Unable to import HTML");
+    throw new CreateHtmlProjectError(
+      typeof payload?.error?.message === "string" ? payload.error.message : "Unable to import HTML",
+      typeof payload?.error?.code === "string" ? payload.error.code : undefined,
+    );
   }
   const projectId = payload?.project?.id;
   if (typeof projectId !== "string" || !projectId) throw new Error("The project was created without an id");

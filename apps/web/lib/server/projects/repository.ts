@@ -27,7 +27,11 @@ export type ProjectRepositoryErrorCode =
   | "NOT_FOUND"
   | "INVALID_DOCUMENT"
   | "REVISION_CONFLICT"
+  | "PROJECT_LIMIT_REACHED"
   | "DATABASE_ERROR";
+
+const PROJECT_LIMIT_MESSAGE =
+  "You've reached the free plan's limit of active projects. Delete an existing project, then try again.";
 
 export class ProjectRepositoryError extends Error {
   constructor(
@@ -108,7 +112,8 @@ function isEditor(role: WorkspaceRole | null): boolean {
   return role === "owner" || role === "editor";
 }
 
-function throwDatabase(message: string, error?: { message?: string } | null): never {
+function throwDatabase(message: string, error?: { message?: string; code?: string } | null): never {
+  if (error?.code === "P0003") throw new ProjectRepositoryError(PROJECT_LIMIT_MESSAGE, "PROJECT_LIMIT_REACHED");
   if (error) console.error("[projects] database operation failed", error.message);
   throw new ProjectRepositoryError(message, "DATABASE_ERROR");
 }

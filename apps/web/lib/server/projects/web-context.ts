@@ -32,6 +32,7 @@ export function projectErrorStatus(code: ProjectRepositoryError["code"]): number
     case "NOT_FOUND": return 404;
     case "REVISION_CONFLICT": return 409;
     case "INVALID_DOCUMENT": return 422;
+    case "PROJECT_LIMIT_REACHED": return 403;
     default: return 500;
   }
 }

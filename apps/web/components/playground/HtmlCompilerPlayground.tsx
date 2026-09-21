@@ -6,14 +6,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
 import { compileHtmlViaApi, fetchPlaygroundFixture, type PlaygroundCompileDiagnostic } from "@/lib/api/playground";
+import { CreateHtmlProjectError, createHtmlProject } from "@/lib/api/projects";
 import {
   createPlaybackControllerV3,
   type PlaybackControllerV3,
 } from "@/lib/editor/playback/playback-controller-v3";
+import { dashboardUrl, previewUrl } from "@/lib/hosts";
 import { HTML_PLAYGROUND_CASES } from "@/lib/playground/html-playground-cases";
 import { publicRendererMessage } from "@/lib/public-renderer-message";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+
+const EXPORT_RETURN_PATH = "/playground?export=1";
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 // Kept deliberately minimal for production: one element, one animation. This
 // is the first thing a public, unauthenticated visitor sees and edits, so it
@@ -120,13 +130,16 @@ export function HtmlCompilerPlayground() {
   const [previewReady, setPreviewReady] = useState(false);
   const [selectedFixtureId, setSelectedFixtureId] = useState(requestedFixture?.id ?? "custom");
   const [fixtureLoading, setFixtureLoading] = useState(false);
-  const [showExportNotice, setShowExportNotice] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<{ message: string; code?: string } | null>(null);
   const isFirstSaveRef = useRef(true);
+  const exportResumedRef = useRef(false);
 
   const protocol = conversion.status === "success" ? conversion.protocol : null;
   const composition = conversion.status === "success" ? conversion.composition : DEFAULT_COMPOSITION;
   const diagnostics = conversion.status === "idle" ? [] : conversion.diagnostics;
   const isStale = conversion.status !== "idle" && convertedHtml !== html;
+  const canExport = conversion.status === "success" && !isStale;
   const isPreviewPreparing = Boolean(protocol) && !previewReady;
   const currentRuntimeProject = protocol && runtimeDocument === protocol
     ? runtimeProject
@@ -149,6 +162,60 @@ export function HtmlCompilerPlayground() {
     } else {
       setConversion({ status: "error", message: result.message, diagnostics: result.diagnostics });
     }
+  }, []);
+
+  const runExport = useCallback(async (source: string) => {
+    setIsExporting(true);
+    setExportError(null);
+    try {
+      const idempotencyKey = await sha256Hex(source);
+      const { projectId } = await createHtmlProject({ html: source, idempotencyKey });
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Best-effort cleanup; the project was already created successfully.
+      }
+      window.location.assign(previewUrl(`/preview/${projectId}`));
+    } catch (error) {
+      setIsExporting(false);
+      setExportError({
+        message: error instanceof Error ? error.message : "Unable to export this document",
+        code: error instanceof CreateHtmlProjectError ? error.code : undefined,
+      });
+    }
+  }, []);
+
+  const onExportClick = useCallback(async () => {
+    if (!canExport || isExporting) return;
+    setIsExporting(true);
+    setExportError(null);
+    const supabase = createSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.assign(`/login?next=${encodeURIComponent(EXPORT_RETURN_PATH)}`);
+      return;
+    }
+    await runExport(html);
+  }, [canExport, isExporting, html, runExport]);
+
+  useEffect(() => {
+    // Coming back from the login redirect the Export button sends an
+    // unauthenticated visitor through - finish the export with whatever this
+    // browser has saved, instead of making them click Export a second time.
+    if (exportResumedRef.current) return;
+    if (searchParams.get("export") !== "1") return;
+    exportResumedRef.current = true;
+    const stored = loadStoredState();
+    const source = stored?.html ?? html;
+    const conversionStatus = stored?.conversion.status ?? conversion.status;
+    if (conversionStatus !== "success") return;
+    void (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await runExport(source);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -456,18 +523,29 @@ export function HtmlCompilerPlayground() {
                 variant="outline"
                 size="md"
                 className="h-8 min-h-8 leading-none"
-                onClick={() => setShowExportNotice(true)}
+                loading={isExporting}
+                disabled={!canExport || isExporting}
+                title={!canExport ? "Convert successfully first" : undefined}
+                onClick={() => void onExportClick()}
                 data-testid="playground-export"
               >
                 <Download size={14} /> Export
               </Button>
-              {showExportNotice ? (
+              {exportError ? (
                 <div
-                  role="status"
-                  className="absolute right-0 top-9 z-10 w-56 rounded-md border border-[var(--border-subtle)] bg-white p-3 text-xs leading-relaxed text-[var(--fg-secondary)] shadow-lg"
+                  role="alert"
+                  className="absolute right-0 top-9 z-10 w-64 rounded-md border border-rose-200 bg-rose-50 p-3 text-xs leading-relaxed text-rose-700 shadow-lg"
                 >
-                  Export is coming soon.
-                  <button type="button" onClick={() => setShowExportNotice(false)} className="ml-1 font-semibold text-[#0d9488] underline">
+                  {exportError.message}
+                  {exportError.code === "PROJECT_LIMIT_REACHED" ? (
+                    <>
+                      {" "}Your HTML here is kept — come back and click Export again after deleting one.
+                      <a href={dashboardUrl("/dashboard")} className="mt-1 block font-semibold underline">
+                        Manage projects →
+                      </a>
+                    </>
+                  ) : null}
+                  <button type="button" onClick={() => setExportError(null)} className="ml-1 font-semibold underline">
                     Dismiss
                   </button>
                 </div>
