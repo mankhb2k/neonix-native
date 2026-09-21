@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const cases = [
+  "html-compiler.text.paint.gradient-linear",
+  "html-compiler.text.paint.gradient-radial",
+  "html-compiler.text.paint.gradient-conic",
   "html-compiler.text.compiler.br-hard-break",
   "html-compiler.text.compiler.nested-inline-content",
   "html-compiler.text.compiler.whitespace-contract",
@@ -9,12 +12,19 @@ const cases = [
   "html-compiler.text.layout.auto-height",
 ] as const;
 
+const gradientCases = [
+  { id: "html-compiler.text.paint.gradient-linear", layerId: "gradient-linear", paintType: "linear-gradient" },
+  { id: "html-compiler.text.paint.gradient-radial", layerId: "gradient-radial", paintType: "radial-gradient" },
+  { id: "html-compiler.text.paint.gradient-conic", layerId: "gradient-conic", paintType: "conic-gradient" },
+] as const;
+
 type TextLayer = {
   id?: string;
   type?: string;
   frame?: { width?: number; height?: number };
   payload?: {
     source?: { text?: string };
+    chunks?: Array<{ spans?: Array<{ fill?: { type?: string } }> }>;
     layout?: {
       sizing?: string;
       lineHeight?: number;
@@ -60,6 +70,11 @@ test.describe("HTML compiler text compiler/layout fixtures", () => {
       await expect(canvas).not.toHaveAttribute("data-diagnostics", /unsupported|fallback/);
       await assertFinalDocument(page);
       await assertBrowserPreview(page);
+      const gradient = gradientCases.find((candidate) => candidate.id === id);
+      if (gradient) {
+        const layer = await readTextLayer(page, gradient.layerId);
+        expect(layer.payload?.chunks?.[0]?.spans?.[0]?.fill?.type).toBe(gradient.paintType);
+      }
     });
   }
 

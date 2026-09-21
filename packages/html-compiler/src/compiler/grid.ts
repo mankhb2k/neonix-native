@@ -168,7 +168,9 @@ function occupy(occupied: boolean[][], row: number, col: number, rowSpan: number
 export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
   const contentWidth = input.containerBox.contentWidth;
   const contentHeight = input.containerBox.contentHeight;
-  const baseGap = gap(input.containerStyle, "gap", 0, contentWidth, input.fontSize, input.viewport);
+  const baseGap = input.containerStyle.has("gap") && !input.containerStyle.has("row-gap") && !input.containerStyle.has("column-gap")
+    ? gap(input.containerStyle, "gap", 0, contentWidth, input.fontSize, input.viewport)
+    : 0;
   const columnGap = gap(input.containerStyle, "column-gap", baseGap, contentWidth, input.fontSize, input.viewport);
   const rowGap = gap(input.containerStyle, "row-gap", baseGap, contentWidth, input.fontSize, input.viewport);
   const columns = parseTracks(input.containerStyle.get("grid-template-columns"), contentWidth, input.fontSize, input.viewport, "1fr");

@@ -1,4 +1,5 @@
 import type { HtmlCompilerFontAsset, HtmlCompilerMediaAsset, HtmlCssComposition } from "@motionvideo/html-compiler";
+import { HTML_COMPILER_PREVIEW_FONT_ASSETS_GENERATED } from "./html-compiler-preview-font-assets";
 
 export type HtmlCompilerPreviewTopic =
   | "New project"
@@ -44,108 +45,626 @@ export type HtmlCompilerPreviewCase = {
 /** Public directory containing the self-contained HTML compiler fixtures. */
 export const HTML_COMPILER_FIXTURE_ROOT = "/docs/html-compiler/fixtures";
 
-export const HTML_COMPILER_PREVIEW_FONT_ASSETS: HtmlCompilerFontAsset[] = [
+export const HTML_COMPILER_PREVIEW_FONT_ASSETS_LEGACY: HtmlCompilerFontAsset[] = [
   {
-    "id": "preview-font-inter-regular",
+    "id": "preview-font-inter-100",
     "kind": "font",
-    "uri": "/preview/font/Inter/Inter_18pt-Regular.ttf",
+    "uri": "/preview/font/Inter/Inter-100.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 100,
+    "style": "normal",
+    "integrity": "sha256:1cf469f52b89c6af1e827b0d37617f35f84429ae0efe0f507558e47ba7574433"
+  },
+  {
+    "id": "preview-font-inter-100-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-100-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 100,
+    "style": "italic",
+    "integrity": "sha256:e4dad758f4e8bacb8b37d3a1eb3312fb3303db16ce75c5084a0069b87046e4e7"
+  },
+  {
+    "id": "preview-font-inter-200",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-200.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 200,
+    "style": "normal",
+    "integrity": "sha256:80ec1646bd113db67722befd6f1842843097c1357c53e464989421fdf5e7489f"
+  },
+  {
+    "id": "preview-font-inter-200-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-200-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 200,
+    "style": "italic",
+    "integrity": "sha256:e4088ee3e3c8e1bfeefc7f84d370b5620edc1d9e82caa928f190bb82029ee26f"
+  },
+  {
+    "id": "preview-font-inter-300",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-300.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 300,
+    "style": "normal",
+    "integrity": "sha256:16944253febe38709bdd5d228597606fb396d174be74be1edcc9c188691c5ba4"
+  },
+  {
+    "id": "preview-font-inter-300-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-300-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 300,
+    "style": "italic",
+    "integrity": "sha256:e703e00da647cc83da8480adb9899b344158a8689c0e54ad4682b25612fcee3c"
+  },
+  {
+    "id": "preview-font-inter-400",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-400.ttf",
     "mimeType": "font/ttf",
     "family": "Inter",
     "weight": 400,
     "style": "normal",
-    "integrity": "sha256:3e5f90a0138b38de4cf4d779ad78391974ea1df776b9164842bdcbb60ce383c5"
+    "integrity": "sha256:72744c3ebeded883deac5ca28ddd410b92c8f8538b9e8e87b503097fccb8f35c"
   },
   {
-    "id": "preview-font-inter-italic",
+    "id": "preview-font-inter-400-italic",
     "kind": "font",
-    "uri": "/preview/font/Inter/Inter_18pt-Italic.ttf",
+    "uri": "/preview/font/Inter/Inter-400-Italic.ttf",
     "mimeType": "font/ttf",
     "family": "Inter",
     "weight": 400,
     "style": "italic",
-    "integrity": "sha256:1fe26d47c840ef8767635967acaa50ee43a57794fa00a03bf042ee4aab2792c4"
+    "integrity": "sha256:2e04b6562a77aca3cc55d11be6adfe0fb5b842369fc1500fbbc7b0bd8694c0d9"
   },
   {
-    "id": "preview-font-inter-bold",
+    "id": "preview-font-inter-500",
     "kind": "font",
-    "uri": "/preview/font/Inter/Inter_18pt-Bold.ttf",
+    "uri": "/preview/font/Inter/Inter-500.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 500,
+    "style": "normal",
+    "integrity": "sha256:06a213482cfd4675e4e3dcf6f3212c864d153919e4fa5121c4c56759bf813227"
+  },
+  {
+    "id": "preview-font-inter-500-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-500-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 500,
+    "style": "italic",
+    "integrity": "sha256:c9bf547bef305b85abaaf37bd14f9c21871a2cd09fcc262b54a2412c5f897c77"
+  },
+  {
+    "id": "preview-font-inter-600",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-600.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 600,
+    "style": "normal",
+    "integrity": "sha256:2390e2083d000bd60635d303fe7a192cc1d3612a0acd97cf42cda6bd00a71ae8"
+  },
+  {
+    "id": "preview-font-inter-600-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-600-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 600,
+    "style": "italic",
+    "integrity": "sha256:b9483dd78b8389011d4ed55f4ec9e4255ce32dfcfdb80642f03103c005577eeb"
+  },
+  {
+    "id": "preview-font-inter-700",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-700.ttf",
     "mimeType": "font/ttf",
     "family": "Inter",
     "weight": 700,
     "style": "normal",
-    "integrity": "sha256:30a5c45ec23a594af2effe8d3b589ad22c2dede27441050a1604d00ff82fd0dc"
+    "integrity": "sha256:d1880c32462082e10b7e20a0a51adca9546c04666a4dba32f4f061a307b2cd28"
   },
   {
-    "id": "preview-font-lora-regular",
+    "id": "preview-font-inter-700-italic",
     "kind": "font",
-    "uri": "/preview/font/Lora/Lora-Regular.ttf",
+    "uri": "/preview/font/Inter/Inter-700-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 700,
+    "style": "italic",
+    "integrity": "sha256:5d48ca218484f91a521e5bfadd24dc962b715ce23f50c9e3ed782de236c09948"
+  },
+  {
+    "id": "preview-font-inter-800",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-800.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 800,
+    "style": "normal",
+    "integrity": "sha256:cd04014a44afce52684347106cb69edd7cb43f80539a6e78cc90d561d3226abf"
+  },
+  {
+    "id": "preview-font-inter-800-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-800-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 800,
+    "style": "italic",
+    "integrity": "sha256:16a5f54270cb595ffbf436491733d81a51852978a93fe4696fa4054f3327b688"
+  },
+  {
+    "id": "preview-font-inter-900",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-900.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 900,
+    "style": "normal",
+    "integrity": "sha256:0f331a947a9692955f102b20ed2f359d333a60738367d4a2beea0cb75d2310cb"
+  },
+  {
+    "id": "preview-font-inter-900-italic",
+    "kind": "font",
+    "uri": "/preview/font/Inter/Inter-900-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Inter",
+    "weight": 900,
+    "style": "italic",
+    "integrity": "sha256:1889cd6094eab9c2b7a9652f1527df639ef86f75604e44e1dbfa894a41a11236"
+  },
+  {
+    "id": "preview-font-lora-400",
+    "kind": "font",
+    "uri": "/preview/font/Lora/Lora-400.ttf",
     "mimeType": "font/ttf",
     "family": "Lora",
     "weight": 400,
     "style": "normal",
-    "integrity": "sha256:7ed00e7c9cdf16ab7e2fd2361fe45d4f0b61263cd60aae398b27b7ee08108827"
+    "integrity": "sha256:eda6535f25c993bd1ba4dca95dedba46b4e622ea9a6b16b0bc6ad5317c4f4cff"
   },
   {
-    "id": "preview-font-lora-bold",
+    "id": "preview-font-lora-400-italic",
     "kind": "font",
-    "uri": "/preview/font/Lora/Lora-Bold.ttf",
+    "uri": "/preview/font/Lora/Lora-400-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Lora",
+    "weight": 400,
+    "style": "italic",
+    "integrity": "sha256:f3e909b75d7ea81fdd86889170c885f7c05ceb88bf4837634049840f7d30bf1e"
+  },
+  {
+    "id": "preview-font-lora-500",
+    "kind": "font",
+    "uri": "/preview/font/Lora/Lora-500.ttf",
+    "mimeType": "font/ttf",
+    "family": "Lora",
+    "weight": 500,
+    "style": "normal",
+    "integrity": "sha256:fef4821577395926ad0921d7f0dc1c079581c039d54f7387e8a5fa3fc33cf566"
+  },
+  {
+    "id": "preview-font-lora-500-italic",
+    "kind": "font",
+    "uri": "/preview/font/Lora/Lora-500-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Lora",
+    "weight": 500,
+    "style": "italic",
+    "integrity": "sha256:4bb105e6a57e1c32ead3ab5e403d648b0d84f6fe50ef0ed3e4ad98b27530095d"
+  },
+  {
+    "id": "preview-font-lora-600",
+    "kind": "font",
+    "uri": "/preview/font/Lora/Lora-600.ttf",
+    "mimeType": "font/ttf",
+    "family": "Lora",
+    "weight": 600,
+    "style": "normal",
+    "integrity": "sha256:521278598ac3054294b94192d94b351eeda8699bee10a2211bfbb3d2e05694ba"
+  },
+  {
+    "id": "preview-font-lora-600-italic",
+    "kind": "font",
+    "uri": "/preview/font/Lora/Lora-600-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Lora",
+    "weight": 600,
+    "style": "italic",
+    "integrity": "sha256:aa03a1e22ad286255329cf450a77d84a81f8b7f94e56bea58eae003d1d34559b"
+  },
+  {
+    "id": "preview-font-lora-700",
+    "kind": "font",
+    "uri": "/preview/font/Lora/Lora-700.ttf",
     "mimeType": "font/ttf",
     "family": "Lora",
     "weight": 700,
     "style": "normal",
-    "integrity": "sha256:7d74015e950c2fb66519c7295b8155621d22200ae2ca2a4c6b43ce3c490cac87"
+    "integrity": "sha256:2f330807f3ecb1de9e99a94ffd3938b24b8429d1fde25ee6a1346d5657bf1580"
   },
   {
-    "id": "preview-font-roboto-regular",
+    "id": "preview-font-lora-700-italic",
     "kind": "font",
-    "uri": "/preview/font/Roboto/Roboto-Regular.ttf",
+    "uri": "/preview/font/Lora/Lora-700-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Lora",
+    "weight": 700,
+    "style": "italic",
+    "integrity": "sha256:8db37c0daa8aa4427db627aa5bfb5c36750c2ae863f2a2f77e4f3b0e53bdb63e"
+  },
+  {
+    "id": "preview-font-roboto-100",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-100.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 100,
+    "style": "normal",
+    "integrity": "sha256:fa8ca3e1570a43da3a2c4f7759180e6996bf773d0c6bfc81de4069d99a572565"
+  },
+  {
+    "id": "preview-font-roboto-100-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-100-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 100,
+    "style": "italic",
+    "integrity": "sha256:c4bd0fda4b30fadf266f200c6d473bcc9543c7c6e673a12a56c0cd0ee1c813a9"
+  },
+  {
+    "id": "preview-font-roboto-200",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-200.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 200,
+    "style": "normal",
+    "integrity": "sha256:55601b60cbf056e5e79ef35a79675a62def276fdaa43199db537eca9c6027195"
+  },
+  {
+    "id": "preview-font-roboto-200-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-200-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 200,
+    "style": "italic",
+    "integrity": "sha256:79c331c7007f47ffc026ad2d48be37e3490fedb5097139cb86d2fe84364000cc"
+  },
+  {
+    "id": "preview-font-roboto-300",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-300.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 300,
+    "style": "normal",
+    "integrity": "sha256:3813faa822d451059dd4bbb533dcefaefd95dec4871281c9aae6879cc0e6114a"
+  },
+  {
+    "id": "preview-font-roboto-300-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-300-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 300,
+    "style": "italic",
+    "integrity": "sha256:abc4ac14fa78512b41b995762e9dd76616ccd5a1c798617079d500f8b8dedf9e"
+  },
+  {
+    "id": "preview-font-roboto-400",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-400.ttf",
     "mimeType": "font/ttf",
     "family": "Roboto",
     "weight": 400,
     "style": "normal",
-    "integrity": "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459"
+    "integrity": "sha256:1bb77f668740dd7e64eea850b710abcbd2c4273af7111c335b8184a1759c85f4"
   },
   {
-    "id": "preview-font-roboto-bold",
+    "id": "preview-font-roboto-400-italic",
     "kind": "font",
-    "uri": "/preview/font/Roboto/Roboto-Bold.ttf",
-    "mimeType": "font/ttf",
-    "family": "Roboto",
-    "weight": 700,
-    "style": "normal",
-    "integrity": "sha256:4aaf8c5b661a386998c2e70cf2b87e2440f5404e0b8fd81164f0413fb3435ec6"
-  },
-  {
-    "id": "preview-font-roboto-condensed-regular",
-    "kind": "font",
-    "uri": "/preview/font/Roboto/Roboto_Condensed-Regular.ttf",
+    "uri": "/preview/font/Roboto/Roboto-400-Italic.ttf",
     "mimeType": "font/ttf",
     "family": "Roboto",
     "weight": 400,
-    "style": "normal",
-    "stretch": "condensed",
-    "integrity": "sha256:421572e7beae914b9e400ae1e7f9690a749357a94e1a6c3a3fb1d502c54f0b7d"
+    "style": "italic",
+    "integrity": "sha256:1ddb16b0a438e9505f24b07f838a4eec089d4c306c6879a8d064d5efa416f052"
   },
   {
-    "id": "preview-font-roboto-condensed-bold",
+    "id": "preview-font-roboto-500",
     "kind": "font",
-    "uri": "/preview/font/Roboto/Roboto_Condensed-Bold.ttf",
+    "uri": "/preview/font/Roboto/Roboto-500.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 500,
+    "style": "normal",
+    "integrity": "sha256:c79755bc1ca65630ff20378dc4e7ae5f48ce870db42463335c94f720519f902e"
+  },
+  {
+    "id": "preview-font-roboto-500-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-500-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 500,
+    "style": "italic",
+    "integrity": "sha256:606a56e073325eba4d6edc8e8c492633cf1228994250be9ac51e8a0a8fe566cd"
+  },
+  {
+    "id": "preview-font-roboto-600",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-600.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 600,
+    "style": "normal",
+    "integrity": "sha256:5b1a28212b6252322ef161367269af96b703eaff4bbc85832ef2091238799c72"
+  },
+  {
+    "id": "preview-font-roboto-600-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-600-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 600,
+    "style": "italic",
+    "integrity": "sha256:54c53a1693675b9b48caa950ccc9c4ccd51d6b632c1f4a9736126de7fc3d186d"
+  },
+  {
+    "id": "preview-font-roboto-700",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-700.ttf",
     "mimeType": "font/ttf",
     "family": "Roboto",
     "weight": 700,
     "style": "normal",
-    "stretch": "condensed",
-    "integrity": "sha256:2523dfdb721c2e0291f92419e30dd2cb0f6105d94d2673b2206b127923fce5ee"
+    "integrity": "sha256:23253883bcf146d7439444689c4119bc27161fc7e7e4aa0016eea9b3e755da4a"
   },
   {
-    "id": "preview-font-noto-sans-regular",
+    "id": "preview-font-roboto-700-italic",
     "kind": "font",
-    "uri": "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
+    "uri": "/preview/font/Roboto/Roboto-700-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 700,
+    "style": "italic",
+    "integrity": "sha256:659c01e124fcfc6091a650b8151206f865cc85cb09bbd7e04614fb0f8fb8b813"
+  },
+  {
+    "id": "preview-font-roboto-800",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-800.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 800,
+    "style": "normal",
+    "integrity": "sha256:22680b1e469883c073d7747433230e9213be6a13687a9f62d9fd8fc5d6be62e0"
+  },
+  {
+    "id": "preview-font-roboto-800-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-800-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 800,
+    "style": "italic",
+    "integrity": "sha256:b17981efc2e9443f8b17f04b9a82c07f4f5a80f3968fe0d5c6c57c6919be7f2d"
+  },
+  {
+    "id": "preview-font-roboto-900",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-900.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 900,
+    "style": "normal",
+    "integrity": "sha256:cbd7e9adf4d630d5e986a33e54da72ff0b8f68a049811d54f922b10b6dbb8087"
+  },
+  {
+    "id": "preview-font-roboto-900-italic",
+    "kind": "font",
+    "uri": "/preview/font/Roboto/Roboto-900-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Roboto",
+    "weight": 900,
+    "style": "italic",
+    "integrity": "sha256:59436e7e2d2c24cd2b826f4d0197f95f987a3d668240c3a5d98e6f30db15c0fd"
+  },
+  {
+    "id": "preview-font-noto-sans-100",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-100.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 100,
+    "style": "normal",
+    "integrity": "sha256:65a17c9aaa9ce267ae6582e5efb83f9b20a52bccb80097a23b18a29c7293c0c2"
+  },
+  {
+    "id": "preview-font-noto-sans-100-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-100-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 100,
+    "style": "italic",
+    "integrity": "sha256:10c0054fdd5f6aa585b9cb9135b61b790cfce1ce34e3a2b5be79a308da5f7bc7"
+  },
+  {
+    "id": "preview-font-noto-sans-200",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-200.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 200,
+    "style": "normal",
+    "integrity": "sha256:8796896c369634107db7c22619b9f73a66f20f9a77a0c91c75664e0022e16f7a"
+  },
+  {
+    "id": "preview-font-noto-sans-200-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-200-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 200,
+    "style": "italic",
+    "integrity": "sha256:f6e498dbf51a010a49b495532feb93fb4ac2d8657727934d08386af08c7e3e22"
+  },
+  {
+    "id": "preview-font-noto-sans-300",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-300.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 300,
+    "style": "normal",
+    "integrity": "sha256:5d8232c5e460b878c2f2f4f7343cbaf6a6e6be0d8d0422ab32e82e61f729caff"
+  },
+  {
+    "id": "preview-font-noto-sans-300-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-300-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 300,
+    "style": "italic",
+    "integrity": "sha256:dabdc7d409109552b9058d8bde5d348fb14956a66c86a41e0b6ef2b6759d242e"
+  },
+  {
+    "id": "preview-font-noto-sans-400",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-400.ttf",
     "mimeType": "font/ttf",
     "family": "Noto Sans",
     "weight": 400,
     "style": "normal",
-    "integrity": "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614"
+    "integrity": "sha256:38941acff7619670b210051a93eaae1d03b1973a5bda5d64d58ab21bb69f551e"
+  },
+  {
+    "id": "preview-font-noto-sans-400-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-400-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 400,
+    "style": "italic",
+    "integrity": "sha256:45454b4876d17797f07ecce9766af6bb3eae20c0fbba683afb0276bca1f4c43a"
+  },
+  {
+    "id": "preview-font-noto-sans-500",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-500.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 500,
+    "style": "normal",
+    "integrity": "sha256:74a6e378e7694192f760c5487903950a8dfbea45e7965072596bf660ed20bfc3"
+  },
+  {
+    "id": "preview-font-noto-sans-500-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-500-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 500,
+    "style": "italic",
+    "integrity": "sha256:1553a1303c3f3c029adcedb98809164727b5c3903f1c76eb9506db9f26c91256"
+  },
+  {
+    "id": "preview-font-noto-sans-600",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-600.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 600,
+    "style": "normal",
+    "integrity": "sha256:e2cd619bf0b8e14178ee51d551b89abed6ec35f8e35aab31709d71d82818645c"
+  },
+  {
+    "id": "preview-font-noto-sans-600-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-600-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 600,
+    "style": "italic",
+    "integrity": "sha256:5bb1b2c9dbfbfe15d203daf61f1aea86d814ad3fc03fdb2c0a8dfd41d0db396b"
+  },
+  {
+    "id": "preview-font-noto-sans-700",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-700.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 700,
+    "style": "normal",
+    "integrity": "sha256:7609a0dcf1b69a6e3378765e6c7b4e7e36ad7ea9ce83c06040f8416baf7e5c06"
+  },
+  {
+    "id": "preview-font-noto-sans-700-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-700-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 700,
+    "style": "italic",
+    "integrity": "sha256:06a3bacc2aa7029985002b300e66e6049073ad9e8089f11a8d5e4f1edfbac50e"
+  },
+  {
+    "id": "preview-font-noto-sans-800",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-800.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 800,
+    "style": "normal",
+    "integrity": "sha256:6ab878d9df01c1e520e9020f6ebffa115ed114e44012f42a149f918b061c341a"
+  },
+  {
+    "id": "preview-font-noto-sans-800-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-800-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 800,
+    "style": "italic",
+    "integrity": "sha256:e4afc12a13f666828f3c95c44c2204e56526fbee9a4ac16ff0d12fc5475db60b"
+  },
+  {
+    "id": "preview-font-noto-sans-900",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-900.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 900,
+    "style": "normal",
+    "integrity": "sha256:62cf90c0a22a6dd10696bffd970744f964e7d0a2c66a4dcd3d7fdd52bc8207b7"
+  },
+  {
+    "id": "preview-font-noto-sans-900-italic",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans/NotoSans-900-Italic.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans",
+    "weight": 900,
+    "style": "italic",
+    "integrity": "sha256:84c91a99094abef5be91c0690cb94a020dffea489d5763feaa4649a95964d70e"
   },
   {
     "id": "preview-font-noto-color-emoji",
@@ -158,6 +677,9 @@ export const HTML_COMPILER_PREVIEW_FONT_ASSETS: HtmlCompilerFontAsset[] = [
     "integrity": "sha256:7fb39738ab18f10612d6f4595e2e8e47a0afdf34738460442d99cd0c344a4d90"
   }
 ];
+
+/** Generated from the exact files under public/preview/font. */
+export const HTML_COMPILER_PREVIEW_FONT_ASSETS: HtmlCompilerFontAsset[] = HTML_COMPILER_PREVIEW_FONT_ASSETS_GENERATED;
 
 export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
   {
@@ -825,6 +1347,32 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
+    "id": "html-compiler.typography.public-font-catalog",
+    "phase": "P0",
+    "topic": "Typography",
+    "label": "Typography / public font catalog",
+    "properties": [
+      "font-family",
+      "font-size",
+      "font-style",
+      "font-weight",
+      "Inter",
+      "Lora",
+      "Noto Sans",
+      "Noto Color Emoji",
+      "Roboto"
+    ],
+    "hint": "Exercises every system family currently exposed by the public Neonix font catalog and keeps each line on an exact registered family/weight so CanvasKit and the browser resolve the same face.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/typography/public-font-catalog.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
     "id": "html-compiler.typography.emoji-fallback",
     "phase": "P0",
     "topic": "Typography",
@@ -853,7 +1401,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     "properties": [
       "font-family",
       "font-weight",
-      "600 → 700 fallback"
+      "620 → 700 fallback"
     ],
     "hint": "When a requested CSS weight is unavailable, the compiler selects the deterministic nearest catalog face and records its asset ID.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography/weight-fallback.html",
@@ -898,7 +1446,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
       "weight 400",
       "weight 700"
     ],
-    "hint": "Style and stretch are semantic span values; the two condensed lines prove that weight 400 and 700 resolve to different catalog faces.",
+    "hint": "Style and stretch remain semantic span values; without a condensed asset in the refreshed Google catalog, the requested condensed lines deterministically fall back to the normal Roboto faces.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography/style-stretch.html",
     "composition": {
       "width": 1920,
@@ -1237,6 +1785,39 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[] = [
   {
+    "id": "html-compiler.text.paint.gradient-linear",
+    "phase": "P2.9",
+    "category": "Text compiler & layout",
+    "topic": "Typography",
+    "label": "Text paint / linear gradient",
+    "properties": ["background-clip: text", "linear-gradient", "text fill", "CanvasKit parity"],
+    "hint": "A CSS linear gradient clipped to glyphs lowers to the same Protocol V2 text fill paint consumed by CanvasKit and the native renderer.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/gradient-linear.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.text.paint.gradient-radial",
+    "phase": "P2.9",
+    "category": "Text compiler & layout",
+    "topic": "Typography",
+    "label": "Text paint / radial gradient",
+    "properties": ["background-clip: text", "radial-gradient", "text fill", "CanvasKit parity"],
+    "hint": "A CSS radial gradient clipped to glyphs preserves its center and stops as a Protocol V2 text fill paint.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/gradient-radial.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.text.paint.gradient-conic",
+    "phase": "P2.9",
+    "category": "Text compiler & layout",
+    "topic": "Typography",
+    "label": "Text paint / conic gradient",
+    "properties": ["background-clip: text", "conic-gradient", "text fill", "CanvasKit parity"],
+    "hint": "A CSS conic gradient clipped to glyphs preserves its start angle, center and stops for CanvasKit/native comparison.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/text/gradient-conic.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
     "id": "html-compiler.text.compiler.br-hard-break",
     "phase": "P0",
     "category": "Text compiler & layout",
@@ -1369,6 +1950,84 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "colorSpace": "srgb"
     }
   }
+];
+
+const debugTextGradient = (
+  slug: string,
+  label: string,
+  properties: string[],
+): HtmlCompilerPreviewCase => ({
+  id: `html-compiler.debug.${slug}`,
+  phase: "P2.9",
+  category: "Text compiler & layout",
+  topic: "Typography",
+  label: `Debug text gradient / ${label}`,
+  properties: ["background-clip: text", ...properties],
+  hint: `Isolated ${label} probe for browser-to-CanvasKit analysis.`,
+  fixtureUrl: `/docs/html-compiler/fixtures/debug/${slug}.html`,
+  composition: { width: 1920, height: 1080, fps: 30, background: "#081018", colorSpace: "srgb" },
+});
+
+/** Each fixture varies one CSS gradient semantic for native-stage analysis. */
+export const HTML_COMPILER_TEXT_GRADIENT_DEBUG_CASES: HtmlCompilerPreviewCase[] = [
+  debugTextGradient("text-gradient-linear-angle", "linear angle + stops", ["linear-gradient", "angle", "explicit stops"]),
+  debugTextGradient("text-gradient-linear-alpha", "linear alpha stops", ["linear-gradient", "rgba stops", "alpha interpolation"]),
+  debugTextGradient("text-gradient-linear-hard-stop", "linear hard stop", ["linear-gradient", "multi-position stop", "discontinuity"]),
+  debugTextGradient("text-gradient-radial-off-center", "radial off-center", ["radial-gradient", "off-center", "circle radius"]),
+  debugTextGradient("text-gradient-radial-ellipse", "radial ellipse", ["radial-gradient", "ellipse", "explicit radii"]),
+  debugTextGradient("text-gradient-conic-angle-center", "conic angle + center", ["conic-gradient", "start angle", "off-center"]),
+  debugTextGradient("text-gradient-conic-seam", "conic seam", ["conic-gradient", "seam", "hard stops"]),
+  debugTextGradient("text-gradient-multiline", "multiline box geometry", ["linear-gradient", "wrapping", "element coordinates"]),
+  debugTextGradient("text-gradient-background-origin", "background origin", ["linear-gradient", "background-origin", "padding box"]),
+  debugTextGradient("text-gradient-repeating-linear", "repeating linear", ["repeating-linear-gradient", "tile mode", "period"]),
+];
+
+/** Full local font-catalog probes for browser/CanvasKit typography comparison. */
+export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.typography.font-catalog-ui-body",
+    phase: "P0",
+    category: "Typography & media primitives",
+    topic: "Typography",
+    label: "Typography / UI and body font catalog",
+    properties: ["45-family catalog", "UI/body families", "font-weight", "font-family"],
+    hint: "Compares the bundled UI/body families with the same glyph run so browser and CanvasKit can be checked side by side.",
+    fixtureUrl: "/docs/html-compiler/fixtures/typography/font-catalog-ui-body.html",
+    composition: { width: 1920, height: 1080, fps: 30, background: "#081018", colorSpace: "srgb" },
+  },
+  {
+    id: "html-compiler.typography.font-catalog-display",
+    phase: "P0",
+    category: "Typography & media primitives",
+    topic: "Typography",
+    label: "Typography / display font catalog",
+    properties: ["display families", "font-weight", "letter-spacing", "font-family"],
+    hint: "Compares the bundled display families and their metrics at fixed card geometry.",
+    fixtureUrl: "/docs/html-compiler/fixtures/typography/font-catalog-display.html",
+    composition: { width: 1920, height: 1080, fps: 30, background: "#120c1b", colorSpace: "srgb" },
+  },
+  {
+    id: "html-compiler.typography.font-catalog-monospace",
+    phase: "P0",
+    category: "Typography & media primitives",
+    topic: "Typography",
+    label: "Typography / monospace font catalog",
+    properties: ["monospace families", "code punctuation", "tabular rhythm", "font-weight"],
+    hint: "Compares code-oriented families using identical operators, punctuation, digits and spacing.",
+    fixtureUrl: "/docs/html-compiler/fixtures/typography/font-catalog-monospace.html",
+    composition: { width: 1920, height: 1080, fps: 30, background: "#071713", colorSpace: "srgb" },
+  },
+  {
+    id: "html-compiler.typography.font-catalog-editorial",
+    phase: "P0",
+    category: "Typography & media primitives",
+    topic: "Typography",
+    label: "Typography / editorial and multilingual catalog",
+    properties: ["serif families", "italic", "Arabic shaping", "emoji fallback"],
+    hint: "Compares serif metrics together with Arabic shaping and the explicit Noto Color Emoji family.",
+    fixtureUrl: "/docs/html-compiler/fixtures/typography/font-catalog-editorial.html",
+    composition: { width: 1920, height: 1080, fps: 30, background: "#17120d", colorSpace: "srgb" },
+  },
 ];
 
 export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
@@ -5789,6 +6448,8 @@ const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PHASE0_CASES,
   ...HTML_COMPILER_TAG_LOWERING_CASES,
   ...HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES,
+  ...HTML_COMPILER_FONT_CATALOG_CASES,
+  ...HTML_COMPILER_TEXT_GRADIENT_DEBUG_CASES,
   ...HTML_COMPILER_ANCHOR_CASES,
   ...HTML_COMPILER_PHASE1_1_CASES,
   ...HTML_COMPILER_PHASE1_2_CASES,

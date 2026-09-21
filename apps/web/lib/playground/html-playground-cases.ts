@@ -9,8 +9,8 @@ export type HtmlPlaygroundCaseCategory = "review" | "production";
  * `apps/web/public/docs/html-compiler/fixtures/`, one per rendering concern.
  */
 export type HtmlPlaygroundCaseGroup =
-  | "root"
   | "debug"
+  | "root"
   | "paint"
   | "text"
   | "effect"
@@ -38,8 +38,8 @@ export type HtmlPlaygroundCase = {
 };
 
 export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
-  "root",
   "debug",
+  "root",
   "paint",
   "text",
   "effect",
@@ -58,8 +58,8 @@ export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
 ];
 
 export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, string> = {
-  root: "Root fixtures",
   debug: "Debug",
+  root: "Root fixtures",
   paint: "Paint",
   text: "Text",
   effect: "Effect",
@@ -103,141 +103,6 @@ const fixtureUrl = (category: string, fileName: string) => `${HTML_COMPILER_FIXT
  * registry.
  */
 const CURATED_CASES: readonly HtmlPlaygroundCase[] = [
-  {
-    id: "debug-svg-rounded-rect-dash-isolation",
-    label: "Debug / SVG rounded-rect dash isolation",
-    description: "Plain <rect rx> + stroke-dasharray, bypassing the border pipeline entirely, to check whether left/right-edge dash corruption is a CanvasKit PathEffect issue or specific to compile.ts's border-dash math.",
-    url: fixtureUrl("debug", "svg-rounded-rect-dash-isolation.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dashed-rounded-corner-symmetry",
-    label: "Debug / Rounded dashed corner symmetry",
-    description: "Square boxes at varying radius/size to reverse-engineer Chrome's real dash anchor rule on rounded borders (looks per-edge-anchored + corner-arc-connected, not a single arbitrary-offset cyclic tiling).",
-    url: fixtureUrl("debug", "border-dashed-rounded-corner-symmetry.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dashed-rounded-radius-sweep",
-    label: "Debug / Rounded dashed radius sweep",
-    description: "Fixed box+width, radius 0/20/64/120/150, to see how the strokeDash rhythm behaves as border-radius grows toward a pill shape.",
-    url: fixtureUrl("debug", "border-dashed-rounded-radius-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dashed-rounded-width-sweep",
-    label: "Debug / Rounded dashed width sweep",
-    description: "Fixed box+radius, border-width 10/20/40/80, to check whether the unit=2xwidth rule still holds on a curved perimeter.",
-    url: fixtureUrl("debug", "border-dashed-rounded-width-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dashed-rounded-size-sweep",
-    label: "Debug / Rounded dashed size sweep",
-    description: "Fixed radius+width+aspect ratio, overall box size (and perimeter) varies, to test how dash count scales with a closed rounded perimeter.",
-    url: fixtureUrl("debug", "border-dashed-rounded-size-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dotted-rounded-radius-sweep",
-    label: "Debug / Rounded dotted radius sweep",
-    description: "Dotted counterpart of the dashed radius sweep.",
-    url: fixtureUrl("debug", "border-dotted-rounded-radius-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dashed-rounding-boundary",
-    label: "Debug / Dashed N rounding boundary",
-    description: "Single-edge dashed borders at exact N/N+1 rounding boundaries, to pin down Chrome's exact rounding rule for dash count.",
-    url: fixtureUrl("debug", "border-dashed-rounding-boundary.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-dashed-width-formula-check",
-    label: "Debug / Dashed width formula check",
-    description: "Fixed 600px edge, border-width 10/20/40/80px, to confirm the dash-count formula scales correctly with width alone.",
-    url: fixtureUrl("debug", "border-dashed-width-formula-check.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-corner-miter-baseline",
-    label: "Debug / Corner miter baseline (solid, 4 colors)",
-    description: "4 different border colors per side reveal the exact corner miter line for symmetric and asymmetric border-widths, with no dash involved.",
-    url: fixtureUrl("debug", "border-corner-miter-baseline.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-corner-dashed-zoom",
-    label: "Debug / Corner dashed zoom",
-    description: "Thick dashed border with few large dash runs per edge, isolating the corner-clip geometry bug at readable pixel scale.",
-    url: fixtureUrl("debug", "border-corner-dashed-zoom.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-corner-dotted-zoom",
-    label: "Debug / Corner dotted zoom",
-    description: "Thick dotted border with few large dot runs per edge, isolating the corner dot placement at readable pixel scale.",
-    url: fixtureUrl("debug", "border-corner-dotted-zoom.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-style-width-sweep",
-    label: "Debug / Border dash-dot width sweep",
-    description: "Same box, varying border-width (2-32px) for dashed/dotted, to probe whether the dash/dot rhythm scales with width like the real browser.",
-    url: fixtureUrl("debug", "border-style-width-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-style-edge-length-sweep",
-    label: "Debug / Border dash-dot edge-length sweep",
-    description: "Fixed border-width, varying edge length at awkward (non-period-multiple) values, to probe the whole-run-count rounding rule.",
-    url: fixtureUrl("debug", "border-style-edge-length-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-border-style-radius-sweep",
-    label: "Debug / Border dash-dot radius sweep",
-    description: "Fixed border-width, sweeping corner radius across the boundary between the no-radius polygon algorithm and the radius stroke-dash algorithm.",
-    url: fixtureUrl("debug", "border-style-radius-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
-  {
-    id: "debug-svg-dasharray-sweep",
-    label: "Debug / SVG stroke-dasharray sweep",
-    description: "Six dasharray/dashoffset/linecap variations on straight lines to verify CanvasKit's PathEffect.MakeDash matches the browser exactly.",
-    url: fixtureUrl("debug", "svg-dasharray-sweep.html"),
-    category: "review",
-    group: "debug",
-    nativeStage: true,
-  },
   {
     id: "paint-stroke-dash-rotated",
     label: "Stroke dash (rotated)",

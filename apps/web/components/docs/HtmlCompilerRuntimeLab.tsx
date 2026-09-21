@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   memo,
   useRef,
@@ -31,10 +30,8 @@ export function HtmlCompilerRuntimeLab({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const browserStageRef = useRef<HTMLDivElement>(null);
   const browserIframeRef = useRef<HTMLIFrameElement>(null);
   const legacySidebarEnabledRef = useRef(false);
-  const [browserScale, setBrowserScale] = useState(0.4);
   const [previewTime, setPreviewTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const animationFrameRef = useRef<number | null>(null);
@@ -138,23 +135,6 @@ export function HtmlCompilerRuntimeLab({
     };
   }, [duration, isPlaying]);
 
-  useLayoutEffect(() => {
-    const stage = browserStageRef.current;
-    if (!stage) return undefined;
-    const updateScale = () => {
-      const rect = stage.getBoundingClientRect();
-      const nextScale = Math.min(
-        rect.width / selected.composition.width,
-        rect.height / selected.composition.height,
-      );
-      if (Number.isFinite(nextScale) && nextScale > 0) setBrowserScale(nextScale);
-    };
-    updateScale();
-    const observer = new ResizeObserver(updateScale);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [selected.composition]);
-
   const selectCase = useCallback((id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("case", id);
@@ -232,31 +212,40 @@ export function HtmlCompilerRuntimeLab({
           </div>
         </header>
 
+        {/* A CSS Grid with fr-tracks would cap each column at the container's
+            share of the viewport (Tailwind's grid-cols-2 uses minmax(0,1fr),
+            which never grows for oversized content) and silently clip or
+            overlap the two native-resolution stages. Flex with flex-none
+            lets each panel keep its natural (1920px) size and the row
+            itself overflow/scroll horizontally instead. */}
         <div
-          className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2"
+          className="flex flex-col items-start gap-5 xl:flex-row"
           data-testid="html-compiler-two-panel"
         >
           <Panel title="Browser CSS reference" badge="Native HTML / CSS">
+              {/* Actual size (1:1), always: the stage is fixed at the
+                  composition's native pixel size so the browser reference
+                  renders at true resolution. Nothing clips it — the page
+                  itself grows and scrolls instead of shrinking the preview
+                  to fit the panel. */}
               <div
-                ref={browserStageRef}
-                className="relative w-full overflow-hidden bg-[#081018]"
+                className="relative bg-[#081018]"
                 style={{
-                  aspectRatio: `${selected.composition.width} / ${selected.composition.height}`,
+                  width: `${selected.composition.width}px`,
+                  height: `${selected.composition.height}px`,
                 }}
                 data-testid="html-compiler-browser-stage"
               >
                 <iframe
                   ref={browserIframeRef}
                   title={`Native browser HTML CSS reference: ${selected.label}`}
-                className="absolute left-0 top-0 border-0"
-                style={{
-                  width: `${selected.composition.width}px`,
-                  height: `${selected.composition.height}px`,
-                  transform: `scale(${browserScale})`,
-                  transformOrigin: "top left",
-                }}
-                // Keep scripts disabled, but retain the parent origin so local
-                // catalog fonts are allowed to load in the browser reference.
+                  className="absolute left-0 top-0 border-0"
+                  style={{
+                    width: `${selected.composition.width}px`,
+                    height: `${selected.composition.height}px`,
+                  }}
+                  // Keep scripts disabled, but retain the parent origin so local
+                  // catalog fonts are allowed to load in the browser reference.
                   sandbox="allow-same-origin"
                   onLoad={() => syncBrowserPlayback(previewTime, isPlaying)}
                   srcDoc={sourceDocument}
@@ -284,9 +273,9 @@ export function HtmlCompilerRuntimeLab({
                 data-testid="html-compiler-runtime-stage"
               >
                 <div
-                  className="w-full overflow-hidden"
                   style={{
-                    aspectRatio: `${selected.composition.width} / ${selected.composition.height}`,
+                    width: `${selected.composition.width}px`,
+                    height: `${selected.composition.height}px`,
                   }}
                 >
                   <PreviewStage
@@ -411,7 +400,7 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1118]">
+    <article className="flex-none rounded-xl border border-white/10 bg-[#0c1118]">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h2 className="text-sm font-medium">{title}</h2>
         <span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">

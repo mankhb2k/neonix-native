@@ -1,0 +1,1574 @@
+{
+  "generatedAt": "2026-09-20T18:25:33.237412+00:00",
+  "source": "Google Fonts repository (main)",
+  "note": "Refresh uses canonical Google Fonts weight/style instances; legacy bucket optical/condensed variants are intentionally not restored.",
+  "families": [
+    {
+      "family": "Inter",
+      "category": "UI/UX & Body Text",
+      "folder": "Inter",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/inter",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Inter/Inter-100-Italic.ttf",
+        "Inter/Inter-100.ttf",
+        "Inter/Inter-200-Italic.ttf",
+        "Inter/Inter-200.ttf",
+        "Inter/Inter-300-Italic.ttf",
+        "Inter/Inter-300.ttf",
+        "Inter/Inter-400-Italic.ttf",
+        "Inter/Inter-400.ttf",
+        "Inter/Inter-500-Italic.ttf",
+        "Inter/Inter-500.ttf",
+        "Inter/Inter-600-Italic.ttf",
+        "Inter/Inter-600.ttf",
+        "Inter/Inter-700-Italic.ttf",
+        "Inter/Inter-700.ttf",
+        "Inter/Inter-800-Italic.ttf",
+        "Inter/Inter-800.ttf",
+        "Inter/Inter-900-Italic.ttf",
+        "Inter/Inter-900.ttf"
+      ],
+      "status": "downloaded-refresh"
+    },
+    {
+      "family": "Roboto",
+      "category": "UI/UX & Body Text",
+      "folder": "Roboto",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/roboto",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Roboto/Roboto-100-Italic.ttf",
+        "Roboto/Roboto-100.ttf",
+        "Roboto/Roboto-200-Italic.ttf",
+        "Roboto/Roboto-200.ttf",
+        "Roboto/Roboto-300-Italic.ttf",
+        "Roboto/Roboto-300.ttf",
+        "Roboto/Roboto-400-Italic.ttf",
+        "Roboto/Roboto-400.ttf",
+        "Roboto/Roboto-500-Italic.ttf",
+        "Roboto/Roboto-500.ttf",
+        "Roboto/Roboto-600-Italic.ttf",
+        "Roboto/Roboto-600.ttf",
+        "Roboto/Roboto-700-Italic.ttf",
+        "Roboto/Roboto-700.ttf",
+        "Roboto/Roboto-800-Italic.ttf",
+        "Roboto/Roboto-800.ttf",
+        "Roboto/Roboto-900-Italic.ttf",
+        "Roboto/Roboto-900.ttf"
+      ],
+      "status": "downloaded-refresh"
+    },
+    {
+      "family": "Open Sans",
+      "category": "UI/UX & Body Text",
+      "folder": "Open_Sans",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/opensans",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700,
+        800
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Open_Sans/OpenSans-300-Italic.ttf",
+        "Open_Sans/OpenSans-300.ttf",
+        "Open_Sans/OpenSans-400-Italic.ttf",
+        "Open_Sans/OpenSans-400.ttf",
+        "Open_Sans/OpenSans-500-Italic.ttf",
+        "Open_Sans/OpenSans-500.ttf",
+        "Open_Sans/OpenSans-600-Italic.ttf",
+        "Open_Sans/OpenSans-600.ttf",
+        "Open_Sans/OpenSans-700-Italic.ttf",
+        "Open_Sans/OpenSans-700.ttf",
+        "Open_Sans/OpenSans-800-Italic.ttf",
+        "Open_Sans/OpenSans-800.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Lato",
+      "category": "UI/UX & Body Text",
+      "folder": "Lato",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/lato",
+      "weights": [
+        100,
+        300,
+        400,
+        700,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Lato/Lato-250-Italic.ttf",
+        "Lato/Lato-250.ttf",
+        "Lato/Lato-275-Italic.ttf",
+        "Lato/Lato-275.ttf",
+        "Lato/Lato-300-Italic.ttf",
+        "Lato/Lato-300.ttf",
+        "Lato/Lato-400-Italic.ttf",
+        "Lato/Lato-400.ttf",
+        "Lato/Lato-500-Italic.ttf",
+        "Lato/Lato-500.ttf",
+        "Lato/Lato-600-Italic.ttf",
+        "Lato/Lato-600.ttf",
+        "Lato/Lato-700-Italic.ttf",
+        "Lato/Lato-700.ttf",
+        "Lato/Lato-800-Italic.ttf",
+        "Lato/Lato-800.ttf",
+        "Lato/Lato-900-Italic.ttf",
+        "Lato/Lato-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Source Sans 3",
+      "category": "UI/UX & Body Text",
+      "folder": "Source_Sans_3",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/sourcesans3",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Source_Sans_3/SourceSans3-200-Italic.ttf",
+        "Source_Sans_3/SourceSans3-200.ttf",
+        "Source_Sans_3/SourceSans3-300-Italic.ttf",
+        "Source_Sans_3/SourceSans3-300.ttf",
+        "Source_Sans_3/SourceSans3-400-Italic.ttf",
+        "Source_Sans_3/SourceSans3-400.ttf",
+        "Source_Sans_3/SourceSans3-500-Italic.ttf",
+        "Source_Sans_3/SourceSans3-500.ttf",
+        "Source_Sans_3/SourceSans3-600-Italic.ttf",
+        "Source_Sans_3/SourceSans3-600.ttf",
+        "Source_Sans_3/SourceSans3-700-Italic.ttf",
+        "Source_Sans_3/SourceSans3-700.ttf",
+        "Source_Sans_3/SourceSans3-800-Italic.ttf",
+        "Source_Sans_3/SourceSans3-800.ttf",
+        "Source_Sans_3/SourceSans3-900-Italic.ttf",
+        "Source_Sans_3/SourceSans3-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Be Vietnam Pro",
+      "category": "UI/UX & Body Text",
+      "folder": "Be_Vietnam_Pro",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/bevietnampro",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Be_Vietnam_Pro/BeVietnamPro-100-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-100.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-200-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-200.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-300-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-300.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-400-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-400.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-500-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-500.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-600-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-600.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-700-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-700.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-800-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-800.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-900-Italic.ttf",
+        "Be_Vietnam_Pro/BeVietnamPro-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Noto Sans",
+      "category": "UI/UX & Body Text",
+      "folder": "Noto_Sans",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/notosans",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Noto_Sans/NotoSans-100-Italic.ttf",
+        "Noto_Sans/NotoSans-100.ttf",
+        "Noto_Sans/NotoSans-200-Italic.ttf",
+        "Noto_Sans/NotoSans-200.ttf",
+        "Noto_Sans/NotoSans-300-Italic.ttf",
+        "Noto_Sans/NotoSans-300.ttf",
+        "Noto_Sans/NotoSans-400-Italic.ttf",
+        "Noto_Sans/NotoSans-400.ttf",
+        "Noto_Sans/NotoSans-500-Italic.ttf",
+        "Noto_Sans/NotoSans-500.ttf",
+        "Noto_Sans/NotoSans-600-Italic.ttf",
+        "Noto_Sans/NotoSans-600.ttf",
+        "Noto_Sans/NotoSans-700-Italic.ttf",
+        "Noto_Sans/NotoSans-700.ttf",
+        "Noto_Sans/NotoSans-800-Italic.ttf",
+        "Noto_Sans/NotoSans-800.ttf",
+        "Noto_Sans/NotoSans-900-Italic.ttf",
+        "Noto_Sans/NotoSans-900.ttf"
+      ],
+      "status": "downloaded-refresh"
+    },
+    {
+      "family": "Manrope",
+      "category": "UI/UX & Body Text",
+      "folder": "Manrope",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/manrope",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Manrope/Manrope-200.ttf",
+        "Manrope/Manrope-300.ttf",
+        "Manrope/Manrope-400.ttf",
+        "Manrope/Manrope-500.ttf",
+        "Manrope/Manrope-600.ttf",
+        "Manrope/Manrope-700.ttf",
+        "Manrope/Manrope-800.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Plus Jakarta Sans",
+      "category": "UI/UX & Body Text",
+      "folder": "Plus_Jakarta_Sans",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/plusjakartasans",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Plus_Jakarta_Sans/PlusJakartaSans-200-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-200.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-300-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-300.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-400-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-400.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-500-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-500.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-600-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-600.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-700-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-700.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-800-Italic.ttf",
+        "Plus_Jakarta_Sans/PlusJakartaSans-800.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Arimo",
+      "category": "UI/UX & Body Text",
+      "folder": "Arimo",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/arimo",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Arimo/Arimo-400-Italic.ttf",
+        "Arimo/Arimo-400.ttf",
+        "Arimo/Arimo-500-Italic.ttf",
+        "Arimo/Arimo-500.ttf",
+        "Arimo/Arimo-600-Italic.ttf",
+        "Arimo/Arimo-600.ttf",
+        "Arimo/Arimo-700-Italic.ttf",
+        "Arimo/Arimo-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Heebo",
+      "category": "UI/UX & Body Text",
+      "folder": "Heebo",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/heebo",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Heebo/Heebo-100.ttf",
+        "Heebo/Heebo-200.ttf",
+        "Heebo/Heebo-300.ttf",
+        "Heebo/Heebo-400.ttf",
+        "Heebo/Heebo-500.ttf",
+        "Heebo/Heebo-600.ttf",
+        "Heebo/Heebo-700.ttf",
+        "Heebo/Heebo-800.ttf",
+        "Heebo/Heebo-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Albert Sans",
+      "category": "UI/UX & Body Text",
+      "folder": "Albert_Sans",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/albertsans",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Albert_Sans/AlbertSans-100-Italic.ttf",
+        "Albert_Sans/AlbertSans-100.ttf",
+        "Albert_Sans/AlbertSans-200-Italic.ttf",
+        "Albert_Sans/AlbertSans-200.ttf",
+        "Albert_Sans/AlbertSans-300-Italic.ttf",
+        "Albert_Sans/AlbertSans-300.ttf",
+        "Albert_Sans/AlbertSans-400-Italic.ttf",
+        "Albert_Sans/AlbertSans-400.ttf",
+        "Albert_Sans/AlbertSans-500-Italic.ttf",
+        "Albert_Sans/AlbertSans-500.ttf",
+        "Albert_Sans/AlbertSans-600-Italic.ttf",
+        "Albert_Sans/AlbertSans-600.ttf",
+        "Albert_Sans/AlbertSans-700-Italic.ttf",
+        "Albert_Sans/AlbertSans-700.ttf",
+        "Albert_Sans/AlbertSans-800-Italic.ttf",
+        "Albert_Sans/AlbertSans-800.ttf",
+        "Albert_Sans/AlbertSans-900-Italic.ttf",
+        "Albert_Sans/AlbertSans-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "DM Sans",
+      "category": "UI/UX & Body Text",
+      "folder": "DM_Sans",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/dmsans",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "DM_Sans/DMSans-100-Italic.ttf",
+        "DM_Sans/DMSans-100.ttf",
+        "DM_Sans/DMSans-1000-Italic.ttf",
+        "DM_Sans/DMSans-1000.ttf",
+        "DM_Sans/DMSans-200-Italic.ttf",
+        "DM_Sans/DMSans-200.ttf",
+        "DM_Sans/DMSans-300-Italic.ttf",
+        "DM_Sans/DMSans-300.ttf",
+        "DM_Sans/DMSans-400-Italic.ttf",
+        "DM_Sans/DMSans-400.ttf",
+        "DM_Sans/DMSans-500-Italic.ttf",
+        "DM_Sans/DMSans-500.ttf",
+        "DM_Sans/DMSans-600-Italic.ttf",
+        "DM_Sans/DMSans-600.ttf",
+        "DM_Sans/DMSans-700-Italic.ttf",
+        "DM_Sans/DMSans-700.ttf",
+        "DM_Sans/DMSans-800-Italic.ttf",
+        "DM_Sans/DMSans-800.ttf",
+        "DM_Sans/DMSans-900-Italic.ttf",
+        "DM_Sans/DMSans-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Public Sans",
+      "category": "UI/UX & Body Text",
+      "folder": "Public_Sans",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/publicsans",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Public_Sans/PublicSans-100-Italic.ttf",
+        "Public_Sans/PublicSans-100.ttf",
+        "Public_Sans/PublicSans-200-Italic.ttf",
+        "Public_Sans/PublicSans-200.ttf",
+        "Public_Sans/PublicSans-300-Italic.ttf",
+        "Public_Sans/PublicSans-300.ttf",
+        "Public_Sans/PublicSans-400-Italic.ttf",
+        "Public_Sans/PublicSans-400.ttf",
+        "Public_Sans/PublicSans-500-Italic.ttf",
+        "Public_Sans/PublicSans-500.ttf",
+        "Public_Sans/PublicSans-600-Italic.ttf",
+        "Public_Sans/PublicSans-600.ttf",
+        "Public_Sans/PublicSans-700-Italic.ttf",
+        "Public_Sans/PublicSans-700.ttf",
+        "Public_Sans/PublicSans-800-Italic.ttf",
+        "Public_Sans/PublicSans-800.ttf",
+        "Public_Sans/PublicSans-900-Italic.ttf",
+        "Public_Sans/PublicSans-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Readex Pro",
+      "category": "UI/UX & Body Text",
+      "folder": "Readex_Pro",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/readexpro",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Readex_Pro/ReadexPro-200.ttf",
+        "Readex_Pro/ReadexPro-300.ttf",
+        "Readex_Pro/ReadexPro-400.ttf",
+        "Readex_Pro/ReadexPro-500.ttf",
+        "Readex_Pro/ReadexPro-600.ttf",
+        "Readex_Pro/ReadexPro-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Montserrat",
+      "category": "Display & Headings",
+      "folder": "Montserrat",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/montserrat",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Montserrat/Montserrat-100-Italic.ttf",
+        "Montserrat/Montserrat-100.ttf",
+        "Montserrat/Montserrat-200-Italic.ttf",
+        "Montserrat/Montserrat-200.ttf",
+        "Montserrat/Montserrat-300-Italic.ttf",
+        "Montserrat/Montserrat-300.ttf",
+        "Montserrat/Montserrat-400-Italic.ttf",
+        "Montserrat/Montserrat-400.ttf",
+        "Montserrat/Montserrat-500-Italic.ttf",
+        "Montserrat/Montserrat-500.ttf",
+        "Montserrat/Montserrat-600-Italic.ttf",
+        "Montserrat/Montserrat-600.ttf",
+        "Montserrat/Montserrat-700-Italic.ttf",
+        "Montserrat/Montserrat-700.ttf",
+        "Montserrat/Montserrat-800-Italic.ttf",
+        "Montserrat/Montserrat-800.ttf",
+        "Montserrat/Montserrat-900-Italic.ttf",
+        "Montserrat/Montserrat-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Poppins",
+      "category": "Display & Headings",
+      "folder": "Poppins",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/poppins",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Poppins/Poppins-250-Italic.ttf",
+        "Poppins/Poppins-250.ttf",
+        "Poppins/Poppins-275-Italic.ttf",
+        "Poppins/Poppins-275.ttf",
+        "Poppins/Poppins-300-Italic.ttf",
+        "Poppins/Poppins-300.ttf",
+        "Poppins/Poppins-400-Italic.ttf",
+        "Poppins/Poppins-400.ttf",
+        "Poppins/Poppins-500-Italic.ttf",
+        "Poppins/Poppins-500.ttf",
+        "Poppins/Poppins-600-Italic.ttf",
+        "Poppins/Poppins-600.ttf",
+        "Poppins/Poppins-700-Italic.ttf",
+        "Poppins/Poppins-700.ttf",
+        "Poppins/Poppins-800-Italic.ttf",
+        "Poppins/Poppins-800.ttf",
+        "Poppins/Poppins-900-Italic.ttf",
+        "Poppins/Poppins-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Oswald",
+      "category": "Display & Headings",
+      "folder": "Oswald",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/oswald",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Oswald/Oswald-200.ttf",
+        "Oswald/Oswald-300.ttf",
+        "Oswald/Oswald-400.ttf",
+        "Oswald/Oswald-500.ttf",
+        "Oswald/Oswald-600.ttf",
+        "Oswald/Oswald-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Raleway",
+      "category": "Display & Headings",
+      "folder": "Raleway",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/raleway",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Raleway/Raleway-100-Italic.ttf",
+        "Raleway/Raleway-100.ttf",
+        "Raleway/Raleway-200-Italic.ttf",
+        "Raleway/Raleway-200.ttf",
+        "Raleway/Raleway-300-Italic.ttf",
+        "Raleway/Raleway-300.ttf",
+        "Raleway/Raleway-400-Italic.ttf",
+        "Raleway/Raleway-400.ttf",
+        "Raleway/Raleway-500-Italic.ttf",
+        "Raleway/Raleway-500.ttf",
+        "Raleway/Raleway-600-Italic.ttf",
+        "Raleway/Raleway-600.ttf",
+        "Raleway/Raleway-700-Italic.ttf",
+        "Raleway/Raleway-700.ttf",
+        "Raleway/Raleway-800-Italic.ttf",
+        "Raleway/Raleway-800.ttf",
+        "Raleway/Raleway-900-Italic.ttf",
+        "Raleway/Raleway-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Lexend",
+      "category": "Display & Headings",
+      "folder": "Lexend",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/lexend",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Lexend/Lexend-100.ttf",
+        "Lexend/Lexend-200.ttf",
+        "Lexend/Lexend-300.ttf",
+        "Lexend/Lexend-400.ttf",
+        "Lexend/Lexend-500.ttf",
+        "Lexend/Lexend-600.ttf",
+        "Lexend/Lexend-700.ttf",
+        "Lexend/Lexend-800.ttf",
+        "Lexend/Lexend-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Kanit",
+      "category": "Display & Headings",
+      "folder": "Kanit",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/kanit",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Kanit/Kanit-250-Italic.ttf",
+        "Kanit/Kanit-250.ttf",
+        "Kanit/Kanit-275-Italic.ttf",
+        "Kanit/Kanit-275.ttf",
+        "Kanit/Kanit-300-Italic.ttf",
+        "Kanit/Kanit-300.ttf",
+        "Kanit/Kanit-400-Italic.ttf",
+        "Kanit/Kanit-400.ttf",
+        "Kanit/Kanit-500-Italic.ttf",
+        "Kanit/Kanit-500.ttf",
+        "Kanit/Kanit-600-Italic.ttf",
+        "Kanit/Kanit-600.ttf",
+        "Kanit/Kanit-700-Italic.ttf",
+        "Kanit/Kanit-700.ttf",
+        "Kanit/Kanit-800-Italic.ttf",
+        "Kanit/Kanit-800.ttf",
+        "Kanit/Kanit-900-Italic.ttf",
+        "Kanit/Kanit-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Mulish",
+      "category": "Display & Headings",
+      "folder": "Mulish",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/mulish",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Mulish/Mulish-1000-Italic.ttf",
+        "Mulish/Mulish-1000.ttf",
+        "Mulish/Mulish-200-Italic.ttf",
+        "Mulish/Mulish-200.ttf",
+        "Mulish/Mulish-300-Italic.ttf",
+        "Mulish/Mulish-300.ttf",
+        "Mulish/Mulish-400-Italic.ttf",
+        "Mulish/Mulish-400.ttf",
+        "Mulish/Mulish-500-Italic.ttf",
+        "Mulish/Mulish-500.ttf",
+        "Mulish/Mulish-600-Italic.ttf",
+        "Mulish/Mulish-600.ttf",
+        "Mulish/Mulish-700-Italic.ttf",
+        "Mulish/Mulish-700.ttf",
+        "Mulish/Mulish-800-Italic.ttf",
+        "Mulish/Mulish-800.ttf",
+        "Mulish/Mulish-900-Italic.ttf",
+        "Mulish/Mulish-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Quicksand",
+      "category": "Display & Headings",
+      "folder": "Quicksand",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/quicksand",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Quicksand/Quicksand-300.ttf",
+        "Quicksand/Quicksand-400.ttf",
+        "Quicksand/Quicksand-500.ttf",
+        "Quicksand/Quicksand-600.ttf",
+        "Quicksand/Quicksand-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Barlow",
+      "category": "Display & Headings",
+      "folder": "Barlow",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/barlow",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Barlow/Barlow-250-Italic.ttf",
+        "Barlow/Barlow-250.ttf",
+        "Barlow/Barlow-275-Italic.ttf",
+        "Barlow/Barlow-275.ttf",
+        "Barlow/Barlow-300-Italic.ttf",
+        "Barlow/Barlow-300.ttf",
+        "Barlow/Barlow-400-Italic.ttf",
+        "Barlow/Barlow-400.ttf",
+        "Barlow/Barlow-500-Italic.ttf",
+        "Barlow/Barlow-500.ttf",
+        "Barlow/Barlow-600-Italic.ttf",
+        "Barlow/Barlow-600.ttf",
+        "Barlow/Barlow-700-Italic.ttf",
+        "Barlow/Barlow-700.ttf",
+        "Barlow/Barlow-800-Italic.ttf",
+        "Barlow/Barlow-800.ttf",
+        "Barlow/Barlow-900-Italic.ttf",
+        "Barlow/Barlow-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Urbanist",
+      "category": "Display & Headings",
+      "folder": "Urbanist",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/urbanist",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Urbanist/Urbanist-100-Italic.ttf",
+        "Urbanist/Urbanist-100.ttf",
+        "Urbanist/Urbanist-200-Italic.ttf",
+        "Urbanist/Urbanist-200.ttf",
+        "Urbanist/Urbanist-300-Italic.ttf",
+        "Urbanist/Urbanist-300.ttf",
+        "Urbanist/Urbanist-400-Italic.ttf",
+        "Urbanist/Urbanist-400.ttf",
+        "Urbanist/Urbanist-500-Italic.ttf",
+        "Urbanist/Urbanist-500.ttf",
+        "Urbanist/Urbanist-600-Italic.ttf",
+        "Urbanist/Urbanist-600.ttf",
+        "Urbanist/Urbanist-700-Italic.ttf",
+        "Urbanist/Urbanist-700.ttf",
+        "Urbanist/Urbanist-800-Italic.ttf",
+        "Urbanist/Urbanist-800.ttf",
+        "Urbanist/Urbanist-900-Italic.ttf",
+        "Urbanist/Urbanist-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Syne",
+      "category": "Display & Headings",
+      "folder": "Syne",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/syne",
+      "weights": [
+        400,
+        500,
+        600,
+        700,
+        800
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Syne/Syne-400.ttf",
+        "Syne/Syne-500.ttf",
+        "Syne/Syne-600.ttf",
+        "Syne/Syne-700.ttf",
+        "Syne/Syne-800.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Space Grotesk",
+      "category": "Display & Headings",
+      "folder": "Space_Grotesk",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/spacegrotesk",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Space_Grotesk/SpaceGrotesk-300.ttf",
+        "Space_Grotesk/SpaceGrotesk-400.ttf",
+        "Space_Grotesk/SpaceGrotesk-500.ttf",
+        "Space_Grotesk/SpaceGrotesk-600.ttf",
+        "Space_Grotesk/SpaceGrotesk-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Cabinet Grotesque",
+      "category": "Display & Headings",
+      "folder": "Cabinet_Grotesque",
+      "source": "Google Fonts",
+      "sourcePath": null,
+      "weights": [],
+      "styles": [],
+      "files": [],
+      "status": "not-found-on-google-fonts"
+    },
+    {
+      "family": "Clash Display",
+      "category": "Display & Headings",
+      "folder": "Clash_Display",
+      "source": "Google Fonts",
+      "sourcePath": null,
+      "weights": [],
+      "styles": [],
+      "files": [],
+      "status": "not-found-on-google-fonts"
+    },
+    {
+      "family": "Archivo",
+      "category": "Display & Headings",
+      "folder": "Archivo",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/archivo",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Archivo/Archivo-100-Italic.ttf",
+        "Archivo/Archivo-100.ttf",
+        "Archivo/Archivo-200-Italic.ttf",
+        "Archivo/Archivo-200.ttf",
+        "Archivo/Archivo-300-Italic.ttf",
+        "Archivo/Archivo-300.ttf",
+        "Archivo/Archivo-400-Italic.ttf",
+        "Archivo/Archivo-400.ttf",
+        "Archivo/Archivo-500-Italic.ttf",
+        "Archivo/Archivo-500.ttf",
+        "Archivo/Archivo-600-Italic.ttf",
+        "Archivo/Archivo-600.ttf",
+        "Archivo/Archivo-700-Italic.ttf",
+        "Archivo/Archivo-700.ttf",
+        "Archivo/Archivo-800-Italic.ttf",
+        "Archivo/Archivo-800.ttf",
+        "Archivo/Archivo-900-Italic.ttf",
+        "Archivo/Archivo-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "JetBrains Mono",
+      "category": "Monospace (Code)",
+      "folder": "JetBrains_Mono",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/jetbrainsmono",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "JetBrains_Mono/JetBrainsMono-100-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-100.ttf",
+        "JetBrains_Mono/JetBrainsMono-200-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-200.ttf",
+        "JetBrains_Mono/JetBrainsMono-300-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-300.ttf",
+        "JetBrains_Mono/JetBrainsMono-400-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-400.ttf",
+        "JetBrains_Mono/JetBrainsMono-500-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-500.ttf",
+        "JetBrains_Mono/JetBrainsMono-600-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-600.ttf",
+        "JetBrains_Mono/JetBrainsMono-700-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-700.ttf",
+        "JetBrains_Mono/JetBrainsMono-800-Italic.ttf",
+        "JetBrains_Mono/JetBrainsMono-800.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Fira Code",
+      "category": "Monospace (Code)",
+      "folder": "Fira_Code",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/firacode",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Fira_Code/FiraCode-300.ttf",
+        "Fira_Code/FiraCode-400.ttf",
+        "Fira_Code/FiraCode-500.ttf",
+        "Fira_Code/FiraCode-600.ttf",
+        "Fira_Code/FiraCode-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Roboto Mono",
+      "category": "Monospace (Code)",
+      "folder": "Roboto_Mono",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/robotomono",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Roboto_Mono/RobotoMono-100-Italic.ttf",
+        "Roboto_Mono/RobotoMono-100.ttf",
+        "Roboto_Mono/RobotoMono-200-Italic.ttf",
+        "Roboto_Mono/RobotoMono-200.ttf",
+        "Roboto_Mono/RobotoMono-300-Italic.ttf",
+        "Roboto_Mono/RobotoMono-300.ttf",
+        "Roboto_Mono/RobotoMono-400-Italic.ttf",
+        "Roboto_Mono/RobotoMono-400.ttf",
+        "Roboto_Mono/RobotoMono-500-Italic.ttf",
+        "Roboto_Mono/RobotoMono-500.ttf",
+        "Roboto_Mono/RobotoMono-600-Italic.ttf",
+        "Roboto_Mono/RobotoMono-600.ttf",
+        "Roboto_Mono/RobotoMono-700-Italic.ttf",
+        "Roboto_Mono/RobotoMono-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Source Code Pro",
+      "category": "Monospace (Code)",
+      "folder": "Source_Code_Pro",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/sourcecodepro",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Source_Code_Pro/SourceCodePro-200-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-200.ttf",
+        "Source_Code_Pro/SourceCodePro-300-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-300.ttf",
+        "Source_Code_Pro/SourceCodePro-400-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-400.ttf",
+        "Source_Code_Pro/SourceCodePro-500-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-500.ttf",
+        "Source_Code_Pro/SourceCodePro-600-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-600.ttf",
+        "Source_Code_Pro/SourceCodePro-700-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-700.ttf",
+        "Source_Code_Pro/SourceCodePro-800-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-800.ttf",
+        "Source_Code_Pro/SourceCodePro-900-Italic.ttf",
+        "Source_Code_Pro/SourceCodePro-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "category": "Monospace (Code)",
+      "folder": "IBM_Plex_Mono",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/ibmplexmono",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "IBM_Plex_Mono/IBMPlexMono-100-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-100.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-200-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-200.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-300-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-300.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-400-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-400.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-500-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-500.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-600-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-600.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-700-Italic.ttf",
+        "IBM_Plex_Mono/IBMPlexMono-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Space Mono",
+      "category": "Monospace (Code)",
+      "folder": "Space_Mono",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/spacemono",
+      "weights": [
+        400,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Space_Mono/SpaceMono-400-Italic.ttf",
+        "Space_Mono/SpaceMono-400.ttf",
+        "Space_Mono/SpaceMono-700-Italic.ttf",
+        "Space_Mono/SpaceMono-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Inconsolata",
+      "category": "Monospace (Code)",
+      "folder": "Inconsolata",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/inconsolata",
+      "weights": [
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Inconsolata/Inconsolata-200.ttf",
+        "Inconsolata/Inconsolata-300.ttf",
+        "Inconsolata/Inconsolata-400.ttf",
+        "Inconsolata/Inconsolata-500.ttf",
+        "Inconsolata/Inconsolata-600.ttf",
+        "Inconsolata/Inconsolata-700.ttf",
+        "Inconsolata/Inconsolata-800.ttf",
+        "Inconsolata/Inconsolata-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "category": "Monospace (Code)",
+      "folder": "Ubuntu_Mono",
+      "source": "Google Fonts",
+      "sourcePath": "ufl/ubuntumono",
+      "weights": [
+        400,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Ubuntu_Mono/UbuntuMono-400-Italic.ttf",
+        "Ubuntu_Mono/UbuntuMono-400.ttf",
+        "Ubuntu_Mono/UbuntuMono-700-Italic.ttf",
+        "Ubuntu_Mono/UbuntuMono-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Courier Prime",
+      "category": "Monospace (Code)",
+      "folder": "Courier_Prime",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/courierprime",
+      "weights": [
+        400,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Courier_Prime/CourierPrime-400-Italic.ttf",
+        "Courier_Prime/CourierPrime-400.ttf",
+        "Courier_Prime/CourierPrime-700-Italic.ttf",
+        "Courier_Prime/CourierPrime-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Share Tech Mono",
+      "category": "Monospace (Code)",
+      "folder": "Share_Tech_Mono",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/sharetechmono",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Share_Tech_Mono/ShareTechMono-400.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Merriweather",
+      "category": "Editorial & Serif",
+      "folder": "Merriweather",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/merriweather",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Merriweather/Merriweather-300-Italic.ttf",
+        "Merriweather/Merriweather-300.ttf",
+        "Merriweather/Merriweather-400-Italic.ttf",
+        "Merriweather/Merriweather-400.ttf",
+        "Merriweather/Merriweather-500-Italic.ttf",
+        "Merriweather/Merriweather-500.ttf",
+        "Merriweather/Merriweather-600-Italic.ttf",
+        "Merriweather/Merriweather-600.ttf",
+        "Merriweather/Merriweather-700-Italic.ttf",
+        "Merriweather/Merriweather-700.ttf",
+        "Merriweather/Merriweather-800-Italic.ttf",
+        "Merriweather/Merriweather-800.ttf",
+        "Merriweather/Merriweather-900-Italic.ttf",
+        "Merriweather/Merriweather-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Playfair Display",
+      "category": "Editorial & Serif",
+      "folder": "Playfair_Display",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/playfairdisplay",
+      "weights": [
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Playfair_Display/PlayfairDisplay-400-Italic.ttf",
+        "Playfair_Display/PlayfairDisplay-400.ttf",
+        "Playfair_Display/PlayfairDisplay-500-Italic.ttf",
+        "Playfair_Display/PlayfairDisplay-500.ttf",
+        "Playfair_Display/PlayfairDisplay-600-Italic.ttf",
+        "Playfair_Display/PlayfairDisplay-600.ttf",
+        "Playfair_Display/PlayfairDisplay-700-Italic.ttf",
+        "Playfair_Display/PlayfairDisplay-700.ttf",
+        "Playfair_Display/PlayfairDisplay-800-Italic.ttf",
+        "Playfair_Display/PlayfairDisplay-800.ttf",
+        "Playfair_Display/PlayfairDisplay-900-Italic.ttf",
+        "Playfair_Display/PlayfairDisplay-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Roboto Slab",
+      "category": "Editorial & Serif",
+      "folder": "Roboto_Slab",
+      "source": "Google Fonts",
+      "sourcePath": "apache/robotoslab",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        "Roboto_Slab/RobotoSlab-100.ttf",
+        "Roboto_Slab/RobotoSlab-200.ttf",
+        "Roboto_Slab/RobotoSlab-300.ttf",
+        "Roboto_Slab/RobotoSlab-400.ttf",
+        "Roboto_Slab/RobotoSlab-500.ttf",
+        "Roboto_Slab/RobotoSlab-600.ttf",
+        "Roboto_Slab/RobotoSlab-700.ttf",
+        "Roboto_Slab/RobotoSlab-800.ttf",
+        "Roboto_Slab/RobotoSlab-900.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Lora",
+      "category": "Editorial & Serif",
+      "folder": "Lora",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/lora",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "Lora/Lora-400-Italic.ttf",
+        "Lora/Lora-400.ttf",
+        "Lora/Lora-500-Italic.ttf",
+        "Lora/Lora-500.ttf",
+        "Lora/Lora-600-Italic.ttf",
+        "Lora/Lora-600.ttf",
+        "Lora/Lora-700-Italic.ttf",
+        "Lora/Lora-700.ttf"
+      ],
+      "status": "downloaded-refresh"
+    },
+    {
+      "family": "IBM Plex Serif",
+      "category": "Editorial & Serif",
+      "folder": "IBM_Plex_Serif",
+      "source": "Google Fonts",
+      "sourcePath": "ofl/ibmplexserif",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700
+      ],
+      "styles": [
+        "italic",
+        "normal"
+      ],
+      "files": [
+        "IBM_Plex_Serif/IBMPlexSerif-100-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-100.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-200-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-200.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-300-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-300.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-400-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-400.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-500-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-500.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-600-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-600.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-700-Italic.ttf",
+        "IBM_Plex_Serif/IBMPlexSerif-700.ttf"
+      ],
+      "status": "downloaded"
+    },
+    {
+      "family": "Noto Sans Arabic",
+      "category": "Typography",
+      "source": "Google Fonts",
+      "folder": "Noto_Sans_Arabic",
+      "sourcePath": "ofl/notosansarabic",
+      "weights": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "styles": [
+        "normal"
+      ],
+      "status": "downloaded-refresh",
+      "files": [
+        "Noto_Sans_Arabic/NotoSansArabic-100.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-200.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-300.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-400.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-500.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-600.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-700.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-800.ttf",
+        "Noto_Sans_Arabic/NotoSansArabic-900.ttf"
+      ]
+    }
+  ]
+}

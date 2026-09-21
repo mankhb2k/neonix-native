@@ -61,9 +61,9 @@ describe("Protocol V2 preview lab fixtures", () => {
   });
 
   it("keeps the HTML compiler sidebar backed by the primitive fixture catalog", () => {
-    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(39);
+    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(40);
     expect(HTML_COMPILER_PAINT_GRADIENT_CASES).toHaveLength(4);
-    expect(HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES).toHaveLength(6);
+    expect(HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES).toHaveLength(9);
     expect(HTML_COMPILER_PHASE1_1_CASES).toHaveLength(5);
     expect(HTML_COMPILER_PHASE1_2_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PHASE1_3_CASES).toHaveLength(4);
@@ -602,23 +602,25 @@ describe("Protocol V2 preview lab fixtures", () => {
     });
 
     const weightFallback = typographyResult("html-compiler.typography.weight-fallback").protocol?.layers.find((layer) => layer.id === "weight-fallback");
-    expect(weightFallback && weightFallback.type === "text" ? weightFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-bold"]);
+    // CSS matching searches toward heavier faces first for requests above 500,
+    // so 620 deterministically falls forward to the registered 700 face.
+    expect(weightFallback && weightFallback.type === "text" ? weightFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-700"]);
     const familyFallback = typographyResult("html-compiler.typography.family-fallback").protocol?.layers.find((layer) => layer.id === "family-fallback");
-    expect(familyFallback && familyFallback.type === "text" ? familyFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-regular"]);
+    expect(familyFallback && familyFallback.type === "text" ? familyFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-400"]);
     const styleResult = typographyResult("html-compiler.typography.style-stretch");
     const styleItalic = styleResult.protocol?.layers.find((layer) => layer.id === "style-italic");
     expect(styleItalic && styleItalic.type === "text" ? styleItalic.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
-      resolvedFontAssetIds: ["preview-font-inter-italic"],
+      resolvedFontAssetIds: ["preview-font-inter-400-italic"],
       font: { style: "italic", stretch: "normal" },
     });
     const styleCondensed = styleResult.protocol?.layers.find((layer) => layer.id === "style-condensed-regular");
     expect(styleCondensed && styleCondensed.type === "text" ? styleCondensed.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
-      resolvedFontAssetIds: ["preview-font-roboto-condensed-regular"],
+      resolvedFontAssetIds: ["preview-font-roboto-400"],
       font: { style: "normal", stretch: "condensed" },
     });
     const styleCondensedBold = styleResult.protocol?.layers.find((layer) => layer.id === "style-condensed-bold");
     expect(styleCondensedBold && styleCondensedBold.type === "text" ? styleCondensedBold.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
-      resolvedFontAssetIds: ["preview-font-roboto-condensed-bold"],
+      resolvedFontAssetIds: ["preview-font-roboto-700"],
       font: { weight: 700, style: "normal", stretch: "condensed" },
     });
     expect(typographyResult("html-compiler.typography.line-height-short").protocol?.layers.find((layer) => layer.id === "line-height-short")).toMatchObject({
@@ -790,10 +792,10 @@ describe("Protocol V2 preview lab fixtures", () => {
       payload: {
         source: { text: "Prefix bold italic" },
         chunks: [{ spans: [
-          { sourceRange: { start: 0, end: 7 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-regular"] },
-          { sourceRange: { start: 7, end: 11 }, font: { weight: 700, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-bold"] },
-          { sourceRange: { start: 11, end: 12 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-regular"] },
-          { sourceRange: { start: 12, end: 18 }, font: { weight: 400, style: "italic" }, resolvedFontAssetIds: ["preview-font-inter-italic"] },
+          { sourceRange: { start: 0, end: 7 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-400"] },
+          { sourceRange: { start: 7, end: 11 }, font: { weight: 700, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-700"] },
+          { sourceRange: { start: 11, end: 12 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-400"] },
+          { sourceRange: { start: 12, end: 18 }, font: { weight: 400, style: "italic" }, resolvedFontAssetIds: ["preview-font-inter-400-italic"] },
         ] }],
       },
     });

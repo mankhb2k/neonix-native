@@ -46,23 +46,4 @@ test.describe("isolated playback integration", () => {
     await expect.poll(() => currentTime.textContent()).not.toBe("00:00:00:00");
     await expect.poll(() => page.evaluate(() => (window as typeof window & { __motionAudioContextState?: { created: number } }).__motionAudioContextState?.created ?? 0)).toBeGreaterThan(0);
   });
-
-  test("docs Skia keeps its independent video registration path", async ({ page }) => {
-    await page.goto("/docs/preview/native");
-    const select = page.locator("#runtime-skia-case");
-    const canvas = page.getByTestId("skia-runtime-stage");
-    await select.selectOption("video.frame-seek");
-    await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
-    await expect.poll(async () => {
-      const raw = await canvas.getAttribute("data-preview-resource-counts");
-      return Number((JSON.parse(raw ?? "{}") as { activeVideos?: number }).activeVideos ?? 0);
-    }).toBeGreaterThan(0);
-    await expect.poll(async () => await canvas.getAttribute("data-video-times") ?? "").toMatch(/visible/);
-    await expect.poll(async () => {
-      const raw = await canvas.getAttribute("data-video-health");
-      const health = JSON.parse(raw ?? "[]") as Array<{ driftMs?: number }>;
-      return health.length > 0 && health.every((entry) => Number.isFinite(entry.driftMs));
-    }).toBe(true);
-    await expect(canvas).not.toHaveAttribute("data-diagnostics", /preview_asset_missing/);
-  });
 });

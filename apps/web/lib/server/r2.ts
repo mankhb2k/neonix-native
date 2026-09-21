@@ -1,9 +1,11 @@
 import { Readable } from "node:stream";
 import {
   CopyObjectCommand,
+  DeleteObjectsCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -195,6 +197,33 @@ export class R2StorageProvider {
 
   async deleteObject(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  async listObjectKeys(): Promise<string[]> {
+    const keys: string[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const result = await this.client.send(new ListObjectsV2Command({
+        Bucket: this.bucket,
+        ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+      }));
+      for (const object of result.Contents ?? []) {
+        if (object.Key) keys.push(object.Key);
+      }
+      continuationToken = result.IsTruncated ? result.NextContinuationToken : undefined;
+    } while (continuationToken);
+    return keys;
+  }
+
+  async deleteObjects(keys: string[]): Promise<void> {
+    for (let offset = 0; offset < keys.length; offset += 1000) {
+      const chunk = keys.slice(offset, offset + 1000);
+      if (chunk.length === 0) continue;
+      await this.client.send(new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: { Objects: chunk.map((Key) => ({ Key })) },
+      }));
+    }
   }
 
   async presignPut(key: string, contentType: string, expiresInSeconds: number): Promise<PresignPutResult> {

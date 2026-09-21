@@ -165,6 +165,27 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     ]);
   });
 
+  it("lowers background-clip text gradients into Protocol text fill paints", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="linear">Linear</div><div id="radial">Radial</div><div id="conic">Conic</div>`,
+      css: `body { margin: 0; } #linear, #radial, #conic { position: absolute; left: 40px; width: 640px; height: 100px; color: transparent; font-family: Inter; font-size: 72px; font-weight: 700; background-repeat: no-repeat; background-clip: text; } #linear { top: 40px; background: linear-gradient(90deg, #22d3ee, #c084fc); } #radial { top: 180px; background: radial-gradient(circle at 50% 50%, #fef3c7, #be123c); } #conic { top: 320px; background: conic-gradient(from 45deg at 50% 50%, #14b8a6, #7c3aed); }`,
+    }), {
+      fontAssets: [{ id: "inter-bold", kind: "font", uri: "/fonts/inter-bold.ttf", mimeType: "font/ttf", family: "Inter", weight: 700, style: "normal", integrity: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }],
+    });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const gradientTypes = [
+      { id: "linear", type: "linear-gradient" },
+      { id: "radial", type: "radial-gradient" },
+      { id: "conic", type: "conic-gradient" },
+    ] as const;
+    for (const { id, type } of gradientTypes) {
+      const layer = result.protocol?.layers.find((candidate) => candidate.id === id);
+      expect(layer?.type).toBe("text");
+      if (layer?.type !== "text") continue;
+      expect(layer.payload.chunks[0]?.spans[0]?.fill).toMatchObject({ type });
+    }
+  });
+
   it("lowers all authored CSS text-align values into Protocol V2 JSON", () => {
     const alignments = [
       ["start", "start"],

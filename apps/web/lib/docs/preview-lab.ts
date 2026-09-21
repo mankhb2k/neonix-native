@@ -2405,6 +2405,78 @@ export const TEXT_GRADIENT_PROJECT = project(
   [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
+export const TEXT_RADIAL_GRADIENT_PROJECT = project(
+  "preview-text-radial-gradient-v2",
+  [
+    rectangle({
+      id: "text-radial-gradient-frame",
+      order: 0,
+      fill: "#101827",
+      frame: { width: 1400, height: 300 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 390, z: 0 } },
+    }),
+    textLayer({
+      id: "text-radial-gradient",
+      order: 1,
+      text: "Native radial gradient text",
+      align: "center",
+      verticalAlign: "middle",
+      frame: { width: 1400, height: 300 },
+      fontSize: 96,
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 390, z: 0 } },
+      fill: {
+        type: "radial-gradient",
+        cx: 0.5,
+        cy: 0.5,
+        radius: 0.6,
+        stops: [
+          { offset: 0, color: "#fef3c7" },
+          { offset: 0.5, color: "#fb923c" },
+          { offset: 1, color: "#be123c" },
+        ],
+      },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
+);
+
+export const TEXT_CONIC_GRADIENT_PROJECT = project(
+  "preview-text-conic-gradient-v2",
+  [
+    rectangle({
+      id: "text-conic-gradient-frame",
+      order: 0,
+      fill: "#101827",
+      frame: { width: 1400, height: 300 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 390, z: 0 } },
+    }),
+    textLayer({
+      id: "text-conic-gradient",
+      order: 1,
+      text: "Native conic gradient text",
+      align: "center",
+      verticalAlign: "middle",
+      frame: { width: 1400, height: 300 },
+      fontSize: 96,
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 390, z: 0 } },
+      fill: {
+        type: "conic-gradient",
+        from: 45,
+        cx: 0.5,
+        cy: 0.5,
+        stops: [
+          { offset: 0, color: "#14b8a6" },
+          { offset: 0.5, color: "#2563eb" },
+          { offset: 1, color: "#7c3aed" },
+        ],
+      },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
+);
+
 const TEXT_ALIGNMENT_PROJECT = project(
   "preview-text-alignment-v2",
   [
@@ -3368,6 +3440,20 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 10 / Text",
     hint: "One canonical PaintFill is carried from the text span through RuntimeFrameV3 and PaintCommandBuffer into the CanvasKit and native paint backends.",
     project: TEXT_GRADIENT_PROJECT,
+  },
+  {
+    id: "text.radial-gradient",
+    label: "Text / radial gradient",
+    group: "Task 10 / Text",
+    hint: "The same radial-gradient PaintFill used by shapes is carried from the text span through RuntimeFrameV3 and PaintCommandBuffer into the CanvasKit and native paint backends.",
+    project: TEXT_RADIAL_GRADIENT_PROJECT,
+  },
+  {
+    id: "text.conic-gradient",
+    label: "Text / conic gradient",
+    group: "Task 10 / Text",
+    hint: "The same conic-gradient PaintFill used by shapes is carried from the text span through RuntimeFrameV3 and PaintCommandBuffer into the CanvasKit and native paint backends.",
+    project: TEXT_CONIC_GRADIENT_PROJECT,
   },
   {
     id: "text.single-line.alignment",

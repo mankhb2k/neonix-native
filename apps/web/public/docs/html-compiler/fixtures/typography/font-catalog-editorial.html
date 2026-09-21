@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#17120d","colorSpace":"srgb"}}'>
+  <style>
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #17120d; color: #fff7ed; }
+    .title { position: absolute; left: 120px; top: 72px; margin: 0; font-family: "Merriweather", serif; font-size: 54px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+    .subtitle { position: absolute; left: 124px; top: 140px; margin: 0; color: #d6b890; font-family: "Inter", sans-serif; font-size: 20px; font-weight: 400; line-height: 1; }
+    .grid { position: absolute; left: 120px; top: 190px; width: 1680px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .card { height: 170px; padding: 22px 28px; box-sizing: border-box; border: 1px solid #604c34; border-radius: 14px; background: #292015; }
+    .name { display: block; margin-bottom: 18px; color: #fbbf77; font-family: "Inter", sans-serif; font-size: 16px; font-weight: 500; line-height: 1; letter-spacing: .04em; }
+    .sample { white-space: nowrap; color: #fff7ed; font-size: 39px; line-height: 1.18; }
+    .arabic { direction: rtl; text-align: right; }
+    .sample-merriweather { font-family: Merriweather, serif; font-weight: 700; }
+    .sample-playfair-display { font-family: "Playfair Display", serif; font-weight: 500; font-style: italic; }
+    .sample-roboto-slab { font-family: "Roboto Slab", serif; font-weight: 600; }
+    .sample-lora { font-family: Lora, serif; font-weight: 400; font-style: italic; }
+    .sample-ibm-plex-serif { font-family: "IBM Plex Serif", serif; font-weight: 500; }
+    .sample-noto-sans-arabic { font-family: "Noto Sans Arabic", sans-serif; font-weight: 600; }
+    .sample-noto-color-emoji { font-family: "Noto Color Emoji", sans-serif; font-weight: 400; }
+  </style>
+</head>
+<body>
+  <h1 class="title">Editorial &amp; multilingual catalog</h1>
+  <p class="subtitle">Serif contrast, italic metrics, Arabic shaping and emoji fallback</p>
+  <main class="grid">
+    <div class="card"><span class="name">Merriweather · 700</span><div class="sample sample-merriweather">Readable editorial Aa 0123</div></div>
+    <div class="card"><span class="name">Playfair Display · 500 italic</span><div class="sample sample-playfair-display">Readable editorial Aa 0123</div></div>
+    <div class="card"><span class="name">Roboto Slab · 600</span><div class="sample sample-roboto-slab">Readable editorial Aa 0123</div></div>
+    <div class="card"><span class="name">Lora · 400 italic</span><div class="sample sample-lora">Readable editorial Aa 0123</div></div>
+    <div class="card"><span class="name">IBM Plex Serif · 500</span><div class="sample sample-ibm-plex-serif">Readable editorial Aa 0123</div></div>
+    <div class="card"><span class="name">Noto Sans Arabic · 600</span><div class="sample sample-noto-sans-arabic arabic">مرحبا بالعالم ١٢٣</div></div>
+    <div class="card"><span class="name">Noto Color Emoji · 400</span><div class="sample sample-noto-color-emoji">🌈 🚀 🎬 ✨ Aa 0123</div></div>
+  </main>
+</body>
+</html>

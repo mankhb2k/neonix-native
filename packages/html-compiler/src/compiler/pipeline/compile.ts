@@ -50,6 +50,22 @@ function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCom
 
 type HtmlTextLayer = Extract<MotionProtocolV2["layers"][number], { type: "text" }>;
 
+function textGradientPaint(style: Style, width: number, height: number, currentColor: string): Paint | undefined {
+  if (style.get("background-clip")?.trim().toLowerCase() !== "text") return undefined;
+  const background = style.get("background")?.trim();
+  if (!background || /^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(background) === false) return undefined;
+  const paints = parsePaintLayers(background, "background", currentColor, { width, height });
+  const paint = paints.length === 1 ? paints[0] : undefined;
+  return paint && typeof paint !== "string" && ["linear-gradient", "radial-gradient", "conic-gradient"].includes(paint.type)
+    ? paint
+    : undefined;
+}
+
+function textPaintFallbackColor(paint: Paint, fallback: string): string {
+  if (typeof paint === "string") return paint;
+  return "stops" in paint ? paint.stops?.[0]?.color ?? fallback : fallback;
+}
+
 /**
  * Preserve CSS background-image's two coordinate systems for the common
  * repeat/repeat case: the element is the owner rect, while the gradient is
@@ -613,6 +629,12 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
           const { text, hardBreaks, styleRuns } = collectedText;
           let textPayload: HtmlTextLayer["payload"] | undefined;
           let textClipId: string | undefined;
+          const authoredTextGradient = textGradientPaint(
+            style,
+            w,
+            h,
+            style.get("color") ?? parentStyle.get("color") ?? "#000000",
+          );
           if (text) {
             const font = resolveFontAssets(style, options.fontAssets ?? []);
             assetRegistry.registerFonts(font.assets);
@@ -644,7 +666,14 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
               const runFontSize = number(runStyle, "font-size", containingWidth, baseFontSize, 16, viewport) || baseFontSize;
               const runFont = resolveFontAssets(runStyle, options.fontAssets ?? []);
               assetRegistry.registerFonts(runFont.assets);
-              const runColor = parseColor(runStyle.get("color") ?? textColor, "color");
+              const runColorValue = parseColor(runStyle.get("color") ?? textColor, "color");
+              const runGradient = textGradientPaint(
+                runStyle,
+                w,
+                h,
+                runStyle.get("color") ?? style.get("color") ?? parentStyle.get("color") ?? "#000000",
+              );
+              const runColor = runGradient ? textPaintFallbackColor(runGradient, runColorValue) : runColorValue;
               const runDecoration = parseTextDecoration(runStyle.get("text-decoration"), runColor, containingWidth, runFontSize, viewport);
               const runLetterSpacing = parseTextSpacing(runStyle.get("letter-spacing"), "letter-spacing", containingWidth, runFontSize, viewport);
               const runWordSpacing = parseTextSpacing(runStyle.get("word-spacing"), "word-spacing", containingWidth, runFontSize, viewport);
@@ -656,7 +685,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                 letterSpacing: runLetterSpacing,
                 wordSpacing: runWordSpacing,
                 ...(runDecoration ? { textDecoration: runDecoration } : {}),
-                fill: runColor,
+                fill: runGradient ?? runColor,
               };
             });
             textPayload = {
@@ -670,7 +699,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
               }],
             };
           }
-          const backgroundShorthand = style.get("background")?.trim(); const backgroundValue = backgroundShorthand && (/^\w+-gradient\(/i.test(backgroundShorthand) || backgroundShorthand.includes(",")) ? backgroundShorthand : style.get("background-color") ?? backgroundShorthand; const paints = backgroundValue === undefined ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint]) : parsePaintLayers(backgroundValue, "background", style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h }); const border = parseBorderEdges(style, containingWidth, font, viewport);
+          const backgroundShorthand = style.get("background")?.trim(); const backgroundValue = authoredTextGradient ? undefined : backgroundShorthand && (/^\w+-gradient\(/i.test(backgroundShorthand) || backgroundShorthand.includes(",")) ? backgroundShorthand : style.get("background-color") ?? backgroundShorthand; const paints = backgroundValue === undefined ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint]) : parsePaintLayers(backgroundValue, "background", style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h }); const border = parseBorderEdges(style, containingWidth, font, viewport);
           const backgroundImages = parseBackgroundImages(style, style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h });
           const boxFor = (box: BackgroundBox): LayoutRect => backgroundBox(geometry, box);
           const paintBoxFor = (index: number): LayoutRect => boxFor(parseBackgroundBox(style, "background-clip", index));
@@ -702,7 +731,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
              emitOutline(false);
              return;
            }
-           const hasSizedGradientBackground = style.get("background-size") !== undefined && paints.some((fill) => typeof fill !== "string" && (fill.type === "linear-gradient" || fill.type === "radial-gradient" || fill.type === "conic-gradient"));
+           const hasSizedGradientBackground = style.get("background-size") !== undefined && style.get("background-size")?.trim().toLowerCase() !== "auto" && paints.some((fill) => typeof fill !== "string" && (fill.type === "linear-gradient" || fill.type === "radial-gradient" || fill.type === "conic-gradient"));
            const needsPaintGroup = textGroupRequired || hasChildren || backgroundImages.length > 0 || hasSizedGradientBackground || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || backdropFilterEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
            // Element opacity belongs to the stacking group. Generated paint
            // passes are children of that group and must remain opaque, or a

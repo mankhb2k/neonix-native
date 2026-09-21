@@ -42,6 +42,7 @@ type FontMetadata = {
 type FontRecord = FontMetadata & {
   familySlug: string;
   familyName: string;
+  metadataFamilyName: string;
   sourceFolder: string;
   sourceFile: string;
   absolutePath: string;
@@ -59,6 +60,7 @@ function argValue(name: string): string | undefined {
 const apply = process.argv.includes("--apply");
 const skipUpload = process.argv.includes("--skip-upload");
 const verify = process.argv.includes("--verify");
+const pruneStale = process.argv.includes("--prune-stale");
 const cleanupSource = process.argv.includes("--cleanup-source");
 const onlyFamily = argValue("--family");
 const systemFontsBucket = process.env.R2_SYSTEM_FONTS_BUCKET?.trim() || "neonix-system-fonts";
@@ -175,6 +177,11 @@ async function findTtx(): Promise<string> {
 async function parseFontMetadata(filePath: string, ttx: string): Promise<FontMetadata> {
   const result = await execFileAsync(ttx, ["-q", "-t", "name", "-t", "OS/2", "-t", "fvar", "-o", "-", filePath], {
     maxBuffer: 4 * 1024 * 1024,
+    env: {
+      ...process.env,
+      PYTHONIOENCODING: "utf-8",
+      PYTHONUTF8: "1",
+    },
     windowsHide: true,
   });
   const xml = result.stdout;
@@ -214,16 +221,11 @@ async function listFontFiles(root: string): Promise<string[]> {
   return result.sort();
 }
 
-function canonicalFamily(folderName: string, metadataFamilyName: string): string {
-  const known: Record<string, string> = {
-    Inter: "Inter",
-    Lora: "Lora",
-    Noto_Color_Emoji: "Noto Color Emoji",
-    Noto_Sans: "Noto Sans",
-    Noto_Sans_Arabic: "Noto Sans Arabic",
-    Roboto: "Roboto",
-  };
-  return known[folderName] ?? metadataFamilyName;
+function canonicalFamily(folderName: string): string {
+  // The local folder is the source of truth for family identity. Font
+  // metadata may contain a named variable-font instance (for example
+  // "IBM Plex Mono ExtraLight"), but that must never create another family.
+  return folderName.replace(/[_-]+/g, " ").trim();
 }
 
 function versionFromFile(fileName: string): string {
@@ -251,12 +253,13 @@ async function discoverFonts(root: string, ttx: string): Promise<FontRecord[]> {
     const sourceFolder = parts[0] ?? "unknown";
     const sourceFile = parts.at(-1) ?? relative;
     const metadata = await parseFontMetadata(absolutePath, ttx);
-    const familyName = canonicalFamily(sourceFolder, metadata.familyName);
+    const familyName = canonicalFamily(sourceFolder);
     const bytes = await readFile(absolutePath);
     const format = path.extname(sourceFile).slice(1).toLowerCase() as FontRecord["format"];
     records.push({
       ...metadata,
       familyName,
+      metadataFamilyName: metadata.familyName,
       familySlug: slugify(familyName),
       sourceFolder,
       sourceFile,
@@ -264,7 +267,9 @@ async function discoverFonts(root: string, ttx: string): Promise<FontRecord[]> {
       format,
       contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
       byteSize: bytes.byteLength,
-      r2Key: `${slugify(familyName)}/${sourceFile}`,
+      // Keep the object key 1:1 with public/preview/font/<folder>/<file>.
+      // Do not derive this from font metadata or invent a style-specific folder.
+      r2Key: `${sourceFolder}/${sourceFile}`,
       legacyR2Key: `font/${slugify(familyName)}/${sourceFile}`,
     });
   }
@@ -308,15 +313,37 @@ function assertUniqueCatalogIdentity(records: FontRecord[]): void {
 }
 
 async function syncR2(records: FontRecord[]): Promise<void> {
-  if (skipUpload) return;
   const provider = getSystemFontsProvider();
   let uploaded = 0;
   let skipped = 0;
-  for (const record of records) {
-    const existing = await provider.headObject(record.r2Key);
-    if (existing) {
-      if (existing.sizeBytes !== record.byteSize) {
-        throw new Error(`R2 object exists with different size: ${record.r2Key}`);
+  if (!skipUpload) {
+    for (const record of records) {
+      const existing = await provider.headObject(record.r2Key);
+      if (existing) {
+        if (existing.sizeBytes !== record.byteSize) {
+          throw new Error(`R2 object exists with different size: ${record.r2Key}`);
+        }
+        if (verify) {
+          const remoteBytes = await provider.getObject(record.r2Key);
+          if (!remoteBytes || sha256(remoteBytes) !== record.contentHash) {
+            throw new Error(`R2 hash verification failed: ${record.r2Key}`);
+          }
+        }
+        skipped += 1;
+        continue;
+      }
+      if (!apply) {
+        uploaded += 1;
+        continue;
+      }
+      await provider.putObject({
+        key: record.r2Key,
+        body: await readFile(record.absolutePath),
+        contentType: contentType(record.format),
+      });
+      const uploadedObject = await provider.headObject(record.r2Key);
+      if (!uploadedObject || uploadedObject.sizeBytes !== record.byteSize) {
+        throw new Error(`R2 upload verification failed: ${record.r2Key}`);
       }
       if (verify) {
         const remoteBytes = await provider.getObject(record.r2Key);
@@ -324,31 +351,25 @@ async function syncR2(records: FontRecord[]): Promise<void> {
           throw new Error(`R2 hash verification failed: ${record.r2Key}`);
         }
       }
-      skipped += 1;
-      continue;
-    }
-    if (!apply) {
       uploaded += 1;
-      continue;
     }
-    await provider.putObject({
-      key: record.r2Key,
-      body: await readFile(record.absolutePath),
-      contentType: contentType(record.format),
-    });
-    const uploadedObject = await provider.headObject(record.r2Key);
-    if (!uploadedObject || uploadedObject.sizeBytes !== record.byteSize) {
-      throw new Error(`R2 upload verification failed: ${record.r2Key}`);
-    }
-    if (verify) {
-      const remoteBytes = await provider.getObject(record.r2Key);
-      if (!remoteBytes || sha256(remoteBytes) !== record.contentHash) {
-        throw new Error(`R2 hash verification failed: ${record.r2Key}`);
-      }
-    }
-    uploaded += 1;
   }
-  console.log(`R2: ${uploaded} ${apply ? "uploaded" : "planned"}, ${skipped} already present`);
+  if (!skipUpload) {
+    console.log(`R2: ${uploaded} ${apply ? "uploaded" : "planned"}, ${skipped} already present`);
+  }
+
+  if (apply && pruneStale) {
+    const expectedKeys = new Set(records.map((record) => record.r2Key));
+    const existingKeys = await provider.listObjectKeys();
+    const staleKeys = existingKeys.filter((key) => !expectedKeys.has(key));
+    await provider.deleteObjects(staleKeys);
+    const remainingKeys = await provider.listObjectKeys();
+    const unexpectedKeys = remainingKeys.filter((key) => !expectedKeys.has(key));
+    if (unexpectedKeys.length > 0) {
+      throw new Error(`R2 stale-object verification failed: ${unexpectedKeys.slice(0, 5).join(", ")}`);
+    }
+    console.log(`R2 migration: ${staleKeys.length} stale objects deleted, ${remainingKeys.length} current objects remain`);
+  }
 }
 
 async function syncDatabase(records: FontRecord[]): Promise<void> {
@@ -398,20 +419,33 @@ async function syncDatabase(records: FontRecord[]): Promise<void> {
     metadata_json: {
       source_folder: record.sourceFolder,
       source_file: record.sourceFile,
-      family_name_from_font: record.familyName,
+      family_name_from_font: record.metadataFamilyName,
       version_name: record.versionName,
       os2WeightClass: record.os2WeightClass,
       cssWeight: record.weight,
     },
   }));
   if (rows.some((row) => !row.font_family_id)) throw new Error("font family id resolution failed");
-  if (apply) {
-    for (const record of records) {
-      const { error: legacyKeyError } = await catalog
-        .from("font_files")
-        .update({ r2_key: record.r2Key })
-        .eq("r2_key", record.legacyR2Key);
-      if (legacyKeyError) throw new Error(`legacy font key migration failed: ${legacyKeyError.message}`);
+  if (pruneStale) {
+    // The table has a unique constraint on (font_family_id, face_key, format).
+    // Delete old-key rows before upserting the canonical local-folder keys;
+    // otherwise a renamed object collides with its former catalog row.
+    const expectedKeys = new Set(rows.map((row) => row.r2_key));
+    const { data: existingRows, error: existingError } = await catalog
+      .from("font_files")
+      .select("id, r2_key");
+    if (existingError) throw new Error(`old font row listing failed: ${existingError.message}`);
+    const conflictingIds = (existingRows ?? [])
+      .filter((row) => typeof row.r2_key === "string" && !expectedKeys.has(row.r2_key))
+      .map((row) => row.id as string)
+      .filter(Boolean);
+    for (let offset = 0; offset < conflictingIds.length; offset += 100) {
+      const chunk = conflictingIds.slice(offset, offset + 100);
+      const { error } = await catalog.from("font_files").delete().in("id", chunk);
+      if (error) throw new Error(`old font row deletion failed: ${error.message}`);
+    }
+    if (conflictingIds.length > 0) {
+      console.log(`Supabase migration: ${conflictingIds.length} old-key font rows removed before upsert`);
     }
   }
   const { error: fileError } = await catalog
@@ -420,12 +454,34 @@ async function syncDatabase(records: FontRecord[]): Promise<void> {
     // prefixed key is migrated before this upsert when moving catalog data.
     .upsert(rows, { onConflict: "r2_key" });
   if (fileError) throw new Error(`font file upsert failed: ${fileError.message}`);
-  const { data: verifiedRows, error: verifyError } = await catalog
-    .from("font_files")
-    .select("r2_key, content_hash, byte_size, storage_bucket")
-    .in("r2_key", records.map((record) => record.r2Key));
-  if (verifyError) throw new Error(`font file verification failed: ${verifyError.message}`);
-  const verifiedByKey = new Map((verifiedRows ?? []).map((row) => [row.r2_key as string, row]));
+  const verifiedByKey = new Map<string, {
+    content_hash?: string;
+    byte_size?: number;
+    storage_bucket?: string;
+  }>();
+  for (let offset = 0; offset < records.length; offset += 100) {
+    const keys = records.slice(offset, offset + 100).map((record) => record.r2Key);
+    let verifiedRows: Array<Record<string, unknown>> | null = null;
+    let verifyError: { message: string } | null = null;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const result = await catalog
+        .from("font_files")
+        .select("r2_key, content_hash, byte_size, storage_bucket")
+        .in("r2_key", keys);
+      verifiedRows = (result.data ?? []) as Array<Record<string, unknown>>;
+      verifyError = result.error;
+      if (!verifyError) break;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+    if (verifyError) throw new Error(`font file verification failed: ${verifyError.message}`);
+    for (const row of verifiedRows ?? []) {
+      verifiedByKey.set(row.r2_key as string, row as {
+        content_hash?: string;
+        byte_size?: number;
+        storage_bucket?: string;
+      });
+    }
+  }
   for (const record of records) {
     const row = verifiedByKey.get(record.r2Key) as {
       content_hash?: string;
@@ -437,6 +493,73 @@ async function syncDatabase(records: FontRecord[]): Promise<void> {
     }
   }
   console.log(`Supabase: ${familyRows.length} families, ${rows.length} font files upserted`);
+}
+
+async function pruneStaleDatabase(records: FontRecord[]): Promise<void> {
+  if (!apply || !pruneStale) return;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!supabaseUrl || !serviceRoleKey) throw new Error("Missing Supabase service-role configuration");
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const catalog = supabase.schema("system_catalog");
+  const expectedKeys = new Set(records.map((record) => record.r2Key));
+  const { data: existingRows, error: listError } = await catalog
+    .from("font_files")
+    .select("id, r2_key");
+  if (listError) throw new Error(`stale font listing failed: ${listError.message}`);
+
+  const staleIds = (existingRows ?? [])
+    .filter((row) => typeof row.r2_key === "string" && !expectedKeys.has(row.r2_key))
+    .map((row) => row.id as string)
+    .filter(Boolean);
+  for (let offset = 0; offset < staleIds.length; offset += 100) {
+    const chunk = staleIds.slice(offset, offset + 100);
+    const { error } = await catalog.from("font_files").delete().in("id", chunk);
+    if (error) throw new Error(`stale font deletion failed: ${error.message}`);
+  }
+
+  const { count, error: verifyError } = await catalog
+    .from("font_files")
+    .select("id", { count: "exact", head: true });
+  if (verifyError) throw new Error(`stale font deletion verification failed: ${verifyError.message}`);
+  if (count !== records.length) {
+    throw new Error(`stale font deletion verification expected ${records.length}, found ${count}`);
+  }
+
+  const expectedFamilySlugs = new Set(records.map((record) => record.familySlug));
+  const { data: allFamilies, error: familyListError } = await catalog
+    .from("font_families")
+    .select("id, slug, source");
+  if (familyListError) throw new Error(`stale family listing failed: ${familyListError.message}`);
+  const { data: referencedRows, error: referencedError } = await catalog
+    .from("font_files")
+    .select("font_family_id");
+  if (referencedError) throw new Error(`family reference listing failed: ${referencedError.message}`);
+  const referencedIds = new Set((referencedRows ?? []).map((row) => row.font_family_id as string));
+  const staleFamilyIds = (allFamilies ?? [])
+    .filter((row) => row.source === "system" && !referencedIds.has(row.id as string) && !expectedFamilySlugs.has(row.slug as string))
+    .map((row) => row.id as string)
+    .filter(Boolean);
+  for (let offset = 0; offset < staleFamilyIds.length; offset += 100) {
+    const chunk = staleFamilyIds.slice(offset, offset + 100);
+    const { error } = await catalog.from("font_families").delete().in("id", chunk);
+    if (error) throw new Error(`stale family deletion failed: ${error.message}`);
+  }
+
+  const { data: remainingFamilies, error: remainingFamilyError } = await catalog
+    .from("font_families")
+    .select("slug")
+    .eq("source", "system");
+  if (remainingFamilyError) throw new Error(`stale family deletion verification failed: ${remainingFamilyError.message}`);
+  const remainingFamilySlugs = new Set((remainingFamilies ?? []).map((row) => row.slug as string));
+  if (remainingFamilySlugs.size !== expectedFamilySlugs.size || [...expectedFamilySlugs].some((slug) => !remainingFamilySlugs.has(slug))) {
+    throw new Error(`stale family deletion verification expected ${expectedFamilySlugs.size} current families, found ${remainingFamilySlugs.size}`);
+  }
+  console.log(`Supabase migration: ${staleIds.length} stale font files deleted, ${staleFamilyIds.length} orphan families deleted, ${count} current files and ${remainingFamilySlugs.size} families remain`);
 }
 
 async function cleanupSourceFonts(records: FontRecord[]): Promise<void> {
@@ -491,6 +614,7 @@ async function main(): Promise<void> {
   }
   await syncR2(records);
   await syncDatabase(records);
+  await pruneStaleDatabase(records);
   await cleanupSourceFonts(records);
   if (!apply) console.log("Dry-run complete. Add --apply to upload R2 objects and upsert Supabase metadata.");
 }

@@ -64,6 +64,19 @@ describe("HTML/CSS compiler P2.0 background images", () => {
     });
   });
 
+  it("expands layered background shorthand into image, position, size, repeat and color", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="card"></div>`,
+      css: `#card { width: 480px; height: 280px; background: url(/preview/image/photo-landscape.jpg) center / 160px 80px no-repeat #172554; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "card::background:0")).toMatchObject({
+      type: "image",
+      frame: { width: 160, height: 80 },
+    });
+    expect(result.protocol?.layers.some((layer) => layer.style?.fill === "#172554")).toBe(true);
+  });
+
   it("lowers explicit background repeat into bounded image tiles", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="tile"></div>`,

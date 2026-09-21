@@ -56,21 +56,9 @@ type PlaybackState = {
 
 const INITIAL_PLAYBACK: PlaybackState = { time: 0, duration: 1, playing: false };
 const SHOW_DEV_FIXTURE_PICKER = process.env.NODE_ENV !== "production";
-const PLAYGROUND_FONT_FACE_CSS = `
-@font-face {
-  font-family: "Inter";
-  src: url("/preview/font/Inter/Inter_18pt-Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: block;
-}
-@font-face {
-  font-family: "Inter";
-  src: url("/preview/font/Inter/Inter_18pt-Bold.ttf") format("truetype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: block;
-}`;
+const PLAYGROUND_FONT_FACE_CSS = HTML_COMPILER_PREVIEW_FONT_ASSETS
+  .map((asset) => `@font-face{font-family:"${asset.family}";src:url("${asset.uri}") format("truetype");font-weight:${asset.weight};font-style:${asset.style};font-stretch:${asset.stretch ?? "normal"};font-display:block;}`)
+  .join("\n");
 
 function browserDocument(html: string, background: string, width: number, height: number): string {
   const stageCss = `<style id="neonix-playground-stage">${PLAYGROUND_FONT_FACE_CSS}html,body{width:${width}px;height:${height}px;margin:0;overflow:hidden;background:${background};}body{position:relative;}</style>`;

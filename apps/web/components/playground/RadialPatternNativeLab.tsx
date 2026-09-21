@@ -32,10 +32,19 @@ html, body {
 </style>`;
 
 function withNativeStage(html: string): string {
+  const cssFamilies = html.toLocaleLowerCase();
+  const fontFaces = HTML_COMPILER_PREVIEW_FONT_ASSETS
+    .filter((asset) => cssFamilies.includes(asset.family.toLocaleLowerCase()))
+    .map(
+      (asset) =>
+        `@font-face { font-family: "${asset.family}"; src: url("${asset.uri}") format("truetype"); font-style: ${asset.style}; font-stretch: ${asset.stretch ?? "normal"}; font-weight: ${asset.weight}; }`,
+    )
+    .join("\n");
+  const injectedStyles = `${fontFaces ? `<style id="neonix-native-preview-fonts">${fontFaces}</style>` : ""}${STAGE_STYLE}`;
   if (/<\/head\s*>/i.test(html)) {
-    return html.replace(/<\/head\s*>/i, `${STAGE_STYLE}</head>`);
+    return html.replace(/<\/head\s*>/i, `${injectedStyles}</head>`);
   }
-  return `<!doctype html><html><head>${STAGE_STYLE}</head><body>${html}</body></html>`;
+  return `<!doctype html><html><head>${injectedStyles}</head><body>${html}</body></html>`;
 }
 
 export function RadialPatternNativeLab() {

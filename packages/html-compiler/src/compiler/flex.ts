@@ -129,11 +129,13 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
   const contentHeight = input.containerBox.contentHeight;
   const mainAvailable = direction === "row" ? contentWidth : contentHeight;
   const crossAvailable = direction === "row" ? contentHeight : contentWidth;
-  const gap = nonNegativeLength(input.containerStyle, "gap", contentWidth, input.fontSize, input.viewport);
   const mainGapProperty = direction === "row" ? "column-gap" : "row-gap";
   const crossGapProperty = direction === "row" ? "row-gap" : "column-gap";
-  const mainGap = input.containerStyle.has(mainGapProperty) ? nonNegativeLength(input.containerStyle, mainGapProperty, contentWidth, input.fontSize, input.viewport) : gap;
-  const crossGap = input.containerStyle.has(crossGapProperty) ? nonNegativeLength(input.containerStyle, crossGapProperty, contentWidth, input.fontSize, input.viewport) : gap;
+  const fallbackGap = input.containerStyle.has("gap") && !input.containerStyle.has("row-gap") && !input.containerStyle.has("column-gap")
+    ? nonNegativeLength(input.containerStyle, "gap", contentWidth, input.fontSize, input.viewport)
+    : 0;
+  const mainGap = input.containerStyle.has(mainGapProperty) ? nonNegativeLength(input.containerStyle, mainGapProperty, contentWidth, input.fontSize, input.viewport) : fallbackGap;
+  const crossGap = input.containerStyle.has(crossGapProperty) ? nonNegativeLength(input.containerStyle, crossGapProperty, contentWidth, input.fontSize, input.viewport) : fallbackGap;
   const items: FlexItem[] = [];
 
   const flexChildren = flattenChildren(input.children, input.styles);

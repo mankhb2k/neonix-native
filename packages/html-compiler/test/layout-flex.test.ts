@@ -37,6 +37,17 @@ describe("HTML/CSS compiler P1.1 flex layout", () => {
     expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 0, y: 208, z: 0 } } });
   });
 
+  it("expands two-value gap into row and column gaps", () => {
+    const protocol = compile(
+      `<div id="wrap"><div id="one"></div><div id="two"></div><div id="three"></div></div>`,
+      `#wrap { position: absolute; left: 200px; top: 200px; width: 260px; height: 240px; display: flex; flex-wrap: wrap; align-content: flex-start; align-items: flex-start; gap: 20px 30px; }
+       #one, #two, #three { width: 100px; height: 40px; background: #22d3ee; }`,
+    );
+    expect(layer(protocol, "one")).toMatchObject({ transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "two")).toMatchObject({ transform: { translate: { x: 130, y: 0, z: 0 } } });
+    expect(layer(protocol, "three")).toMatchObject({ transform: { translate: { x: 0, y: 60, z: 0 } } });
+  });
+
   it("distributes free space and resolves align-self", () => {
     const protocol = compile(
       `<div id="distribution"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,
