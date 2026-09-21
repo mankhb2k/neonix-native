@@ -2,7 +2,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign up | Neonix",
+  title: "Sign up",
   description: "Create a Neonix account to start compiling HTML into motion video.",
   alternates: { canonical: "/register" },
 };

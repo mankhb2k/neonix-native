@@ -2,7 +2,7 @@ import { LandingPage } from "@/components/site/LandingPage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Neonix — HTML to Motion Video for AI Agents",
+  title: "HTML to Motion Video for AI Agents",
   description:
     "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. Connect Claude, ChatGPT or Grok over Remote MCP to create, preview and export motion projects.",
   alternates: { canonical: "/" },

@@ -112,7 +112,6 @@ describe("hosted remote MCP contract", () => {
       uri: "ui://neonix/video-preview/v1.html",
       mimeType: "text/html;profile=mcp-app",
     }));
-    expect((preview.contents[0] as { text?: string }).text).toContain("Open editor");
     expect((preview.contents[0] as { text?: string }).text).toContain("Exporting...");
     expect((preview.contents[0] as { text?: string }).text).toContain("Download");
     expect((preview.contents[0] as { text?: string }).text).toContain("ui/initialize");

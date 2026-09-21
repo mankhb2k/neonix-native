@@ -86,7 +86,6 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
       </div>
       <nav class="actions" aria-label="Video actions">
         <button id="preview" type="button" disabled>Open Preview</button>
-        <button id="editor" type="button">Open editor (BETA)</button>
         <button id="export" class="primary" type="button" disabled>Export</button>
       </nav>
     </section>
@@ -97,7 +96,6 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
         const durationEl = document.getElementById("duration");
         const statusEl = document.getElementById("status");
         const previewButton = document.getElementById("preview");
-        const editorButton = document.getElementById("editor");
         const exportButton = document.getElementById("export");
         const pending = new Map();
         let requestId = 1;
@@ -300,19 +298,6 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
             showError(error instanceof Error ? error.message : "Could not start export");
           }
         }
-
-        editorButton.onclick = async () => {
-          try {
-            const locator = projectLocator(latest || toolInput);
-            const projectId = locator.projectId;
-            const publicRef = locator.publicRef;
-            const args = projectId ? { project_id: projectId } : { public_ref: publicRef };
-            const result = structured(await send("tools/call", { name: "open_editor", arguments: args }));
-            openLink(result?.editor_url || result?.editorUrl);
-          } catch (error) {
-            setStatus(error instanceof Error ? error.message : "Could not open editor", true);
-          }
-        };
 
         exportButton.onclick = () => void startExport(false);
 

@@ -14,7 +14,7 @@ export default function robots(): MetadataRoute.Robots {
           "/dashboard/",
           "/oauth",
           "/approve-ui",
-          "/playground",
+          "/playground/native-stage",
           "/preview/",
           "/docs/preview",
         ],

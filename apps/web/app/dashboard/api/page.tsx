@@ -3,7 +3,7 @@ import { HubFrame } from "@/components/hub/HubFrame";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "API | Neonix",
+  title: "API",
   description: "Build editable motion projects with the Neonix API.",
 };
 

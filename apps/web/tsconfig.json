@@ -33,10 +33,11 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-backend-order-e2e/types/**/*.ts",
+    ".next-dev/types/**/*.ts",
     ".next-v2-e2e/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-dev/types/**/*.ts"
+    ".next-agent-test/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

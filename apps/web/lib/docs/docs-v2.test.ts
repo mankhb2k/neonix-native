@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -15,6 +15,13 @@ import {
 } from "./docs";
 
 const publicContentPath = path.join(process.cwd(), "lib", "docs", "docs.tsx");
+const contentRoot = path.join(process.cwd(), "lib", "docs", "content");
+
+function collectMarkdownFiles(dir: string): string[] {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => path.join(dir, name));
+}
 
 describe("static V2 documentation", () => {
   it("resolves every published page without a preview project", () => {
@@ -46,9 +53,17 @@ describe("static V2 documentation", () => {
   });
 
   it("keeps the public content static and V2-only", () => {
-    const source = readFileSync(publicContentPath, "utf8");
-    expect(source).not.toMatch(/@motionvideo\/(motion-compiler|motion-runtime|preview-renderer)/);
-    expect(source).not.toMatch(/MotionProjectV1|parseMotionProjectV1|transform\.depth|transform\.origin/);
-    expect(source).not.toMatch(/\bbone\b/);
+    const forbidden = [
+      /@motionvideo\/(motion-compiler|motion-runtime|preview-renderer)/,
+      /MotionProjectV1|parseMotionProjectV1|transform\.depth|transform\.origin/,
+      /\bbone\b/,
+    ];
+    const sources = [publicContentPath, ...collectMarkdownFiles(contentRoot)];
+    for (const filePath of sources) {
+      const source = readFileSync(filePath, "utf8");
+      for (const pattern of forbidden) {
+        expect(source, `${filePath} matched ${pattern}`).not.toMatch(pattern);
+      }
+    }
   });
 });

@@ -2,7 +2,7 @@ import { Approve } from "@/components/auth/Approve";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Approve UI | Neonix",
+  title: "Approve UI",
   description: "Preview the Neonix OAuth approval interface.",
 };
 

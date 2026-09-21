@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Support | Neonix",
+  title: "Support",
   description: "Get help with Neonix projects, HTML/CSS compilation, MCP, and video export.",
   alternates: { canonical: "/support" },
 };

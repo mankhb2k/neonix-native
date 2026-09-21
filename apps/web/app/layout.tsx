@@ -25,7 +25,10 @@ const mono = Roboto_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.neonix.video"),
-  title: "Neonix",
+  title: {
+    default: "Neonix",
+    template: "%s | Neonix",
+  },
   description:
     "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
 };

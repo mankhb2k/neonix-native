@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { buttonClassName } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "Page not found | Neonix",
+  title: "Page not found",
 };
 
 export default function NotFound() {

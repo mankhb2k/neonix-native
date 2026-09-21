@@ -4,9 +4,9 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "HTML compiler playground | Neonix",
+  title: "HTML compiler playground",
   description: "Import HTML and compare browser CSS with the Neonix Runtime V3 and native preview.",
-  robots: { index: false, follow: false },
+  alternates: { canonical: "/playground" },
 };
 
 export default function PlaygroundPage() {

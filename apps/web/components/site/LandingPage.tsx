@@ -504,63 +504,6 @@ function AgentWorkflow() {
   );
 }
 
-function Comparison() {
-  const rows = [
-    ["Starting point", "HTML/CSS and agent intent", "React components and code"],
-    ["Authoring", "Agents, templates and visual editing", "Developers in a codebase"],
-    ["Output", "Semantic, editable motion data", "A programmatic video composition"],
-    ["Best for", "Agent-first video tools and reusable motion systems", "Code-first video generation with React"],
-  ];
-
-  return (
-    <Section id="comparison" className="border-b border-[var(--border-subtle)]">
-      <Reveal>
-        <Eyebrow>Choose the right layer</Eyebrow>
-        <Heading>Neonix and Remotion solve different problems.</Heading>
-        <p className={`mt-5 max-w-2xl leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
-          Remotion is a powerful code-first framework for rendering video with
-          React. Neonix is an agent-first motion workspace for turning web
-          primitives into editable projects.
-        </p>
-      </Reveal>
-      <Reveal delay={90}>
-        <div className="mt-10 overflow-x-auto rounded-xl border border-[var(--border-strong)]">
-          <table className={`w-full min-w-[680px] border-collapse text-left ${LANDING_TYPOGRAPHY.body}`}>
-            <thead className="bg-[var(--bg-elevated)] text-[var(--fg-primary)]">
-              <tr>
-                <th className="w-1/4 border-b border-[var(--border-subtle)] px-5 py-4 font-medium text-[var(--fg-muted)]">
-                  &nbsp;
-                </th>
-                <th className="border-b border-[var(--border-subtle)] px-5 py-4 text-[var(--accent-text)]">
-                  Neonix
-                </th>
-                <th className="border-b border-[var(--border-subtle)] px-5 py-4">
-                  Remotion
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(([label, neonix, remotion]) => (
-                <tr key={label} className="bg-[var(--bg-site)]">
-                  <th className="border-b border-[var(--border-subtle)] px-5 py-4 font-medium text-[var(--fg-primary)]">
-                    {label}
-                  </th>
-                  <td className="border-b border-[var(--border-subtle)] px-5 py-4 text-[var(--fg-secondary)]">
-                    {neonix}
-                  </td>
-                  <td className="border-b border-[var(--border-subtle)] px-5 py-4 text-[var(--fg-secondary)]">
-                    {remotion}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Reveal>
-    </Section>
-  );
-}
-
 function FinalCta() {
   return (
     <section className="border-t border-[var(--border-subtle)] bg-[var(--bg-site)]">
@@ -574,8 +517,8 @@ function FinalCta() {
           motion project you can preview, edit and export.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button href="/docs/preview/html-compiler">
-            Open compiler preview
+          <Button href="/playground">
+            Open compiler playground
           </Button>
           <Button href="/docs" secondary>
             Read the docs
@@ -632,7 +575,6 @@ export function LandingPage() {
         <Capabilities />
         <StructuredMotion />
         <AgentWorkflow />
-        <Comparison />
         <FinalCta />
       </main>
       <LandingFooter />

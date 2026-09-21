@@ -3,7 +3,7 @@ import { getDocsPage } from "@/lib/docs/docs";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Neonix documentation",
+  title: "Documentation",
   description:
     "Learn Neonix authoring, layers, animation, compositing, effects, and examples.",
   alternates: { canonical: "/docs" },
