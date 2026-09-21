@@ -134,7 +134,7 @@ async function audit(principal: McpPrincipal, workspaceId: string, action: strin
 
 async function maxUploadBytes(principal: McpPrincipal): Promise<number> {
   const client = getMcpSupabaseClient(principal);
-  const { data } = await client.from("profiles").select("max_upload_bytes").eq("id", principal.userId).maybeSingle();
+  const { data } = await client.from("account_plans").select("max_upload_bytes").eq("id", principal.userId).maybeSingle();
   const configured = Number(data?.max_upload_bytes);
   return Number.isFinite(configured) && configured > 0 ? Math.min(configured, MAX_ASSET_UPLOAD_BYTES) : MAX_ASSET_UPLOAD_BYTES;
 }

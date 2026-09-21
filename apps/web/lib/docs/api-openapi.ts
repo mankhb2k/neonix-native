@@ -112,10 +112,10 @@ export const NEONIX_OPENAPI = {
       put: {
         tags: ["Projects"],
         summary: "Compile and save HTML authoring source",
-        description: "Atomically creates a Neonix JSON V2 revision and its linked HTML revision.",
+        description: "Atomically creates a Neonix JSON V2 revision and its linked HTML revision. This is a one-way flow: HTML always wins. If the project's JSON was edited independently (native editor, JSON patch) since this HTML was last saved, that JSON is discarded and the response includes a non-null `warning` field describing what was overwritten.",
         parameters: [{ $ref: "#/components/parameters/ProjectId" }],
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateHtmlProjectRequest" } } } },
-        responses: { "200": { description: "Updated project and linked revisions" }, "409": { description: "Revision conflict" }, "422": { $ref: "#/components/responses/CompilerError" } },
+        responses: { "200": { description: "Updated project and linked revisions, with an optional `warning` when independent JSON edits were overwritten" }, "409": { description: "Revision conflict" }, "422": { $ref: "#/components/responses/CompilerError" } },
       },
     },
     "/api/v1/projects/{projectId}/json": {

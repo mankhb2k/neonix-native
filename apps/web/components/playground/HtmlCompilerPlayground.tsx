@@ -1,21 +1,23 @@
 "use client";
 
-import { Pause, Play, RotateCcw, Upload } from "lucide-react";
+import { Braces, Code2, Download, LoaderCircle, Pause, Play, RotateCcw, Upload, Wand2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
-import { fetchPlaygroundFixture } from "@/lib/api/playground";
-import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "@/lib/docs/html-compiler-preview";
-import { publicRendererMessage } from "@/lib/public-renderer-message";
+import { compileHtmlViaApi, fetchPlaygroundFixture, type PlaygroundCompileDiagnostic } from "@/lib/api/playground";
 import {
   createPlaybackControllerV3,
   type PlaybackControllerV3,
 } from "@/lib/editor/playback/playback-controller-v3";
 import { HTML_PLAYGROUND_CASES } from "@/lib/playground/html-playground-cases";
-import { compileDocument, type HtmlCompilerResult } from "@motionvideo/html-compiler";
+import { publicRendererMessage } from "@/lib/public-renderer-message";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
+// Kept deliberately minimal for production: one element, one animation. This
+// is the first thing a public, unauthenticated visitor sees and edits, so it
+// needs to be easy to read end-to-end at a glance, not a feature showcase.
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,27 +28,16 @@ const DEFAULT_HTML = `<!DOCTYPE html>
     * { box-sizing: border-box; }
     html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
     body { background: #081018; color: #f8fafc; }
-    .eyebrow { position: absolute; left: 150px; top: 155px; color: #4ade80; font-size: 24px; letter-spacing: 0.28em; animation: rise 900ms both; }
-    h1 { position: absolute; left: 150px; top: 290px; margin: 0; font-size: 126px; line-height: 0.95; letter-spacing: -0.06em; animation: reveal 1400ms 200ms both; }
-    .accent { color: #22d3ee; }
-    .orb { position: absolute; left: 1280px; top: 290px; width: 250px; height: 250px; border-radius: 999px; background: #22d3ee; box-shadow: 0 0 90px #22d3ee99; animation: float 2.4s linear alternate; }
-    .line { position: absolute; left: 150px; right: 150px; bottom: 175px; height: 4px; background: #1e293b; overflow: hidden; }
-    .line-fill { width: 38%; height: 100%; background: #4ade80; transform-origin: left; animation: grow 1600ms 500ms both; }
-    .caption { position: absolute; left: 150px; bottom: 100px; color: #94a3b8; font-size: 28px; animation: rise 1000ms 700ms both; }
-    @keyframes reveal { from { opacity: 0; transform: translateY(80px) scale(.92); filter: blur(18px); } to { opacity: 1; transform: none; filter: blur(0); } }
-    @keyframes rise { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
-    @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-    @keyframes float { from { transform: translateY(0) scale(.94); } to { transform: translateY(-45px) scale(1.04); } }
+    h1 { position: absolute; left: 150px; top: 470px; margin: 0; font-size: 96px; font-weight: 700; animation: reveal 900ms both; }
+    @keyframes reveal { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
   </style>
 </head>
 <body>
-  <div class="eyebrow">Neonix playground</div>
-  <h1>Make it <span class="accent">move.</span></h1>
-  <div class="orb"></div>
-  <div class="line"><div class="line-fill"></div></div>
-      <div class="caption">One HTML document → Neonix JSON V2 → Native renderer</div>
+  <h1>Hello, Neonix</h1>
 </body>
 </html>`;
+
+const DEFAULT_COMPOSITION = { width: 1920, height: 1080, fps: 30, background: "#081018", colorSpace: "srgb" };
 
 type PlaybackState = {
   time: number;
@@ -54,20 +45,52 @@ type PlaybackState = {
   playing: boolean;
 };
 
+type ConversionResult =
+  | { status: "idle" }
+  | { status: "success"; protocol: MotionProtocolV2; composition: typeof DEFAULT_COMPOSITION; diagnostics: PlaygroundCompileDiagnostic[] }
+  | { status: "error"; message: string; diagnostics: PlaygroundCompileDiagnostic[] };
+
 const INITIAL_PLAYBACK: PlaybackState = { time: 0, duration: 1, playing: false };
 const SHOW_DEV_FIXTURE_PICKER = process.env.NODE_ENV !== "production";
-const PLAYGROUND_FONT_FACE_CSS = HTML_COMPILER_PREVIEW_FONT_ASSETS
-  .map((asset) => `@font-face{font-family:"${asset.family}";src:url("${asset.uri}") format("truetype");font-weight:${asset.weight};font-style:${asset.style};font-stretch:${asset.stretch ?? "normal"};font-display:block;}`)
-  .join("\n");
 
-function browserDocument(html: string, background: string, width: number, height: number): string {
-  const stageCss = `<style id="neonix-playground-stage">${PLAYGROUND_FONT_FACE_CSS}html,body{width:${width}px;height:${height}px;margin:0;overflow:hidden;background:${background};}body{position:relative;}</style>`;
-  if (/<\/head\s*>/i.test(html)) return html.replace(/<\/head\s*>/i, `${stageCss}</head>`);
-  return `<!DOCTYPE html><html><head>${stageCss}</head><body>${html}</body></html>`;
+// Playground content is scratch space, not a saved project: it lives only in
+// this browser's localStorage so a refresh doesn't lose it, and is never
+// written to the database.
+const STORAGE_KEY = "neonix.playground.v1";
+
+type StoredPlaygroundState = {
+  html: string;
+  conversion: ConversionResult;
+  convertedHtml: string | null;
+};
+
+function loadStoredState(): StoredPlaygroundState | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredPlaygroundState>;
+    if (typeof parsed.html !== "string" || !parsed.conversion) return null;
+    return {
+      html: parsed.html,
+      conversion: parsed.conversion,
+      convertedHtml: typeof parsed.convertedHtml === "string" ? parsed.convertedHtml : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
-function diagnosticText(result: HtmlCompilerResult): string {
-  return result.diagnostics
+function saveStoredState(state: StoredPlaygroundState): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Quota exceeded or storage unavailable (private mode, disabled cookies).
+    // The playground still works in-memory; it just won't survive a refresh.
+  }
+}
+
+function diagnosticText(diagnostics: PlaygroundCompileDiagnostic[]): string {
+  return diagnostics
     .map((diagnostic) => `${diagnostic.severity.toUpperCase()} ${diagnostic.code}: ${publicRendererMessage(diagnostic.message)}`)
     .join("\n");
 }
@@ -78,49 +101,83 @@ export function HtmlCompilerPlayground() {
   const requestedFixtureId = searchParams.get("fixture");
   const requestedFixture = HTML_PLAYGROUND_CASES.find((fixture) => fixture.id === requestedFixtureId);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const browserStageRef = useRef<HTMLDivElement>(null);
-  const browserIframeRef = useRef<HTMLIFrameElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const controllerRef = useRef<PlaybackControllerV3 | null>(null);
   const fixtureRequestRef = useRef(0);
-  const browserPlayingRef = useRef(false);
+  const convertRequestRef = useRef(0);
   const lastUiFrameRef = useRef(-1);
+  const playingRef = useRef(false);
   const urlFixtureRef = useRef<string | null>(null);
   const [html, setHtml] = useState(DEFAULT_HTML);
+  const [activeTab, setActiveTab] = useState<"html" | "json">("html");
   const [isDragging, setIsDragging] = useState(false);
-  const [browserScale, setBrowserScale] = useState(0.4);
+  const [isConverting, setIsConverting] = useState(false);
+  const [conversion, setConversion] = useState<ConversionResult>({ status: "idle" });
+  const [convertedHtml, setConvertedHtml] = useState<string | null>(null);
   const [playback, setPlayback] = useState(INITIAL_PLAYBACK);
   const [runtimeProject, setRuntimeProject] = useState<RuntimeProjectV3 | null>(null);
   const [runtimeDocument, setRuntimeDocument] = useState<unknown>(null);
   const [previewReady, setPreviewReady] = useState(false);
   const [selectedFixtureId, setSelectedFixtureId] = useState(requestedFixture?.id ?? "custom");
   const [fixtureLoading, setFixtureLoading] = useState(false);
+  const [showExportNotice, setShowExportNotice] = useState(false);
+  const isFirstSaveRef = useRef(true);
 
-  const compilation = useMemo(
-    () => compileDocument({ html }, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS }),
-    [html],
-  );
-  const protocol = compilation.protocol;
-  const composition = compilation.source.composition;
+  const protocol = conversion.status === "success" ? conversion.protocol : null;
+  const composition = conversion.status === "success" ? conversion.composition : DEFAULT_COMPOSITION;
+  const diagnostics = conversion.status === "idle" ? [] : conversion.diagnostics;
+  const isStale = conversion.status !== "idle" && convertedHtml !== html;
   const isPreviewPreparing = Boolean(protocol) && !previewReady;
   const currentRuntimeProject = protocol && runtimeDocument === protocol
     ? runtimeProject
     : null;
-  const sourceDocument = useMemo(
-    () => browserDocument(html, composition.background, composition.width, composition.height),
-    [composition.background, composition.height, composition.width, html],
-  );
 
-  const syncBrowser = useCallback((time: number, playing: boolean) => {
-    const document = browserIframeRef.current?.contentDocument;
-    const root = document?.documentElement;
-    if (!root || !document) return;
-    root.dataset.neonixPlayback = playing ? "running" : "paused";
-    for (const animation of document.getAnimations()) {
-      if (playing) animation.play(); else animation.pause();
-      animation.currentTime = Math.max(0, time * 1000);
+  const convert = useCallback(async (source: string) => {
+    const requestId = ++convertRequestRef.current;
+    setIsConverting(true);
+    const result = await compileHtmlViaApi(source);
+    if (requestId !== convertRequestRef.current) return;
+    setIsConverting(false);
+    setConvertedHtml(source);
+    if (result.ok) {
+      setConversion({
+        status: "success",
+        protocol: result.protocol as unknown as MotionProtocolV2,
+        composition: result.composition,
+        diagnostics: result.diagnostics,
+      });
+    } else {
+      setConversion({ status: "error", message: result.message, diagnostics: result.diagnostics });
     }
-    browserPlayingRef.current = playing;
   }, []);
+
+  useEffect(() => {
+    // Restore whatever the user was last working on in this browser (the
+    // playground never saves to the account/database). If there's nothing
+    // stored, convert the default document so the preview isn't empty before
+    // the user's first edit.
+    const stored = loadStoredState();
+    if (stored) {
+      setHtml(stored.html);
+      setConversion(stored.conversion);
+      setConvertedHtml(stored.convertedHtml);
+      return;
+    }
+    void convert(DEFAULT_HTML);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Skip the very first run: at that point state is still whatever the
+    // initial useState() defaults were, before the restore effect above (or
+    // the initial convert() call) has had a chance to apply. Saving here
+    // would overwrite a just-loaded snapshot with those stale defaults.
+    if (isFirstSaveRef.current) {
+      isFirstSaveRef.current = false;
+      return;
+    }
+    saveStoredState({ html, conversion, convertedHtml });
+  }, [html, conversion, convertedHtml]);
 
   const registerFrameSink = useCallback((sink: Parameters<NonNullable<React.ComponentProps<typeof PreviewStage>["registerPlaybackFrameSink"]>>[0]) => {
     return controllerRef.current?.registerFrameSink(sink) ?? (() => undefined);
@@ -151,12 +208,10 @@ export function HtmlCompilerPlayground() {
       // Keep the React tree out of the 60 Hz paint loop. PreviewStage receives
       // frames imperatively; React only updates the transport UI once per
       // composition frame and on transport-state changes.
-      if (frame === lastUiFrameRef.current && event.playing === browserPlayingRef.current) return;
+      if (frame === lastUiFrameRef.current && event.playing === playingRef.current) return;
       lastUiFrameRef.current = frame;
+      playingRef.current = event.playing;
       setPlayback({ time: event.time, duration: event.duration, playing: event.playing });
-      if (!event.playing || browserPlayingRef.current !== event.playing) {
-        syncBrowser(event.time, event.playing);
-      }
     });
 
     return () => {
@@ -164,27 +219,13 @@ export function HtmlCompilerPlayground() {
       controller.dispose();
       if (controllerRef.current === controller) controllerRef.current = null;
     };
-  }, [composition.fps, protocol, syncBrowser]);
+  }, [composition.fps, protocol]);
 
   const setPreparedRuntimeProject = useCallback((prepared: RuntimeProjectV3) => {
     controllerRef.current?.setPreparedRuntimeProject(prepared);
     setRuntimeProject(prepared);
     setPreviewReady(true);
   }, []);
-
-  useLayoutEffect(() => {
-    const stage = browserStageRef.current;
-    if (!stage) return undefined;
-    const updateScale = () => {
-      const rect = stage.getBoundingClientRect();
-      const next = Math.min(rect.width / composition.width, rect.height / composition.height);
-      if (Number.isFinite(next) && next > 0) setBrowserScale(next);
-    };
-    updateScale();
-    const observer = new ResizeObserver(updateScale);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [composition.height, composition.width]);
 
   const syncFixtureUrl = useCallback((fixtureId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -200,14 +241,15 @@ export function HtmlCompilerPlayground() {
     const requestId = ++fixtureRequestRef.current;
     urlFixtureRef.current = "custom";
     syncFixtureUrl("custom");
-    setPreviewReady(false);
     void file.text().then((source) => {
       if (requestId !== fixtureRequestRef.current) return;
       setSelectedFixtureId("custom");
       setHtml(source);
+      setActiveTab("html");
       setPlayback(INITIAL_PLAYBACK);
+      void convert(source);
     });
-  }, [syncFixtureUrl]);
+  }, [convert, syncFixtureUrl]);
 
   const selectFixture = useCallback((fixtureId: string, persistUrl = true) => {
     if (persistUrl) {
@@ -218,7 +260,6 @@ export function HtmlCompilerPlayground() {
       fixtureRequestRef.current += 1;
       setSelectedFixtureId("custom");
       setFixtureLoading(false);
-      setPreviewReady(false);
       return;
     }
     const fixture = HTML_PLAYGROUND_CASES.find((candidate) => candidate.id === fixtureId);
@@ -226,12 +267,13 @@ export function HtmlCompilerPlayground() {
     const requestId = ++fixtureRequestRef.current;
     setSelectedFixtureId(fixture.id);
     setFixtureLoading(true);
-    setPreviewReady(false);
     void fetchPlaygroundFixture(fixture.url)
       .then((source) => {
         if (requestId !== fixtureRequestRef.current) return;
         setHtml(source);
+        setActiveTab("html");
         setPlayback(INITIAL_PLAYBACK);
+        void convert(source);
       })
       .catch(() => {
         if (requestId !== fixtureRequestRef.current) return;
@@ -242,21 +284,22 @@ export function HtmlCompilerPlayground() {
       .finally(() => {
         if (requestId === fixtureRequestRef.current) setFixtureLoading(false);
       });
-  }, [syncFixtureUrl]);
+  }, [convert, syncFixtureUrl]);
 
   useEffect(() => {
     const nextFixtureId = requestedFixture?.id ?? "custom";
     if (urlFixtureRef.current === nextFixtureId) return;
     urlFixtureRef.current = nextFixtureId;
     if (requestedFixture) selectFixture(requestedFixture.id, false);
-  }, [requestedFixture, selectFixture]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedFixture]);
 
   const onSeek = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const time = Number(event.target.value);
     controllerRef.current?.seek(time);
-    syncBrowser(time, false);
+    playingRef.current = false;
     setPlayback((current) => ({ ...current, time, playing: false }));
-  }, [syncBrowser]);
+  }, []);
 
   const togglePlayback = useCallback(() => {
     const controller = controllerRef.current;
@@ -264,12 +307,24 @@ export function HtmlCompilerPlayground() {
     if (playback.playing) controller.pause(); else controller.play();
   }, [playback.playing, previewReady]);
 
-  const reset = useCallback(() => {
+  const resetPlayback = useCallback(() => {
     controllerRef.current?.pause();
     controllerRef.current?.seek(0);
-    syncBrowser(0, false);
+    playingRef.current = false;
     setPlayback((current) => ({ ...current, time: 0, playing: false }));
-  }, [syncBrowser]);
+  }, []);
+
+  const onHtmlKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Tab") return;
+    event.preventDefault();
+    const textarea = event.currentTarget;
+    const { selectionStart, selectionEnd, value } = textarea;
+    const next = `${value.slice(0, selectionStart)}  ${value.slice(selectionEnd)}`;
+    setHtml(next);
+    requestAnimationFrame(() => {
+      textarea.selectionStart = textarea.selectionEnd = selectionStart + 2;
+    });
+  }, []);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-[var(--bg-site)] px-4 py-6 text-[var(--fg-primary)] sm:px-6 lg:px-8" data-testid="html-compiler-playground">
@@ -279,7 +334,8 @@ export function HtmlCompilerPlayground() {
         </div>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
-          <h1 className="text-2xl font-semibold">HTML → Neonix JSON V2 playground</h1>
+            <h1 className="text-2xl font-semibold">Convert HTML to Motion Video</h1>
+            <p className="mt-0.5 text-xs text-[var(--fg-secondary)]">HTML → Neonix JSON V2 playground</p>
           </div>
           <div className="flex items-center gap-2">
             {SHOW_DEV_FIXTURE_PICKER ? (
@@ -317,7 +373,7 @@ export function HtmlCompilerPlayground() {
             >
               <Upload size={14} /> Import HTML
             </Button>
-            <Button type="button" variant="outline" size="md" onClick={reset}>
+            <Button type="button" variant="outline" size="md" onClick={resetPlayback}>
               <RotateCcw size={14} /> Reset
             </Button>
           </div>
@@ -325,45 +381,128 @@ export function HtmlCompilerPlayground() {
       </header>
 
       <section className="mx-auto grid max-w-[1600px] min-w-0 grid-cols-1 gap-5 xl:grid-cols-2" data-testid="playground-two-panel">
-        <Panel title="Browser CSS reference" badge="Native HTML / CSS">
-          <div ref={browserStageRef} className={`relative w-full overflow-hidden bg-[#081018] ${isDragging ? "ring-2 ring-cyan-300" : ""}`} style={{ aspectRatio: `${composition.width} / ${composition.height}` }} onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setIsDragging(false)} onDrop={(event) => { event.preventDefault(); setIsDragging(false); importFile(event.dataTransfer.files[0]); }} data-testid="playground-browser-stage">
-            <iframe ref={browserIframeRef} title="Native browser HTML CSS reference" className="absolute left-0 top-0 border-0" style={{ width: `${composition.width}px`, height: `${composition.height}px`, transform: `scale(${browserScale})`, transformOrigin: "top left" }} sandbox="allow-same-origin" onLoad={() => syncBrowser(playback.time, playback.playing)} srcDoc={sourceDocument} />
+        <div
+          className={`min-w-0 overflow-hidden rounded-lg border bg-white shadow-sm ${isDragging ? "border-cyan-400 ring-2 ring-cyan-300" : "border-[var(--border-subtle)]"}`}
+          onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
+          onDragOver={(event) => event.preventDefault()}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(event) => { event.preventDefault(); setIsDragging(false); importFile(event.dataTransfer.files[0]); }}
+          data-testid="playground-editor-panel"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3 py-2">
+            <div className="flex items-center gap-1" role="tablist" aria-label="Editor view">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "html"}
+                onClick={() => setActiveTab("html")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${activeTab === "html" ? "bg-[#0d9488] text-white" : "text-[var(--fg-secondary)] hover:bg-slate-100"}`}
+                data-testid="playground-tab-html"
+              >
+                <Code2 size={13} /> HTML
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "json"}
+                onClick={() => setActiveTab("json")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${activeTab === "json" ? "bg-[#0d9488] text-white" : "text-[var(--fg-secondary)] hover:bg-slate-100"}`}
+                data-testid="playground-tab-json"
+              >
+                <Braces size={13} /> JSON {isStale ? <span className="ml-1 inline-block size-1.5 rounded-full bg-amber-500" title="Out of date - convert to refresh" /> : null}
+              </button>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              className="!bg-[#0d9488] !text-white hover:!bg-[#0f766e] h-8 min-h-8 shrink-0 leading-none"
+              onClick={() => void convert(html)}
+              disabled={isConverting}
+              data-testid="playground-convert"
+            >
+              {isConverting ? <LoaderCircle size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              {isConverting ? "Converting…" : "Convert"}
+            </Button>
           </div>
-        </Panel>
+          {activeTab === "html" ? (
+            <textarea
+              ref={textareaRef}
+              value={html}
+              onChange={(event) => setHtml(event.target.value)}
+              onKeyDown={onHtmlKeyDown}
+              spellCheck={false}
+              className="h-[560px] w-full resize-none bg-[#f5f5f5] p-4 font-mono text-[11px] leading-relaxed text-[var(--fg-primary)] outline-none"
+              data-testid="playground-source"
+            />
+          ) : (
+            <pre className="h-[560px] overflow-auto whitespace-pre-wrap break-words bg-[#f5f5f5] p-4 font-mono text-[11px] leading-relaxed text-[var(--fg-secondary)]" data-testid="playground-json">
+              {conversion.status === "success"
+                ? JSON.stringify(conversion.protocol, null, 2)
+                : conversion.status === "error"
+                  ? `${conversion.message}${diagnostics.length ? `\n\n${diagnosticText(diagnostics)}` : ""}`
+                  : "Click Convert to compile this HTML."}
+            </pre>
+          )}
+        </div>
 
-        <Panel title="Compiler output" badge="HTML → JSON V2" titleSize="sm">
+        <Panel
+          title="Preview"
+          titleSize="sm"
+          actions={
+            <div className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                className="h-8 min-h-8 leading-none"
+                onClick={() => setShowExportNotice(true)}
+                data-testid="playground-export"
+              >
+                <Download size={14} /> Export
+              </Button>
+              {showExportNotice ? (
+                <div
+                  role="status"
+                  className="absolute right-0 top-9 z-10 w-56 rounded-md border border-[var(--border-subtle)] bg-white p-3 text-xs leading-relaxed text-[var(--fg-secondary)] shadow-lg"
+                >
+                  Export is coming soon.
+                  <button type="button" onClick={() => setShowExportNotice(false)} className="ml-1 font-semibold text-[#0d9488] underline">
+                    Dismiss
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          }
+        >
           <div className="relative w-full overflow-hidden bg-[#f5f5f5]" style={{ aspectRatio: `${composition.width} / ${composition.height}` }} data-testid="playground-runtime-stage">
-            {protocol && currentRuntimeProject ? <PreviewStage project={protocol} runtimeProject={currentRuntimeProject} externalPlayback onPreparedRuntimeProject={setPreparedRuntimeProject} registerPlaybackFrameSink={registerFrameSink} backend="skia" testId="playground-runtime-canvas" /> : <div className="flex h-full items-center justify-center p-6 text-center text-sm text-rose-700">{diagnosticText(compilation) || "Import a valid Neonix HTML document to compile."}</div>}
+            {protocol && currentRuntimeProject ? (
+              <PreviewStage project={protocol} runtimeProject={currentRuntimeProject} externalPlayback onPreparedRuntimeProject={setPreparedRuntimeProject} registerPlaybackFrameSink={registerFrameSink} backend="skia" testId="playground-runtime-canvas" />
+            ) : (
+              <div className="flex h-full items-center justify-center p-6 text-center text-sm text-rose-700">
+                {conversion.status === "error" ? (diagnosticText(diagnostics) || conversion.message) : "Click Convert to compile this HTML."}
+              </div>
+            )}
           </div>
-        </Panel>
-      </section>
-
-      <section className="mx-auto mt-5 flex max-w-[1600px] items-center gap-3 rounded border border-[var(--border-subtle)] bg-white px-4 py-3" data-testid="playground-transport">
-        <Button type="button" variant="primary" size="icon" loading={isPreviewPreparing} aria-label={isPreviewPreparing ? "Preparing preview" : playback.playing ? "Pause preview" : "Play preview"} className="!bg-[#0d9488] !text-white hover:!bg-[#0f766e] h-9 w-9 shrink-0 rounded-full" onClick={togglePlayback} disabled={!protocol || !previewReady} data-testid="playground-play-toggle">
-          {previewReady ? (playback.playing ? <Pause size={15} /> : <Play size={15} />) : null}
-        </Button>
-        <input className="min-w-0 flex-1 accent-[#0d9488]" type="range" min="0" max={Math.max(0.1, playback.duration)} step={1 / composition.fps} value={Math.min(playback.time, playback.duration)} onChange={onSeek} disabled={!protocol} aria-label="Preview time" />
-        <span className="shrink-0 font-mono text-[11px] text-[#0d9488]">{playback.time.toFixed(2)}s / {playback.duration.toFixed(2)}s</span>
-      </section>
-
-      <section className="mx-auto mt-5 grid max-w-[1600px] min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
-        <Panel title="Source HTML" badge="Imported document" titleSize="sm">
-          <pre className="max-h-[348px] overflow-auto whitespace-pre-wrap break-words bg-[#f5f5f5] p-4 font-mono text-[11px] leading-relaxed text-[var(--fg-secondary)]" data-testid="playground-source">{html}</pre>
-        </Panel>
-        <Panel title="Normalized Neonix JSON V2" badge={compilation.status === "success" ? "Canonical output" : "Diagnostics"} titleSize="sm">
-          <pre className="max-h-[348px] overflow-auto whitespace-pre-wrap break-words bg-[#f5f5f5] p-4 font-mono text-[11px] leading-relaxed text-[var(--fg-secondary)]" data-testid="playground-json">{JSON.stringify(protocol ?? { diagnostics: compilation.diagnostics }, null, 2)}</pre>
+          <div className="flex items-center gap-3 border-t border-[var(--border-subtle)] px-4 py-3" data-testid="playground-transport">
+            <Button type="button" variant="primary" size="icon" loading={isPreviewPreparing} aria-label={isPreviewPreparing ? "Preparing preview" : playback.playing ? "Pause preview" : "Play preview"} className="!bg-[#0d9488] !text-white hover:!bg-[#0f766e] h-9 w-9 shrink-0 rounded-full" onClick={togglePlayback} disabled={!protocol || !previewReady} data-testid="playground-play-toggle">
+              {previewReady ? (playback.playing ? <Pause size={15} /> : <Play size={15} />) : null}
+            </Button>
+            <input className="min-w-0 flex-1 accent-[#0d9488]" type="range" min="0" max={Math.max(0.1, playback.duration)} step={1 / composition.fps} value={Math.min(playback.time, playback.duration)} onChange={onSeek} disabled={!protocol} aria-label="Preview time" />
+            <span className="shrink-0 font-mono text-[11px] text-[#0d9488]">{playback.time.toFixed(2)}s / {playback.duration.toFixed(2)}s</span>
+          </div>
         </Panel>
       </section>
     </main>
   );
 }
 
-function Panel({ title, badge, titleSize = "xs", children }: { title: string; badge: string; titleSize?: "xs" | "sm"; children: React.ReactNode }) {
+function Panel({ title, badge, actions, titleSize = "xs", children }: { title: string; badge?: string; actions?: React.ReactNode; titleSize?: "xs" | "sm"; children: React.ReactNode }) {
   return (
     <div className="min-w-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-3 py-3">
         <h2 className={`${titleSize === "sm" ? "text-sm" : "text-xs"} font-semibold text-[var(--fg-primary)]`}>{title}</h2>
-        <span className="rounded border border-[#99d5cc] bg-[#e6f5f2] px-2 py-1 font-mono text-[10px] text-[#0f766e]">{badge}</span>
+        {actions ?? (badge ? <span className="rounded border border-[#99d5cc] bg-[#e6f5f2] px-2 py-1 font-mono text-[10px] text-[#0f766e]">{badge}</span> : null)}
       </div>
       {children}
     </div>

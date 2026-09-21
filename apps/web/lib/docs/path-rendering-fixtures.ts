@@ -55,23 +55,23 @@ type PathSegment =
 const TEXT_PREVIEW_FONT = {
   id: "debug-noto-sans-regular",
   kind: "font" as const,
-  uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
+  uri: "/preview/font/Noto_Sans/NotoSans-400.ttf",
   mimeType: "font/ttf" as const,
   family: "Noto Sans",
   weight: 400,
   style: "normal" as const,
-  integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
+  integrity: "sha256:38941acff7619670b210051a93eaae1d03b1973a5bda5d64d58ab21bb69f551e",
 };
 
 const TEXT_PREVIEW_BOLD_ITALIC_FONT = {
   id: "debug-noto-sans-bold-italic",
   kind: "font" as const,
-  uri: "/preview/font/Noto_Sans/NotoSans-BoldItalic.ttf",
+  uri: "/preview/font/Noto_Sans/NotoSans-700-Italic.ttf",
   mimeType: "font/ttf" as const,
   family: "Noto Sans",
   weight: 700,
   style: "italic" as const,
-  integrity: "sha256:7e34616e092593c340449baf9a259075a054c6419511ccf21ff0d83a1c9dd0d0",
+  integrity: "sha256:06a3bacc2aa7029985002b300e66e6049073ad9e8089f11a8d5e4f1edfbac50e",
 };
 
 const TEXT_PREVIEW_EMOJI_FONT = {

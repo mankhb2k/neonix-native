@@ -4,8 +4,9 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "HTML compiler playground",
-  description: "Import HTML and compare browser CSS with the Neonix Runtime V3 and native preview.",
+  title: "Convert HTML to Video Online",
+  description:
+    "Convert HTML and CSS into video instantly. Paste or upload your HTML, click Convert, and preview the animated result live in your browser — free, no signup required.",
   alternates: { canonical: "/playground" },
 };
 

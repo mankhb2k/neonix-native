@@ -1,8 +1,9 @@
 import { create } from "fontkit";
+import { resolveCssWeight, resolveFontStyle, type FontStyle } from "./font-face-metadata";
 
 export const USER_FONT_FORMATS = ["ttf", "woff", "woff2"] as const;
 export type UserFontFormat = (typeof USER_FONT_FORMATS)[number];
-export type FontStyle = "normal" | "italic" | "oblique";
+export type { FontStyle };
 
 export type ParsedFontMetadata = {
   familyName: string;
@@ -16,33 +17,8 @@ export type ParsedFontMetadata = {
   faceKey: string;
 };
 
-const WEIGHTS: Array<[RegExp, number]> = [
-  [/thin|hairline/i, 100],
-  [/extra\s*light|ultra\s*light/i, 200],
-  [/light/i, 300],
-  [/regular|normal|book|roman/i, 400],
-  [/medium/i, 500],
-  [/semi\s*bold|demi\s*bold/i, 600],
-  [/bold/i, 700],
-  [/extra\s*bold|ultra\s*bold/i, 800],
-  [/black|heavy/i, 900],
-];
-
 function normalized(value: string): string {
   return value.normalize("NFC").trim().replace(/\s+/g, " ");
-}
-
-function inferStyle(subfamilyName: string): FontStyle {
-  if (/oblique/i.test(subfamilyName)) return "oblique";
-  if (/italic/i.test(subfamilyName)) return "italic";
-  return "normal";
-}
-
-function inferWeight(subfamilyName: string, os2Weight: unknown): number {
-  const named = WEIGHTS.find(([pattern]) => pattern.test(subfamilyName));
-  if (named) return named[1];
-  const value = Number(os2Weight);
-  return Number.isInteger(value) && value >= 1 && value <= 1000 ? value : 400;
 }
 
 export function formatFromFilename(name: string): UserFontFormat | null {
@@ -73,9 +49,9 @@ export function parseUserFont(buffer: Buffer): ParsedFontMetadata {
     throw new Error("Variable fonts are not supported. Upload a static .ttf, .woff, or .woff2 face");
   }
 
-  const style = inferStyle(subfamilyName);
-  const os2 = font["OS/2"];
-  const weight = inferWeight(subfamilyName, os2 && typeof os2 === "object" ? (os2 as { usWeightClass?: unknown }).usWeightClass : undefined);
+  const os2 = font["OS/2"] as { usWeightClass?: unknown; fsSelection?: { italic?: boolean; oblique?: boolean } } | undefined;
+  const weight = resolveCssWeight(subfamilyName, os2?.usWeightClass);
+  const style = resolveFontStyle(subfamilyName, os2?.fsSelection?.italic === true, os2?.fsSelection?.oblique === true);
   return {
     familyName,
     subfamilyName,

@@ -8,6 +8,7 @@ import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
 import { getSystemAssetsProvider, getSystemFontsProvider } from "@/lib/server/r2";
+import { resolveCssWeight, resolveFontStyle, type FontStyle } from "@/lib/server/font-face-metadata";
 
 loadEnvConfig(process.cwd(), false);
 
@@ -25,7 +26,6 @@ const WIDTH_CLASS_NAMES = [
   "ultra-expanded",
 ] as const;
 type WidthClass = typeof WIDTH_CLASS_NAMES[number];
-type FontStyle = "normal" | "italic" | "oblique";
 
 type FontMetadata = {
   familyName: string;
@@ -122,36 +122,14 @@ function widthClass(value: number): WidthClass {
   return WIDTH_CLASS_NAMES[Math.max(0, Math.min(WIDTH_CLASS_NAMES.length - 1, value - 1))] ?? "normal";
 }
 
-function styleFromMetadata(subfamilyName: string, fsSelection: number | null): FontStyle {
-  if ((fsSelection !== null && (fsSelection & 0x01) !== 0) || /italic/i.test(subfamilyName)) {
-    return "italic";
-  }
-  if (/oblique/i.test(subfamilyName)) return "oblique";
-  return "normal";
-}
+// OS/2 fsSelection bit 0 = ITALIC, bit 9 = OBLIQUE (matches the OpenType spec
+// order fontkit itself uses for the same bitfield in the user-upload path).
+const FS_SELECTION_ITALIC_BIT = 0x0001;
+const FS_SELECTION_OBLIQUE_BIT = 0x0200;
 
-function cssWeightFromMetadata(subfamilyName: string, os2WeightClass: number): number {
-  // OS/2 usWeightClass is the authoritative binary metadata. Some families
-  // (for example Lora) encode Medium/SemiBold as a `Regular` subfamily while
-  // the actual weight is stored correctly in OS/2. Reading the subfamily first
-  // collapses those faces into weight 400 in the catalog.
-  if (Number.isFinite(os2WeightClass) && os2WeightClass >= 1 && os2WeightClass <= 1000) {
-    return Math.round(os2WeightClass);
-  }
-  const name = subfamilyName.toLowerCase();
-  const named: Array<[RegExp, number]> = [
-    [/hairline|thin/, 100],
-    [/extra.?light|ultra.?light/, 200],
-    [/light/, 300],
-    [/regular|book|normal/, 400],
-    [/medium/, 500],
-    [/semi.?bold|demi.?bold/, 600],
-    [/extra.?bold|ultra.?bold/, 800],
-    [/bold/, 700],
-    [/black|heavy/, 900],
-  ];
-  return named.find(([pattern]) => pattern.test(name))?.[1]
-    ?? Math.max(1, Math.min(1000, Math.round(os2WeightClass / 100) * 100));
+function parseFsSelection(xml: string): number | null {
+  const match = xml.match(/<fsSelection\s+[^>]*value="([01 ]+)"/);
+  return match?.[1] ? Number.parseInt(match[1].replace(/ /g, ""), 2) : null;
 }
 
 async function findTtx(): Promise<string> {
@@ -190,10 +168,9 @@ async function parseFontMetadata(filePath: string, ttx: string): Promise<FontMet
   const postscriptName = xmlName(xml, 6) ?? path.basename(filePath, path.extname(filePath));
   const os2WeightClass = xmlNumber(xml, "usWeightClass") ?? 400;
   const width = xmlNumber(xml, "usWidthClass") ?? 5;
-  const fsSelection = xml.match(/<fsSelection\\s+[^>]*value="([01 ]+)"/)?.[1]
-    ?.replace(/ /g, "")
-    ? Number.parseInt(xml.match(/<fsSelection\\s+[^>]*value="([01 ]+)"/)?.[1]?.replace(/ /g, "") ?? "0", 2)
-    : null;
+  const fsSelection = parseFsSelection(xml);
+  const isItalicBit = fsSelection !== null && (fsSelection & FS_SELECTION_ITALIC_BIT) !== 0;
+  const isObliqueBit = fsSelection !== null && (fsSelection & FS_SELECTION_OBLIQUE_BIT) !== 0;
 
   return {
     familyName,
@@ -201,8 +178,8 @@ async function parseFontMetadata(filePath: string, ttx: string): Promise<FontMet
     postscriptName,
     versionName: xmlName(xml, 5),
     os2WeightClass,
-    weight: cssWeightFromMetadata(subfamilyName, os2WeightClass),
-    style: styleFromMetadata(subfamilyName, fsSelection),
+    weight: resolveCssWeight(subfamilyName, os2WeightClass),
+    style: resolveFontStyle(subfamilyName, isItalicBit, isObliqueBit),
     widthClass: widthClass(width),
     axes: parseAxes(xml),
   };

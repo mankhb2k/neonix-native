@@ -210,9 +210,9 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
       {
         id: "font-noto-sans-regular",
         kind: "font",
-        uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
+        uri: "/preview/font/Noto_Sans/NotoSans-400.ttf",
         weight: 400,
-        integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
+        integrity: "sha256:38941acff7619670b210051a93eaae1d03b1973a5bda5d64d58ab21bb69f551e",
       },
       {
         id: "three-kingdoms-atmosphere",

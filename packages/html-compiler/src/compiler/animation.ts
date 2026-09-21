@@ -48,10 +48,29 @@ function color(value: string, currentColor: string): { type: "color"; value: [nu
   return { type: "color", value: [bytes[0]! / 255, bytes[1]! / 255, bytes[2]! / 255, bytes[3]! / 255] };
 }
 
+// CSS Easing Functions Level 1 keyword equivalents (matches every browser's
+// built-in mapping, not an approximation) for the keywords authors reach for
+// most often before learning this compiler only accepts explicit values.
+const KEYWORD_EASINGS: Record<string, V2Easing> = {
+  ease: { type: "cubicBezier", x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 },
+  "ease-in": { type: "cubicBezier", x1: 0.42, y1: 0, x2: 1, y2: 1 },
+  "ease-out": { type: "cubicBezier", x1: 0, y1: 0, x2: 0.58, y2: 1 },
+  "ease-in-out": { type: "cubicBezier", x1: 0.42, y1: 0, x2: 0.58, y2: 1 },
+};
+
+/** Published through get_capabilities so an author (or agent) can discover valid values without a failed compile. */
+export const SUPPORTED_ANIMATION_TIMING_FUNCTIONS = [
+  "linear",
+  ...Object.keys(KEYWORD_EASINGS),
+  "cubic-bezier(x1, y1, x2, y2)",
+  "steps(count, jump-start | jump-end | jump-none | jump-both | start | end)",
+] as const;
+
 function easing(value: string | undefined): V2Easing {
   const source = (value ?? "ease").trim().toLowerCase();
   if (source === "linear") return { type: "linear" };
-  if (source === "ease") return { type: "cubicBezier", x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 };
+  const keyword = KEYWORD_EASINGS[source];
+  if (keyword) return keyword;
   const steps = source.match(/^steps\(\s*(\d+)\s*(?:,\s*(jump-start|jump-end|jump-none|jump-both|start|end))?\s*\)$/);
   if (steps) {
     const count = Number(steps[1]);

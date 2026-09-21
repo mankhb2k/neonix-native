@@ -571,12 +571,23 @@ export async function updateProject(
 
 export async function getProjectHtml(client: ProjectClient, actor: ProjectActor, input: ProjectReference) {
   const { project } = await requireProject(client, actor, input);
-  const revision = await latestHtmlRevision(client, project.id);
+  const [revision, latestProtocol] = await Promise.all([
+    latestHtmlRevision(client, project.id),
+    latestProtocolRevision(client, project.id),
+  ]);
   if (!revision) throw new ProjectRepositoryError("Project does not contain an HTML source", "NOT_FOUND");
+  // The HTML source and the canonical Protocol V2 revision are linked at
+  // write time (protocol_revision_id). If a later apply_json_patch or editor
+  // save advanced the protocol revision without going through this HTML
+  // source, that link now points at a stale revision — saving this HTML
+  // back would silently discard whatever changed the JSON since then.
+  const htmlSyncStatus: "synced" | "stale" =
+    revision.protocol_revision_id === (latestProtocol?.id ?? null) ? "synced" : "stale";
   return {
-    project: projectOutput(project, await latestProtocolRevision(client, project.id)),
+    project: projectOutput(project, latestProtocol),
     html: revision.document_html,
     htmlRevision: revision,
+    htmlSyncStatus,
   };
 }
 
@@ -594,10 +605,19 @@ export async function updateProjectHtml(
   if (input.expectedProtocolRevisionNo !== undefined && input.expectedProtocolRevisionNo !== project.current_revision_no) {
     throw new ProjectRepositoryError("Project revision conflict", "REVISION_CONFLICT");
   }
-  const previousHtml = await latestHtmlRevision(client, project.id);
+  const [previousHtml, latestProtocolBeforeCommit] = await Promise.all([
+    latestHtmlRevision(client, project.id),
+    latestProtocolRevision(client, project.id),
+  ]);
   if (input.expectedHtmlRevisionNo !== undefined && (previousHtml?.revision_no ?? 0) !== input.expectedHtmlRevisionNo) {
     throw new ProjectRepositoryError("HTML revision conflict", "REVISION_CONFLICT");
   }
+  // The project's JSON can be edited independently of HTML (native editor,
+  // applyJsonPatch). This is a one-way flow: an HTML save always wins and
+  // overwrites the current JSON, so callers must be told when that happened,
+  // since those independent JSON edits are being discarded right now.
+  const discardedIndependentJsonEdits =
+    previousHtml !== null && previousHtml.protocol_revision_id !== (latestProtocolBeforeCommit?.id ?? null);
 
   const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
@@ -648,13 +668,22 @@ export async function updateProjectHtml(
     workspaceId: project.workspace_id,
     action: "project.html.update",
     targetId: project.id,
-    metadata: { revisionNo, protocolRevisionId: commit.protocolRevisionId },
+    metadata: { revisionNo, protocolRevisionId: commit.protocolRevisionId, discardedIndependentJsonEdits },
   });
   return {
     project: projectOutput(updated.data as unknown as ProjectRow, canonical.data as unknown as ProtocolRevisionRow),
     htmlRevision: htmlRevision.data,
     protocolRevision: canonical.data,
     diagnostics: compiled.diagnostics,
+    warning: discardedIndependentJsonEdits
+      ? {
+          code: "DISCARDED_INDEPENDENT_JSON_EDITS",
+          message:
+            "This HTML save overwrote JSON changes made independently since the HTML was last saved (revision "
+            + `${latestProtocolBeforeCommit?.revision_no ?? "unknown"} is no longer current).`,
+          discardedProtocolRevisionNo: latestProtocolBeforeCommit?.revision_no ?? null,
+        }
+      : null,
   };
 }
 

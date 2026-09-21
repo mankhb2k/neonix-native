@@ -139,7 +139,7 @@ async function resolveWorkspace(
   if (!workspaceId) {
     const { data, error } = await client
       .from("workspaces")
-      .insert({ name: "Personal workspace", created_by: principal.userId })
+      .insert({ name: "Personal workspace", created_by: principal.userId, kind: "personal" })
       .select("id, name, created_at")
       .single();
     if (error) throwSupabaseError(error, "Unable to create a personal workspace");

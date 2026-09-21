@@ -2266,23 +2266,23 @@ type TextSpan = TextChunk["spans"][number];
 const PREVIEW_NOTO_SANS_REGULAR_FONT = {
   id: "preview-noto-sans-regular-v2",
   kind: "font" as const,
-  uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
+  uri: "/preview/font/Noto_Sans/NotoSans-400.ttf",
   mimeType: "font/ttf" as const,
   family: "Noto Sans",
   weight: 400,
   style: "normal" as const,
-  integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
+  integrity: "sha256:38941acff7619670b210051a93eaae1d03b1973a5bda5d64d58ab21bb69f551e",
 };
 
 const PREVIEW_NOTO_SANS_ARABIC_FONT = {
   id: "preview-noto-sans-arabic-regular-v2",
   kind: "font" as const,
-  uri: "/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf",
+  uri: "/preview/font/Noto_Sans_Arabic/NotoSansArabic-400.ttf",
   mimeType: "font/ttf" as const,
   family: "Noto Sans Arabic",
   weight: 400,
   style: "normal" as const,
-  integrity: "sha256:ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b",
+  integrity: "sha256:9e0f7552e8422c7eb04f71aba70a052a93b36aa6524f444f97ad0517f0dd81fe",
 };
 
 const PREVIEW_NOTO_COLOR_EMOJI_FONT = {

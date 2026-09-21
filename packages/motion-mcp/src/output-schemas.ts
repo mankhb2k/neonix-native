@@ -38,6 +38,12 @@ const diagnostic = z.object({
   severity: z.string(),
 }).passthrough();
 
+const htmlOverwriteWarning = z.object({
+  code: z.string(),
+  message: z.string(),
+  discardedProtocolRevisionNo: z.number().nullable().optional(),
+}).passthrough();
+
 const asset = z.object({
   assetId: z.string(),
   referenceId: z.string().optional(),
@@ -80,6 +86,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     project: jsonObject,
     html: z.string(),
     htmlRevision: revision,
+    htmlSyncStatus: z.enum(["synced", "stale"]),
   },
   update_project_html: {
     project: jsonObject,
@@ -87,6 +94,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     protocolRevision: revision,
     diagnostics: z.array(diagnostic),
     alreadyCreated: z.boolean().optional(),
+    warning: htmlOverwriteWarning.nullable().optional(),
   },
   list_html_revisions: {
     projectId: z.string(),
@@ -181,6 +189,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     document: jsonObject,
     htmlTags: jsonObject,
     cssProperties: z.array(z.string()),
+    values: jsonObject.optional(),
     fonts: z.array(jsonObject).optional(),
   },
   validate_html: {

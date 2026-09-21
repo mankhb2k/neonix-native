@@ -143,7 +143,7 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: "0.1.0" },
     {
       instructions:
-        "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, edit it, validate_html, then save it with update_project_html. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and may make the HTML source stale. Never convert JSON back to HTML.",
+        "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, check its htmlSyncStatus, edit it, validate_html, then save it with update_project_html. If htmlSyncStatus is 'stale', a JSON patch or another edit already moved the project past this HTML source; saving it anyway will overwrite that change, so re-derive the HTML (or confirm with the caller) before saving. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and makes the HTML source stale. Never convert JSON back to HTML.",
     },
   );
   registerNeonixGuidance(server);
@@ -246,7 +246,7 @@ export function createRemoteMcpServer(options: {
     "get_project_html",
     {
       title: "Get project HTML",
-      description: "Read the latest HTML authoring source attached to an existing project.",
+      description: "Read the latest HTML authoring source attached to an existing project. Check htmlSyncStatus: 'stale' means a later JSON patch or edit changed the canonical Protocol V2 revision after this HTML was saved, so saving this HTML back would overwrite that change.",
       inputSchema: projectLocator,
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get project HTML"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_project_html,
@@ -261,7 +261,7 @@ export function createRemoteMcpServer(options: {
     "update_project_html",
     {
       title: "Update project HTML",
-      description: "Compile and save HTML on an existing project. A successful call creates both a new HTML revision and a linked Protocol V2 JSON revision.",
+      description: "Compile and save HTML on an existing project. A successful call creates both a new HTML revision and a linked Protocol V2 JSON revision. This is a one-way flow: HTML always wins. If the project's JSON was edited independently since this HTML was last saved, that JSON is discarded and the response's `warning` field explains what was overwritten.",
       inputSchema: {
         ...projectLocator,
         html: z.string().min(1),
@@ -589,7 +589,7 @@ export function createRemoteMcpServer(options: {
       "get_capabilities",
       {
         title: "Get capabilities",
-        description: "Return supported HTML tags, CSS properties, document metadata and Protocol version.",
+        description: "Return supported HTML tags, CSS properties, document metadata, Protocol version, and allowed values for properties that reject most values (e.g. animation-timing-function only accepts linear, ease, ease-in, ease-out, ease-in-out, cubic-bezier() and steps() — not every CSS easing keyword).",
         inputSchema: {},
         annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get capabilities"),
         outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_capabilities,

@@ -38,7 +38,7 @@ export async function getAssetRequestContext(): Promise<
   }
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("account_plans")
     .select("max_upload_bytes")
     .eq("id", user.id)
     .maybeSingle();

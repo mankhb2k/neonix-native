@@ -2,7 +2,7 @@ import "server-only";
 
 import { compileHtmlDocument } from "@/lib/server/html-project-repository";
 import { HTML_COMPILER_FONT_ASSETS } from "@/lib/server/html-compiler-font-assets";
-import { HTML_TAG_PROFILE, SUPPORTED_PROPERTIES } from "@motionvideo/html-compiler";
+import { HTML_TAG_PROFILE, SUPPORTED_ANIMATION_TIMING_FUNCTIONS, SUPPORTED_PROPERTIES } from "@motionvideo/html-compiler";
 import {
   createRemoteMcpServer,
   type RemoteMcpPrincipal,
@@ -80,6 +80,9 @@ export function createMcpServer(principal: McpPrincipal) {
               Object.entries(HTML_TAG_PROFILE).map(([group, tags]) => [group, [...tags].sort()]),
             ),
              cssProperties: [...SUPPORTED_PROPERTIES].sort(),
+             values: {
+               animationTimingFunction: SUPPORTED_ANIMATION_TIMING_FUNCTIONS,
+             },
              fonts: [...new Set(HTML_COMPILER_FONT_ASSETS.map((font) => font.family))].sort().map((family) => ({
                family,
                weights: HTML_COMPILER_FONT_ASSETS

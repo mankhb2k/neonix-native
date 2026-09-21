@@ -50,7 +50,7 @@ export async function GET() {
 
     const admin = createSupabaseAdminClient();
     const profileResult = await admin
-      .from("profiles")
+      .from("account_plans")
       .select("storage_quota_bytes")
       .eq("id", user.id)
       .maybeSingle();

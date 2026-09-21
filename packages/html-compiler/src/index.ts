@@ -8,6 +8,8 @@ export {
   TEXT_TAGS,
 } from "./compiler/model";
 
+export { SUPPORTED_ANIMATION_TIMING_FUNCTIONS } from "./compiler/animation";
+
 export {
   DEFAULT_HTML_CSS_COMPOSITION,
   DEFAULT_NEONIX_HTML_DOCUMENT,
