@@ -2,6 +2,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { NextResponse } from "next/server";
 import { authenticateMcpRequest } from "@/lib/mcp/auth";
+import { mcpCorsHeaders, withMcpCorsResponse } from "@/lib/mcp/cors";
 import { createMcpServer } from "@/lib/mcp/server";
 
 export const runtime = "nodejs";
@@ -14,6 +15,7 @@ function jsonError(message: string, status: number, headers?: HeadersInit) {
       status,
       headers: {
         "Cache-Control": "no-store",
+        ...mcpCorsHeaders(),
         ...headers,
       },
     },
@@ -42,7 +44,7 @@ async function handle(request: Request) {
     });
     const server = createMcpServer(principal);
     await server.connect(transport);
-    return await transport.handleRequest(request, {
+    const response = await transport.handleRequest(request, {
       authInfo: {
         token: principal.token,
         clientId: principal.clientId,
@@ -52,10 +54,15 @@ async function handle(request: Request) {
         extra: { userId: principal.userId },
       },
     });
+    return withMcpCorsResponse(response);
   } catch (error) {
     console.error("[mcp] request failed", error);
     return jsonError("MCP request failed", 500);
   }
+}
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: mcpCorsHeaders() });
 }
 
 export const GET = handle;
