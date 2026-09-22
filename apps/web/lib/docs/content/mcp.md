@@ -31,13 +31,13 @@ https://www.neonix.video/api/mcp
 
 ## Supported clients
 
-These OAuth registrations are ready for Neonix's hosted MCP connection. The endpoint remains the same for every client.
+Neonix's hosted MCP connection works the same way for every client: add the endpoint, complete OAuth, done. No API key or client ID to copy in — supported clients (Claude, ChatGPT, Grok) complete OAuth automatically when you add the connector, and any other MCP client registers itself the same way over standard OAuth dynamic client registration.
 
-| Client | Description | Client ID |
-| --- | --- | --- |
-| Claude | Create and refine motion projects from a conversation. | `5c365b60-7190-4e77-90c7-52af523b1d27` |
-| Grok | Give Grok a secure connection to your Neonix workspace. | `ec4a6d6d-8b36-4c8b-897f-9a3b7982ae10` |
-| ChatGPT | Turn structured intent into editable motion and exports. | `51923cdd-fcac-4cac-adf7-fbfa414361a0` |
+| Client | Description |
+| --- | --- |
+| Claude | Create and refine motion projects from a conversation. |
+| Grok | Give Grok a secure connection to your Neonix workspace. |
+| ChatGPT | Turn structured intent into editable motion and exports. |
 
 Continue with [Claude setup](/docs/mcp/claude), [ChatGPT setup](/docs/mcp/chatgpt) or [Grok setup](/docs/mcp/grok).
 
@@ -100,7 +100,7 @@ Connect ChatGPT to Neonix for editable motion video projects. Use the hosted MCP
 | Field | Value |
 | --- | --- |
 | MCP endpoint | `https://www.neonix.video/api/mcp` |
-| OAuth client ID | `51923cdd-fcac-4cac-adf7-fbfa414361a0` |
+| Auth | OAuth 2.1 — no API key or client ID needed |
 
 ## Setup flow
 
@@ -124,7 +124,7 @@ Connect Claude to Neonix for editable motion video projects. Use the hosted MCP 
 | Field | Value |
 | --- | --- |
 | MCP endpoint | `https://www.neonix.video/api/mcp` |
-| OAuth client ID | `5c365b60-7190-4e77-90c7-52af523b1d27` |
+| Auth | OAuth 2.1 — no API key or client ID needed |
 
 ## Setup flow
 
@@ -148,7 +148,7 @@ Connect Grok to Neonix for editable motion video projects. Use the hosted MCP se
 | Field | Value |
 | --- | --- |
 | MCP endpoint | `https://www.neonix.video/api/mcp` |
-| OAuth client ID | `ec4a6d6d-8b36-4c8b-897f-9a3b7982ae10` |
+| Auth | OAuth 2.1 — no API key or client ID needed |
 
 ## Setup flow
 
