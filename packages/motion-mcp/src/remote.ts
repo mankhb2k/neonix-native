@@ -9,6 +9,8 @@ import {
 } from "./annotations";
 import { REMOTE_TOOL_OUTPUT_SCHEMAS } from "./output-schemas";
 import { registerNeonixGuidance } from "./guidance";
+import { MotionProtocolV2PatchSchema } from "./patch";
+import { MCP_SERVER_VERSION } from "./version";
 import {
   MCP_APP_RESOURCE_MIME_TYPE,
   VIDEO_PREVIEW_RESOURCE_URI,
@@ -140,7 +142,7 @@ export function createRemoteMcpServer(options: {
 }) {
   const { api } = options;
   const server = new McpServer(
-    { name: "Neonix MCP", version: "0.1.0" },
+    { name: "Neonix MCP", version: MCP_SERVER_VERSION },
     {
       instructions:
         "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, check its htmlSyncStatus, edit it, validate_html, then save it with update_project_html. If htmlSyncStatus is 'stale', a JSON patch or another edit already moved the project past this HTML source; saving it anyway will overwrite that change, so re-derive the HTML (or confirm with the caller) before saving. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and makes the HTML source stale. Never convert JSON back to HTML.",
@@ -177,7 +179,15 @@ export function createRemoteMcpServer(options: {
   );
 
   const uuid = z.string().uuid();
-  const documentSchema = z.record(z.string(), z.unknown());
+  // Not the strict MotionProtocolV2Schema on purpose: the server migrates a
+  // few legacy field names (e.g. layer.tracks[].playback -> .animation)
+  // before validating, so a strict schema here would reject documents the
+  // handler still accepts.
+  const documentSchema = z
+    .record(z.string(), z.unknown())
+    .describe(
+      "A full Protocol V2 document to replace the current one: { format: \"motion-protocol\", formatVersion: 2, composition, layers, ... }. Prefer apply_json_patch for small changes. Read an existing document with get_project_json to see the exact shape.",
+    );
   const projectLocator = {
     project_id: uuid.optional().describe("Project UUID."),
     public_ref: z.string().min(1).max(80).optional().describe("Stable project reference such as prj_..."),
@@ -226,7 +236,9 @@ export function createRemoteMcpServer(options: {
       inputSchema: {
         ...projectLocator,
         expected_protocol_revision_no: z.number().int().min(1),
-        patch: z.record(z.string(), z.unknown()),
+        patch: MotionProtocolV2PatchSchema.describe(
+          "A motion-protocol-patch document: { format: \"motion-protocol-patch\", formatVersion: 2, baseRevision, operations }. Each operation is one of setComposition, addLayer, updateLayer, removeLayer, trimLayer, or setValue, discriminated by its op field.",
+        ),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Apply JSON patch"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.apply_json_patch,
@@ -520,7 +532,7 @@ export function createRemoteMcpServer(options: {
       inputSchema: {
         ...projectLocator,
         title: z.string().trim().min(1).max(200).optional(),
-        document: documentSchema.optional().describe("Replacement editor document as a JSON object."),
+        document: documentSchema.optional(),
         expected_revision_no: z.number().int().min(0).optional(),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Update project"),
