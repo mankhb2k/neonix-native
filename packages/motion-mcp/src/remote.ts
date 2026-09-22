@@ -235,7 +235,11 @@ export function createRemoteMcpServer(options: {
       description: "Apply a small validated Protocol V2 patch when the requested change cannot be expressed in HTML. This creates a JSON revision and may make the HTML source stale.",
       inputSchema: {
         ...projectLocator,
-        expected_protocol_revision_no: z.number().int().min(1),
+        expected_protocol_revision_no: z
+          .number()
+          .int()
+          .min(1)
+          .describe("Current Protocol V2 revision number the patch is based on; fails with a revision conflict if the project has moved past it."),
         patch: MotionProtocolV2PatchSchema.describe(
           "A motion-protocol-patch document: { format: \"motion-protocol-patch\", formatVersion: 2, baseRevision, operations }. Each operation is one of setComposition, addLayer, updateLayer, removeLayer, trimLayer, or setValue, discriminated by its op field.",
         ),
@@ -276,9 +280,19 @@ export function createRemoteMcpServer(options: {
       description: "Compile and save HTML on an existing project. A successful call creates both a new HTML revision and a linked Protocol V2 JSON revision. This is a one-way flow: HTML always wins. If the project's JSON was edited independently since this HTML was last saved, that JSON is discarded and the response's `warning` field explains what was overwritten.",
       inputSchema: {
         ...projectLocator,
-        html: z.string().min(1),
-        expected_html_revision_no: z.number().int().min(0).optional(),
-        expected_protocol_revision_no: z.number().int().min(0).optional(),
+        html: z.string().min(1).describe("Complete neonix-document HTML source, including CSS in the document."),
+        expected_html_revision_no: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Expected current HTML revision number; omit to skip the optimistic-concurrency check."),
+        expected_protocol_revision_no: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Expected current Protocol V2 revision number; omit to skip the optimistic-concurrency check."),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Update project HTML"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.update_project_html,
@@ -317,7 +331,7 @@ export function createRemoteMcpServer(options: {
       description: "Read a specific HTML authoring revision and its linked Protocol V2 revision id.",
       inputSchema: {
         ...projectLocator,
-        revision_no: z.number().int().min(1),
+        revision_no: z.number().int().min(1).describe("HTML revision number to read."),
       },
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get HTML revision"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_html_revision,
@@ -333,7 +347,10 @@ export function createRemoteMcpServer(options: {
     {
       title: "List assets",
       description: "List ready or uploading media assets in a workspace or attached to a project.",
-      inputSchema: { workspace_id: uuid.optional(), ...projectLocator },
+      inputSchema: {
+        workspace_id: uuid.optional().describe("Workspace id to list assets in; omit when filtering by project instead."),
+        ...projectLocator,
+      },
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "List assets"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.list_assets,
     },
@@ -346,10 +363,10 @@ export function createRemoteMcpServer(options: {
       title: "Request asset upload",
       description: "Create an asset record and return a short-lived R2 presigned PUT URL. The file is not attached to a project until attach_asset_to_project.",
       inputSchema: {
-        workspace_id: uuid.optional(),
-        filename: z.string().trim().min(1).max(200),
-        mime_type: z.string().trim().min(1).max(120),
-        byte_size: z.number().int().positive(),
+        workspace_id: uuid.optional().describe("Workspace id the asset belongs to; omit to use the first accessible workspace."),
+        filename: z.string().trim().min(1).max(200).describe("Original filename, used to infer format and shown in asset listings."),
+        mime_type: z.string().trim().min(1).max(120).describe("MIME type of the file being uploaded."),
+        byte_size: z.number().int().positive().describe("File size in bytes; must match the uploaded object or completion fails."),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Request asset upload"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.request_asset_upload,
@@ -362,7 +379,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Complete asset upload",
       description: "Verify the uploaded R2 object size and MIME type, then mark the asset ready.",
-      inputSchema: { asset_id: uuid },
+      inputSchema: { asset_id: uuid.describe("Asset id returned by request_asset_upload.") },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Complete asset upload"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.complete_asset_upload,
     },
@@ -374,7 +391,11 @@ export function createRemoteMcpServer(options: {
     {
       title: "Import asset",
       description: "Download an image, video or audio file from a public URL after SSRF, MIME and size checks, then store it in the user's R2 bucket.",
-      inputSchema: { workspace_id: uuid.optional(), source_url: z.string().url(), filename: z.string().trim().max(200).optional() },
+      inputSchema: {
+        workspace_id: uuid.optional().describe("Workspace id the imported asset belongs to; omit to use the first accessible workspace."),
+        source_url: z.string().url().describe("Public HTTP(S) URL to download the asset from."),
+        filename: z.string().trim().max(200).optional().describe("Filename to store the asset as; inferred from the URL if omitted."),
+      },
       annotations: withToolTitle(EXTERNAL_IMPORT_TOOL_ANNOTATIONS, "Import asset"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.import_asset,
     },
@@ -386,7 +407,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Attach asset to project",
       description: "Attach a ready workspace asset to an existing project so its asset reference can be used by Protocol V2 or HTML authoring.",
-      inputSchema: { ...projectLocator, asset_id: uuid },
+      inputSchema: { ...projectLocator, asset_id: uuid.describe("Ready workspace asset id to attach.") },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Attach asset to project"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.attach_asset_to_project,
     },
@@ -401,7 +422,14 @@ export function createRemoteMcpServer(options: {
     {
       title: "Delete asset",
       description: "Delete a workspace asset and its R2 objects. Assets referenced by projects require replace_references=true and follow the existing system fallback policy.",
-      inputSchema: { workspace_id: uuid.optional(), asset_id: uuid, replace_references: z.boolean().optional() },
+      inputSchema: {
+        workspace_id: uuid.optional().describe("Workspace id the asset belongs to."),
+        asset_id: uuid.describe("Asset id to delete."),
+        replace_references: z
+          .boolean()
+          .optional()
+          .describe("If true, allow deleting an asset still referenced by projects by falling back to the system default."),
+      },
       annotations: withToolTitle(DESTRUCTIVE_TOOL_ANNOTATIONS, "Delete asset"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.delete_asset,
     },
@@ -413,7 +441,23 @@ export function createRemoteMcpServer(options: {
     {
       title: "Create export",
       description: "Render a saved Protocol V2 project revision. The server reads the revision from the database; arbitrary unsaved JSON cannot be exported.",
-      inputSchema: { ...projectLocator, protocol_revision_no: z.number().int().min(1).optional(), preset: z.string().optional(), idempotency_key: z.string().trim().min(1).max(200).optional() },
+      inputSchema: {
+        ...projectLocator,
+        protocol_revision_no: z
+          .number()
+          .int()
+          .min(1)
+          .optional()
+          .describe("Protocol V2 revision number to render; omit to use the project's current revision."),
+        preset: z.string().optional().describe("Named export preset; omit to use the project's default."),
+        idempotency_key: z
+          .string()
+          .trim()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Unique key to safely retry the same export request without creating duplicates."),
+      },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Create export"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_export,
       _meta: {
@@ -434,7 +478,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Get export",
       description: "Read the status of an export created by the authenticated user.",
-      inputSchema: { job_id: z.string().min(1) },
+      inputSchema: { job_id: z.string().min(1).describe("Export job id returned by create_export.") },
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get export"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_export,
     },
@@ -446,7 +490,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Get export download URL",
       description: "Return a short-lived signed download URL when the export is complete.",
-      inputSchema: { job_id: z.string().min(1) },
+      inputSchema: { job_id: z.string().min(1).describe("Export job id to get a signed download URL for.") },
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get export download URL"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_export_download_url,
     },
@@ -458,7 +502,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Cancel export",
       description: "Cancel a queued or rendering export owned by the authenticated user.",
-      inputSchema: { job_id: z.string().min(1) },
+      inputSchema: { job_id: z.string().min(1).describe("Export job id to cancel.") },
       annotations: withToolTitle(DESTRUCTIVE_TOOL_ANNOTATIONS, "Cancel export"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.cancel_export,
     },
@@ -472,9 +516,15 @@ export function createRemoteMcpServer(options: {
       description: "Compile HTML and atomically create a Neonix project with linked HTML and Protocol V2 revisions.",
       inputSchema: {
         workspace_id: uuid.optional().describe("Workspace id; omit to use the first accessible workspace or create a personal workspace."),
-        title: z.string().trim().min(1).max(200).optional(),
+        title: z.string().trim().min(1).max(200).optional().describe("Project title; a default is generated if omitted."),
         html: z.string().min(1).describe("Complete neonix-document HTML source, including CSS in the document."),
-        idempotency_key: z.string().trim().min(1).max(200).optional(),
+        idempotency_key: z
+          .string()
+          .trim()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Unique key to safely retry the same creation request without creating duplicate projects."),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Create HTML project"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project_html,
@@ -500,8 +550,8 @@ export function createRemoteMcpServer(options: {
       title: "List projects",
       description: "List projects in an accessible workspace, newest updates first.",
       inputSchema: {
-        workspace_id: uuid.optional(),
-        limit: z.number().int().min(1).max(50).default(20),
+        workspace_id: uuid.optional().describe("Workspace id to list projects in; omit to use the first accessible workspace."),
+        limit: z.number().int().min(1).max(50).default(20).describe("Maximum number of projects to return."),
       },
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "List projects"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.list_projects,
@@ -531,9 +581,14 @@ export function createRemoteMcpServer(options: {
       description: "Update a project title and/or append a new document revision. Use expected_revision_no to prevent overwriting a newer edit.",
       inputSchema: {
         ...projectLocator,
-        title: z.string().trim().min(1).max(200).optional(),
+        title: z.string().trim().min(1).max(200).optional().describe("New project title."),
         document: documentSchema.optional(),
-        expected_revision_no: z.number().int().min(0).optional(),
+        expected_revision_no: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Expected current document revision number; omit to skip the optimistic-concurrency check."),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Update project"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.update_project,
@@ -614,7 +669,7 @@ export function createRemoteMcpServer(options: {
       {
         title: "Validate HTML",
         description: "Validate a complete neonix-document HTML file and return composition and diagnostics.",
-        inputSchema: { html: z.string().min(1) },
+        inputSchema: { html: z.string().min(1).describe("Complete neonix-document HTML source to validate, including CSS in the document.") },
         annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Validate HTML"),
         outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.validate_html,
       },
@@ -626,7 +681,7 @@ export function createRemoteMcpServer(options: {
       {
         title: "Compile HTML",
         description: "Compile a complete neonix-document HTML file into Protocol V2 JSON.",
-        inputSchema: { html: z.string().min(1) },
+        inputSchema: { html: z.string().min(1).describe("Complete neonix-document HTML source to compile, including CSS in the document.") },
         annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Compile HTML"),
         outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.compile_html,
       },
