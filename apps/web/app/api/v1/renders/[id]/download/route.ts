@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserExportsProvider } from "@/lib/server/r2";
 import { syncRenderJob } from "@/lib/server/render/export-worker";
-import { assertJobOwner, getRenderJob } from "@/lib/server/render/job-store";
+import { assertJobAccess, getRenderJob } from "@/lib/server/render/job-store";
 import { resolveRequestUserId } from "@/lib/server/render/ownership";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export async function GET(request: Request, context: Ctx) {
   if (!userId) return NextResponse.json({ error: "authentication_required" }, { status: 401 });
   const job = await getRenderJob(id);
   if (!job) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  try { assertJobOwner(job, userId); } catch { return NextResponse.json({ error: "forbidden" }, { status: 403 }); }
+  try { await assertJobAccess(job, userId); } catch { return NextResponse.json({ error: "forbidden" }, { status: 403 }); }
   const refreshed = await syncRenderJob(job);
   if (refreshed.status !== "done") return NextResponse.json({ error: "not_ready" }, { status: 409 });
   const expiresAt = Date.now() + DOWNLOAD_TTL_SECONDS * 1000;

@@ -6,7 +6,7 @@ import { pipeline } from "node:stream/promises";
 import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { resolveProjectAudioMix } from "./render/audio-filter";
 import { concatMp4Segments, muxVideoWithAudio } from "./render/ffmpeg";
 import { computeRuntimeHash } from "./contracts";
@@ -14,7 +14,7 @@ import { errorMessage, isRetryableRenderError, retryBudgetFromEnv } from "./retr
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { loadRuntimeManifest } from "./runtime-manifest";
 
-type Job = { id: string; public_ref: string; created_by: string; output_key: string | null; runtime_json: RuntimeProjectV3 | null; runtime_manifest_text?: string | null; runtime_manifest_chunk_count?: number | null; runtime_manifest_sha256?: string | null; chunk_count: number; attempt_count?: number };
+type Job = { id: string; public_ref: string; created_by: string; workspace_id: string; output_key: string | null; runtime_json: RuntimeProjectV3 | null; runtime_manifest_text?: string | null; runtime_manifest_chunk_count?: number | null; runtime_manifest_sha256?: string | null; chunk_count: number; attempt_count?: number };
 type Chunk = { chunk_index: number; attempt: number; start_frame: number; end_frame_exclusive: number; status: string; segment_key: string | null; output_checksum: string | null; runtime_checksum: string };
 
 function requiredEnv(name: string): string { const value = process.env[name]?.trim(); if (!value) throw new Error(`Missing ${name}`); return value; }
@@ -44,6 +44,30 @@ async function verifyOutput(filePath: string, expectedFrames: number, expectedAu
   if (!video?.codec_name || frames !== expectedFrames || !(durationSeconds > 0) || (expectedAudio && audio.length !== 1)) throw new Error(`FINAL_VERIFY_FAILED: frames=${frames}/${expectedFrames} duration=${durationSeconds} audio=${audio.length}`);
   return { frames, durationSeconds, codec: video.codec_name, audioStreams: audio.length, bytes: (await stat(filePath)).size, checksum: await checksum(filePath) };
 }
+// Chunk segments (renders/{jobId}/segments/chunk-N.mp4) are scratch inputs to
+// the merge above; once the merged, verified output is durably committed as
+// `status: "done"`, they serve no further purpose and must not be left in R2
+// indefinitely. Best-effort: a failed cleanup is logged, not fatal - the
+// finished render must not be rolled back over leftover scratch objects.
+async function deleteSegments(segmentKeys: string[]): Promise<void> {
+  if (segmentKeys.length === 0) return;
+  const { client, bucket } = r2();
+  try {
+    const batches: string[][] = [];
+    for (let index = 0; index < segmentKeys.length; index += 1000) batches.push(segmentKeys.slice(index, index + 1000));
+    for (const batch of batches) {
+      const result = await client.send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: batch.map((key) => ({ Key: key })), Quiet: true } }));
+      if (result.Errors && result.Errors.length > 0) {
+        console.error(JSON.stringify({ ok: false, warning: "SEGMENT_CLEANUP_PARTIAL", errors: result.Errors }));
+      }
+    }
+  } catch (error) {
+    console.error(JSON.stringify({ ok: false, warning: "SEGMENT_CLEANUP_FAILED", error: errorMessage(error) }));
+  } finally {
+    client.destroy();
+  }
+}
+
 async function publish(filePath: string, key: string): Promise<{ bucket: string; bytes: number }> {
   const { client, bucket } = r2(); const bytes = (await stat(filePath)).size; const temporaryKey = `__tmp__/render/${key}.finalizer-${process.env.CLOUD_RUN_EXECUTION?.trim() || Date.now().toString(36)}`;
   try {
@@ -105,9 +129,13 @@ async function main(): Promise<void> {
       if (!audio) throw new Error("AUDIO_TOPOLOGY_MISMATCH: expected audio plan is empty");
       try { await muxVideoWithAudio({ ffmpegPath: process.env.FFMPEG_PATH?.trim() || "ffmpeg", videoPath: concatPath, audioInputs: audio.inputs, audioFilterComplex: audio.filterComplex, outputPath, durationSeconds: expectedFrames / runtime.visual.composition.fps, logLevel: "error", signal: terminationController.signal }); } finally { await audio.cleanup?.(); }
     } else { await pipeline(createReadStream(concatPath), createWriteStream(outputPath)); }
-    const verified = await verifyOutput(outputPath, expectedFrames, expectedAudio); const outputKey = job.output_key ?? `${job.created_by}/${job.public_ref}.mp4`; const published = await publish(outputPath, outputKey);
+    const verified = await verifyOutput(outputPath, expectedFrames, expectedAudio); const outputKey = job.output_key ?? `${job.workspace_id}/${job.public_ref}.mp4`; const published = await publish(outputPath, outputKey);
     const updated = await db.from("render_jobs").update({ status: "done", stage: "done", progress: 1, output_key: outputKey, artifact_path: `r2://${published.bucket}/${outputKey}`, metrics_json: { verifiedFrames: verified.frames, verifiedDurationSeconds: verified.durationSeconds, verifiedCodec: verified.codec, audioStreams: verified.audioStreams, outputSizeInBytes: published.bytes, outputChecksum: verified.checksum }, lease_owner: null, heartbeat_at: null, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("public_ref", jobId).eq("lease_owner", worker);
     if (updated.error || updated.count === 0) throw new Error(`Unable to commit finalizer result: ${updated.error?.message ?? "lease lost"}`);
+    // Only delete scratch segments once the merged output is durably "done" -
+    // never before, so a crash between merge and commit still leaves the
+    // chunks in place for a retried finalizer to re-download.
+    await deleteSegments(chunks.map((chunk) => chunk.segment_key).filter((key): key is string => Boolean(key)));
     console.log(JSON.stringify({ ok: true, jobId, status: "done", outputKey, checksum: verified.checksum, frames: verified.frames, audioStreams: verified.audioStreams }));
   } catch (error) {
     const message = terminationController.signal.aborted

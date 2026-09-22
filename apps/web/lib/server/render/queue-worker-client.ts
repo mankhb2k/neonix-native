@@ -165,7 +165,7 @@ export async function dispatchQueuedRender(input: {
     body: JSON.stringify({
       jobId: input.job.jobId,
       project: input.runtime,
-      outputName: buildRenderOutputKey(input.job.userId, input.job.jobId),
+      outputName: buildRenderOutputKey(input.job, input.job.jobId),
       attempt: input.job.attemptCount ?? 1,
     }),
     signal: AbortSignal.timeout(10_000),
@@ -273,7 +273,7 @@ export async function runQueuedRender(input: {
     }
     if (status === "done") {
       if (!remote.artifactUrl) throw new Error("worker completed without an artifact URL");
-      const outputKey = buildRenderOutputKey(input.job.userId, input.job.jobId);
+      const outputKey = buildRenderOutputKey(input.job, input.job.jobId);
       await persistWorkerArtifact(new URL(remote.artifactUrl, dispatched.statusUrl).toString(), outputKey);
       await updateRenderJob(input.job.jobId, {
         status: "done",

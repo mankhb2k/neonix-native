@@ -3,7 +3,7 @@ import "server-only";
 import { getProjectAccess, getProtocolRevision } from "@/lib/server/projects/repository";
 import { getUserExportsProvider } from "@/lib/server/r2";
 import { startRenderOnWorker, syncRenderJob, cancelRenderOnWorker } from "@/lib/server/render/export-worker";
-import { assertJobOwner, buildRenderOutputKey, createRenderJob, getRenderJob, type PersistentRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
+import { assertJobAccess, buildRenderOutputKey, createRenderJob, getRenderJob, type PersistentRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
 import { buildIdempotencyKey } from "@/lib/server/render/ownership";
 import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-runtime";
 import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
@@ -11,6 +11,7 @@ import { validateProjectVideoDurations } from "@/lib/server/render/source-durati
 import { publicRendererMessage } from "@/lib/public-renderer-message";
 import { isRenderPresetId } from "@motionvideo/export-renderer/contracts";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
+import { createSupabaseAdminClient } from "@/lib/server/supabase/admin";
 import { getMcpSupabaseClient } from "./projects";
 import type { McpPrincipal } from "./auth";
 
@@ -18,6 +19,49 @@ export class McpExportError extends Error {
   constructor(message: string, readonly code = "EXPORT_ERROR") {
     super(message);
     this.name = "McpExportError";
+  }
+}
+
+const CREATE_EXPORT_RATE_LIMIT_WINDOW_SECONDS = 300;
+const CREATE_EXPORT_RATE_LIMIT_MAX_REQUESTS = 10;
+
+async function enforceCreateExportRateLimit(principal: McpPrincipal): Promise<void> {
+  try {
+    const allowed = await createSupabaseAdminClient().rpc("check_and_increment_rate_limit", {
+      p_bucket_key: `mcp-export-create:${principal.userId}`,
+      p_window_seconds: CREATE_EXPORT_RATE_LIMIT_WINDOW_SECONDS,
+      p_max_requests: CREATE_EXPORT_RATE_LIMIT_MAX_REQUESTS,
+    });
+    if (allowed.error) throw allowed.error;
+    if (allowed.data !== true) {
+      throw new McpExportError("Too many export requests. Please wait a few minutes and try again.", "RATE_LIMITED");
+    }
+  } catch (error) {
+    if (error instanceof McpExportError) throw error;
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[mcp.exports] rate limiting unavailable in this environment, allowing request", error);
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.error("[mcp.exports] rate limit check failed", error);
+    throw new McpExportError("Unable to verify request rate, please try again shortly", "RATE_LIMIT_UNAVAILABLE");
+  }
+}
+
+async function audit(principal: McpPrincipal, workspaceId: string, action: string, targetId: string, metadata: Record<string, unknown> = {}) {
+  const { error } = await getMcpSupabaseClient(principal).from("audit_events").insert({
+    workspace_id: workspaceId,
+    actor_user_id: principal.userId,
+    actor_client_id: principal.clientId,
+    action,
+    target_type: "render_job",
+    target_id: targetId,
+    metadata_json: metadata,
+  });
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error("[mcp.exports] audit event failed", error.message);
   }
 }
 
@@ -76,7 +120,7 @@ async function mirrorJobStatus(principal: McpPrincipal, job: PersistentRenderJob
  */
 async function reconcilePublishedArtifact(job: PersistentRenderJob): Promise<PersistentRenderJob> {
   if (job.status !== "publishing" || job.stage !== "done" || job.progress < 1 || job.outputKey) return job;
-  const outputKey = buildRenderOutputKey(job.userId, job.jobId);
+  const outputKey = buildRenderOutputKey(job, job.jobId);
   const object = await getUserExportsProvider().headObject(outputKey);
   if (!object) return job;
   return (await updateRenderJob(job.jobId, {
@@ -116,6 +160,7 @@ export async function createExport(principal: McpPrincipal, input: {
   if (process.env.NODE_ENV === "production" && !isRenderQueueEnabled()) {
     throw new McpExportError("Production render entrypoints require Supabase PGMQ", "RENDER_QUEUE_REQUIRED");
   }
+  await enforceCreateExportRateLimit(principal);
   const preset = input.preset ?? "export-1080p";
   if (!isRenderPresetId(preset)) throw new McpExportError("Invalid export preset", "INVALID_PRESET");
   const { access, revision, runtime } = await readAndCompileRevision(principal, input);
@@ -160,13 +205,16 @@ export async function createExport(principal: McpPrincipal, input: {
   }
   const refreshed = (await getRenderJob(created.job.jobId)) ?? created.job;
   await mirrorJobToDatabase(principal, refreshed, revision.revision.id, access.project.workspaceId, preset, runtime);
+  if (created.created) {
+    await audit(principal, access.project.workspaceId, "mcp.export.create", refreshed.jobId, { projectId: access.project.id, preset });
+  }
   return { export: output(refreshed), created: created.created };
 }
 
 export async function getExport(principal: McpPrincipal, input: { jobId: string }) {
   const job = await getRenderJob(input.jobId);
   if (!job) throw new McpExportError("Export not found", "NOT_FOUND");
-  try { assertJobOwner(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
+  try { await assertJobAccess(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
   const refreshed = await reconcilePublishedArtifact(await syncRenderJob(job));
   await mirrorJobStatus(principal, refreshed);
   return { export: output(refreshed) };
@@ -175,25 +223,28 @@ export async function getExport(principal: McpPrincipal, input: { jobId: string 
 export async function cancelExport(principal: McpPrincipal, input: { jobId: string }) {
   const job = await getRenderJob(input.jobId);
   if (!job) throw new McpExportError("Export not found", "NOT_FOUND");
-  try { assertJobOwner(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
+  try { await assertJobAccess(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
   if (["done", "failed", "cancelled"].includes(job.status)) return { export: output(job) };
   await cancelRenderOnWorker(job);
   const refreshed = (await getRenderJob(job.jobId)) ?? job;
   await mirrorJobStatus(principal, refreshed);
+  await audit(principal, job.workspaceId ?? "unknown", "mcp.export.cancel", job.jobId);
   return { export: output(refreshed) };
 }
 
 export async function getExportDownloadUrl(principal: McpPrincipal, input: { jobId: string }) {
   const job = await getRenderJob(input.jobId);
   if (!job) throw new McpExportError("Export not found", "NOT_FOUND");
-  try { assertJobOwner(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
+  try { await assertJobAccess(job, principal.userId); } catch { throw new McpExportError("Export not found", "NOT_FOUND"); }
   const refreshed = await reconcilePublishedArtifact(await syncRenderJob(job));
   await mirrorJobStatus(principal, refreshed);
   if (refreshed.status !== "done") throw new McpExportError("Export is not ready", "NOT_READY");
   if (refreshed.outputKey && refreshed.artifactPath?.startsWith("r2://")) {
     const signed = await getUserExportsProvider().presignGet(refreshed.outputKey, 60);
+    await audit(principal, refreshed.workspaceId ?? "unknown", "mcp.export.download_url", refreshed.jobId);
     return { jobId: refreshed.jobId, url: signed.url, expiresAt: signed.expiresAt.toISOString() };
   }
   if (!refreshed.artifactPath) throw new McpExportError("Export artifact is unavailable", "ARTIFACT_MISSING");
+  await audit(principal, refreshed.workspaceId ?? "unknown", "mcp.export.download_url", refreshed.jobId);
   return { jobId: refreshed.jobId, url: refreshed.artifactPath, expiresAt: new Date(Date.now() + 60_000).toISOString() };
 }

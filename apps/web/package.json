@@ -52,7 +52,7 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/playback-engine": "workspace:*",
     "@motionvideo/preview-renderer": "workspace:*",
-    "@motionvideo/skia-renderer": "workspace:*",
+    "@motionvideo/canvaskit-preview": "workspace:*",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "@tailwindcss/postcss": "^4.3.3",

@@ -86,7 +86,7 @@ export async function startRenderOnWorker(input: {
   runtime: RuntimeProjectV3;
 }): Promise<{ renderId: string; outputUrl: string }> {
   const baseUrl = workerBaseUrl();
-  const outputKey = buildRenderOutputKey(input.job.userId, input.job.jobId);
+  const outputKey = buildRenderOutputKey(input.job, input.job.jobId);
   await updateRenderJob(input.job.jobId, {
     status: "queued",
     progress: 0.01,
@@ -168,7 +168,7 @@ export async function syncRenderJob(input: PersistentRenderJob): Promise<Persist
   })) ?? input;
   if (remote.status !== "done" || !remote.artifactUrl || local.artifactPath) return local;
   try {
-    const outputKey = local.outputKey ?? buildRenderOutputKey(local.userId, local.jobId);
+    const outputKey = local.outputKey ?? buildRenderOutputKey(local, local.jobId);
     await persistWorkerArtifact(new URL(remote.artifactUrl, baseUrl).toString(), outputKey);
     return (await updateRenderJob(local.jobId, { status: "done", progress: 1, stage: "done", artifactPath: `r2://${outputKey}`, outputKey })) ?? local;
   } catch (error) {

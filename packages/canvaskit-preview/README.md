@@ -1,6 +1,10 @@
-# @motionvideo/skia-renderer
+# @motionvideo/canvaskit-preview
 
-CanvasKit/Skia renderer for Motion Protocol V2 runtime frames.
+CanvasKit WASM preview renderer for Motion Protocol V2 runtime frames. This is
+the browser-side UI preview backend only - it has no relationship to MP4
+export, which always renders through the native Skia CPU worker on Cloud Run
+(see `@motionvideo/export-renderer`). Never treat this package as a fallback
+or reference implementation for export.
 
 The package consumes only `RuntimeFrameV3` / `PaintCommandBuffer`. It does not
 compile protocol data or evaluate timelines. The host application owns the
@@ -8,7 +12,7 @@ CanvasKit WASM files and provides decoded image/video assets through
 `SkiaRendererOptions.assets`.
 
 ```ts
-import { createSkiaRenderer } from "@motionvideo/skia-renderer";
+import { createSkiaRenderer } from "@motionvideo/canvaskit-preview";
 
 const renderer = await createSkiaRenderer({
   canvas,

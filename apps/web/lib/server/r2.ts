@@ -287,6 +287,19 @@ export function getUserExportsProvider(): R2StorageProvider {
   return getR2Provider("exports");
 }
 
+/** Resolves a provider from a bucket name recorded in a DB row (e.g. object_deletion_jobs), not a fixed `UserBucket` kind. */
+export function getR2ProviderForBucketName(bucketName: string): R2StorageProvider | null {
+  const kinds: UserBucket[] = ["assets", "exports", "system", "systemFonts"];
+  for (const kind of kinds) {
+    try {
+      if (bucketFor(kind) === bucketName) return getR2Provider(kind);
+    } catch {
+      // Bucket env var not configured for this kind; skip.
+    }
+  }
+  return null;
+}
+
 export function getSystemAssetsProvider(): R2StorageProvider {
   return getR2Provider("system");
 }

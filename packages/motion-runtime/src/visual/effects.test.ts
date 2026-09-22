@@ -146,7 +146,7 @@ describe("runtime shadow effects", () => {
   });
 
   // Regression: a `noise` effect combined with any other effect used to be
-  // reported as fully unsupported by the Skia backend (see skia-renderer
+  // reported as fully unsupported by the Skia backend (see canvaskit-preview
   // effects.test.ts for the consumer-side assertion); the runtime program
   // itself already threaded noise through the ops chain like any other op.
   it("keeps noise as an ordinary chained op alongside other effects", () => {

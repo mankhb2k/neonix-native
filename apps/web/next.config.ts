@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
     "@motionvideo/motion-compiler",
     "@motionvideo/asset-registry",
     "@motionvideo/preview-renderer",
-    "@motionvideo/skia-renderer",
+    "@motionvideo/canvaskit-preview",
     "@motionvideo/playback-engine",
     "@motionvideo/html-compiler",
   ],

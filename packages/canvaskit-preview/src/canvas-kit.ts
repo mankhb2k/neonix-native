@@ -140,7 +140,7 @@ export function loadCanvasKit(): Promise<SkiaCanvasKit> {
     const init = () => {
       const factory = win.CanvasKitInit;
       if (!factory) {
-        reject(new Error("skia-renderer: CanvasKitInit is unavailable"));
+        reject(new Error("canvaskit-preview: CanvasKitInit is unavailable"));
         return;
       }
       factory({ locateFile: (file) => `/vendor/canvaskit/${file}` }).then(resolve, reject);
@@ -150,13 +150,13 @@ export function loadCanvasKit(): Promise<SkiaCanvasKit> {
       return;
     }
     if (typeof document === "undefined") {
-      reject(new Error("skia-renderer: CanvasKit requires a browser document"));
+      reject(new Error("canvaskit-preview: CanvasKit requires a browser document"));
       return;
     }
     const script = document.createElement("script");
     script.src = "/vendor/canvaskit/canvaskit.js";
     script.onload = () => init();
-    script.onerror = () => reject(new Error("skia-renderer: CanvasKit WASM failed to load"));
+    script.onerror = () => reject(new Error("canvaskit-preview: CanvasKit WASM failed to load"));
     document.head.appendChild(script);
   });
   return kitPromise;

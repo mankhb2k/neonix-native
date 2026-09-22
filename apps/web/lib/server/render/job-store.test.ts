@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createRenderJob,
   getRenderJob,
-  assertJobOwner,
+  assertJobAccess,
 } from "@/lib/server/render/job-store";
 
 describe("persistent render job store", () => {
@@ -62,6 +62,6 @@ describe("persistent render job store", () => {
       projectRevision: 0,
       idempotencyKey: "owner-key",
     });
-    expect(() => assertJobOwner(job, "other")).toThrow(/FORBIDDEN/);
+    await expect(assertJobAccess(job, "other")).rejects.toThrow(/FORBIDDEN/);
   });
 });

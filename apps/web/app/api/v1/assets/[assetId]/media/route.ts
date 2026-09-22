@@ -90,7 +90,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ asse
   try {
     const object = await provider.getObjectStream(key, requestedRange);
     if (!object.Body) return jsonError("Asset body is empty", 404);
-    const headers = new Headers({ "Content-Type": head.contentType ?? asset.mime_type, "Content-Length": String(contentLength), "Accept-Ranges": "bytes", "Cache-Control": "private, max-age=60" });
+    const headers = new Headers({ "Content-Type": head.contentType ?? asset.mime_type, "Content-Length": String(contentLength), "Accept-Ranges": "bytes", "Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff" });
     if (contentRange) headers.set("Content-Range", contentRange);
     return new Response(toWebBody(object.Body), { status, headers });
   } catch {

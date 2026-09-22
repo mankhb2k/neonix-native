@@ -66,7 +66,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     return selected.surface;
   };
   let surface: SkiaSurface | null = makeSurface();
-  if (!surface) throw new Error("skia-renderer: CanvasKit surface unavailable");
+  if (!surface) throw new Error("canvaskit-preview: CanvasKit surface unavailable");
   const diagnostics: SkiaDiagnostic[] = [];
   const maxDiagnostics = Math.max(1, options.maxDiagnostics ?? 100);
   const add = (diagnostic: SkiaDiagnostic) => {
@@ -212,12 +212,12 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     options.canvas.width = backingWidth;
     options.canvas.height = backingHeight;
     surface = makeSurface();
-    if (!surface) throw new Error("skia-renderer: CanvasKit surface unavailable after resize");
+    if (!surface) throw new Error("canvaskit-preview: CanvasKit surface unavailable after resize");
   };
   const paint = (buffer: PaintCommandBuffer): SkiaRenderStats => {
     const started = performance.now();
     const activeSurface = surface;
-    if (!activeSurface) throw new Error("skia-renderer: renderer has been disposed");
+    if (!activeSurface) throw new Error("canvaskit-preview: renderer has been disposed");
     const canvas = activeSurface.getCanvas();
     // Runtime coordinates are composition units. The Skia surface is physical
     // pixels, so keep the command buffer unchanged and apply the same logical

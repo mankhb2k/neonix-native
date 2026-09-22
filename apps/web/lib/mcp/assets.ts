@@ -25,6 +25,14 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** Rejects the common SVG XSS payload shapes (inline <script>, event-handler attributes, javascript: URIs). Not a full sanitizer. */
+function svgContainsExecutableContent(source: string): boolean {
+  return /<script[\s>/]/i.test(source)
+    || /\son[a-z]+\s*=/i.test(source)
+    || /javascript:/i.test(source)
+    || /<foreignobject[\s>/]/i.test(source);
+}
+
 function isPrivateIpv4(address: string): boolean {
   const parts = address.split(".").map(Number);
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
@@ -241,6 +249,14 @@ export async function completeAssetUpload(principal: McpPrincipal, input: { asse
   if (!head) throw new McpAssetError("The file has not finished uploading to R2", "UPLOAD_INCOMPLETE");
   if (head.sizeBytes !== Number(result.data.byte_size)) throw new McpAssetError("Uploaded file size does not match the declared size", "UPLOAD_MISMATCH");
   if (head.contentType && head.contentType !== result.data.mime_type) throw new McpAssetError("Uploaded MIME type does not match the declared type", "UPLOAD_MISMATCH");
+  if (result.data.mime_type === "image/svg+xml") {
+    const svgBytes = await getUserAssetsProvider().getObject(String(result.data.r2_key));
+    if (svgBytes && svgContainsExecutableContent(svgBytes.toString("utf8"))) {
+      await getUserAssetsProvider().deleteObject(String(result.data.r2_key)).catch(() => undefined);
+      await client.from("assets").update({ status: "failed", preview_error: "svg_executable_content_rejected" }).eq("id", input.assetId).eq("created_by", principal.userId);
+      throw new McpAssetError("SVG files may not contain scripts or event-handler attributes", "UPLOAD_REJECTED");
+    }
+  }
   const updated = await client.from("assets").update({ status: "ready", content_hash: `r2:${head.sizeBytes}:${result.data.r2_key}` }).eq("id", input.assetId).eq("created_by", principal.userId).select("id, workspace_id, original_filename, mime_type, kind, byte_size, status, storage_bucket, created_at, preview_status").single();
   if (updated.error || !updated.data) throw new McpAssetError(updated.error?.message ?? "Unable to complete asset", "DATABASE_ERROR");
   await client.from("upload_sessions").update({ status: "completed", completed_at: new Date().toISOString() }).eq("asset_id", input.assetId).eq("created_by", principal.userId);
@@ -251,6 +267,9 @@ export async function completeAssetUpload(principal: McpPrincipal, input: { asse
 export async function importAsset(principal: McpPrincipal, input: { workspaceId?: string; sourceUrl: string; filename?: string }) {
   const workspace = await resolveMcpWorkspace(principal, input.workspaceId, true);
   const bytes = await fetchImportedBytes(input.sourceUrl, await maxUploadBytes(principal));
+  if (bytes.mimeType === "image/svg+xml" && svgContainsExecutableContent(Buffer.from(bytes.bytes).toString("utf8"))) {
+    throw new McpAssetError("SVG files may not contain scripts or event-handler attributes", "UPLOAD_REJECTED");
+  }
   const client = getMcpSupabaseClient(principal);
   const assetId = randomUUID();
   const provider = getUserAssetsProvider();
@@ -296,18 +315,24 @@ export async function attachAssetToProject(principal: McpPrincipal, input: { pro
 export async function deleteAsset(principal: McpPrincipal, input: { workspaceId?: string; assetId: string; replaceReferences?: boolean }) {
   const workspace = await resolveMcpWorkspace(principal, input.workspaceId, true);
   const client = getMcpSupabaseClient(principal);
-  const asset = await client.from("assets").select("id, workspace_id, r2_key, preview_key").eq("id", input.assetId).eq("workspace_id", workspace.id).is("deleted_at", null).maybeSingle();
+  const asset = await client.from("assets").select("id, workspace_id, kind, r2_key, preview_key").eq("id", input.assetId).eq("workspace_id", workspace.id).is("deleted_at", null).maybeSingle();
   if (asset.error) throw new McpAssetError(asset.error.message, "DATABASE_ERROR");
   if (!asset.data) throw new McpAssetError("Asset not found", "NOT_FOUND");
+  if (asset.data.kind === "font") {
+    throw new McpAssetError("Font assets must be deleted through the font deletion endpoint (DELETE /api/v1/fonts/{fontId})", "UNSUPPORTED_ASSET_KIND");
+  }
   const links = await client.from("project_assets").select("project_id").eq("asset_id", input.assetId);
   if (links.error) throw new McpAssetError(links.error.message, "DATABASE_ERROR");
   if ((links.data ?? []).length > 0 && !input.replaceReferences) throw new McpAssetError("Asset is used by one or more projects", "ASSET_IN_USE");
   const variants = await client.from("asset_variants").select("r2_key").eq("asset_id", input.assetId);
   if (variants.error) throw new McpAssetError(variants.error.message, "DATABASE_ERROR");
-  const keys = new Set([String(asset.data.r2_key), ...(asset.data.preview_key ? [String(asset.data.preview_key)] : []), ...(variants.data ?? []).map((row) => String(row.r2_key))]);
-  await Promise.all([...keys].map((key) => getUserAssetsProvider().deleteObject(key)));
+  // Commit the database side first: if delete_asset_with_system_fallback
+  // throws (e.g. an asset kind it can't auto-replace), no R2 object is
+  // touched and the asset remains fully intact for a retry.
   const deleted = await client.rpc("delete_asset_with_system_fallback", { target_asset_id: input.assetId });
   if (deleted.error) throw new McpAssetError(deleted.error.message, "DATABASE_ERROR");
+  const keys = new Set([String(asset.data.r2_key), ...(asset.data.preview_key ? [String(asset.data.preview_key)] : []), ...(variants.data ?? []).map((row) => String(row.r2_key))]);
+  await Promise.all([...keys].map((key) => getUserAssetsProvider().deleteObject(key)));
   await audit(principal, workspace.id, "mcp.asset.delete", input.assetId, { replaceReferences: input.replaceReferences === true });
   return { assetId: input.assetId, deleted: true, deletion: deleted.data as unknown };
 }

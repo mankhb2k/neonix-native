@@ -842,7 +842,7 @@ Color interpolate_color(const Color& left, const Color& right, double amount) {
     };
 }
 
-/** Port of `sampleGradientStop` in packages/skia-renderer/src/paint.ts. `stops` must be offset-ascending. */
+/** Port of `sampleGradientStop` in packages/canvaskit-preview/src/paint.ts. `stops` must be offset-ascending. */
 MaterializedStop sample_gradient_stop(const std::vector<MaterializedStop>& stops, double offset) {
     const MaterializedStop& first = stops.front();
     const MaterializedStop& last = stops.back();
@@ -867,7 +867,7 @@ MaterializedStop sample_gradient_stop(const std::vector<MaterializedStop>& stops
 }
 
 /**
- * Port of `resolveGradient` in packages/skia-renderer/src/paint.ts. Skia's
+ * Port of `resolveGradient` in packages/canvaskit-preview/src/paint.ts. Skia's
  * native repeat tile mode is not reliable for a short (< 1.0) stop period —
  * CanvasKit works around this by explicitly enumerating every visible cycle
  * as literal "pad" stops instead of relying on `SkTileMode::kRepeat`, and
@@ -987,7 +987,7 @@ sk_sp<SkShader> make_gradient_shader(const PaintSpec& paint, double width, doubl
     // `from` is wire index 5 (index 4 is the *linear* gradient's `angle` —
     // conic gradients carry their own separate field). Skia's SweepGradient
     // angle-range overload is not reliable across raster/GPU builds (see
-    // CanvasKit's `conicLocalMatrix` in packages/skia-renderer/src/paint.ts,
+    // CanvasKit's `conicLocalMatrix` in packages/canvaskit-preview/src/paint.ts,
     // which hits the same issue), so mirror that exact workaround here:
     // keep the sweep fixed at 0->360 and rotate the shader's local matrix
     // around the gradient center instead, by the negated CSS start angle.
@@ -1105,7 +1105,7 @@ bool read_effect_box(Reader& reader, EffectBoxSpec& box) {
 }
 
 double css_blur_radius_to_skia_sigma(double radius) {
-    // Mirrors cssBlurRadiusToSkiaSigma in packages/skia-renderer/src/command/effects.ts.
+    // Mirrors cssBlurRadiusToSkiaSigma in packages/canvaskit-preview/src/command/effects.ts.
     return radius == 0 ? 0.5 : radius;
 }
 

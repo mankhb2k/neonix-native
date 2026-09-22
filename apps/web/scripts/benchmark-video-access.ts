@@ -3,7 +3,10 @@ import { basename, join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import type { PaintCommandBuffer, RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import type {
+  PaintCommandBuffer,
+  RuntimeProjectV3,
+} from "@motionvideo/motion-runtime";
 import {
   evaluatePreparedRuntimeProjectV3,
   prepareRuntimeProjectV3,
@@ -14,7 +17,7 @@ import {
   SkiaFrameAssetResolver,
   type SkiaAssetResolverStats,
 } from "@motionvideo/export-renderer";
-import type { SkiaAsset } from "@motionvideo/skia-renderer";
+import type { SkiaAsset } from "../../../packages/canvaskit-preview/src";
 import { PREVIEW_LAB_CASES } from "../lib/docs/preview-lab";
 import { compileAndPrepareRuntimeProjectV3 } from "../lib/server/render/project-runtime";
 
@@ -35,15 +38,21 @@ function repoRoot(): string {
 }
 
 function requiredVideoProject() {
-  const fixture = PREVIEW_LAB_CASES.find((candidate) => candidate.id === "video.frame-seek");
-  if (!fixture) throw new Error("Preview fixture 'video.frame-seek' was not found.");
+  const fixture = PREVIEW_LAB_CASES.find(
+    (candidate) => candidate.id === "video.frame-seek",
+  );
+  if (!fixture)
+    throw new Error("Preview fixture 'video.frame-seek' was not found.");
   return fixture.project;
 }
 
 function percentile(values: number[], ratio: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
+  const index = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.ceil(sorted.length * ratio) - 1),
+  );
   return sorted[index] ?? 0;
 }
 
@@ -56,43 +65,73 @@ function summarize(values: number[]): PatternResult["percentiles"] {
   };
 }
 
-function videoCommand(project: RuntimeProjectV3, mediaTime: number): PaintCommandBuffer {
-  const asset = project.mediaCatalog.assets.find((candidate) => candidate.video?.length);
+function videoCommand(
+  project: RuntimeProjectV3,
+  mediaTime: number,
+): PaintCommandBuffer {
+  const asset = project.mediaCatalog.assets.find(
+    (candidate) => candidate.video?.length,
+  );
   if (!asset) throw new Error("Compiled project has no video asset.");
   const stream = asset.video?.[0];
-  if (!stream) throw new Error("Compiled project has no video stream metadata.");
+  if (!stream)
+    throw new Error("Compiled project has no video stream metadata.");
   return {
     version: 1,
     diagnostics: [],
-    commands: [{
-      op: "drawVideo",
-      key: "video-benchmark",
-      layerId: "video-benchmark",
-      assetId: asset.mediaId,
-      uri: stream.resource.uri,
-      width: 1920,
-      height: 1080,
-      fit: "cover",
-      mediaTime,
-      mediaVisible: true,
-      muted: true,
-    }],
+    commands: [
+      {
+        op: "drawVideo",
+        key: "video-benchmark",
+        layerId: "video-benchmark",
+        assetId: asset.mediaId,
+        uri: stream.resource.uri,
+        width: 1920,
+        height: 1080,
+        fit: "cover",
+        mediaTime,
+        mediaVisible: true,
+        muted: true,
+      },
+    ],
   };
 }
 
-function encodedHash(buffer: PaintCommandBuffer, assets: ReadonlyMap<string, SkiaAsset>): string {
-  const command = buffer.commands.find((candidate) => candidate.op === "drawVideo");
-  if (!command || command.op !== "drawVideo") throw new Error("Benchmark command has no video draw.");
+function encodedHash(
+  buffer: PaintCommandBuffer,
+  assets: ReadonlyMap<string, SkiaAsset>,
+): string {
+  const command = buffer.commands.find(
+    (candidate) => candidate.op === "drawVideo",
+  );
+  if (!command || command.op !== "drawVideo")
+    throw new Error("Benchmark command has no video draw.");
   const asset = assets.get(command.assetId);
-  if (!asset) throw new Error(`Benchmark did not resolve asset '${command.assetId}'.`);
-  if (!asset.encoded) throw new Error(`Benchmark asset '${command.assetId}' has no encoded bytes.`);
+  if (!asset)
+    throw new Error(`Benchmark did not resolve asset '${command.assetId}'.`);
+  if (!asset.encoded)
+    throw new Error(
+      `Benchmark asset '${command.assetId}' has no encoded bytes.`,
+    );
   return createHash("sha256").update(asset.encoded).digest("hex");
 }
 
-async function checkFrameParity(project: RuntimeProjectV3, assetRoot: string, ffmpegPath: string): Promise<{ timestamps: number[]; matches: boolean[] }> {
+async function checkFrameParity(
+  project: RuntimeProjectV3,
+  assetRoot: string,
+  ffmpegPath: string,
+): Promise<{ timestamps: number[]; matches: boolean[] }> {
   const timestamps = [0, 1 / 30, 2 / 30];
-  const accurate = new SkiaFrameAssetResolver({ assetRoot, ffmpegPath, videoSeekMode: "accurate" });
-  const optimized = new SkiaFrameAssetResolver({ assetRoot, ffmpegPath, videoSeekMode: "fast" });
+  const accurate = new SkiaFrameAssetResolver({
+    assetRoot,
+    ffmpegPath,
+    videoSeekMode: "accurate",
+  });
+  const optimized = new SkiaFrameAssetResolver({
+    assetRoot,
+    ffmpegPath,
+    videoSeekMode: "fast",
+  });
   const matches: boolean[] = [];
   try {
     for (const timestamp of timestamps) {
@@ -101,7 +140,10 @@ async function checkFrameParity(project: RuntimeProjectV3, assetRoot: string, ff
         accurate.resolveFrameAssets(project, command),
         optimized.resolveFrameAssets(project, command),
       ]);
-      matches.push(encodedHash(command, accurateAssets) === encodedHash(command, optimizedAssets));
+      matches.push(
+        encodedHash(command, accurateAssets) ===
+          encodedHash(command, optimizedAssets),
+      );
     }
     return { timestamps, matches };
   } finally {
@@ -121,7 +163,10 @@ async function runPattern(
   const elapsedMilliseconds: number[] = [];
   for (const mediaTime of mediaTimes) {
     const startedAt = performance.now();
-    await resolver.resolveFrameAssets(project, videoCommand(project, mediaTime));
+    await resolver.resolveFrameAssets(
+      project,
+      videoCommand(project, mediaTime),
+    );
     elapsedMilliseconds.push(performance.now() - startedAt);
   }
   const resolverStats = resolver.getStats();
@@ -137,27 +182,46 @@ async function runPattern(
   };
 }
 
-function runProcess(command: string, args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+function runProcess(
+  command: string,
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolveProcess, reject) => {
     const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
     child.once("error", reject);
-    child.once("close", (code) => resolveProcess({ code: code ?? 1, stdout, stderr }));
+    child.once("close", (code) =>
+      resolveProcess({ code: code ?? 1, stdout, stderr }),
+    );
   });
 }
 
-async function probeVideo(ffprobePath: string, filePath: string): Promise<unknown> {
+async function probeVideo(
+  ffprobePath: string,
+  filePath: string,
+): Promise<unknown> {
   const result = await runProcess(ffprobePath, [
-    "-v", "error",
-    "-show_entries", "format=duration,size:stream=index,codec_type,width,height,avg_frame_rate",
-    "-of", "json",
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration,size:stream=index,codec_type,width,height,avg_frame_rate",
+    "-of",
+    "json",
     filePath,
   ]);
   if (result.code !== 0) return { error: result.stderr.trim() };
-  try { return JSON.parse(result.stdout); } catch { return { raw: result.stdout.trim() }; }
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    return { raw: result.stdout.trim() };
+  }
 }
 
 async function main(): Promise<void> {
@@ -169,11 +233,16 @@ async function main(): Promise<void> {
   const fixture = requiredVideoProject();
   const runtime = await compileAndPrepareRuntimeProjectV3(fixture);
   const prepared = prepareRuntimeProjectV3(runtime);
-  const videoAsset = runtime.mediaCatalog.assets.find((asset) => asset.video?.length);
+  const videoAsset = runtime.mediaCatalog.assets.find(
+    (asset) => asset.video?.length,
+  );
   if (!videoAsset || !videoAsset.video?.[0]) {
     throw new Error("Benchmark runtime is missing video metadata.");
   }
-  const videoPath = resolveLocalPreviewAssetPath(videoAsset.video[0].resource.uri, assetRoot);
+  const videoPath = resolveLocalPreviewAssetPath(
+    videoAsset.video[0].resource.uri,
+    assetRoot,
+  );
   const sourceStats = await stat(videoPath);
 
   const patterns: Array<[PatternName, number[]]> = [
@@ -192,7 +261,9 @@ async function main(): Promise<void> {
 
   const patternResults: PatternResult[] = [];
   for (const [name, mediaTimes] of patterns) {
-    patternResults.push(await runPattern(runtime, assetRoot, ffmpegPath, name, mediaTimes));
+    patternResults.push(
+      await runPattern(runtime, assetRoot, ffmpegPath, name, mediaTimes),
+    );
   }
   const frameParity = await checkFrameParity(runtime, assetRoot, ffmpegPath);
 
@@ -227,7 +298,11 @@ async function main(): Promise<void> {
       ...e2e,
     },
   };
-  await writeFile(join(outputRoot, "report.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await writeFile(
+    join(outputRoot, "report.json"),
+    `${JSON.stringify(report, null, 2)}\n`,
+    "utf8",
+  );
   console.log(JSON.stringify(report, null, 2));
 }
 

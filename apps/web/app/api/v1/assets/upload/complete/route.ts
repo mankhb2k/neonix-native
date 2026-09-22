@@ -36,6 +36,14 @@ function asUploadAssetRow(value: unknown): UploadAssetRow | null {
     : null;
 }
 
+/** Rejects the common SVG XSS payload shapes (inline <script>, event-handler attributes, javascript: URIs). Not a full sanitizer. */
+function svgContainsExecutableContent(source: string): boolean {
+  return /<script[\s>/]/i.test(source)
+    || /\son[a-z]+\s*=/i.test(source)
+    || /javascript:/i.test(source)
+    || /<foreignobject[\s>/]/i.test(source);
+}
+
 export async function POST(request: Request) {
   const result = await getAssetRequestContext();
   if (!result.ok) return jsonError(result.message, result.status);
@@ -72,11 +80,24 @@ export async function POST(request: Request) {
   const provider = getUserAssetsProvider();
   const head = await provider.headObject(storageKey);
   if (!head) return jsonError("The file has not finished uploading to R2", 400);
+  const rejectUpload = async (message: string) => {
+    await provider.deleteObject(storageKey).catch(() => undefined);
+    await supabase.from("assets").update({ status: "failed" }).eq("id", assetId).eq("workspace_id", workspaceId);
+    return jsonError(message, 400);
+  };
   if (head.sizeBytes !== assetRow.byte_size) {
-    return jsonError("Uploaded file size does not match the declared size", 400);
+    return rejectUpload("Uploaded file size does not match the declared size");
   }
   if (head.contentType && head.contentType !== assetRow.mime_type) {
-    return jsonError("Uploaded content type does not match the declared type", 400);
+    return rejectUpload("Uploaded content type does not match the declared type");
+  }
+  if (assetRow.mime_type === "image/svg+xml") {
+    const svgBytes = await provider.getObject(storageKey);
+    if (svgBytes && svgContainsExecutableContent(svgBytes.toString("utf8"))) {
+      await provider.deleteObject(storageKey).catch(() => undefined);
+      await supabase.from("assets").update({ status: "failed", preview_error: "svg_executable_content_rejected" }).eq("id", assetId).eq("workspace_id", workspaceId);
+      return jsonError("SVG files may not contain scripts or event-handler attributes", 400);
+    }
   }
 
   const { data: uploadSession, error: uploadSessionReadError } = await supabase

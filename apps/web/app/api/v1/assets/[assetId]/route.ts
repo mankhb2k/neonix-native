@@ -14,7 +14,7 @@ export async function DELETE(
   const { supabase, user, workspaceId } = result.context;
   const { data: asset, error: assetError } = await supabase
     .from("assets")
-    .select("id, r2_key, preview_key, status")
+    .select("id, kind, r2_key, preview_key, status")
     .eq("id", assetId)
     .eq("workspace_id", workspaceId)
     .eq("created_by", user.id)
@@ -23,6 +23,9 @@ export async function DELETE(
   if (assetError) return jsonError(assetError.message, 500);
   const assetRow = asset;
   if (!assetRow) return jsonError("Asset not found", 404);
+  if (assetRow.kind === "font") {
+    return jsonError("Font assets must be deleted through DELETE /api/v1/fonts/{fontId}", 400);
+  }
   const storageKey = typeof assetRow.r2_key === "string" ? assetRow.r2_key : null;
   if (!storageKey) return jsonError("Asset storage key is invalid", 500);
 
@@ -56,6 +59,15 @@ export async function DELETE(
     .eq("asset_id", assetId);
   if (variantsError) return jsonError(variantsError.message, 500);
 
+  // Commit the database side first: if delete_asset_with_system_fallback
+  // throws (e.g. an asset kind it can't auto-replace), no R2 object is
+  // touched and the asset remains fully intact for a retry.
+  const deletionResponse = await supabase.rpc(
+    "delete_asset_with_system_fallback",
+    { target_asset_id: assetId },
+  );
+  if (deletionResponse.error) return jsonError(deletionResponse.error.message, 500);
+
   try {
     const keys = new Set<string>([
       storageKey,
@@ -70,11 +82,6 @@ export async function DELETE(
     return jsonError(error instanceof Error ? error.message : "Unable to delete R2 object", 502);
   }
 
-  const deletionResponse = await supabase.rpc(
-    "delete_asset_with_system_fallback",
-    { target_asset_id: assetId },
-  );
-  if (deletionResponse.error) return jsonError(deletionResponse.error.message, 500);
   return Response.json({ ok: true, deletion: deletionResponse.data as unknown });
 }
 

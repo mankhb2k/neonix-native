@@ -20,6 +20,14 @@ import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 export type PersistentRenderJob = {
   jobId: string;
   userId: string;
+  /**
+   * Only set for database-backed jobs (undefined for local file-backed jobs
+   * used in dev/tests, which have no real workspace to check). Access control
+   * and the R2 output key are scoped to this, not to `userId` alone, so a
+   * shared team workspace's members can see and download each other's
+   * renders rather than only the person who happened to click render.
+   */
+  workspaceId?: string;
   projectId: string;
   projectRevision: number;
   idempotencyKey: string;
@@ -227,6 +235,7 @@ function fromSupabaseRow(row: SupabaseRenderJobRow): PersistentRenderJob {
   return {
     jobId: row.public_ref,
     userId: row.created_by,
+    workspaceId: row.workspace_id,
     projectId: row.project_id,
     projectRevision: Number(row.preset_json.projectRevision ?? 0),
     idempotencyKey: row.idempotency_key,
@@ -260,8 +269,14 @@ function repoRoot(): string {
   return cwd;
 }
 
-export function buildRenderOutputKey(userId: string, jobId: string): string {
-  return `${userId}/${jobId}.mp4`;
+/**
+ * Falls back to `userId` only for local file-backed jobs (no real workspace
+ * to scope by). Database-backed jobs always have a workspaceId and are keyed
+ * by it, matching how every other workspace-owned resource (assets, projects)
+ * is stored in R2/Postgres.
+ */
+export function buildRenderOutputKey(job: Pick<PersistentRenderJob, "userId" | "workspaceId">, jobId: string): string {
+  return `${job.workspaceId ?? job.userId}/${jobId}.mp4`;
 }
 
 export function renderJobsRootDir(): string {
@@ -376,6 +391,12 @@ export async function findJobByIdempotencyKey(
   return fromSupabaseRow(result.data);
 }
 
+/** MVP renders as a single Cloud Run job; the chunk manifest is a draft coordinator contract, not yet part of the real render flow. */
+function isChunkExecutionEnabled(): boolean {
+  return process.env.RENDER_DISPATCH_MODE?.trim().toLowerCase() === "cloud-run-job"
+    && process.env.RENDER_CHUNK_EXECUTION_ENABLED?.trim().toLowerCase() === "true";
+}
+
 export async function createRenderJob(input: {
   userId: string;
   projectId: string;
@@ -395,10 +416,10 @@ export async function createRenderJob(input: {
     if (existing.error) throw new Error(`Unable to read render job: ${existing.error.message}`);
     if (existing.data) {
       const job = fromSupabaseRow(existing.data);
-      if (!job.chunkManifestChecksum) {
-        if (!existing.data.runtime_json && !existing.data.runtime_manifest_chunk_count) {
-          await persistLargeRuntimeManifest(job.jobId, input.database.runtime);
-        }
+      if (!existing.data.runtime_json && !existing.data.runtime_manifest_chunk_count) {
+        await persistLargeRuntimeManifest(job.jobId, input.database.runtime);
+      }
+      if (isChunkExecutionEnabled() && !job.chunkManifestChecksum) {
         await initializeRenderJobChunks(job.jobId, input.database.runtime);
       }
       return { job: (await getRenderJob(job.jobId)) ?? job, created: false };
@@ -438,7 +459,9 @@ export async function createRenderJob(input: {
     if (useLargeManifestUpload) {
       await persistLargeRuntimeManifest(job.jobId, input.database.runtime);
     }
-    await initializeRenderJobChunks(job.jobId, input.database.runtime);
+    if (isChunkExecutionEnabled()) {
+      await initializeRenderJobChunks(job.jobId, input.database.runtime);
+    }
     return { job: (await getRenderJob(job.jobId)) ?? job, created: true };
   }
 
@@ -724,11 +747,26 @@ export async function recoverStaleRenderFinalizer(
   };
 }
 
-export function assertJobOwner(
+/**
+ * The job's creator always has access. For database-backed jobs, any other
+ * member of the job's workspace (owner/editor/viewer) also has access -
+ * renders belong to the workspace, not only to whoever happened to start
+ * them, matching how projects/assets are shared within a team workspace.
+ * Local file-backed jobs (no workspaceId) fall back to creator-only.
+ */
+export async function assertJobAccess(
   job: PersistentRenderJob,
   userId: string,
-): void {
-  if (job.userId !== userId) {
-    throw new Error("FORBIDDEN_JOB_OWNERSHIP");
-  }
+): Promise<void> {
+  if (job.userId === userId) return;
+  if (!job.workspaceId) throw new Error("FORBIDDEN_JOB_ACCESS");
+  const client = createRenderDatabaseClient();
+  if (!client) throw new Error("FORBIDDEN_JOB_ACCESS");
+  const membership = await client
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", job.workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (membership.error || !membership.data) throw new Error("FORBIDDEN_JOB_ACCESS");
 }

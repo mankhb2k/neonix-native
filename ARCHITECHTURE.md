@@ -61,8 +61,8 @@ một project được rút gọn thành:
                     │                     │
                     ▼                     ▼
              ┌──────────────┐        Native
-             │     SKIA     │        Renderer
-             │   Renderer   │           │
+             │   CanvasKit  │        Renderer
+             │    Preview   │           │
              └──────┬───────┘           ▼
                     │                 FFmpeg
                CanvasKit/              │
@@ -113,13 +113,14 @@ This is the intended stable boundary:
 
 ### Implementation status
 
-The native command-buffer worker and its Cloud Run benchmark/export job are
-implemented and measured. The general TypeScript path in
-`packages/export-renderer/src/render/render.ts` still uses CanvasKit WASM in
-Node for the broader RuntimeProjectV3 asset/audio path. Native Skia becomes the
-default for that path only after the full command, font, image, video, effects,
-and audio parity gates are complete. This distinction keeps the architecture
-honest while preserving one visual command contract.
+The native command-buffer worker and its Cloud Run render/chunk/finalizer jobs
+are implemented and are the only production MP4 export path. The general
+TypeScript entry point in `packages/export-renderer/src/render/render.ts`
+hard-codes `renderer: "skia-native"` and explicitly rejects a CanvasKit/SVG
+renderer selection at export time (`ExportRendererError`, code
+`UNSUPPORTED_COMMAND`) - there is no CanvasKit fallback anywhere in the export
+path. CanvasKit is used exclusively by `@motionvideo/canvaskit-preview` for
+the browser UI preview; it never produces the exported MP4.
 
 ## HTML authoring boundary (one-way)
 
@@ -259,7 +260,7 @@ audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/R
 | `@motionvideo/motion-runtime` | Runtime semantics | Duration, timing, hierarchy, compiler-baked visual frame deltas, frame evaluation, paint/audio/video plans | Authoring mutation, clock, canvas, audio device |
 | `@motionvideo/editor-runtime` | Editor runtime session | Cache compile theo document generation, canonical layer sampling và frame evaluation cho editor | React, DOM, transport clock, renderer |
 | `@motionvideo/playback-engine` | Realtime transport | Clock, play/pause/seek/rate, readiness, scheduling và backend plan delivery | Document editing, timeline UI, pixels |
-| `@motionvideo/skia-renderer` | Preview/render backend | Replay PaintCommandBuffer bằng CanvasKit/Skia lên Canvas | Protocol parsing, compiler, timeline, playback clock |
+| `@motionvideo/canvaskit-preview` | Browser preview backend | Replay PaintCommandBuffer bằng CanvasKit/Skia lên Canvas (UI preview only, không phải export) | Protocol parsing, compiler, timeline, playback clock |
 | `@motionvideo/export-renderer` | Offline renderer | Runtime frame/audio → native output và FFmpeg MP4 | Authoring semantics, Playback |
 | `@motionvideo/preview-renderer` | Legacy backend | WebGPU/WebGL2 implementation cũ, không còn là preview path canonical | New Editor preview và `/docs/preview/skia` |
 | `apps/web` | Host/adapters | React, DOM, Canvas, stores, persistence, resource lifecycle và API bridge | Reimplementing command, compile/evaluate, duration, transport, renderer semantics |
@@ -568,12 +569,14 @@ Protocol, Compiler và Runtime tương ứng.
 Playback không phải là một bước trong visual test của `/docs/preview/skia` và không
 được cung cấp frame hoặc audio cho Export Renderer.
 
-#### 5.2 Skia Preview Renderer
+#### 5.2 CanvasKit Preview Renderer
 
 ##### Vai trò
 
-Skia Renderer vẽ trạng thái do Runtime trả về trong Editor và trong debug
-preview với CanvasKit/Skia.
+CanvasKit Preview vẽ trạng thái do Runtime trả về trong Editor và trong debug
+preview với CanvasKit/Skia. Đây chỉ là backend preview cho UI - không liên
+quan tới export; MP4 export luôn đi qua native Skia worker (§5.3), không bao
+giờ qua CanvasKit.
 
 ##### Luồng dữ liệu
 
@@ -586,7 +589,7 @@ PaintCommandBuffer
         │
         ▼
 ┌─────────────────────────┐
-│     SKIA RENDERER       │
+│   CANVASKIT PREVIEW     │
 │                         │
 │  Khởi tạo CanvasKit      │
 │  Quản lý Skia surface    │
@@ -612,15 +615,15 @@ PaintCommandBuffer
 7. Vẽ kết quả thật lên Canvas để Editor hoặc `/docs/preview/skia` quan sát, chụp ảnh
    và so sánh parity.
 
-Skia Renderer không tự đánh giá timeline, không compile Protocol và không tạo
-semantics thay Runtime. CanvasKit/Skia chỉ thực thi `PaintCommandBuffer`.
+CanvasKit Preview không tự đánh giá timeline, không compile Protocol và không
+tạo semantics thay Runtime. CanvasKit/Skia chỉ thực thi `PaintCommandBuffer`.
 
 ##### Điểm bàn giao
 
-Skia Renderer bàn giao hình ảnh cho User trong Editor hoặc debug preview.
+CanvasKit Preview bàn giao hình ảnh cho User trong Editor hoặc debug preview.
 
 Chi tiết về CanvasKit/Skia resources và lifecycle được mô tả trong
-[`skia-renderer README`](packages/skia-renderer/README.md).
+[`canvaskit-preview README`](packages/canvaskit-preview/README.md).
 
 #### 5.3 Export Renderer
 
@@ -759,7 +762,7 @@ RuntimeProjectV3
 | Motion Compiler         | Protocol V2 → RuntimeProjectV3               |
 | Motion Runtime          | Duration, evaluate frame/time và plans        |
 | Playback Engine         | Realtime clock, transport và delivery        |
-| Skia Renderer           | Replay PaintCommandBuffer lên CanvasKit/Skia |
+| CanvasKit Preview       | Replay PaintCommandBuffer lên CanvasKit/Skia (UI preview only) |
 | Export Renderer         | Offline render, audio mix và export job      |
 | Legacy Preview Renderer | WebGPU/WebGL2 path cũ, không canonical       |
 | Web App                 | UI, adapters, stores và orchestration        |
@@ -774,7 +777,7 @@ Khi thêm một capability mới, kiểm tra theo thứ tự:
 Protocol
   → Compiler
   → Runtime evaluator
-  → Skia Preview
+  → CanvasKit Preview
   → Native export
   → parity test
 ```
@@ -788,5 +791,5 @@ không được âm thầm tạo một video sai semantics.
 - Protocol trả lời: **ý định đó được biểu diễn thành project canonical nào?**
 - Compiler trả lời: **project này có thể chạy như thế nào?**
 - Runtime trả lời: **ở frame/time này, project đang ở trạng thái nào?**
-- Skia Renderer trả lời: **replay `PaintCommandBuffer` lên CanvasKit/Skia như thế nào?**
+- CanvasKit Preview trả lời: **replay `PaintCommandBuffer` lên CanvasKit/Skia như thế nào?**
 - FFmpeg trả lời: **đóng các frame/audio thành MP4 như thế nào?**
