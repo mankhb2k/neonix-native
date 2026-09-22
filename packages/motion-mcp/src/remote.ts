@@ -9,6 +9,7 @@ import {
 } from "./annotations";
 import { REMOTE_TOOL_OUTPUT_SCHEMAS } from "./output-schemas";
 import { registerNeonixGuidance } from "./guidance";
+import { MCP_SERVER_VERSION } from "./version";
 import {
   MCP_APP_RESOURCE_MIME_TYPE,
   VIDEO_PREVIEW_RESOURCE_URI,
@@ -140,7 +141,7 @@ export function createRemoteMcpServer(options: {
 }) {
   const { api } = options;
   const server = new McpServer(
-    { name: "Neonix MCP", version: "0.1.0" },
+    { name: "Neonix MCP", version: MCP_SERVER_VERSION },
     {
       instructions:
         "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, check its htmlSyncStatus, edit it, validate_html, then save it with update_project_html. If htmlSyncStatus is 'stale', a JSON patch or another edit already moved the project past this HTML source; saving it anyway will overwrite that change, so re-derive the HTML (or confirm with the caller) before saving. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and makes the HTML source stale. Never convert JSON back to HTML.",
