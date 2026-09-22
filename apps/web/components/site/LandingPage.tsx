@@ -542,6 +542,9 @@ function LandingFooter() {
           </p>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--fg-secondary)]">
+          <Link className="transition-colors hover:text-[var(--fg-primary)]" href="/overview">
+            Overview
+          </Link>
           <Link className="transition-colors hover:text-[var(--fg-primary)]" href="/docs">
             Docs
           </Link>

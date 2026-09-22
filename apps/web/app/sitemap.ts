@@ -10,6 +10,7 @@ const SITE_URL = "https://www.neonix.video";
 const STATIC_ROUTE_SOURCES: Record<string, string> = {
   "/": "app/(marketing)/page.tsx",
   "/html-to-video": "app/(marketing)/html-to-video/page.tsx",
+  "/overview": "app/(marketing)/overview/page.tsx",
   "/privacy": "app/(marketing)/privacy/page.tsx",
   "/terms": "app/(marketing)/terms/page.tsx",
   "/support": "app/(marketing)/support/page.tsx",
@@ -45,6 +46,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${SITE_URL}${routePath}`,
     lastModified,
     changeFrequency: routePath === "/" ? "weekly" : "monthly",
-    priority: routePath === "/" ? 1 : routePath === "/html-to-video" ? 0.9 : 0.6,
+    priority:
+      routePath === "/"
+        ? 1
+        : routePath === "/html-to-video" || routePath === "/overview"
+          ? 0.9
+          : 0.6,
   }));
 }
