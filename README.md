@@ -23,9 +23,9 @@ Supabase Auth + Postgres (RLS-protected project revisions)
   │
   ▼
 Neonix dashboard (www.neonix.video/dashboard)
-  │ MotionProtocolV2 → compile → RuntimeFrameV2
-  ├── Native browser preview (WebGPU, WebGL2 fallback)
-  └── Export jobs (/api/v1/renders → Remotion/Lambda when configured)
+  │ MotionProtocolV2 → compile → RuntimeProjectV3
+  ├── Browser preview (CanvasKit/Skia)
+  └── Export jobs (/api/v1/renders → native Skia + FFmpeg on Cloud Run)
 ```
 
 Claude never receives a service-role key and does not call an AI provider from
@@ -56,7 +56,7 @@ edit.
    access. Service-role credentials remain server-only.
 
 The detailed protocol and renderer contract is documented in
-[`docs/guide/v2-architechture.md`](docs/guide/v2-architechture.md).
+[`ARCHITECHTURE.md`](ARCHITECHTURE.md).
 
 ## Monorepo layout
 
@@ -65,18 +65,18 @@ The detailed protocol and renderer contract is documented in
 | Path | Responsibility |
 | --- | --- |
 | [`apps/web`](apps/web) | Next.js landing pages, auth, workspace, V2 editor, MCP HTTP endpoint, project BFF, and render-job API. |
-| [`apps/remotion-site`](apps/remotion-site) | Remotion composition used for smoke tests and preview/export parity checks. |
 
 ### Core packages
 
 | Package | Responsibility |
 | --- | --- |
 | [`motion-protocol`](packages/motion-protocol) | Strict Protocol V2 schemas, asset/layer vocabulary, and capability ledgers. |
-| [`html-compiler`](packages/html-compiler) | HTML/CSS authoring source boundary; future cascade/layout/paint lowering into Atomic Protocol V2. |
-| [`motion-compiler`](packages/motion-compiler) | Validates and lowers Protocol V2 into Runtime V2 IR. |
+| [`html-compiler`](packages/html-compiler) | HTML/CSS authoring source boundary; lowers a validated HTML/CSS subset into Protocol V2. |
+| [`motion-compiler`](packages/motion-compiler) | Validates and lowers Protocol V2 into `RuntimeProjectV3`. |
 | [`motion-runtime`](packages/motion-runtime) | Deterministic visual frame evaluation, Matrix4 transforms, paint commands, and audio mix plans. |
 | [`editor-core`](packages/editor-core) | Framework-independent document commands, selection, timeline projection, and interaction algorithms. |
-| [`remotion-renderer`](packages/remotion-renderer) | Remotion painter and audio track for the same runtime output used by preview. |
+| [`editor-runtime`](packages/editor-runtime) | Editor-session compile caching and canonical frame/layer sampling on top of `motion-compiler`/`motion-runtime`. |
+| [`canvaskit-preview`](packages/canvaskit-preview) | Replays the runtime's `PaintCommandBuffer` via CanvasKit/Skia for the live browser preview — UI preview only, never the export path. |
 
 ### Integration and infrastructure packages
 
@@ -84,11 +84,10 @@ The detailed protocol and renderer contract is documented in
 | --- | --- |
 | [`motion-mcp`](packages/motion-mcp) | Transport-agnostic remote MCP tool contracts and registration. The web app supplies auth and persistence. |
 | [`web storage orchestration`](apps/web/lib/server/r2.ts) | Web-owned R2 access, upload/download signing, asset keys, and artifact storage. Postgres stores metadata, not media bytes. |
-| [`export-renderer`](packages/export-renderer) | Native VPS renderer plus the shared render manifest, job, provider, preset, and worker contracts. |
+| [`export-renderer`](packages/export-renderer) | Native Skia + FFmpeg renderer — the only production MP4 export path — plus the shared render manifest, job, provider, and preset contracts. |
 | [`asset-registry`](packages/asset-registry) | Asset identity, MIME/hash metadata, SVG safety, and font metadata. |
 | [`audio-analysis`](packages/audio-analysis) | Audio metadata and analysis helpers. |
-| [`playback-engine`](packages/playback-engine) | Browser playback scheduling and WebAudio consumption of Runtime V2 audio plans. |
-| [`patterns`](packages/patterns) | Reusable Protocol V2 fixture/pattern data; it is not a second document format. |
+| [`playback-engine`](packages/playback-engine) | Browser playback scheduling and WebAudio consumption of Runtime audio plans. |
 
 ## Web application boundaries
 
@@ -139,7 +138,8 @@ the Supabase CLI for database work.
 
 ```powershell
 pnpm install
-Copy-Item .env.example .env.local
+# Create apps/web/.env.local yourself — see Environment below; there is no
+# committed .env.example template to copy.
 pnpm --filter @motionvideo/web dev
 ```
 
@@ -159,9 +159,9 @@ SUPABASE_SERVICE_ROLE_KEY=<server-only-key>
 
 Google OAuth client ID/secret are configured in Supabase Authentication →
 Providers → Google for a hosted project. Do not put secrets in
-`NEXT_PUBLIC_*` variables or commit `.env.local`. R2 and Remotion/Lambda
-variables are optional until those production integrations are enabled; the
-complete template is [`.env.example`](.env.example).
+`NEXT_PUBLIC_*` variables or commit `.env.local`. R2 variables are optional
+until that production integration is enabled. There is no committed
+`.env.example`; ask a maintainer for the full variable list.
 
 ### Supabase migrations
 
@@ -185,11 +185,8 @@ pnpm typecheck
 
 # V2 editor/core certification checks
 pnpm typecheck:v2
-pnpm validate:v2-hard-lock
-pnpm validate:v2-runtime-boundary
+pnpm validate:v2-boundary
 pnpm validate:v2-consumers
-pnpm validate:v2-renderers
-pnpm validate:v2-core
 
 # Unit tests
 pnpm test
@@ -199,18 +196,18 @@ pnpm --filter @motionvideo/web test:editor
 pnpm --filter @motionvideo/web e2e
 ```
 
-CI runs repository typecheck, V2 checks, web tests/E2E, protocol schema freeze,
-and Remotion smoke/parity tests. The active workflows live in
-[`.github/workflows`](.github/workflows).
+CI runs repository typecheck, V2 checks, web tests/E2E, and protocol schema
+freeze. The active workflows live in [`.github/workflows`](.github/workflows)
+— note that `remotion-e2e.yml` is currently orphaned (its path filters point
+at `packages/remotion-renderer` and `apps/remotion-site`, which no longer
+exist, so it never triggers).
 
 ## Documentation map
 
-- [`docs/guide/README.md`](docs/guide/README.md) — active V2 guide entrypoint.
-- [`docs/guide/v2-architechture.md`](docs/guide/v2-architechture.md) — end-to-end protocol, compiler, runtime, preview, export, and audio boundaries.
+- [`ARCHITECHTURE.md`](ARCHITECHTURE.md) — end-to-end protocol, compiler, runtime, preview, export, and audio boundaries. Kept in sync with the code; treat any mismatch as a bug.
 - [`docs/guide/audio.md`](docs/guide/audio.md) — Protocol V2 audio model.
-- [`docs/atomic-protocol-v2-preview-e2e-plan.md`](docs/atomic-protocol-v2-preview-e2e-plan.md) — certified atom and parity gates.
-- [`docs/plans/mcp-google-oauth-implementation-plan.md`](docs/plans/mcp-google-oauth-implementation-plan.md) — OAuth, MCP, RLS, and export rollout plan.
-- [`docs/web/authoring-json-shape.md`](docs/web/authoring-json-shape.md) — web editor document shape examples.
+- [`docs/guide/billing-free-pay-as-export.md`](docs/guide/billing-free-pay-as-export.md) — billing/quota model.
+- [`docs/api-v1.md`](docs/api-v1.md) — HTTP API v1 reference.
 - [`apps/web/README.md`](apps/web/README.md) — web/editor-specific boundaries.
 - [`packages/editor-core/README.md`](packages/editor-core/README.md) — framework-independent editor contract.
 
@@ -225,5 +222,3 @@ and Remotion smoke/parity tests. The active workflows live in
 - Preserve deterministic revision writes and `expectedRevisionNo` conflict
   checks for web and MCP mutations.
 - Keep credentials and service-role access server-only.
-
-See [`LICENSE`](LICENSE) for licensing information.
