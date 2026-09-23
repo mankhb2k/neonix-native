@@ -54,7 +54,7 @@ describe("static V2 documentation", () => {
 
   it("keeps the public content static and V2-only", () => {
     const forbidden = [
-      /@motionvideo\/(motion-compiler|motion-runtime|preview-renderer)/,
+      /@motionvideo\/(motion-compiler|motion-runtime)/,
       /MotionProjectV1|parseMotionProjectV1|transform\.depth|transform\.origin/,
       /\bbone\b/,
     ];

@@ -39,6 +39,7 @@ export * from "./foundation/runtime-hash";
 
 export * from "./paint/paint-command";
 export * from "./paint/paint-buffer";
+export * from "./paint/paint-asset";
 export * from "./paint/paint-types";
 export * from "./paint/paint-display-list";
 export * from "./paint/validate-paint-command-buffer";

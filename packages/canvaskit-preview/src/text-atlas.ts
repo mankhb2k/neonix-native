@@ -1,5 +1,5 @@
 import type { PaintCommand } from "@motionvideo/motion-runtime";
-import type { PreviewAsset } from "./shared/types";
+import type { SkiaAsset } from "./types";
 
 export type TextCommand = Extract<PaintCommand, { op: "drawText" }>;
 
@@ -14,7 +14,7 @@ export type TextAtlasGlyph = {
 
 export type TextAtlas = {
   id: string;
-  asset: PreviewAsset;
+  asset: SkiaAsset;
   glyphs: TextAtlasGlyph[];
   /** A8 coverage for normal text or RGBA pixels for embedded color glyphs. */
   format: "a8" | "rgba";
@@ -160,7 +160,7 @@ export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_A
   }
   const rgba = context.getImageData(0, 0, atlasWidth, atlasHeight).data;
   // The text shader samples only coverage (`sampled.a`). Keep the atlas
-  // semantically A8 and discard the redundant RGB payload. PreviewAsset still
+  // semantically A8 and discard the redundant RGB payload. The asset still
   // transports RGBA8 because WebGL2/WebGPU share that upload contract; the
   // RGB bytes are constant white and never affect the result.
   const pixels = new Uint8Array(atlasWidth * atlasHeight * 4);

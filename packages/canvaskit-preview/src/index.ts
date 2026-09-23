@@ -13,3 +13,15 @@ export type {
   SkiaRendererOptions,
   SkiaRenderStats,
 } from "./types";
+export {
+  createTextAtlas,
+  textAtlasLayout,
+  textAtlasKey,
+  textAtlasScale,
+  textGlyphCacheKey,
+  type TextAtlas,
+  type TextAtlasGlyph,
+  type TextAtlasLayout,
+  type TextAtlasRasterizer,
+  type TextCommand,
+} from "./text-atlas";

@@ -1,26 +1,18 @@
-import type { PaintCommandBuffer, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
+import type {
+  PaintCommandBuffer,
+  RuntimeFrameV3,
+  SkiaAsset,
+  SkiaAssetKind,
+  SkiaFontAsset,
+} from "@motionvideo/motion-runtime";
 
-export type SkiaAssetKind = "image" | "video";
-
-/** Immutable font bytes owned by the host resource layer. */
-export type SkiaFontAsset = ArrayBuffer | Uint8Array;
-
-/** Host-owned decoded resource. CanvasKit does not own its lifetime. */
-export type SkiaAsset = {
-  /** Browser-owned source. Node export uses `encoded` instead. */
-  source?: TexImageSource;
-  /** Encoded PNG/JPEG/WebP/GIF bytes decoded by CanvasKit. */
-  encoded?: Uint8Array;
-  width: number;
-  height: number;
-  kind?: SkiaAssetKind;
-  pixels?: Uint8Array;
-  premultipliedAlpha?: boolean;
-  frameVersion?: number;
-  resourceGeneration?: number;
-  contentRevision?: number;
-  decodedFrameRevision?: number;
-};
+/**
+ * Re-exported from `@motionvideo/motion-runtime`, which owns this
+ * backend-neutral shape so both the browser CanvasKit preview backend and
+ * the native Skia export backend can consume it without either package
+ * depending on the other.
+ */
+export type { SkiaAsset, SkiaAssetKind, SkiaFontAsset };
 
 export type SkiaDiagnostic = {
   severity: "info" | "warning" | "error";

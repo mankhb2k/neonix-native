@@ -8,8 +8,8 @@ import type {
   PaintCommand,
   PaintCommandBuffer,
   RuntimeProjectV3,
+  SkiaAsset,
 } from "@motionvideo/motion-runtime";
-import type { SkiaAsset } from "../../../canvaskit-preview/src";
 import { ExportRendererError } from "../errors";
 
 type MediaCommand = Extract<PaintCommand, { op: "drawImage" | "drawVideo" }>;

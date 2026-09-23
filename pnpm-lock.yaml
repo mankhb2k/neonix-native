@@ -68,9 +68,6 @@ importers:
       '@motionvideo/playback-engine':
         specifier: workspace:*
         version: link:../../packages/playback-engine
-      '@motionvideo/preview-renderer':
-        specifier: workspace:*
-        version: link:../../packages/preview-renderer
       '@supabase/ssr':
         specifier: ^0.12.5
         version: 0.12.5(@supabase/supabase-js@2.112.4)
@@ -310,9 +307,6 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.787.0
         version: 3.1109.0
-      '@motionvideo/canvaskit-preview':
-        specifier: workspace:*
-        version: link:../canvaskit-preview
       '@motionvideo/html-compiler':
         specifier: workspace:*
         version: link:../html-compiler
@@ -475,22 +469,6 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.2.0)(happy-dom@20.11.1)(vite@8.1.5(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
-
-  packages/preview-renderer:
-    dependencies:
-      '@motionvideo/motion-runtime':
-        specifier: workspace:*
-        version: link:../motion-runtime
-    devDependencies:
-      '@types/node':
-        specifier: ^22.13.10
-        version: 22.20.1
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
 
 packages:
 
