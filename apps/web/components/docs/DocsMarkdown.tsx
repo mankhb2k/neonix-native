@@ -1,4 +1,5 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
@@ -100,6 +101,25 @@ const MARKDOWN_COMPONENTS: Components = {
   input: ({ node: _node, ...props }) => (
     <input className="mr-[0.4em]" {...props} />
   ),
+  img: ({ node: _node, alt, ...props }) => (
+    // eslint-disable-next-line @next/next/no-img-element -- markdown source images have unknown dimensions at build time
+    <img
+      alt={alt ?? ""}
+      loading="lazy"
+      className="mb-6 w-full rounded-2xl border border-[var(--border-subtle)] shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+      {...props}
+    />
+  ),
+  video: ({ node: _node, children, ...props }) => (
+    <video
+      controls
+      preload="metadata"
+      className="mb-6 w-full rounded-2xl border border-[var(--border-subtle)] shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+      {...props}
+    >
+      {children}
+    </video>
+  ),
 };
 
 export function DocsMarkdown({ markdown }: { markdown: string }) {
@@ -107,7 +127,7 @@ export function DocsMarkdown({ markdown }: { markdown: string }) {
     <article className="mx-auto max-w-[56rem] pb-20 text-base leading-[1.7] text-[var(--fg-primary)]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeSlug]}
+        rehypePlugins={[rehypeRaw, rehypeSlug]}
         components={MARKDOWN_COMPONENTS}
       >
         {markdown}

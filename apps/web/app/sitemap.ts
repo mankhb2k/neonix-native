@@ -1,7 +1,8 @@
 import { statSync } from "node:fs";
 import path from "node:path";
-import type { MetadataRoute } from "next";
 import { DOCS_PAGE_SLUGS, getDocsLastModified } from "@/lib/docs/docs";
+import { getGuideLastModified, getGuideSlugs } from "@/lib/guides/guides";
+import type { MetadataRoute } from "next";
 
 const SITE_URL = "https://www.neonix.video";
 
@@ -11,6 +12,7 @@ const STATIC_ROUTE_SOURCES: Record<string, string> = {
   "/": "app/(marketing)/page.tsx",
   "/html-to-video": "app/(marketing)/html-to-video/page.tsx",
   "/overview": "app/(marketing)/overview/page.tsx",
+  "/guides": "app/(marketing)/guides/page.tsx",
   "/privacy": "app/(marketing)/privacy/page.tsx",
   "/terms": "app/(marketing)/terms/page.tsx",
   "/support": "app/(marketing)/support/page.tsx",
@@ -19,6 +21,10 @@ const STATIC_ROUTE_SOURCES: Record<string, string> = {
 
 function docsPath(slug: string): string {
   return slug === "" ? "/docs" : `/docs/${slug}`;
+}
+
+function guidePath(slug: string): string {
+  return `/guides/${slug}`;
 }
 
 function mtimeOf(filePath: string, fallback: Date): Date {
@@ -39,8 +45,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     path: docsPath(slug),
     lastModified: getDocsLastModified(slug) ?? buildTime,
   }));
+  const guideRoutes = getGuideSlugs().map((slug) => ({
+    path: guidePath(slug),
+    lastModified: getGuideLastModified(slug) ?? buildTime,
+  }));
 
-  const routes = new Map([...staticRoutes, ...docsRoutes].map((route) => [route.path, route]));
+  const routes = new Map(
+    [...staticRoutes, ...docsRoutes, ...guideRoutes].map((route) => [route.path, route]),
+  );
 
   return Array.from(routes.values()).map(({ path: routePath, lastModified }) => ({
     url: `${SITE_URL}${routePath}`,
@@ -51,6 +63,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         ? 1
         : routePath === "/html-to-video" || routePath === "/overview"
           ? 0.9
-          : 0.6,
+          : routePath === "/guides" || routePath.startsWith("/guides/")
+            ? 0.7
+            : 0.6,
   }));
 }
