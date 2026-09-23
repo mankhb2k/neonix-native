@@ -246,6 +246,89 @@ audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/R
 
 ## Các tầng cốt lõi
 
+### Sơ đồ phụ thuộc package
+
+Bức tranh tổng quan về phụ thuộc thật giữa các package (`workspace:*` trong
+`package.json`, không phải suy đoán từ tài liệu). Verify lại bằng cách đọc
+từng `package.json` và grep import thật khi bảng "Phân loại packages" bên
+dưới thay đổi — hai phần này phải luôn khớp nhau.
+
+```mermaid
+flowchart TD
+    subgraph AUTHOR["Author"]
+        editor-core["editor-core<br/>(authoring domain)"]
+        html-compiler["html-compiler<br/>(input compiler)"]
+        motion-mcp["motion-mcp<br/>(authoring adapter)"]
+    end
+
+    subgraph CONTRACT["Contract"]
+        motion-protocol["motion-protocol<br/>(canonical V2)"]
+        asset-registry["asset-registry"]
+        audio-analysis["audio-analysis"]
+    end
+
+    subgraph COMPILE["Compile"]
+        motion-compiler["motion-compiler<br/>(V2→V3)"]
+    end
+
+    subgraph RUNTIME["Runtime"]
+        motion-runtime["motion-runtime<br/>(evaluator)"]
+        editor-runtime["editor-runtime"]
+    end
+
+    subgraph RENDER["Playback & Render"]
+        playback-engine["playback-engine"]
+        canvaskit-preview["canvaskit-preview<br/>(UI preview only)"]
+        export-renderer["export-renderer<br/>(native → MP4)"]
+    end
+
+    subgraph APP["Host"]
+        web["apps/web"]
+    end
+
+    editor-core --> motion-protocol
+    html-compiler --> motion-protocol
+    motion-compiler --> motion-protocol
+    motion-compiler --> motion-runtime
+    editor-runtime --> motion-compiler
+    editor-runtime --> motion-protocol
+    editor-runtime --> motion-runtime
+    playback-engine --> motion-runtime
+    canvaskit-preview --> motion-runtime
+    export-renderer --> motion-runtime
+    export-renderer --> html-compiler
+    motion-mcp --> motion-compiler
+    motion-mcp --> motion-protocol
+
+    web --> editor-core
+    web --> editor-runtime
+    web --> html-compiler
+    web --> motion-compiler
+    web --> motion-mcp
+    web --> motion-protocol
+    web --> motion-runtime
+    web --> playback-engine
+    web --> canvaskit-preview
+    web --> export-renderer
+
+    motion-mcp -. "computeProjectHash / computeRuntimeHash<br/>(ngoại lệ được cho phép)" .-> export-renderer
+
+    classDef unused stroke-dasharray: 3 3;
+    class asset-registry,audio-analysis unused;
+```
+
+Đường nét đứt từ `motion-mcp` tới `export-renderer` là ngoại lệ **duy nhất**
+được cho phép (xem mục `@motionvideo/motion-mcp` trong bảng bên dưới) —
+không phải layering violation. `asset-registry` và `audio-analysis` (viền
+chấm) hiện **chưa có package hay `apps/web` nào import** — khai báo trách
+nhiệm trong bảng dưới nhưng chưa thật sự được dùng trong code; kiểm tra lại
+trước khi coi chúng là load-bearing.
+
+`preview-renderer` và `skia-renderer` từng tồn tại nhưng đã bị xoá hoàn
+toàn (`preview-renderer` bị "retire" ở commit xoá `export-renderer`'s
+`canvaskit-preview` dependency) — không xuất hiện trong `pnpm-workspace`
+hay bất kỳ `package.json` nào nữa; chỉ còn `node_modules` rác trên đĩa.
+
 ## Phân loại packages
 
 | Package | Phân loại | Trách nhiệm chính | Không sở hữu |
