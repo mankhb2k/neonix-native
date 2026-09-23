@@ -565,7 +565,14 @@ The five foundation contracts are:
     adjoining its first in-flow child's top margin). Multi-level collapse
     chains, last-child-through-auto-height-parent collapse, and self-collapsing
     empty boxes are not yet implemented; flex/grid and advanced
-    containing-block behavior remain deferred to the layout phase.
+    containing-block behavior remain deferred to the layout phase. A block
+    container with `height: auto` shrink-wraps its in-flow children's flow
+    height (recursing through nested auto-height block children and
+    `display: contents` wrappers, predicting the same margin collapse the real
+    flow pass will apply) instead of falling back to the space available in
+    its own containing block; this estimate does not apply inside a
+    `display: flex`/`grid` container, whose own auto-height track sizing is
+    not yet implemented and still falls back to available space.
 5. **Source diagnostics** — parse and normalization errors carry `kind`, source
    character `offset`, `line` and `column` whenever the source span is known.
 

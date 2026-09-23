@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 1200px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 60px; top: 364px; }
+      .cell-label-3 { left: 60px; top: 708px; }
+
+      #flex-order { position: absolute; left: 60px; top: 104px; width: 1200px; height: 220px; display: flex; gap: 32px; align-items: center; }
+      #order-first, #order-middle, #order-last { width: 240px; height: 120px; }
+      #order-first { order: 3; background: #38bdf8; }
+      #order-middle { order: 1; background: #a78bfa; }
+      #order-last { order: 2; background: #fb7185; }
+
+      #edge-grid { position: absolute; left: 60px; top: 408px; width: 1200px; height: 260px; display: grid; grid-template-columns: repeat(3, 240px); grid-template-rows: 120px; column-gap: 32px; align-content: center; }
+      #edge-grid-first { order: 3; background: #38bdf8; }
+      #edge-grid-second { order: 1; background: #a78bfa; }
+      #edge-grid-third { order: 2; background: #fb7185; }
+
+      #edge-flex { position: absolute; left: 60px; top: 752px; width: 1440px; height: 220px; display: flex; gap: 24px; align-items: center; }
+      #edge-flex-first, #edge-flex-second, #edge-flex-third { height: 120px; }
+      #edge-flex-first { order: 3; flex: 1; min-width: 280px; max-width: 360px; background: #38bdf8; }
+      #edge-flex-second { order: 1; flex: 2; background: #a78bfa; }
+      #edge-flex-third { order: 2; flex: 1; background: #fb7185; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">order: 3 / 1 / 2 reindexes visual order (flex)</div>
+    <div class="cell-label cell-label-2">order: 3 / 1 / 2 feeds grid auto-placement</div>
+    <div class="cell-label cell-label-3">order + flex-grow + min/max clamp together (high-risk multi-pass case)</div>
+
+    <div id="flex-order">
+      <div id="order-first"></div>
+      <div id="order-middle"></div>
+      <div id="order-last"></div>
+    </div>
+
+    <div id="edge-grid">
+      <div id="edge-grid-first"></div>
+      <div id="edge-grid-second"></div>
+      <div id="edge-grid-third"></div>
+    </div>
+
+    <div id="edge-flex">
+      <div id="edge-flex-first"></div>
+      <div id="edge-flex-second"></div>
+      <div id="edge-flex-third"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 700px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 20px; top: 20px; }
+      .cell-label-2 { left: 760px; top: 20px; }
+      .cell-label-3 { left: 20px; top: 326px; }
+
+      #edge-clip { position: absolute; left: 20px; top: 46px; width: 700px; height: 220px; padding: 20px; display: flex; overflow: hidden; }
+      #edge-clip-absolute { position: absolute; left: 40px; top: 30px; width: 120px; height: 80px; background: #fb7185; }
+      #edge-clip-wide { flex-shrink: 0; width: 1000px; height: 120px; background: #38bdf8; }
+
+      #edge-contents-grid { position: absolute; left: 760px; top: 46px; width: 960px; height: 260px; display: grid; grid-template-columns: 420px 420px; grid-template-rows: 140px; column-gap: 32px; align-content: center; }
+      #edge-contents { display: contents; }
+      #edge-contents-child { background: #38bdf8; }
+      #edge-contents-peer { background: #a78bfa; }
+
+      #edge-relative { position: absolute; left: 20px; top: 352px; width: 1100px; height: 220px; display: flex; align-items: flex-start; }
+      #edge-relative-one { position: relative; left: 24px; top: 18px; width: 240px; height: 120px; margin-right: 36px; background: #38bdf8; }
+      #edge-relative-two { width: 240px; height: 120px; margin-left: 44px; background: #facc15; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">abs-positioned child of an abs-positioned flex parent: insets resolve against the padding box, overflow: hidden clips at the padding box too</div>
+    <div class="cell-label cell-label-2">display: contents promotes the wrapped child straight into the grid, wrapper itself generates no box</div>
+    <div class="cell-label cell-label-3">flex item margins sum (36 + 44), never collapse; relative offset applies after the flex slot is resolved</div>
+
+    <div id="edge-clip">
+      <div id="edge-clip-absolute"></div>
+      <div id="edge-clip-wide"></div>
+    </div>
+
+    <div id="edge-contents-grid">
+      <div id="edge-contents"><div id="edge-contents-child"></div></div>
+      <div id="edge-contents-peer"></div>
+    </div>
+
+    <div id="edge-relative">
+      <div id="edge-relative-one"></div>
+      <div id="edge-relative-two"></div>
+    </div>
+  </body>
+</html>

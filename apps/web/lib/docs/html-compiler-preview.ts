@@ -1636,99 +1636,20 @@ export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.layout.flex-row-fixed",
+    "id": "html-compiler.layout.flex-container",
     "phase": "P1.1",
     "topic": "Layout",
-    "label": "Layout / flex row",
+    "label": "Layout / flex container",
     "properties": [
-      "display:flex",
-      "flex-direction:row",
-      "fixed items"
-    ],
-    "hint": "A single-line row places fixed-size children in source order inside the composition frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-row-fixed.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.flex-column-gap",
-    "phase": "P1.1",
-    "topic": "Layout",
-    "label": "Layout / column + gap",
-    "properties": [
-      "flex-direction:column",
+      "flex-direction",
       "gap",
-      "row-gap",
-      "column-gap"
+      "justify-content",
+      "align-items",
+      "align-self",
+      "flex-grow/shrink"
     ],
-    "hint": "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside this primitive case.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-column-gap.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.flex-justify-align",
-    "phase": "P1.1",
-    "topic": "Layout",
-    "label": "Layout / justify + align",
-    "properties": [
-      "justify-content:space-between",
-      "align-items:center",
-      "align-self"
-    ],
-    "hint": "Main-axis distribution and cross-axis centering resolve to explicit composition coordinates.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-justify-align.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.flex-grow-shrink",
-    "phase": "P1.1",
-    "topic": "Layout",
-    "label": "Layout / flex grow + shrink",
-    "properties": [
-      "flex",
-      "flex-grow",
-      "flex-shrink",
-      "flex-basis"
-    ],
-    "hint": "The flex shorthand expands to grow, shrink and basis before free space is distributed.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-grow-shrink.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.flex-order",
-    "phase": "P1.1",
-    "topic": "Layout",
-    "label": "Layout / order",
-    "properties": [
-      "order",
-      "source order",
-      "paint order"
-    ],
-    "hint": "Order changes the flex placement sequence while the lowered layers retain deterministic paint ordering.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-order.html",
+    "hint": "Four flex-container primitives side by side: row vs. column axis, main-axis gap, justify/align distribution with an align-self override, and the flex shorthand's grow-ratio free-space split.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-container.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1741,57 +1662,19 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.layout.flex-wrap-lines",
+    "id": "html-compiler.layout.flex-wrapping",
     "phase": "P1.2",
     "topic": "Layout",
-    "label": "Layout / flex wrap lines",
+    "label": "Layout / flex wrapping",
     "properties": [
       "flex-wrap:wrap",
+      "flex-wrap:wrap-reverse",
+      "align-content",
       "row-gap",
       "column-gap"
     ],
-    "hint": "Items form deterministic flex lines when the main-axis content box is full; row and column gaps stay in their CSS axes.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-wrap-lines.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.flex-align-content",
-    "phase": "P1.2",
-    "topic": "Layout",
-    "label": "Layout / align-content",
-    "properties": [
-      "align-content:space-between",
-      "multi-line alignment",
-      "align-items:center"
-    ],
-    "hint": "After line formation, align-content distributes the remaining cross-axis space between flex lines.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-align-content.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.flex-wrap-reverse",
-    "phase": "P1.2",
-    "topic": "Layout",
-    "label": "Layout / wrap-reverse",
-    "properties": [
-      "flex-wrap:wrap-reverse",
-      "cross-axis reversal",
-      "align-self"
-    ],
-    "hint": "wrap-reverse reverses the cross-axis line order while IDs and source order remain stable.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-wrap-reverse.html",
+    "hint": "Three multi-line wrap cases: align-content:space-between distributing cross-axis space between lines with a row-gap present, wrap-reverse flipping the cross-axis start to the bottom edge, and the flex-start baseline case.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-wrapping.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1826,26 +1709,6 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.layout.grid-explicit-placement",
-    "phase": "P1.3",
-    "topic": "Layout",
-    "label": "Layout / grid placement",
-    "properties": [
-      "grid-column-start/end",
-      "grid-row-start/end",
-      "explicit cells"
-    ],
-    "hint": "Explicit grid line placement maps directly to deterministic track rectangles.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-explicit-placement.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
     "id": "html-compiler.layout.grid-gap-alignment",
     "phase": "P1.3",
     "topic": "Layout",
@@ -1867,17 +1730,19 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.layout.grid-spans",
+    "id": "html-compiler.layout.grid-placement-span",
     "phase": "P1.3",
     "topic": "Layout",
-    "label": "Layout / grid spans",
+    "label": "Layout / grid placement + spans",
     "properties": [
+      "grid-column-start/end",
+      "grid-row-start/end",
       "grid-column",
       "grid-row",
       "span"
     ],
-    "hint": "The grid shorthand and span syntax expand to explicit start/end lines before the item is lowered.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-spans.html",
+    "hint": "Explicit longhand line placement side by side with the grid shorthand and span syntax, including a spanning item over fr tracks.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-placement-span.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1890,18 +1755,19 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.layout.flex-order-minmax",
+    "id": "html-compiler.layout.item-ordering",
     "phase": "P1.4",
     "topic": "Layout",
-    "label": "Layout / flex order + min-max",
+    "label": "Layout / item ordering",
     "properties": [
       "order",
+      "grid auto-placement",
       "min-width",
       "max-width",
       "flex distribution"
     ],
-    "hint": "Flex order is applied before placement and min/max constraints are enforced after free-space distribution.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/flex-order-minmax.html",
+    "hint": "The order property reindexes visual placement in a flex row, feeds grid auto-placement directly, and combines with flex-grow and min/max clamping in a multi-pass free-space distribution.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/item-ordering.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1911,77 +1777,43 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.layout.grid-order",
+    "id": "html-compiler.layout.containing-block-edge-cases",
     "phase": "P1.4",
     "topic": "Layout",
-    "label": "Layout / grid order",
-    "properties": [
-      "order",
-      "grid auto-placement",
-      "stable ids"
-    ],
-    "hint": "Grid auto-placement follows the order-modified sequence while the source IDs remain stable in Neonix JSON V2.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/grid-order.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.relative-margins",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / relative + margins",
-    "properties": [
-      "position:relative",
-      "relative offset",
-      "non-collapsing margins"
-    ],
-    "hint": "Relative offsets move the painted item after its flex slot is resolved; adjacent flex margins are summed, not collapsed.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/relative-margins.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.contents-parent",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / contents parent",
-    "properties": [
-      "display:contents",
-      "grid parent",
-      "parent layer"
-    ],
-    "hint": "A display:contents wrapper contributes no layer; its visual child is placed and parented directly under the formatting context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/contents-parent.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.containing-block-clip",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / containing block + clip",
+    "label": "Layout / containing block edge cases",
     "properties": [
       "absolute child",
       "flex containing block",
-      "overflow:hidden"
+      "overflow:hidden",
+      "display:contents",
+      "position:relative",
+      "non-collapsing margins"
     ],
-    "hint": "A flex container establishes the absolute child's containing block and its overflow clip remains attached to the parent group.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/containing-block-clip.html",
+    "hint": "A flex container establishes the absolute child's containing block off its padding box and clips overflow at that same padding box; a display:contents wrapper contributes no layer of its own; adjacent flex-item margins sum rather than collapse, and a relative offset applies after the flex slot is resolved.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/containing-block-edge-cases.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
+    "id": "html-compiler.layout.block-flow-margin-collapsing",
+    "phase": "P1.4",
+    "topic": "Layout",
+    "label": "Layout / block-flow margin collapsing",
+    "properties": [
+      "margin-top",
+      "margin-bottom",
+      "padding-top",
+      "overflow",
+      "display:flex",
+      "display:contents"
+    ],
+    "hint": "A parent's margin-top collapses with its first in-flow child's margin-top when nothing blocks it, and stays blocked by padding, overflow:hidden or a flex container; adjacent sibling margins take the max rather than summing, and a display:contents wrapper between parent and child does not stop the collapse from reaching the real child.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/block-flow-margin-collapsing.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1994,122 +1826,20 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.layout.text-frame-baseline",
+    "id": "html-compiler.layout.text-border-box-model",
     "phase": "P1.4",
     "topic": "Layout",
-    "label": "Layout / text frame baseline",
-    "properties": [
-      "div text",
-      "line box",
-      "content box",
-      "baseline"
-    ],
-    "hint": "The element frame remains layout geometry while glyphs are painted from the content line box and baseline.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-frame-baseline.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-border-uniform",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text + uniform border",
-    "properties": [
-      "div text",
-      "border",
-      "border-box frame",
-      "content origin"
-    ],
-    "hint": "A uniform border paints around the resolved border-box frame and is not added a second time by the runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-uniform.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-border-asymmetric",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text + asymmetric border",
-    "properties": [
-      "border-top/right/bottom/left",
-      "different widths",
-      "content origin"
-    ],
-    "hint": "Different border widths move the content origin by each corresponding edge while the final frame remains one border box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-asymmetric.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-border-padding",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text + padding + border",
-    "properties": [
-      "padding",
-      "border",
-      "content box",
-      "baseline offset"
-    ],
-    "hint": "Padding separates the glyph line box from the border, and both contribute to the border-box frame without changing glyph metrics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-padding.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-content-box",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text content-box sizing",
+    "label": "Layout / text border box model",
     "properties": [
       "box-sizing:content-box",
-      "width",
-      "padding",
-      "border expansion"
-    ],
-    "hint": "With content-box sizing, authored width excludes padding and border; the emitted frame expands to the complete border box.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-content-box.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-border-box",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text border-box sizing",
-    "properties": [
       "box-sizing:border-box",
-      "width",
+      "border-top/right/bottom/left",
       "padding",
-      "border inclusion"
+      "border-radius",
+      "content origin"
     ],
-    "hint": "With border-box sizing, authored width is the final border-box width; padding and border reduce the available content width.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-box.html",
+    "hint": "Six box-model variants on the same text block: content-box vs. border-box sizing side by side, a uniform border, four independent per-edge border widths that shift the content origin per side, a rounded border that changes the paint contour without changing the frame, and an asymmetric padding shorthand.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-box-model.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -2119,81 +1849,21 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.layout.text-line-height-normal",
+    "id": "html-compiler.layout.text-line-metrics",
     "phase": "P1.4",
     "topic": "Layout",
-    "label": "Layout / text normal line-height",
+    "label": "Layout / text line-box metrics",
     "properties": [
       "line-height:normal",
+      "line-height:88px",
       "font metrics",
       "line box",
-      "border"
-    ],
-    "hint": "Normal line-height resolves from selected font metrics and remains distinct from the visible glyph bounds.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-line-height-normal.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-line-height-fixed",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text fixed line-height",
-    "properties": [
-      "line-height:88px",
-      "line box",
       "baseline",
-      "border"
-    ],
-    "hint": "A fixed line-height changes the line box and baseline placement while glyph bounds remain independent paint geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-line-height-fixed.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-wrapping-border",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / wrapped text inside border",
-    "properties": [
-      "width",
       "white-space:normal",
-      "line wrapping",
-      "border-box"
+      "line wrapping"
     ],
-    "hint": "Wrapping happens inside the content box; the border stays outside the line boxes and the final frame includes every wrapped line.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-wrapping-border.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.layout.text-border-radius",
-    "phase": "P1.4",
-    "topic": "Layout",
-    "label": "Layout / text + rounded border",
-    "properties": [
-      "border-radius",
-      "border",
-      "content box",
-      "rounded border-box"
-    ],
-    "hint": "The rounded border follows the same border-box frame as text layout; radius changes paint contours, not frame dimensions.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-border-radius.html",
+    "hint": "line-height:normal resolves from the selected font's own metrics (a font-fallback-sensitive case, with and without a border), a fixed line-height gives the control baseline for comparison, and the last case wraps a long sentence across several lines inside a padded, bordered frame.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/layout/text-line-metrics.html",
     "composition": {
       "width": 1920,
       "height": 1080,

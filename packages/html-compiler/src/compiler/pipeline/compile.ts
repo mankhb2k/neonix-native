@@ -391,6 +391,70 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       }
       return undefined;
     };
+    // Shared by `layout()` (to shift the box itself when its own top margin
+    // collapses through) and by the auto-height estimator below (which needs
+    // the same "does the first child's margin land inside or outside me"
+    // answer to predict where flowLayout will actually place that child).
+    const collapseWithFirstChild = (style: Style, children: Node[], containingWidth: number, font: number): { topMarginOverride: number | undefined; firstChildMarginConsumed: number } => {
+      const ownPaddingTop = edges(style, "padding", containingWidth, font, 16, viewport)[0];
+      const ownBorderTopWidth = parseBorderEdges(style, containingWidth, font, viewport).top.width;
+      if (blocksTopMarginCollapse(style, ownPaddingTop, ownBorderTopWidth)) return { topMarginOverride: undefined, firstChildMarginConsumed: 0 };
+      const firstChildTopMargin = firstInFlowChildTopMargin(children, style, containingWidth);
+      if (firstChildTopMargin === undefined) return { topMarginOverride: undefined, firstChildMarginConsumed: 0 };
+      const ownMarginTop = edges(style, "margin", containingWidth, font, 16, viewport)[0];
+      return { topMarginOverride: collapseVerticalMargins(ownMarginTop, firstChildTopMargin), firstChildMarginConsumed: firstChildTopMargin };
+    };
+    // A block container with `height: auto` shrink-wraps the flow height of
+    // its in-flow children. Text containers already get this from the text
+    // measurer; this mirrors the same idea for element children by predicting
+    // what `layoutFlowChildren` would compute, without emitting any layers.
+    // Flex/grid/svg containers size their children through a different
+    // algorithm and are intentionally left out of this estimate.
+    const estimateChildBorderBoxHeight = (child: Node, childStyle: Style, containingWidth: number, parentFont: number): number => {
+      const childFont = number(childStyle, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
+      const declaredHeight = number(childStyle, "height", Number.POSITIVE_INFINITY, childFont, 16, viewport);
+      const boxSizing = (childStyle.get("box-sizing") ?? "content-box").trim().toLowerCase();
+      const padding = edges(childStyle, "padding", containingWidth, childFont, 16, viewport);
+      const border = parseBorderEdges(childStyle, containingWidth, childFont, viewport);
+      const verticalDecorations = padding[0] + padding[2] + border.top.width + border.bottom.width;
+      if (Number.isFinite(declaredHeight)) return Math.max(1, declaredHeight + (boxSizing === "content-box" ? verticalDecorations : 0));
+      const text = isTextFlowNode(child) ? normalizeTextContent(collectTextContentWithBreaks(child), true).text : child.text.normalize("NFC").trim();
+      const display = (childStyle.get("display") ?? "block").trim().toLowerCase();
+      const isBlockFlowContainer = child.tag !== "svg" && child.tag !== "g" && display !== "flex" && display !== "inline-flex" && display !== "grid" && display !== "inline-grid";
+      let contentHeight = 0;
+      if (text) {
+        contentHeight = estimateTextIntrinsicHeight(text, childStyle, childFont, containingWidth, viewport);
+      } else if (isBlockFlowContainer && child.children.length > 0) {
+        const horizontalDecorations = padding[1] + padding[3] + border.right.width + border.left.width;
+        const childContentWidth = Math.max(1, containingWidth - horizontalDecorations);
+        const collapse = collapseWithFirstChild(childStyle, child.children, childContentWidth, childFont);
+        contentHeight = Math.max(0, flowContentHeight(child.children, childStyle, childContentWidth, childFont, collapse.topMarginOverride === undefined ? 0 : -collapse.firstChildMarginConsumed));
+      }
+      return Math.max(1, contentHeight + (boxSizing === "border-box" ? verticalDecorations : 0));
+    };
+    const flowContentHeight = (children: Node[], parentStyle: Style, containingWidth: number, parentFont: number, startFlowY: number): number => {
+      let flowY = startFlowY;
+      let hasFlowChild = false;
+      let previousBottomMargin = 0;
+      for (const child of children) {
+        const childStyle = styles.get(child) ?? parentStyle;
+        const display = (childStyle.get("display") ?? "block").trim().toLowerCase();
+        if (display === "none") continue;
+        if (display === "contents") {
+          flowY = flowContentHeight(child.children, childStyle, containingWidth, parentFont, flowY);
+          continue;
+        }
+        if ((childStyle.get("position") ?? "static").trim().toLowerCase() === "absolute") continue;
+        const childFont = number(childStyle, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
+        const childMargin = edges(childStyle, "margin", containingWidth, childFont, 16, viewport);
+        const collapsedMargin = hasFlowChild ? collapseVerticalMargins(previousBottomMargin, childMargin[0]) : childMargin[0];
+        const childY = flowY - childMargin[0] + collapsedMargin;
+        flowY = childY + estimateChildBorderBoxHeight(child, childStyle, containingWidth, childFont);
+        previousBottomMargin = childMargin[2];
+        hasFlowChild = true;
+      }
+      return flowY;
+    };
     const flowLayout = (children: Node[], parent: Node | null, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style, positionedBlock: ContainingBlock, state: FlowState): void => layoutFlowChildren({
       children,
       parent,
@@ -436,18 +500,30 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       let firstChildMarginConsumed = 0;
       let topMarginOverride: number | undefined;
       if (node.tag !== "body" && node.tag !== "html" && node.children.length > 0) {
-        const ownPaddingTop = edges(style, "padding", containingWidth, font, 16, viewport)[0];
-        const ownBorderTopWidth = parseBorderEdges(style, containingWidth, font, viewport).top.width;
-        if (!blocksTopMarginCollapse(style, ownPaddingTop, ownBorderTopWidth)) {
-          const firstChildTopMargin = firstInFlowChildTopMargin(node.children, style, containingWidth);
-          if (firstChildTopMargin !== undefined) {
-            const ownMarginTop = edges(style, "margin", containingWidth, font, 16, viewport)[0];
-            topMarginOverride = collapseVerticalMargins(ownMarginTop, firstChildTopMargin);
-            firstChildMarginConsumed = firstChildTopMargin;
-          }
-        }
+        const collapse = collapseWithFirstChild(style, node.children, containingWidth, font);
+        topMarginOverride = collapse.topMarginOverride;
+        firstChildMarginConsumed = collapse.firstChildMarginConsumed;
       }
-      const nodeTextContent = isTextFlowNode(node) ? normalizeTextContent(collectTextContentWithBreaks(node), true) : { text: node.text.normalize("NFC").trim(), hardBreaks: [] }; const geometryText = nodeTextContent.text; const intrinsicContentHeight = geometryText && node.tag !== "body" && (!Number.isFinite(number(style, "height", containingHeight, font, 16, viewport)) || style.get("height")?.trim().toLowerCase() === "auto") ? estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport) : undefined; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport, ...(intrinsicContentHeight === undefined ? {} : { intrinsicContentHeight }), ...(topMarginOverride === undefined ? {} : { topMarginOverride }) }); const geometry = layoutEngine.state.layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutEngine.state.layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
+      const nodeTextContent = isTextFlowNode(node) ? normalizeTextContent(collectTextContentWithBreaks(node), true) : { text: node.text.normalize("NFC").trim(), hardBreaks: [] };
+      const geometryText = nodeTextContent.text;
+      const heightIsAuto = node.tag !== "body" && (!Number.isFinite(number(style, "height", containingHeight, font, 16, viewport)) || style.get("height")?.trim().toLowerCase() === "auto");
+      const ownDisplayForHeight = (style.get("display") ?? "block").trim().toLowerCase();
+      const isBlockFlowContainer = node.tag !== "svg" && node.tag !== "g" && ownDisplayForHeight !== "flex" && ownDisplayForHeight !== "inline-flex" && ownDisplayForHeight !== "grid" && ownDisplayForHeight !== "inline-grid";
+      let intrinsicContentHeight: number | undefined;
+      if (heightIsAuto && geometryText) {
+        intrinsicContentHeight = estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport);
+      } else if (heightIsAuto && isBlockFlowContainer && node.children.length > 0) {
+        const ownPadding = edges(style, "padding", containingWidth, font, 16, viewport);
+        const ownBorder = parseBorderEdges(style, containingWidth, font, viewport);
+        const ownHorizontalDecorations = ownPadding[1] + ownPadding[3] + ownBorder.right.width + ownBorder.left.width;
+        const declaredOwnWidth = number(style, "width", containingWidth, font, 16, viewport);
+        const ownBoxSizing = (style.get("box-sizing") ?? "content-box").trim().toLowerCase();
+        const ownContentWidth = Number.isFinite(declaredOwnWidth)
+          ? Math.max(1, ownBoxSizing === "border-box" ? declaredOwnWidth - ownHorizontalDecorations : declaredOwnWidth)
+          : Math.max(1, containingWidth - ownHorizontalDecorations);
+        intrinsicContentHeight = Math.max(0, flowContentHeight(node.children, style, ownContentWidth, font, topMarginOverride === undefined ? 0 : -firstChildMarginConsumed));
+      }
+      const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport, ...(intrinsicContentHeight === undefined ? {} : { intrinsicContentHeight }), ...(topMarginOverride === undefined ? {} : { topMarginOverride }) }); const geometry = layoutEngine.state.layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutEngine.state.layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
       const loweringKind = classifyNode(node);
       layoutEngine.record(node, layoutBox, normalX, normalY);
       for (const name of parseAnchorNames(style)) {

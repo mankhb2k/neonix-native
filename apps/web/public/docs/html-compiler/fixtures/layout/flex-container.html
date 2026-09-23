@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 620px; top: 60px; }
+      .cell-label-3 { left: 620px; top: 390px; }
+      .cell-label-4 { left: 60px; top: 830px; }
+
+      #flex-column { position: absolute; left: 60px; top: 110px; width: 480px; height: 640px; display: flex; flex-direction: column; gap: 28px; }
+      #column-one, #column-two, #column-three { width: 260px; height: 120px; }
+      #column-one { background: #22d3ee; }
+      #column-two { background: #fb7185; }
+      #column-three { background: #4ade80; }
+
+      #flex-row { position: absolute; left: 620px; top: 110px; width: 960px; height: 240px; display: flex; flex-direction: row; }
+      #row-cyan, #row-violet, #row-yellow { width: 240px; height: 120px; }
+      #row-cyan { background: #38bdf8; }
+      #row-violet { background: #a78bfa; }
+      #row-yellow { background: #facc15; }
+
+      #flex-distribution { position: absolute; left: 620px; top: 440px; width: 1200px; height: 360px; display: flex; justify-content: space-between; align-items: center; }
+      #distribution-one, #distribution-two, #distribution-three { width: 180px; height: 100px; }
+      #distribution-one { background: #38bdf8; }
+      #distribution-two { align-self: flex-end; background: #f472b6; }
+      #distribution-three { background: #facc15; }
+
+      #flex-grow { position: absolute; left: 60px; top: 880px; width: 1440px; height: 180px; display: flex; gap: 24px; }
+      #grow-one { flex: 1; background: #38bdf8; }
+      #grow-two { flex: 2; background: #a78bfa; }
+      #grow-three { flex: 1; background: #fb7185; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">flex-direction: column, gap: 28px</div>
+    <div class="cell-label cell-label-2">flex-direction: row, no gap</div>
+    <div class="cell-label cell-label-3">justify-content: space-between + align-self override</div>
+    <div class="cell-label cell-label-4">flex: 1 / 2 / 1 grow ratio, gap: 24px</div>
+
+    <div id="flex-column">
+      <div id="column-one"></div>
+      <div id="column-two"></div>
+      <div id="column-three"></div>
+    </div>
+
+    <div id="flex-row">
+      <div id="row-cyan"></div>
+      <div id="row-violet"></div>
+      <div id="row-yellow"></div>
+    </div>
+
+    <div id="flex-distribution">
+      <div id="distribution-one"></div>
+      <div id="distribution-two"></div>
+      <div id="distribution-three"></div>
+    </div>
+
+    <div id="flex-grow">
+      <div id="grow-one"></div>
+      <div id="grow-two"></div>
+      <div id="grow-three"></div>
+    </div>
+  </body>
+</html>

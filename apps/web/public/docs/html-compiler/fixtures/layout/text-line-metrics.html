@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 1080px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 20px; }
+      .cell-label-2 { left: 60px; top: 204px; }
+      .cell-label-3 { left: 60px; top: 404px; }
+      .cell-label-4 { left: 60px; top: 602px; }
+
+      #text-frame-baseline { position: absolute; left: 60px; top: 46px; width: 880px; padding: 24px; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: normal; }
+      #text-line-height-normal { position: absolute; left: 60px; top: 230px; width: 1080px; padding: 24px; border: 8px solid #f97316; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: normal; }
+      #text-line-height-fixed { position: absolute; left: 60px; top: 430px; width: 1080px; padding: 24px; border: 8px solid #facc15; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: 88px; }
+      #text-wrapping-border { position: absolute; left: 60px; top: 628px; width: 1080px; padding: 36px 48px; border: 12px solid #22d3ee; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 56px; font-weight: 700; line-height: 76px; white-space: normal; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">line-height: normal, no border (pure font-metric baseline)</div>
+    <div class="cell-label cell-label-2">line-height: normal, with border (font-metric risk vs. Chrome)</div>
+    <div class="cell-label cell-label-3">line-height: 88px fixed (control case for the two above)</div>
+    <div class="cell-label cell-label-4">wraps at word boundaries; auto height grows per line</div>
+
+    <div id="text-frame-baseline">Hello</div>
+    <div id="text-line-height-normal">Normal line box</div>
+    <div id="text-line-height-fixed">Fixed line box</div>
+    <div id="text-wrapping-border">A wrapped text block keeps its line boxes inside the padded content box while the border stays part of the outer frame.</div>
+  </body>
+</html>

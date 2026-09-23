@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 700px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 20px; top: 20px; }
+      .cell-label-2 { left: 780px; top: 20px; }
+      .cell-label-3 { left: 20px; top: 246px; }
+      .cell-label-4 { left: 900px; top: 246px; }
+      .cell-label-5 { left: 20px; top: 460px; }
+      .cell-label-6 { left: 20px; top: 674px; }
+
+      #text-content-box { box-sizing: content-box; position: absolute; left: 20px; top: 46px; width: 720px; padding: 32px; border: 16px solid #38bdf8; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }
+      #text-border-box { box-sizing: border-box; position: absolute; left: 780px; top: 46px; width: 720px; padding: 32px; border: 16px solid #a78bfa; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }
+
+      #text-border-uniform { position: absolute; left: 20px; top: 272px; width: 760px; padding: 28px; border: 12px solid #38bdf8; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: 88px; }
+      #text-border-asymmetric { position: absolute; left: 900px; top: 272px; width: 800px; padding: 24px 36px; border-top: 8px solid #22d3ee; border-right: 24px solid #a78bfa; border-bottom: 18px solid #facc15; border-left: 14px solid #fb7185; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }
+
+      #text-border-radius { position: absolute; left: 20px; top: 486px; width: 1080px; padding: 32px 48px; border: 12px solid #fb7185; border-radius: 48px; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 64px; font-weight: 700; line-height: 80px; }
+
+      #text-border-padding { position: absolute; left: 20px; top: 700px; width: 1080px; padding: 44px 56px; border: 10px solid #4ade80; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 64px; font-weight: 700; line-height: 80px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">box-sizing: content-box (frame grows beyond authored width)</div>
+    <div class="cell-label cell-label-2">box-sizing: border-box (authored width is the final frame)</div>
+    <div class="cell-label cell-label-3">uniform padding + border, all sides equal</div>
+    <div class="cell-label cell-label-4">per-edge border widths shift the content origin per side</div>
+    <div class="cell-label cell-label-5">border-radius clips the paint contour, not the frame size</div>
+    <div class="cell-label cell-label-6">asymmetric padding shorthand (vertical / horizontal)</div>
+
+    <div id="text-content-box">Content box</div>
+    <div id="text-border-box">Border box</div>
+
+    <div id="text-border-uniform">Hello</div>
+    <div id="text-border-asymmetric">Hello</div>
+
+    <div id="text-border-radius">Rounded text frame</div>
+
+    <div id="text-border-padding">Padding frame</div>
+  </body>
+</html>

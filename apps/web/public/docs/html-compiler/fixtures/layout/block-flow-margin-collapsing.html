@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+
+      .case { position: absolute; width: 900px; }
+      .case-a { left: 40px; top: 40px; }
+      .case-b { left: 1000px; top: 40px; }
+      .case-c { left: 40px; top: 360px; }
+      .case-d { left: 1000px; top: 360px; }
+      .case-e { left: 40px; top: 680px; }
+      .case-f { left: 1000px; top: 680px; }
+
+      .label { margin: 0 0 8px; color: #94a3b8; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; }
+      .anchor { height: 4px; background: #475569; }
+      .parent { background: #164e63; }
+      .child { height: 60px; background: #f97316; }
+
+      .parent-a { margin-top: 0; padding: 0; border: 0; overflow: visible; }
+      .child-a { margin-top: 40px; }
+
+      .parent-b { margin-top: 0; padding-top: 1px; border: 0; overflow: visible; }
+      .child-b { margin-top: 40px; }
+
+      .parent-c { margin-top: 0; padding: 0; border: 0; overflow: hidden; }
+      .child-c { margin-top: 40px; }
+
+      .parent-d { margin-top: 0; padding: 0; border: 0; display: flex; flex-direction: column; }
+      .child-d { margin-top: 40px; }
+
+      .parent-e { margin-top: 0; padding: 0; border: 0; overflow: visible; }
+      .child-e-one { margin-top: 0; margin-bottom: 30px; background: #22d3ee; }
+      .child-e-two { margin-top: 50px; background: #ec4899; }
+
+      .parent-f { margin-top: 0; padding: 0; border: 0; overflow: visible; }
+      .contents-wrap { display: contents; }
+      .child-f { margin-top: 40px; }
+    </style>
+  </head>
+  <body>
+    <div class="case case-a">
+      <div class="label">Collapse ON: no padding/border, overflow visible. Gap = max(parent 0, child 40) = 40px above the parent, child flush at parent top.</div>
+      <div class="anchor"></div>
+      <div id="margin-case-a" class="parent parent-a">
+        <div class="child child-a"></div>
+      </div>
+    </div>
+
+    <div class="case case-b">
+      <div class="label">Blocked by padding-top: 1px. Parent stays flush at the anchor (0px); child sits 41px inside the parent.</div>
+      <div class="anchor"></div>
+      <div id="margin-case-b" class="parent parent-b">
+        <div class="child child-b"></div>
+      </div>
+    </div>
+
+    <div class="case case-c">
+      <div class="label">Blocked by overflow: hidden. Parent flush at the anchor (0px); child sits 40px inside the parent.</div>
+      <div class="anchor"></div>
+      <div id="margin-case-c" class="parent parent-c">
+        <div class="child child-c"></div>
+      </div>
+    </div>
+
+    <div class="case case-d">
+      <div class="label">Blocked by display: flex. Flex items never collapse margins; child sits 40px inside the parent.</div>
+      <div class="anchor"></div>
+      <div id="margin-case-d" class="parent parent-d">
+        <div class="child child-d"></div>
+      </div>
+    </div>
+
+    <div class="case case-e">
+      <div class="label">Sibling adjacency: margin-bottom 30px meets margin-top 50px. Gap = max(30, 50) = 50px, not the sum 80px.</div>
+      <div class="anchor"></div>
+      <div id="margin-case-e" class="parent parent-e">
+        <div class="child child-e-one"></div>
+        <div class="child child-e-two"></div>
+      </div>
+    </div>
+
+    <div class="case case-f">
+      <div class="label">display: contents wrapper between parent and child. Collapse recurses through it to the real child (40px), same signature as case A.</div>
+      <div class="anchor"></div>
+      <div id="margin-case-f" class="parent parent-f">
+        <div class="contents-wrap">
+          <div class="child child-f"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
