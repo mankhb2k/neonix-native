@@ -262,7 +262,6 @@ audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/R
 | `@motionvideo/playback-engine` | Realtime transport | Clock, play/pause/seek/rate, readiness, scheduling và backend plan delivery | Document editing, timeline UI, pixels |
 | `@motionvideo/canvaskit-preview` | Browser preview backend | Replay PaintCommandBuffer bằng CanvasKit/Skia lên Canvas (UI preview only, không phải export) | Protocol parsing, compiler, timeline, playback clock |
 | `@motionvideo/export-renderer` | Offline renderer | Runtime frame/audio → native output và FFmpeg MP4 | Authoring semantics, Playback |
-| `@motionvideo/preview-renderer` | Legacy backend | WebGPU/WebGL2 implementation cũ, không còn là preview path canonical | New Editor preview và `/docs/preview/skia` |
 | `apps/web` | Host/adapters | React, DOM, Canvas, stores, persistence, resource lifecycle và API bridge | Reimplementing command, compile/evaluate, duration, transport, renderer semantics |
 | `apps/web` `/docs/preview/skia` | Deterministic debug host | Gọi trực tiếp Compiler → Runtime → Skia với frame/time cố định | Realtime transport/playhead |
 
@@ -764,7 +763,6 @@ RuntimeProjectV3
 | Playback Engine         | Realtime clock, transport và delivery        |
 | CanvasKit Preview       | Replay PaintCommandBuffer lên CanvasKit/Skia (UI preview only) |
 | Export Renderer         | Offline render, audio mix và export job      |
-| Legacy Preview Renderer | WebGPU/WebGL2 path cũ, không canonical       |
 | Web App                 | UI, adapters, stores và orchestration        |
 | Web API / Storage       | Auth, ownership, R2 và artifact metadata     |
 | Media Ingest Worker     | Probe media và tạo audio derivative           |

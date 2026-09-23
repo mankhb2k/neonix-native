@@ -21,8 +21,6 @@ export default [
               group: [
                 "@motionvideo/motion-compiler",
                 "@motionvideo/motion-compiler/*",
-                "@motionvideo/preview-renderer",
-                "@motionvideo/preview-renderer/*",
               ],
               message: "Protocol must not import compiler or renderer packages.",
             },

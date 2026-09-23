@@ -1,1 +1,0 @@
-export { createWebGPUBackend } from "./backend";

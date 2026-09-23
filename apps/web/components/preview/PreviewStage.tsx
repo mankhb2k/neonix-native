@@ -35,7 +35,7 @@ import {
   type RuntimeProjectV3,
   type RuntimeTextShaperLoaderV3,
 } from "@motionvideo/motion-runtime";
-import { type PreviewAsset } from "@motionvideo/preview-renderer";
+import type { SkiaAsset as PreviewAsset } from "../../../../packages/canvaskit-preview/src";
 import {
   createSkiaRenderer,
   skiaTextGlyphAssetId,

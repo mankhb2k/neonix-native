@@ -86,7 +86,6 @@ const CORE_PACKAGES = new Set([
 ]);
 
 const RENDERER_PACKAGES = new Set([
-  "@motionvideo/preview-renderer",
   "@motionvideo/export-renderer",
 ]);
 

@@ -43,7 +43,7 @@ describe("web editor architecture boundary", () => {
       sourceFor("hooks/editor"),
     ].join("\n");
 
-    expect(source).not.toMatch(/@motionvideo\/(motion-compiler|playback-engine|canvaskit-preview|preview-renderer)/);
+    expect(source).not.toMatch(/@motionvideo\/(motion-compiler|playback-engine|canvaskit-preview)/);
     expect(source).not.toMatch(/@motionvideo\/editor-runtime/);
     expect(source).not.toMatch(/\bevaluateRuntimeProjectV3\b/);
     expect(source).not.toMatch(/\bcompileProtocolAtTime\b/);

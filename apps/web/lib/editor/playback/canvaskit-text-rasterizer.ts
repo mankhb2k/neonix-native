@@ -2,8 +2,8 @@ import type {
   TextAtlas,
   TextAtlasRasterizer,
   TextCommand,
-} from "@motionvideo/preview-renderer";
-import { textAtlasLayout } from "@motionvideo/preview-renderer";
+} from "../../../../../packages/canvaskit-preview/src";
+import { textAtlasLayout } from "../../../../../packages/canvaskit-preview/src";
 
 type SkiaPath = { delete(): void };
 type SkiaTypeface = { delete(): void };

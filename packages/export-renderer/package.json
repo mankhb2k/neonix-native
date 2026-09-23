@@ -27,7 +27,6 @@
     "@aws-sdk/client-s3": "^3.787.0",
     "@motionvideo/html-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/canvaskit-preview": "workspace:*",
     "google-auth-library": "^10.4.1",
     "@supabase/supabase-js": "^2.50.0",
     "sharp": "^0.34.5",

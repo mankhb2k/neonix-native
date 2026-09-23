@@ -76,7 +76,6 @@ The detailed protocol and renderer contract is documented in
 | [`motion-compiler`](packages/motion-compiler) | Validates and lowers Protocol V2 into Runtime V2 IR. |
 | [`motion-runtime`](packages/motion-runtime) | Deterministic visual frame evaluation, Matrix4 transforms, paint commands, and audio mix plans. |
 | [`editor-core`](packages/editor-core) | Framework-independent document commands, selection, timeline projection, and interaction algorithms. |
-| [`preview-renderer`](packages/preview-renderer) | Native WebGPU-first/WebGL2-fallback painter for evaluated runtime frames. |
 | [`remotion-renderer`](packages/remotion-renderer) | Remotion painter and audio track for the same runtime output used by preview. |
 
 ### Integration and infrastructure packages
