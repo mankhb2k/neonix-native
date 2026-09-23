@@ -95,16 +95,6 @@ function ProviderCard({ client }: { client: McpClient }) {
         </ol>
       </div>
 
-      <div className="mt-5 rounded-lg bg-[var(--hub-content-bg)] p-3">
-        <p className="text-caption font-semibold uppercase tracking-[0.12em] text-[var(--fg-disabled)]">
-          OAuth client ID
-        </p>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <code className="min-w-0 truncate font-mono text-caption text-[var(--fg-secondary)]">{client.clientId}</code>
-          <CopyButton value={client.clientId} label={`${client.name} client ID`} />
-        </div>
-      </div>
-
       <Link
         href={dashboardHref(`/docs/mcp/${client.slug}`)}
         className="mt-5 inline-flex items-center gap-1.5 text-body font-semibold text-[var(--hub-accent)] no-underline hover:underline"
