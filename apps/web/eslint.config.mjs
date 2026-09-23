@@ -441,9 +441,9 @@ export default tseslint.config(
     },
   },
   {
-    files: ["lib/docs/**/*.{ts,tsx}"],
+    files: ["lib/docs/**/*.{ts,tsx}", "lib/guides/**/*.{ts,tsx}"],
     rules: {
-      // Documentation definitions include React renderers by design, but remain client-safe.
+      // Documentation/guide definitions include React renderers by design, but remain client-safe.
       "no-restricted-imports": [
         "error",
         {
@@ -459,6 +459,7 @@ export default tseslint.config(
       "lib/store/**/*.{ts,tsx}",
       "lib/api/**/*.{ts,tsx}",
       "lib/docs/**/*.{ts,tsx}",
+      "lib/guides/**/*.{ts,tsx}",
     ],
     rules: {
       "no-restricted-imports": [

@@ -16,6 +16,7 @@ import {
 
 const publicContentPath = path.join(process.cwd(), "lib", "docs", "docs.tsx");
 const contentRoot = path.join(process.cwd(), "lib", "docs", "content");
+const guidesContentRoot = path.join(process.cwd(), "lib", "guides", "content");
 
 function collectMarkdownFiles(dir: string): string[] {
   return readdirSync(dir)
@@ -58,7 +59,11 @@ describe("static V2 documentation", () => {
       /MotionProjectV1|parseMotionProjectV1|transform\.depth|transform\.origin/,
       /\bbone\b/,
     ];
-    const sources = [publicContentPath, ...collectMarkdownFiles(contentRoot)];
+    const sources = [
+      publicContentPath,
+      ...collectMarkdownFiles(contentRoot),
+      ...collectMarkdownFiles(guidesContentRoot),
+    ];
     for (const filePath of sources) {
       const source = readFileSync(filePath, "utf8");
       for (const pattern of forbidden) {
