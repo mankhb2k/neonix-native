@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 880px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 30px; }
+      .cell-label-2 { left: 1000px; top: 30px; }
+      .cell-label-3 { left: 40px; top: 570px; }
+      .cell-label-4 { left: 1000px; top: 570px; }
+      .box { position: absolute; width: 760px; height: 380px; background-color: #172554; }
+      .position-size { left: 100px; top: 110px; background-image: url("/preview/image/photo-landscape.jpg"); background-position: center; background-size: cover; background-repeat: no-repeat; }
+      .origin-clip { left: 1060px; top: 110px; box-sizing: border-box; padding: 36px; border: 16px solid #38bdf8; background-image: url("/preview/image/photo-portrait.jpg"); background-position: center; background-size: contain; background-repeat: no-repeat; background-origin: padding-box; background-clip: content-box; }
+      .repeat { left: 100px; top: 650px; background-image: url("/preview/image/img-alpha.png"); background-position: 0% 0%; background-size: 120px 90px; background-repeat: repeat; }
+      .layer-list { left: 1060px; top: 650px; background-image: url("/preview/image/photo-landscape.jpg"), url("/preview/image/img-alpha.png"); background-position: center, right bottom; background-size: cover, 140px 90px; background-repeat: no-repeat, no-repeat; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">background-position + background-size: cover</div>
+    <div class="cell-label cell-label-2">background-origin: padding-box + background-clip: content-box</div>
+    <div class="cell-label cell-label-3">background-repeat: repeat (tiled)</div>
+    <div class="cell-label cell-label-4">2 stacked background-image layers</div>
+
+    <div id="paint-background-cover" class="box position-size"></div>
+    <div id="paint-background-boxes" class="box origin-clip"></div>
+    <div id="paint-background-repeat" class="box repeat"></div>
+    <div id="paint-background-layers" class="box layer-list"></div>
+  </body>
+</html>

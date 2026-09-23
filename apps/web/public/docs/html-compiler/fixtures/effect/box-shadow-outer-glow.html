@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#000000","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000000; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 30px; font-weight: 700; color: #7c93a8; }
+      .cell-label-plain { left: 40px; top: 36px; }
+      .cell-label-rounded { left: 680px; top: 36px; }
+      .cell-label-border { left: 1320px; top: 36px; }
+      .cell-label-offset { left: 40px; top: 576px; }
+      .cell-label-spread { left: 680px; top: 576px; }
+      .cell-label-stack { left: 1320px; top: 576px; }
+      .glow-box { position: absolute; width: 420px; height: 220px; background: #000000; box-sizing: border-box; }
+      .outer-glow-plain { left: 110px; top: 200px; box-shadow: 0 0 24px #ffffff; }
+      .outer-glow-rounded { left: 750px; top: 200px; border-radius: 64px; box-shadow: 0 0 24px #ffffff; }
+      .outer-glow-border { left: 1390px; top: 200px; border: 8px solid #ffffff; box-shadow: 0 0 24px #ffffff; }
+      .outer-glow-offset { left: 110px; top: 740px; border-radius: 64px; box-shadow: 18px 12px 24px #ffffff; }
+      .outer-glow-spread { left: 750px; top: 740px; border-radius: 64px; box-shadow: 0 0 24px 12px #ffffff; }
+      .outer-glow-stack { left: 1390px; top: 740px; border-radius: 64px; box-shadow: 0 0 12px #ffffff, 0 0 32px #ffffff; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-plain">Plain</div>
+    <div class="cell-label cell-label-rounded">Rounded</div>
+    <div class="cell-label cell-label-border">Border</div>
+    <div class="cell-label cell-label-offset">Offset</div>
+    <div class="cell-label cell-label-spread">Spread</div>
+    <div class="cell-label cell-label-stack">Two shadows (stack)</div>
+
+    <div id="outer-glow-plain" class="glow-box outer-glow-plain"></div>
+    <div id="outer-glow-rounded" class="glow-box outer-glow-rounded"></div>
+    <div id="outer-glow-border" class="glow-box outer-glow-border"></div>
+    <div id="outer-glow-offset" class="glow-box outer-glow-offset"></div>
+    <div id="outer-glow-spread" class="glow-box outer-glow-spread"></div>
+    <div id="outer-glow-stack" class="glow-box outer-glow-stack"></div>
+  </body>
+</html>

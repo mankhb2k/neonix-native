@@ -1,25 +1,30 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
-<style data-neonix-bundle>
-body { margin: 0; background: #081018; }
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 380px; }
+      .cell-label-2 { left: 520px; top: 380px; }
+      .cell-label-3 { left: 1000px; top: 380px; }
+      .cell-label-4 { left: 1480px; top: 380px; }
+      .txt { position: absolute; top: 480px; width: 440px; color: #f8fafc; font-family: Inter, sans-serif; font-size: 56px; font-weight: 700; }
+      .default { left: 40px; text-shadow: 18px 20px 18px #38bdf899; }
+      .alpha { left: 520px; text-shadow: 0 0 0 #38bdf899; }
+      .blur { left: 1000px; text-shadow: 0 0 18px #38bdf899; }
+      .offset { left: 1480px; text-shadow: 18px 20px 0 #38bdf899; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">offset + blur</div>
+    <div class="cell-label cell-label-2">alpha silhouette (0 blur, 0 offset)</div>
+    <div class="cell-label cell-label-3">blur only</div>
+    <div class="cell-label cell-label-4">offset only</div>
 
-#text-shadow {
-  position: absolute;
-  left: 520px;
-  top: 380px;
-  width: 900px;
-  height: 180px;
-  color: #f8fafc;
-  font-family: Inter;
-  font-size: 92px;
-  font-weight: 700;
-  text-shadow: 18px 20px 18px #38bdf899;
-      }
-</style>
-  <meta charset="UTF-8">
-</head>
-<body>
-  <div id="text-shadow">Neonix shadow</div>
-</body>
+    <div id="text-shadow" class="txt default">Neonix</div>
+    <div id="text-shadow-alpha" class="txt alpha">Neonix</div>
+    <div id="text-shadow-blur" class="txt blur">Neonix</div>
+    <div id="text-shadow-offset" class="txt offset">Neonix</div>
+  </body>
 </html>

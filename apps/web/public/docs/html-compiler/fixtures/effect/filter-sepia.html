@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 80px; top: 60px; }
+      .cell-label-2 { left: 720px; top: 60px; }
+      .cell-label-3 { left: 1360px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 480px; height: 300px; background: #38bdf8; }
+      .box-1 { left: 80px; filter: sepia(0); }
+      .box-2 { left: 720px; filter: sepia(0.5); }
+      .box-3 { left: 1360px; filter: sepia(0.85); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">sepia(0)</div>
+    <div class="cell-label cell-label-2">sepia(0.5)</div>
+    <div class="cell-label cell-label-3">sepia(0.85)</div>
+
+    <div id="filter-sepia-0" class="box box-1"></div>
+    <div id="filter-sepia-050" class="box box-2"></div>
+    <div id="filter-sepia-085" class="box box-3"></div>
+  </body>
+</html>

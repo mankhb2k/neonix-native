@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 50px; top: 60px; }
+      .cell-label-2 { left: 530px; top: 60px; }
+      .cell-label-3 { left: 1010px; top: 60px; }
+      .cell-label-4 { left: 1490px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 380px; height: 260px; }
+      .box-1 { left: 70px; background: linear-gradient(90deg, #f43f5e, #facc15, #38bdf8); filter: brightness(0.86) contrast(1.24) invert(0.12); }
+      .box-2 { left: 550px; background: #38bdf8; filter: brightness(0.9) blur(10px) contrast(1.15); }
+      .box-3 { left: 1030px; background: #38bdf8; filter: blur(8px) drop-shadow(22px 18px 12px #f9731699); }
+      .box-4 { left: 1510px; background: #38bdf8; opacity: 0.82; filter: opacity(0.48); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">2 color filters (chain)</div>
+    <div class="cell-label cell-label-2">Blur between colors</div>
+    <div class="cell-label cell-label-3">Drop-shadow after blur</div>
+    <div class="cell-label cell-label-4">filter:opacity() vs opacity</div>
+
+    <div id="filter-color-chain" class="box box-1"></div>
+    <div id="filter-blur-between-colors" class="box box-2"></div>
+    <div id="filter-drop-shadow-after-blur" class="box box-3"></div>
+    <div id="filter-opacity-layer-opacity" class="box box-4"></div>
+  </body>
+</html>

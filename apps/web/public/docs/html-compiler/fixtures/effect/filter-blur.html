@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 50px; top: 60px; }
+      .cell-label-2 { left: 530px; top: 60px; }
+      .cell-label-3 { left: 1010px; top: 60px; }
+      .cell-label-4 { left: 1490px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 380px; height: 260px; background: #38bdf8; }
+      .box-1 { left: 70px; filter: blur(2px); }
+      .box-2 { left: 550px; filter: blur(6px); }
+      .box-3 { left: 1030px; filter: blur(14px); }
+      .box-4 { left: 1510px; filter: blur(28px); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">blur(2px)</div>
+    <div class="cell-label cell-label-2">blur(6px)</div>
+    <div class="cell-label cell-label-3">blur(14px)</div>
+    <div class="cell-label cell-label-4">blur(28px)</div>
+
+    <div id="filter-blur-2" class="box box-1"></div>
+    <div id="filter-blur-6" class="box box-2"></div>
+    <div id="filter-blur-14" class="box box-3"></div>
+    <div id="filter-blur-28" class="box box-4"></div>
+  </body>
+</html>

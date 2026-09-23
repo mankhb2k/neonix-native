@@ -18,18 +18,26 @@ const INSET_CASE_IDS = [
 ] as const;
 
 const OUTER_CASE_IDS = [
+  "box-shadow-outer-glow",
   "outer-glow-plain",
-  "outer-glow-rounded",
-  "outer-glow-border",
-  "outer-glow-offset",
-  "outer-inner-glow-combined",
   "outer-glow-stack",
-  "inner-glow-stack",
-  "outer-inner-glow-order",
+  "inner-glow",
+  "combined-glow",
   "inner-outer-glow-order",
   "outer-glow-overlay-only",
   "inner-glow-mask-only",
   "mixed-glow-order-colors",
+] as const;
+
+const FILTER_TOPIC_IDS = [
+  "filter-blur",
+  "filter-brightness",
+  "filter-contrast",
+  "filter-grayscale",
+  "filter-sepia",
+  "filter-invert",
+  "filter-drop-shadow",
+  "filter-order",
 ] as const;
 
 const SPREAD_CASE_ID = "outer-glow-spread" as const;
@@ -60,7 +68,7 @@ function compileFixture(id: string): PaintCommandBuffer {
 }
 
 describe("Focused HTML playground Runtime command contract", () => {
-  it.each([...INSET_CASE_IDS, ...OUTER_CASE_IDS])("emits a valid command stream for %s", (id) => {
+  it.each([...INSET_CASE_IDS, ...OUTER_CASE_IDS, ...FILTER_TOPIC_IDS])("emits a valid command stream for %s", (id) => {
     const buffer = compileFixture(id);
     expect(validatePaintBuffer(buffer).ok, id).toBe(true);
     expect(buffer.commands[0]?.op, id).toBe("beginFrame");

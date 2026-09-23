@@ -1,23 +1,22 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
-<style data-neonix-bundle>
-body { margin: 0; background: #081018; }
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 700px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 100px; top: 60px; }
+      .cell-label-2 { left: 1020px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 640px; height: 300px; }
+      .single { left: 140px; border-radius: 32px; background: #2563eb; box-shadow: 28px 32px 36px #00000099; }
+      .list { left: 1060px; background: #172554; box-shadow: 0 24px 28px #00000088, 18px 0 0 #38bdf866; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Single shadow (offset + blur)</div>
+    <div class="cell-label cell-label-2">2 comma-separated shadows</div>
 
-#box-shadow {
-  position: absolute;
-  left: 600px;
-  top: 360px;
-  width: 720px;
-  height: 300px;
-  border-radius: 32px;
-  background: #2563eb;
-  box-shadow: 28px 32px 36px #00000099;
-}
-</style>
-  <meta charset="UTF-8">
-</head>
-<body>
-  <div id="box-shadow"></div>
-</body>
+    <div id="box-shadow" class="box single"></div>
+    <div id="box-shadow-list" class="box list"></div>
+  </body>
 </html>

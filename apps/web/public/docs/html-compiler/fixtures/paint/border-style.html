@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 360px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 30px; top: 400px; }
+      .cell-label-2 { left: 414px; top: 400px; }
+      .cell-label-3 { left: 798px; top: 400px; }
+      .cell-label-4 { left: 1182px; top: 400px; }
+      .cell-label-5 { left: 1566px; top: 400px; }
+      .box { position: absolute; top: 460px; width: 320px; height: 300px; background: #172554; }
+      .double { left: 32px; border: 24px double #38bdf8; }
+      .groove { left: 416px; border: 24px groove #38bdf8; }
+      .ridge { left: 800px; border: 24px ridge #a78bfa; }
+      .inset-style { left: 1184px; border: 24px inset #facc15; }
+      .outset { left: 1568px; border: 24px outset #fb7185; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">double</div>
+    <div class="cell-label cell-label-2">groove</div>
+    <div class="cell-label cell-label-3">ridge</div>
+    <div class="cell-label cell-label-4">inset</div>
+    <div class="cell-label cell-label-5">outset</div>
+
+    <div id="paint-border-double" class="box double"></div>
+    <div id="paint-border-groove" class="box groove"></div>
+    <div id="paint-border-ridge" class="box ridge"></div>
+    <div id="paint-border-inset" class="box inset-style"></div>
+    <div id="paint-border-outset" class="box outset"></div>
+  </body>
+</html>

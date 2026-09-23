@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 880px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 30px; }
+      .cell-label-2 { left: 1000px; top: 30px; }
+      .cell-label-3 { left: 40px; top: 570px; }
+      .cell-label-4 { left: 1000px; top: 570px; }
+
+      .panel-multiply { position: absolute; left: 80px; top: 120px; width: 800px; height: 380px; background: #facc15; }
+      .box-multiply { position: absolute; left: 280px; top: 220px; width: 400px; height: 180px; background: #2563eb; mix-blend-mode: multiply; }
+
+      .panel-sibling { position: absolute; left: 1040px; top: 120px; width: 800px; height: 380px; background: #172554; }
+      .box-sibling-a { position: absolute; left: 1120px; top: 200px; width: 360px; height: 200px; background: #f43f5e; mix-blend-mode: multiply; }
+      .box-sibling-b { position: absolute; left: 1320px; top: 280px; width: 360px; height: 200px; background: #38bdf8; mix-blend-mode: screen; }
+
+      .box-outside { position: absolute; left: 80px; top: 660px; width: 400px; height: 300px; background: #facc15; }
+      .group-isolated { position: absolute; left: 300px; top: 700px; width: 440px; height: 260px; isolation: isolate; background: #1e3a8a; }
+      .child-multiply { position: absolute; left: 40px; top: 30px; width: 220px; height: 120px; background: #f97316; mix-blend-mode: multiply; }
+      .child-screen { position: absolute; left: 200px; top: 90px; width: 220px; height: 100px; background: #38bdf8; mix-blend-mode: screen; }
+
+      .panel-opacity { position: absolute; left: 1040px; top: 660px; width: 800px; height: 300px; background: #7c3aed; }
+      .box-opacity-filter { position: absolute; left: 1100px; top: 700px; width: 680px; height: 220px; background: linear-gradient(90deg, #f43f5e, #38bdf8); opacity: .68; mix-blend-mode: screen; filter: grayscale(.35) brightness(1.1); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">mix-blend-mode: multiply over colored backdrop</div>
+    <div class="cell-label cell-label-2">Sibling order: multiply + screen sampling backdrop independently</div>
+    <div class="cell-label cell-label-3">isolation:isolate — group blends internally, not with outside sibling</div>
+    <div class="cell-label cell-label-4">Blend + opacity + filter stacked together</div>
+
+    <div class="panel-multiply"></div>
+    <div id="blend-multiply" class="box-multiply"></div>
+
+    <div class="panel-sibling"></div>
+    <div id="blend-sibling-multiply" class="box-sibling-a"></div>
+    <div id="blend-sibling-screen" class="box-sibling-b"></div>
+
+    <div id="blend-outside" class="box-outside"></div>
+    <div id="blend-isolated-group" class="group-isolated">
+      <div id="blend-isolated-child" class="child-multiply"></div>
+      <div id="blend-isolated-highlight" class="child-screen"></div>
+    </div>
+
+    <div class="panel-opacity"></div>
+    <div id="blend-opacity-filter" class="box-opacity-filter"></div>
+  </body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#111827","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #111827; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 30px; }
+      .cell-label-2 { left: 520px; top: 30px; }
+      .cell-label-3 { left: 1000px; top: 30px; }
+      .cell-label-4 { left: 1480px; top: 30px; }
+      .cell-label-5 { left: 40px; top: 570px; }
+      .cell-label-6 { left: 520px; top: 570px; }
+      .cell-label-7 { left: 1000px; top: 570px; }
+      .cell-label-8 { left: 1480px; top: 570px; }
+
+      .inset-round { position: absolute; left: 20px; top: 230px; width: 440px; height: 180px; background: #38bdf8; border: 12px solid #1e3a8a; clip-path: inset(10px 18px 22px 26px round 21px / 13px); }
+      .circle { position: absolute; left: 40px; top: 770px; width: 400px; height: 180px; background: #f97316; clip-path: circle(74px at 28% 64%); }
+      .ellipse { position: absolute; left: 520px; top: 230px; width: 400px; height: 180px; background: #a78bfa; clip-path: ellipse(130px 56px at 68% 34%); }
+      .polygon-three { position: absolute; left: 1000px; top: 230px; width: 400px; height: 180px; background: #facc15; clip-path: polygon(8% 88%, 50% 8%, 92% 88%); }
+      .polygon-five { position: absolute; left: 1480px; top: 230px; width: 400px; height: 180px; background: #fb7185; clip-path: polygon(50% 4%, 94% 38%, 76% 92%, 24% 92%, 6% 38%); }
+      .polygon-six { position: absolute; left: 520px; top: 770px; width: 400px; height: 180px; background: #34d399; clip-path: polygon(18% 8%, 82% 8%, 98% 50%, 82% 92%, 18% 92%, 2% 50%); }
+      .path-hole { position: absolute; left: 1000px; top: 770px; width: 400px; height: 180px; background: #38bdf8; clip-path: path(evenodd, "M 0 0 H 400 V 180 H 0 Z M 110 45 H 290 V 135 H 110 Z"); }
+      .transform-overflow { position: absolute; left: 1480px; top: 770px; width: 400px; height: 180px; overflow: hidden; transform: rotate(-6deg); background: #1e3a8a; clip-path: inset(12px round 32px); }
+      .transform-overflow-child { position: absolute; left: -50px; top: -40px; width: 500px; height: 260px; background: linear-gradient(90deg, #f97316, #38bdf8); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">inset() round</div>
+    <div class="cell-label cell-label-2">ellipse() offset center</div>
+    <div class="cell-label cell-label-3">polygon() 3 points</div>
+    <div class="cell-label cell-label-4">polygon() 5 points</div>
+    <div class="cell-label cell-label-5">circle() offset center</div>
+    <div class="cell-label cell-label-6">polygon() 6 points</div>
+    <div class="cell-label cell-label-7">path() evenodd hole</div>
+    <div class="cell-label cell-label-8">clip-path + transform + overflow</div>
+
+    <div id="clip-inset-round" class="inset-round"></div>
+    <div id="clip-circle-offset" class="circle"></div>
+    <div id="clip-ellipse-offset" class="ellipse"></div>
+    <div id="clip-polygon-three" class="polygon-three"></div>
+    <div id="clip-polygon-five" class="polygon-five"></div>
+    <div id="clip-polygon-six" class="polygon-six"></div>
+    <div id="clip-path-hole-evenodd" class="path-hole"></div>
+    <div id="clip-transform-overflow" class="transform-overflow">
+      <div id="clip-transform-overflow-child" class="transform-overflow-child"></div>
+    </div>
+  </body>
+</html>

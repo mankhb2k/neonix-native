@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 50px; top: 60px; }
+      .cell-label-2 { left: 530px; top: 60px; }
+      .cell-label-3 { left: 1010px; top: 60px; }
+      .cell-label-4 { left: 1490px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 360px; height: 240px; border-radius: 56px; background: #a78bfa; }
+      .box-1 { left: 80px; filter: drop-shadow(24px 22px 18px #38bdf899); }
+      .box-2 { left: 560px; filter: drop-shadow(0 0 0 #38bdf899); }
+      .box-3 { left: 1040px; filter: drop-shadow(0 0 18px #38bdf899); }
+      .box-4 { left: 1520px; filter: drop-shadow(24px 22px 0 #38bdf899); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Offset + blur</div>
+    <div class="cell-label cell-label-2">Zero blur (alpha silhouette)</div>
+    <div class="cell-label cell-label-3">Blur only</div>
+    <div class="cell-label cell-label-4">Offset only</div>
+
+    <div id="filter-drop-shadow" class="box box-1"></div>
+    <div id="filter-drop-shadow-alpha" class="box box-2"></div>
+    <div id="filter-drop-shadow-blur" class="box box-3"></div>
+    <div id="filter-drop-shadow-offset" class="box box-4"></div>
+  </body>
+</html>

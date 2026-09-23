@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 50px; top: 60px; }
+      .cell-label-2 { left: 530px; top: 60px; }
+      .cell-label-3 { left: 1010px; top: 60px; }
+      .cell-label-4 { left: 1490px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 380px; height: 260px; }
+      .repeating-linear { left: 70px; background: repeating-linear-gradient(90deg, #38bdf8 0%, #38bdf8 8%, #a78bfa 8%, #a78bfa 16%); }
+      .repeating-radial { left: 550px; background: repeating-radial-gradient(circle at 28% 62%, #f8fafc 0%, #38bdf8 12%, #1e3a8a 24%); }
+      .repeating-conic { left: 1030px; background: repeating-conic-gradient(from 45deg at 32% 62%, #facc15 0%, #fb7185 12.5%, #38bdf8 25%, #a78bfa 37.5%, #facc15 50%); }
+      .over-solid { left: 1510px; background: repeating-linear-gradient(135deg, #38bdf8 0%, #38bdf8 10%, transparent 10%, transparent 20%), #172554; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">repeating-linear-gradient</div>
+    <div class="cell-label cell-label-2">repeating-radial-gradient (off-center)</div>
+    <div class="cell-label cell-label-3">repeating-conic-gradient (off-center)</div>
+    <div class="cell-label cell-label-4">repeating gradient layer over solid</div>
+
+    <div id="paint-repeating-linear" class="box repeating-linear"></div>
+    <div id="paint-repeating-radial" class="box repeating-radial"></div>
+    <div id="paint-repeating-conic" class="box repeating-conic"></div>
+    <div id="paint-repeating-over-solid" class="box over-solid"></div>
+  </body>
+</html>

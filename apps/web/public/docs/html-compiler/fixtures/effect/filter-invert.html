@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 50px; top: 60px; }
+      .cell-label-2 { left: 530px; top: 60px; }
+      .cell-label-3 { left: 1010px; top: 60px; }
+      .cell-label-4 { left: 1490px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 380px; height: 260px; background: #f97316; }
+      .box-1 { left: 70px; filter: invert(0); }
+      .box-2 { left: 550px; filter: invert(0.5); }
+      .box-3 { left: 1030px; filter: invert(0.8); }
+      .box-4 { left: 1510px; filter: invert(1); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">invert(0)</div>
+    <div class="cell-label cell-label-2">invert(0.5)</div>
+    <div class="cell-label cell-label-3">invert(0.8)</div>
+    <div class="cell-label cell-label-4">invert(1)</div>
+
+    <div id="filter-invert-0" class="box box-1"></div>
+    <div id="filter-invert-050" class="box box-2"></div>
+    <div id="filter-invert-080" class="box box-3"></div>
+    <div id="filter-invert-100" class="box box-4"></div>
+  </body>
+</html>

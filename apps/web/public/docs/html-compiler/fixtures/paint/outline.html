@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 340px; }
+      .cell-label-2 { left: 700px; top: 340px; }
+      .cell-label-3 { left: 1340px; top: 340px; }
+
+      .layout-row { position: absolute; left: 80px; top: 420px; width: 480px; height: 220px; display: flex; gap: 60px; align-items: center; background: #172554; }
+      .layout-target, .layout-sibling { width: 180px; height: 120px; background: #38bdf8; }
+      .layout-target { margin-left: 60px; outline: 10px solid #facc15; outline-offset: 12px; }
+
+      .offset-box { position: absolute; top: 460px; width: 260px; height: 160px; background: #172554; border: 6px solid #334155; outline: 10px solid #38bdf8; }
+      .offset-positive { left: 700px; outline-offset: 16px; }
+      .offset-negative { left: 1020px; outline-color: #f97316; outline-offset: -8px; }
+
+      .radius-box { position: absolute; left: 1360px; top: 420px; width: 480px; height: 240px; background: #a78bfa; border-radius: 64px 16px 80px 24px; outline: 10px solid #facc15; outline-offset: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Outline doesn't consume flex layout space</div>
+    <div class="cell-label cell-label-2">Offset: positive (outward) vs negative (inward)</div>
+    <div class="cell-label cell-label-3">Outline follows a per-corner border-radius</div>
+
+    <div id="outline-layout" class="layout-row">
+      <div id="outline-target" class="layout-target"></div>
+      <div id="outline-sibling" class="layout-sibling"></div>
+    </div>
+
+    <div id="outline-positive" class="offset-box offset-positive"></div>
+    <div id="outline-negative" class="offset-box offset-negative"></div>
+
+    <div id="outline-rounded" class="radius-box"></div>
+  </body>
+</html>

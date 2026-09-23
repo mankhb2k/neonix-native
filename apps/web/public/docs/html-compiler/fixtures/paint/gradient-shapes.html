@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 440px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 50px; top: 60px; }
+      .cell-label-2 { left: 530px; top: 60px; }
+      .cell-label-3 { left: 1010px; top: 60px; }
+      .cell-label-4 { left: 1490px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 380px; height: 260px; }
+      .linear { left: 70px; background: linear-gradient(90deg, #38bdf8 0%, #a78bfa 50%, #facc15 100%); }
+      .linear-4stop { left: 550px; background: linear-gradient(135deg, #f97316 0%, #facc15 35%, #22d3ee 70%, #6366f1 100%); }
+      .radial { left: 1030px; background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #38bdf8 42%, #1e3a8a 100%); }
+      .conic { left: 1510px; background: conic-gradient(from 45deg at 50% 50%, #38bdf8 0%, #a78bfa 33%, #facc15 66%, #fb7185 100%); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">linear-gradient (3 stops)</div>
+    <div class="cell-label cell-label-2">linear-gradient (4 stops, diagonal)</div>
+    <div class="cell-label cell-label-3">radial-gradient (circle)</div>
+    <div class="cell-label cell-label-4">conic-gradient</div>
+
+    <div id="linear-gradient" class="box linear"></div>
+    <div id="linear-gradient-4stop" class="box linear-4stop"></div>
+    <div id="radial-gradient" class="box radial"></div>
+    <div id="conic-gradient" class="box conic"></div>
+  </body>
+</html>

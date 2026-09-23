@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 700px; top: 60px; }
+      .cell-label-3 { left: 1340px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 480px; height: 300px; }
+      .uniform { left: 80px; background: #38bdf8; border: 18px solid #f8fafc; border-radius: 72px; }
+      .per-corner { left: 720px; background: #a78bfa; border: 18px solid #38bdf8; border-radius: 96px 24px 120px 36px; }
+      .elliptical { left: 1360px; background: #facc15; border: 18px solid #fb7185; border-radius: 140px 48px / 64px 120px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">border-radius: 72px (uniform)</div>
+    <div class="cell-label cell-label-2">border-radius: 96 24 120 36px (per-corner)</div>
+    <div class="cell-label cell-label-3">border-radius: 140 48 / 64 120px (elliptical)</div>
+
+    <div id="paint-radius-uniform" class="box uniform"></div>
+    <div id="paint-radius-per-corner" class="box per-corner"></div>
+    <div id="paint-radius-elliptical" class="box elliptical"></div>
+  </body>
+</html>

@@ -33,7 +33,7 @@ export default defineConfig({
     : {
         // Use node entrypoint so Windows spawn does not hang on .cmd shims.
         command: `node ./node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port ${port}`,
-        url: `${baseURL}/docs/preview`,
+        url: `${baseURL}/`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
         env: {

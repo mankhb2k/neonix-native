@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 700px; top: 60px; }
+      .cell-label-3 { left: 1340px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 480px; height: 300px; background-color: #172554; background-repeat: no-repeat; }
+      .url-fn { left: 80px; background-image: image(url("/preview/image/photo-landscape.jpg")); background-position: center; background-size: cover; }
+      .gradient-fallback { left: 720px; background-image: image(linear-gradient(135deg, #38bdf8 0%, #a78bfa 52%, #fb7185 100%), #172554); }
+      .cross-fade { left: 1360px; background-image: cross-fade(url("/preview/image/photo-landscape.jpg"), url("/preview/image/photo-portrait.jpg"), 50%); background-position: center; background-size: cover; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">image(url(...))</div>
+    <div class="cell-label cell-label-2">image(gradient, fallback-color)</div>
+    <div class="cell-label cell-label-3">cross-fade(url, url, 50%)</div>
+
+    <div id="paint-image-function-url" class="box url-fn"></div>
+    <div id="paint-image-function-gradient" class="box gradient-fallback"></div>
+    <div id="paint-cross-fade" class="box cross-fade"></div>
+  </body>
+</html>

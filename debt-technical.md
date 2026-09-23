@@ -83,3 +83,23 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
 - `CRON_SECRET` đã có trong `.env.deploy` nhưng cần xác nhận giá trị đã được
   set đúng trong Vercel project settings (biến môi trường không tự động
   đồng bộ từ file `.env.deploy` lên Vercel).
+
+## Playground fixtures
+
+### 15 file debug orphan trong `fixtures/paint/` chưa được đưa vào registry
+- Vị trí: `apps/web/public/docs/html-compiler/fixtures/paint/` — các file:
+  `border-corner-dashed-zoom.html`, `border-corner-dotted-zoom.html`,
+  `border-corner-miter-baseline.html`, `border-dashed-rounded-corner-symmetry.html`,
+  `border-dashed-rounded-radius-sweep.html`, `border-dashed-rounded-size-sweep.html`,
+  `border-dashed-rounded-width-sweep.html`, `border-dashed-rounding-boundary.html`,
+  `border-dashed-width-formula-check.html`, `border-dotted-rounded-radius-sweep.html`,
+  `border-style-edge-length-sweep.html`, `border-style-radius-sweep.html`,
+  `border-style-width-sweep.html`, `svg-dasharray-sweep.html`,
+  `svg-rounded-rect-dash-isolation.html`.
+- Hiện tại: fixture debug tự phát tạo ra khi soi một bug về góc bo của dashed
+  border, mỗi file có comment giải thích mục đích. Không được đăng ký trong
+  `html-compiler-preview.ts` hay `html-playground-cases.ts` nên không hiện
+  trong dropdown native-stage nào — nằm im trong thư mục `paint/` từ đó.
+- Cần làm: quyết định file nào còn giá trị làm regression case chính thức
+  (đưa vào `fixtures/debug/` + đăng ký case), file nào chỉ là scratch có thể
+  xóa hẳn.

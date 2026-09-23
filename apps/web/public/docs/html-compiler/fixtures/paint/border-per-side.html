@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 700px; top: 60px; }
+      .cell-label-3 { left: 1340px; top: 60px; }
+      .box { position: absolute; top: 420px; width: 480px; height: 300px; background: #172554; }
+      .four-sides { left: 80px; border-top: 12px solid #38bdf8; border-right: 20px solid #a78bfa; border-bottom: 28px solid #facc15; border-left: 8px solid #fb7185; }
+      .none-mixed { left: 720px; border-top: 18px solid #38bdf8; border-right: 18px none #a78bfa; border-bottom: 18px solid #facc15; border-left: 18px none #fb7185; }
+      .dashed-dotted { left: 1360px; border-top: 16px dashed #38bdf8; border-right: 16px dotted #a78bfa; border-bottom: 16px dashed #facc15; border-left: 16px dotted #fb7185; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">4 sides, independent width/color</div>
+    <div class="cell-label cell-label-2">solid + none alternating</div>
+    <div class="cell-label cell-label-3">dashed + dotted alternating</div>
+
+    <div id="paint-border-four-sides" class="box four-sides"></div>
+    <div id="paint-border-none-mixed" class="box none-mixed"></div>
+    <div id="paint-border-dashed-dotted" class="box dashed-dotted"></div>
+  </body>
+</html>

@@ -39,13 +39,4 @@ test.describe("web V2 smoke", () => {
     await page.getByTestId("timeline-clip-shape").click();
     await expect(page.getByTestId("timeline-clip-shape")).toHaveClass(/ring-1/);
   });
-
-  test("docs preview exposes multiple video examples", async ({ page }) => {
-    for (const caseId of ["video.frame-seek", "video.trim", "video.frame-policy", "video.multi-instance"]) {
-      await page.goto(`/docs/preview?case=${caseId}`);
-      await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
-      await expect(page.getByTestId("preview-v2-canvas")).toBeVisible();
-      await expect(page.getByTestId("preview-v2-error")).toHaveCount(0);
-    }
-  });
 });

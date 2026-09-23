@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#000000","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000000; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 30px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 36px; }
+      .cell-label-2 { left: 680px; top: 36px; }
+      .cell-label-3 { left: 1320px; top: 36px; }
+      .cell-label-4 { left: 40px; top: 576px; }
+      .cell-label-5 { left: 680px; top: 576px; }
+      .glow-box { position: absolute; width: 420px; height: 220px; background: #000000; box-sizing: border-box; }
+      .combined { left: 110px; top: 200px; border-radius: 64px; box-shadow: 0 0 24px #ffffff, inset 0 0 24px #ffffff; }
+      .outer-first { left: 750px; top: 200px; border-radius: 64px; box-shadow: 0 0 12px #ffffff, inset 0 0 32px #ffffff; }
+      .inner-first { left: 1390px; top: 200px; border-radius: 64px; box-shadow: inset 0 0 32px #ffffff, 0 0 12px #ffffff; }
+      .mixed-colors { left: 110px; top: 740px; border-radius: 64px; box-shadow: 0 0 12px #ff0000, inset 0 0 32px #ffffff; }
+      .overlay-only { left: 750px; top: 740px; box-shadow: 0 0 24px #ffffff; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Combined (outer + inner)</div>
+    <div class="cell-label cell-label-2">Outer first</div>
+    <div class="cell-label cell-label-3">Inner first</div>
+    <div class="cell-label cell-label-4">Mixed colors</div>
+    <div class="cell-label cell-label-5">Overlay only (no radius/border)</div>
+
+    <div id="outer-inner-glow-combined" class="glow-box combined"></div>
+    <div id="outer-inner-glow-order" class="glow-box outer-first"></div>
+    <div id="inner-outer-glow-order" class="glow-box inner-first"></div>
+    <div id="mixed-glow-order-colors" class="glow-box mixed-colors"></div>
+    <div id="outer-glow-overlay-only" class="glow-box overlay-only"></div>
+  </body>
+</html>

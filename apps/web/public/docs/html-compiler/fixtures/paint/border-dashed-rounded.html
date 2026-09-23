@@ -2,25 +2,61 @@
 <html lang="en">
   <head>
     <!--
-      REGRESSION: border-style:dashed WITH border-radius lowers to a single
-      continuous rounded-rect path carrying a real strokeDash (like SVG
-      stroke-dasharray), not 4 independent straight lines clipped by the
-      box's own rounded mask (the old approach, which produced a visibly
-      un-rounded, badly phased dash pattern). Two moderate radii shown here;
-      see border-rounded-pill-stroke.html for the large-radius/near-pill
-      case that also exercises the closed-perimeter dash-fitting fix. See
-      packages/html-compiler/src/compiler/pipeline/border/geometry.ts (fitRoundedBorderDash).
+      Consolidated dashed/dotted border geometry regression set. Guards two
+      invariants in packages/html-compiler/src/compiler/pipeline/border/geometry.ts:
+      (1) fitBorderDashRuns: on sharp (non-rounded) corners, dashes/dots are
+          anchored at BOTH ends of every edge so every corner is fully solid,
+          not a periodic tiling that only anchors the start.
+      (2) fitRoundedBorderDash: with border-radius, the border is one
+          continuous rounded-rect path with a real strokeDash, and the
+          dash/dot count scales with the true perimeter so a near-pill
+          shape (radius = height/2) closes onto itself without a visible
+          seam at the path's start point.
     -->
     <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
     <style data-neonix-bundle>
       html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
-      .box { position: absolute; top: 120px; width: 340px; height: 300px; background: #172554; box-sizing: border-box; border: 40px dashed #38bdf8; }
-      #radius-20 { left: 100px;  border-radius: 20px; }
-      #radius-64 { left: 560px; border-radius: 64px; }
+      .cell-label { position: absolute; width: 600px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 30px; top: 20px; }
+      .cell-label-2 { left: 670px; top: 20px; }
+      .cell-label-3 { left: 1310px; top: 20px; }
+      .cell-label-4 { left: 30px; top: 380px; }
+      .cell-label-5 { left: 670px; top: 380px; }
+      .cell-label-6 { left: 1310px; top: 380px; }
+      .cell-label-7 { left: 30px; top: 740px; }
+      .cell-label-8 { left: 670px; top: 740px; }
+      .cell-label-9 { left: 1310px; top: 740px; }
+      .box { position: absolute; box-sizing: border-box; background: #172554; }
+      .dashed-square { left: 210px; top: 80px; width: 220px; height: 220px; border: 36px dashed #38bdf8; }
+      .dashed-rect { left: 880px; top: 80px; width: 160px; height: 260px; border: 36px dashed #38bdf8; }
+      .dotted-square { left: 1490px; top: 80px; width: 220px; height: 220px; border: 36px dotted #fb7185; }
+      .dotted-rect { left: 240px; top: 440px; width: 160px; height: 260px; border: 36px dotted #fb7185; }
+      .rounded-small { left: 850px; top: 440px; width: 220px; height: 260px; border: 28px dashed #38bdf8; border-radius: 16px; }
+      .rounded-large { left: 1490px; top: 440px; width: 220px; height: 260px; border: 28px dashed #38bdf8; border-radius: 42px; }
+      .pill-dashed { left: 210px; top: 800px; width: 220px; height: 260px; border: 28px dashed #38bdf8; border-radius: 130px; }
+      .pill-dotted { left: 850px; top: 800px; width: 220px; height: 260px; border: 28px dotted #fb7185; border-radius: 130px; }
+      .rotated { left: 1450px; top: 830px; width: 300px; height: 140px; border: 14px dashed #22d3ee; border-radius: 24px; transform: rotate(-11deg); }
     </style>
   </head>
   <body>
-    <div id="radius-20" class="box"></div>
-    <div id="radius-64" class="box"></div>
+    <div class="cell-label cell-label-1">Corner fit: dashed (square)</div>
+    <div class="cell-label cell-label-2">Corner fit: dashed (rect)</div>
+    <div class="cell-label cell-label-3">Corner fit: dotted (square)</div>
+    <div class="cell-label cell-label-4">Corner fit: dotted (rect)</div>
+    <div class="cell-label cell-label-5">Rounded dashed, small radius</div>
+    <div class="cell-label cell-label-6">Rounded dashed, large radius</div>
+    <div class="cell-label cell-label-7">Pill radius, dashed</div>
+    <div class="cell-label cell-label-8">Pill radius, dotted</div>
+    <div class="cell-label cell-label-9">Rotated stroke (-11deg)</div>
+
+    <div id="border-dashed-corner-fit-square" class="box dashed-square"></div>
+    <div id="border-dashed-corner-fit-rect" class="box dashed-rect"></div>
+    <div id="border-dotted-corner-fit-square" class="box dotted-square"></div>
+    <div id="border-dotted-corner-fit-rect" class="box dotted-rect"></div>
+    <div id="border-dashed-rounded-small" class="box rounded-small"></div>
+    <div id="border-dashed-rounded-large" class="box rounded-large"></div>
+    <div id="border-rounded-pill-dashed" class="box pill-dashed"></div>
+    <div id="border-rounded-pill-dotted" class="box pill-dotted"></div>
+    <div id="stroke-dash-rotated" class="box rotated"></div>
   </body>
 </html>

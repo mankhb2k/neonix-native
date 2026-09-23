@@ -16,7 +16,6 @@ export default function robots(): MetadataRoute.Robots {
           "/approve-ui",
           "/playground/native-stage",
           "/preview/",
-          "/docs/preview",
         ],
       },
     ],
