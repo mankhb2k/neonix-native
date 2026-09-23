@@ -1,7 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { compileHtmlCss, createHtmlCssSource } from "../src/index";
+import { compileDocument, compileHtmlCss, createHtmlCssSource } from "../src/index";
 
 describe("HTML/CSS compiler Phase 3A layout", () => {
+  it("stacks multiple flow children of the document body itself, not just of a nested container", () => {
+    // body is never passed through layout()/resolveGeometry(), so it never
+    // gets an entry in the origins map. A prior bug's fallback for a missing
+    // parent origin reused the current child's own flow-relative parentY,
+    // which happens to equal the true body origin (0) only for the FIRST
+    // flow child — every later sibling collapsed back to its own offset as
+    // if it were still first in flow.
+    const result = compileDocument({
+      html: `<!doctype html><html><head>
+        <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+        <style>html, body { width: 1920px; height: 1080px; margin: 0; } #first { position: relative; top: 20px; width: 400px; height: 300px; background: #38bdf8; } #second { position: relative; top: 20px; width: 400px; height: 300px; background: #f97316; }</style>
+      </head><body><div id="first"></div><div id="second"></div></body></html>`,
+    });
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "first")).toMatchObject({
+      transform: { translate: { y: 20 } },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "second")).toMatchObject({
+      // Stacked after #first's 300px flow height, then #second's own relative offset.
+      transform: { translate: { y: 320 } },
+    });
+  });
+
   it("places static block children in deterministic vertical flow", () => {
     const result = compileHtmlCss(createHtmlCssSource({ html: `<main><div id="a"></div><div id="b"></div></main>`, css: `main { width: 400px; height: 400px; padding: 10px; } main div { width: 100px; height: 40px; margin: 5px; background: #ffffff; }` }));
     expect(result.status).toBe("success");
