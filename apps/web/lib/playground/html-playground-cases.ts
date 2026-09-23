@@ -10,7 +10,6 @@ export type HtmlPlaygroundCaseCategory = "review" | "production";
  */
 export type HtmlPlaygroundCaseGroup =
   | "debug"
-  | "root"
   | "paint"
   | "mask"
   | "blend"
@@ -19,12 +18,10 @@ export type HtmlPlaygroundCaseGroup =
   | "layout"
   | "perspective"
   | "motion"
-  | "typography"
   | "texture"
   | "tags"
   | "geometry"
   | "media"
-  | "opacity"
   | "transform"
   | "neonix"
   | "svg";
@@ -41,7 +38,6 @@ export type HtmlPlaygroundCase = {
 
 export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
   "debug",
-  "root",
   "paint",
   "mask",
   "blend",
@@ -50,12 +46,10 @@ export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
   "layout",
   "perspective",
   "motion",
-  "typography",
   "texture",
   "tags",
   "geometry",
   "media",
-  "opacity",
   "transform",
   "neonix",
   "svg",
@@ -63,7 +57,6 @@ export const HTML_PLAYGROUND_GROUP_ORDER: readonly HtmlPlaygroundCaseGroup[] = [
 
 export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, string> = {
   debug: "Debug",
-  root: "Root fixtures",
   paint: "Paint",
   mask: "Mask",
   blend: "Blend",
@@ -72,12 +65,10 @@ export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, strin
   layout: "Layout",
   perspective: "Perspective",
   motion: "Motion",
-  typography: "Typography",
   texture: "Texture",
   tags: "Tags",
   geometry: "Geometry",
   media: "Media",
-  opacity: "Opacity",
   transform: "Transform",
   neonix: "Neonix",
   svg: "SVG",
@@ -85,14 +76,24 @@ export const HTML_PLAYGROUND_GROUP_LABELS: Record<HtmlPlaygroundCaseGroup, strin
 
 const HTML_PLAYGROUND_GROUP_SET: ReadonlySet<string> = new Set(HTML_PLAYGROUND_GROUP_ORDER);
 
+/**
+ * Folder segments that don't map 1:1 to a native-stage group because two
+ * physical fixture folders were merged into one catalog for browsing.
+ */
+const FIXTURE_FOLDER_GROUP_ALIASES: Record<string, HtmlPlaygroundCaseGroup> = {
+  typography: "text",
+  opacity: "blend",
+};
+
 /** Reads the fixture's folder segment straight off its URL, so grouping can never drift from where the file actually lives. */
 function groupFromFixtureUrl(url: string): HtmlPlaygroundCaseGroup | null {
   const prefix = `${HTML_COMPILER_FIXTURE_ROOT}/`;
   if (!url.startsWith(prefix)) return null;
   const rest = url.slice(prefix.length);
   const slashIndex = rest.indexOf("/");
-  if (slashIndex === -1) return "root";
+  if (slashIndex === -1) return null;
   const folder = rest.slice(0, slashIndex);
+  if (folder in FIXTURE_FOLDER_GROUP_ALIASES) return FIXTURE_FOLDER_GROUP_ALIASES[folder];
   return HTML_PLAYGROUND_GROUP_SET.has(folder) ? (folder as HtmlPlaygroundCaseGroup) : null;
 }
 
@@ -109,6 +110,70 @@ const fixtureUrl = (category: string, fileName: string) => `${HTML_COMPILER_FIXT
  * registry.
  */
 const CURATED_CASES: readonly HtmlPlaygroundCase[] = [
+  // --- text: topic catalog (text + typography merged; each fixture = 1 concept, multiple examples inside) ---
+  {
+    id: "text-gradient-paint",
+    label: "Text / Gradient paint",
+    description: "background-clip: text with linear, radial, and conic gradients.",
+    url: fixtureUrl("text", "text-gradient-paint.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
+  {
+    id: "text-compiler-contracts",
+    label: "Text / Compiler contracts",
+    description: "<br> as a hard break, nested inline tags merging into one layer, and white-space: normal vs pre.",
+    url: fixtureUrl("text", "text-compiler-contracts.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
+  {
+    id: "text-frame-sizing",
+    label: "Text / Frame sizing",
+    description: "Fixed height with explicit line breaks, fixed width with word wrap, and width-authored height:auto.",
+    url: fixtureUrl("text", "text-frame-sizing.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
+  {
+    id: "line-height",
+    label: "Text / Line-height",
+    description: "Fixed line-height, the normal keyword, and a unitless value.",
+    url: fixtureUrl("text", "line-height.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
+  {
+    id: "font-fallback",
+    label: "Text / Font fallback",
+    description: "Nearest-weight fallback, missing-family fallback, and emoji script fallback.",
+    url: fixtureUrl("text", "font-fallback.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
+  {
+    id: "font-selection-basics",
+    label: "Text / Font selection basics",
+    description: "Exact family/weight resolution across Inter, Lora, Roboto, Noto Sans, and an emoji fallback line.",
+    url: fixtureUrl("text", "font-selection-basics.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
+  {
+    id: "text-overflow-rendering",
+    label: "Text / Overflow & rendering",
+    description: "text-overflow: ellipsis on a clipped single line, and the 3 text-rendering values.",
+    url: fixtureUrl("text", "text-overflow-rendering.html"),
+    category: "review",
+    group: "text",
+    nativeStage: true,
+  },
   // --- paint: topic catalog (each fixture = 1 CSS concept, multiple examples inside) ---
   {
     id: "background-image",

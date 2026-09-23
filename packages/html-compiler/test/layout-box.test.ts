@@ -39,13 +39,13 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
     }));
     expect(result.status).toBe("success");
     expect(result.protocol?.layers.find((layer) => layer.id === "static")).toMatchObject({
-      transform: { translate: { x: 20, y: 10 } },
+      transform: { translate: { x: 20, y: 0 } },
     });
     expect(result.protocol?.layers.find((layer) => layer.id === "relative")).toMatchObject({
-      transform: { translate: { x: 50, y: 82 } },
+      transform: { translate: { x: 50, y: 72 } },
     });
     expect(result.protocol?.layers.find((layer) => layer.id === "after")).toMatchObject({
-      transform: { translate: { x: 0, y: 135 } },
+      transform: { translate: { x: 0, y: 125 } },
     });
     expect(result.protocol?.layers.find((layer) => layer.id === "absolute")).toMatchObject({
       transform: { translate: { x: 200, y: 100 } },
@@ -76,19 +76,19 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
     expect(result.status).toBe("success");
     expect(result.protocol?.layers.find((layer) => layer.id === "block")).toMatchObject({
       type: "shape",
-      transform: { translate: { x: 0, y: 10 } },
+      transform: { translate: { x: 0, y: 0 } },
     });
     expect(result.protocol?.layers.find((layer) => layer.id === "contents")).toBeUndefined();
     expect(result.protocol?.layers.find((layer) => layer.id === "contents-a")).toMatchObject({
-      transform: { translate: { x: 0, y: 70 } },
+      transform: { translate: { x: 0, y: 60 } },
     });
     expect(result.protocol?.layers.find((layer) => layer.id === "contents-b")).toMatchObject({
-      transform: { translate: { x: 0, y: 105 } },
+      transform: { translate: { x: 0, y: 95 } },
     });
     expect(result.protocol?.layers.find((layer) => layer.id === "none")).toBeUndefined();
     expect(result.protocol?.layers.find((layer) => layer.id === "hidden")).toMatchObject({
       enabled: false,
-      transform: { translate: { x: 0, y: 145 } },
+      transform: { translate: { x: 0, y: 135 } },
     });
   });
 

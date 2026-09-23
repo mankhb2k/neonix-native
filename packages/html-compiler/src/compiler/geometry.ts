@@ -62,6 +62,14 @@ type GeometryInput = {
   viewport: CssViewport;
   /** Intrinsic content height supplied by the text/layout measurer for auto-sized boxes. */
   intrinsicContentHeight?: number;
+  /**
+   * Pre-collapsed top margin (this box's own margin-top adjoined with its
+   * first in-flow child's margin-top, per CSS margin collapsing) supplied by
+   * the caller in place of the box's declared margin-top for normal-flow
+   * positioning. Absolute positioning is unaffected — it never participates
+   * in margin collapsing.
+   */
+  topMarginOverride?: number;
 };
 
 function constraintValue(style: Style, property: string, relative: number, fontSize: number, viewport: CssViewport, fallback: number): number {
@@ -85,7 +93,7 @@ function validateSize(value: number, property: string, raw: string | undefined):
 }
 
 export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
-  const { style, parentX, parentY, containingWidth, containingHeight, fontSize, viewport, intrinsicContentHeight } = input;
+  const { style, parentX, parentY, containingWidth, containingHeight, fontSize, viewport, intrinsicContentHeight, topMarginOverride } = input;
   const padding = edges(style, "padding", containingWidth, fontSize, 16, viewport);
   const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
   const borderEdges: GeometryEdges = [border.top.width, border.right.width, border.bottom.width, border.left.width];
@@ -103,7 +111,7 @@ export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   const top = number(style, "top", containingHeight, fontSize, 16, viewport);
   const bottom = number(style, "bottom", containingHeight, fontSize, 16, viewport);
   const normalX = parentX + margin[3];
-  const normalY = parentY + margin[0];
+  const normalY = parentY + (topMarginOverride ?? margin[0]);
 
   const declaredWidth = number(style, "width", containingWidth, fontSize, 16, viewport);
   const declaredHeight = number(style, "height", containingHeight, fontSize, 16, viewport);

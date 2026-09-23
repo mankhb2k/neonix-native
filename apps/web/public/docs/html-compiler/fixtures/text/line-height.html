@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .txt { position: absolute; top: 160px; width: 560px; margin: 0; color: #f8fafc; font-family: Inter; }
+      .short { left: 40px; font-size: 32px; line-height: 43px; }
+      .normal { left: 680px; font-size: 32px; line-height: normal; }
+      .long { left: 1320px; font-size: 26px; line-height: 1.75; height: 400px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">line-height: 64px (fixed)</div>
+    <div class="cell-label cell-label-2">line-height: normal</div>
+    <div class="cell-label cell-label-3">line-height: 1.75 (unitless)</div>
+
+    <p id="line-height-short" class="txt short">A short paragraph with a fixed line box.</p>
+    <p id="line-height-normal" class="txt normal">A normal paragraph keeps the standard deterministic line box.</p>
+    <p id="line-height-long" class="txt long">A longer paragraph makes the vertical rhythm visible across more content. The compiler keeps the authored semantic value in HTML and lowers its resolved line box into Neonix JSON V2 composition units for deterministic runtime rendering.</p>
+  </body>
+</html>

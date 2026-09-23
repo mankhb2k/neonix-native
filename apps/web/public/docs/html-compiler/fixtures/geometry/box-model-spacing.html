@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 800px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 80px; top: 40px; }
+      .cell-label-2 { left: 1000px; top: 40px; }
+
+      .margin-group { position: absolute; left: 80px; top: 160px; width: 800px; }
+      .margin-box { width: 220px; height: 80px; }
+      #margin-all { margin: 18px; background: #38bdf8; }
+      #margin-yx { margin: 9px 21px; background: #a78bfa; }
+      #margin-three { margin: 6px 15px 12px; background: #facc15; }
+      #margin-longhands { margin-top: 8px; margin-right: 14px; margin-bottom: 17px; margin-left: 26px; background: #fb7185; }
+
+      .padding-group { position: absolute; left: 1000px; top: 160px; width: 800px; height: 480px; }
+      .padding-box { position: absolute; width: 340px; height: 140px; border: 2px solid #ffffff; }
+      #padding-all { left: 0; top: 0; padding: 24px; background: #14b8a6; }
+      #padding-yx { left: 400px; top: 0; padding: 12px 28px; background: #38bdf8; }
+      #padding-three { left: 0; top: 220px; padding: 8px 20px 16px; background: #a78bfa; }
+      #padding-longhands { left: 400px; top: 220px; padding-top: 10px; padding-right: 18px; padding-bottom: 22px; padding-left: 34px; background: #f97316; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">margin: shorthand forms + longhands</div>
+    <div class="cell-label cell-label-2">padding: shorthand forms + longhands</div>
+
+    <div class="margin-group">
+      <div id="margin-all" class="margin-box"></div>
+      <div id="margin-yx" class="margin-box"></div>
+      <div id="margin-three" class="margin-box"></div>
+      <div id="margin-longhands" class="margin-box"></div>
+    </div>
+
+    <div class="padding-group">
+      <div id="padding-all" class="padding-box"></div>
+      <div id="padding-yx" class="padding-box"></div>
+      <div id="padding-three" class="padding-box"></div>
+      <div id="padding-longhands" class="padding-box"></div>
+    </div>
+  </body>
+</html>

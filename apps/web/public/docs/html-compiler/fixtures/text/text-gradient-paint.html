@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; text-align: center; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .title { position: absolute; width: 560px; margin: 0; color: transparent; font-family: Inter, "Noto Sans", sans-serif; font-size: 60px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; text-align: center; top: 460px; }
+      .linear { left: 40px; background: linear-gradient(90deg, #22d3ee 0%, #60a5fa 50%, #c084fc 100%); background-repeat: no-repeat; background-clip: text; }
+      .radial { left: 680px; background: radial-gradient(circle at 50% 50%, #fef3c7 0%, #fb923c 50%, #be123c 100%); background-repeat: no-repeat; background-clip: text; }
+      .conic { left: 1320px; background: conic-gradient(from 45deg at 50% 50%, #14b8a6 0%, #2563eb 50%, #7c3aed 100%); background-repeat: no-repeat; background-clip: text; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">linear-gradient</div>
+    <div class="cell-label cell-label-2">radial-gradient</div>
+    <div class="cell-label cell-label-3">conic-gradient</div>
+
+    <h1 id="gradient-linear" class="title linear">Linear gradient text</h1>
+    <h1 id="gradient-radial" class="title radial">Radial gradient text</h1>
+    <h1 id="gradient-conic" class="title conic">Conic gradient text</h1>
+  </body>
+</html>

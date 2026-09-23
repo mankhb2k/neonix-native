@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 880px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 1000px; top: 60px; }
+      .ellipsis { position: absolute; left: 60px; top: 220px; width: 720px; height: 90px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #f8fafc; font-family: Inter; font-size: 40px; }
+      .rendering { position: absolute; left: 1000px; width: 800px; height: 80px; color: #f8fafc; font-family: Inter; font-size: 36px; }
+      .rendering-auto { top: 220px; text-rendering: auto; }
+      .rendering-speed { top: 340px; text-rendering: optimizeSpeed; }
+      .rendering-precision { top: 460px; text-rendering: geometricPrecision; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">text-overflow: ellipsis (single line, clipped)</div>
+    <div class="cell-label cell-label-2">text-rendering: auto / optimizeSpeed / geometricPrecision</div>
+
+    <div id="text-overflow-ellipsis" class="ellipsis">This is a deterministic single-line overflow example that ends with an ellipsis.</div>
+    <div id="rendering-auto" class="rendering rendering-auto">auto — balanced text rendering</div>
+    <div id="rendering-speed" class="rendering rendering-speed">optimizeSpeed — mask-capable rendering</div>
+    <div id="rendering-precision" class="rendering rendering-precision">geometricPrecision — vector rendering</div>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .hard-break { position: absolute; left: 40px; top: 160px; width: 560px; height: 140px; margin: 0; color: #ffffff; font-family: Inter; font-size: 48px; line-height: 57.6px; }
+      .nested-inline { position: absolute; left: 680px; top: 200px; width: 560px; height: 60px; margin: 0; color: #f8fafc; font-family: Inter; font-size: 32px; line-height: 40px; }
+      .whitespace-normal, .whitespace-pre { position: absolute; left: 1320px; width: 560px; height: 60px; margin: 0; color: #f8fafc; font-family: Inter; font-size: 28px; line-height: 38px; }
+      .whitespace-normal { top: 160px; white-space: normal; }
+      .whitespace-pre { top: 280px; white-space: pre; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Line break tag is a hard break</div>
+    <div class="cell-label cell-label-2">Nested inline tags merge into 1 layer</div>
+    <div class="cell-label cell-label-3">white-space: normal vs pre</div>
+
+    <h1 id="hard-break" class="hard-break">Video title<br>line two</h1>
+    <p id="nested-inline" class="nested-inline">Prefix <strong>bold</strong> <em>italic</em></p>
+    <div id="normal-space" class="whitespace-normal">A   B
+C</div>
+    <pre id="pre-space" class="whitespace-pre">A   B
+C</pre>
+  </body>
+</html>

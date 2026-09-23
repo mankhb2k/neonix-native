@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 26px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 40px; }
+      .cell-label-2 { left: 680px; top: 40px; }
+      .cell-label-3 { left: 1320px; top: 40px; }
+      .caption { position: absolute; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; color: #7c93a8; }
+      .caption-tl { left: 0; top: 0; }
+      .caption-tr { left: 300px; top: 0; }
+      .caption-bl { left: 0; top: 190px; }
+      .caption-br { left: 300px; top: 190px; }
+
+      #explicit-size { position: absolute; left: 160px; top: 380px; width: 400px; height: 280px; background: #f97316; }
+
+      .minmax-group { position: absolute; left: 680px; top: 200px; width: 560px; height: 480px; }
+      #min-width-case { position: absolute; left: 0; top: 40px; width: 90px; min-width: 160px; height: 70px; background: #38bdf8; }
+      #max-width-case { position: absolute; left: 300px; top: 40px; width: 300px; max-width: 180px; height: 70px; background: #a78bfa; }
+      #min-height-case { position: absolute; left: 0; top: 240px; width: 180px; height: 24px; min-height: 70px; background: #facc15; }
+      #max-height-case { position: absolute; left: 300px; top: 240px; width: 180px; height: 140px; max-height: 70px; background: #fb7185; }
+
+      .aspect-group { position: absolute; left: 1320px; top: 340px; width: 560px; height: 260px; }
+      #content-ratio, #border-ratio { position: absolute; top: 40px; width: 260px; height: auto; aspect-ratio: 16 / 9; padding: 8px; border: 2px solid #ffffff; }
+      #content-ratio { left: 0; box-sizing: content-box; background: #f97316; }
+      #border-ratio { left: 300px; box-sizing: border-box; background: #a78bfa; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Explicit width + height</div>
+    <div class="cell-label cell-label-2">min / max width &amp; height</div>
+    <div class="cell-label cell-label-3">aspect-ratio + box-sizing</div>
+
+    <div id="explicit-size"></div>
+
+    <div class="minmax-group">
+      <div class="caption caption-tl">min-width</div>
+      <div class="caption caption-tr">max-width</div>
+      <div class="caption caption-bl">min-height</div>
+      <div class="caption caption-br">max-height</div>
+      <div id="min-width-case"></div>
+      <div id="max-width-case"></div>
+      <div id="min-height-case"></div>
+      <div id="max-height-case"></div>
+    </div>
+
+    <div class="aspect-group">
+      <div class="caption caption-tl">content-box</div>
+      <div class="caption caption-tr">border-box</div>
+      <div id="content-ratio"></div>
+      <div id="border-ratio"></div>
+    </div>
+  </body>
+</html>

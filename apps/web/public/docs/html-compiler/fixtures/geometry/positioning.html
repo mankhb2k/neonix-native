@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 800px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 80px; top: 40px; }
+      .cell-label-2 { left: 1000px; top: 40px; }
+
+      .position-demo { position: relative; left: 80px; top: 160px; width: 800px; height: 480px; }
+      .position-box { width: 180px; height: 70px; }
+      #position-static { position: static; margin: 30px 0 0 40px; left: 500px; top: 500px; background: #38bdf8; }
+      #position-relative { position: relative; margin: 10px 0 0 40px; left: 160px; top: 12px; background: #a78bfa; }
+      #position-absolute { position: absolute; left: 480px; top: 120px; width: 180px; height: 70px; background: #f97316; }
+
+      .inset-demo { position: relative; left: 1000px; top: 160px; width: 800px; height: 480px; }
+      #inset-frame { position: absolute; inset: 40px 60px 50px 80px; width: auto; height: auto; background: #0e7490; }
+      #right-bottom-box { position: absolute; right: 80px; bottom: 60px; width: 150px; height: 80px; background: #f97316; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">position: static / relative / absolute</div>
+    <div class="cell-label cell-label-2">inset shorthand + auto-size from opposite edges</div>
+
+    <div class="position-demo">
+      <div id="position-static" class="position-box"></div>
+      <div id="position-relative" class="position-box"></div>
+      <div id="position-absolute"></div>
+    </div>
+
+    <div class="inset-demo">
+      <div id="inset-frame"></div>
+      <div id="right-bottom-box"></div>
+    </div>
+  </body>
+</html>

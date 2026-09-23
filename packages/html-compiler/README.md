@@ -45,26 +45,28 @@ remain compatibility APIs for the deferred developer build workflow.
 
 ## Supported in Phase 0.1 — cascade and value normalization
 
-The first P0 slice is backed by the live fixture at
-`apps/web/lib/docs/html-compiler-preview.ts` and covers the normalization
-contract before layout lowering:
+The first P0 slice covers the normalization contract before layout lowering.
+The `html-compiler.p0.cascade-values` fixture that used to demonstrate the
+rows below live was retired from the native-stage catalog; the behavior
+itself is unchanged, those rows just no longer have a dedicated live
+fixture citation.
 
 | CSS property / feature | Accepted syntax | Normalization | V2 target | Fallback / diagnostic | Fixture |
 | --- | --- | --- | --- | --- | --- |
-| selector cascade | tag, `.class`, `#id`, descendant, selector list | specificity → `!important` → source order | computed style | unsupported selectors fail closed | `html-compiler.p0.cascade-values` |
-| custom properties | `--name`, `var(--name, fallback)` | scoped inheritance and recursive resolution | concrete paint/length value | missing/cyclic variable diagnostic | `html-compiler.p0.cascade-values` |
-| special keywords | `initial`, `inherit`, `unset` | property initial value or inherited value | concrete computed style | invalid property value diagnostic | `html-compiler.p0.cascade-values` |
-| common shorthands | `margin`, `padding`, `inset`, `gap`, `border`, `outline`, `flex`, `place-items`, `grid-column`/`grid-row`, solid/layered `background` | longhand expansion with cascade order preserved; background layers normalize image, position, size, repeat, origin/clip and color | `frame` / `style` / background layers | unsupported grammar fails closed | `html-compiler.p0.cascade-values` |
-| typed value functions | `calc()`, `min()`, `max()`, `clamp()` | fixed 1920×1080 viewport and px normalization | `frame` / `transform` | incompatible units fail closed | `html-compiler.p0.cascade-values` |
-| paint keywords | `none`, `transparent`, `currentColor` | canonical V2 colors | `style.fill` / `style.stroke` | property-invalid colors fail closed | `html-compiler.p0.cascade-values` |
+| selector cascade | tag, `.class`, `#id`, descendant, selector list | specificity → `!important` → source order | computed style | unsupported selectors fail closed | — |
+| custom properties | `--name`, `var(--name, fallback)` | scoped inheritance and recursive resolution | concrete paint/length value | missing/cyclic variable diagnostic | — |
+| special keywords | `initial`, `inherit`, `unset` | property initial value or inherited value | concrete computed style | invalid property value diagnostic | — |
+| common shorthands | `margin`, `padding`, `inset`, `gap`, `border`, `outline`, `flex`, `place-items`, `grid-column`/`grid-row`, solid/layered `background` | longhand expansion with cascade order preserved; background layers normalize image, position, size, repeat, origin/clip and color | `frame` / `style` / background layers | unsupported grammar fails closed | — |
+| typed value functions | `calc()`, `min()`, `max()`, `clamp()` | fixed 1920×1080 viewport and px normalization | `frame` / `transform` | incompatible units fail closed | — |
+| paint keywords | `none`, `transparent`, `currentColor` | canonical V2 colors | `style.fill` / `style.stroke` | property-invalid colors fail closed | — |
 | text alignment | `start`, `end`, `left`, `right`, `center`, `justify`, `match-parent`, `justify-all` | Preserved as-is in Protocol V2; render anchor resolves `match-parent` against its parent in fixed LTR and falls back to start for `justify-all` | `payload.layout.textAlign` / `contentWidth` / offsets | invalid values fail closed | `html-compiler.typography.text-align-values` |
 | text spacing | `letter-spacing`, `word-spacing` with `normal`, lengths and supported `calc()` units | resolved to px in text spans | `payload.chunks[].spans[].letterSpacing` / `wordSpacing` | invalid lengths fail closed | `html-compiler.typography.text-spacing-whitespace` |
 | whitespace | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces` | computed whitespace mode plus derived wrapping policy | `payload.layout.whiteSpace` / `wrap` | unsupported values fail closed | `html-compiler.typography.text-spacing-whitespace` |
 | text direction | `ltr`, `rtl` | logical alignment anchor resolves against direction | `payload.source.direction` / `textAnchor` | unsupported values fail closed | `html-compiler.typography.direction-writing-decoration` |
 | writing mode | `horizontal-tb`, `vertical-rl`, `vertical-lr` | normalized source writing mode | `payload.source.writingMode` | unsupported values fail closed | `html-compiler.typography.direction-writing-decoration` |
 | text decoration | `none`, `underline`, `overline`, `line-through`, combinations with solid color/thickness | decoration lines become semantic span paints | `payload.chunks[].spans[].textDecoration` | dashed/dotted/double/wavy are rejected because no matching V2 atomic exists | `html-compiler.typography.direction-writing-decoration` |
-| text overflow | `clip`, `ellipsis` | `ellipsis` is accepted only with `overflow:hidden`, `white-space:nowrap` and horizontal writing; the text layer receives a deterministic clip path and `maxLines:1` | `payload.layout.textOverflow` / `maxLines` / layer `clipPath` | invalid or non-deterministic combinations fail closed | `html-compiler.typography.text-overflow-ellipsis` |
-| text rendering | `auto`, `optimizeSpeed`, `geometricPrecision` | authored intent is preserved; runtime may choose a mask for speed or vector glyphs for geometric precision | `payload.source.textRendering` | unsupported values fail closed; backend behavior remains capability-gated | `html-compiler.typography.text-rendering-capability` |
+| text overflow | `clip`, `ellipsis` | `ellipsis` is accepted only with `overflow:hidden`, `white-space:nowrap` and horizontal writing; the text layer receives a deterministic clip path and `maxLines:1` | `payload.layout.textOverflow` / `maxLines` / layer `clipPath` | invalid or non-deterministic combinations fail closed | `text-overflow-rendering` |
+| text rendering | `auto`, `optimizeSpeed`, `geometricPrecision` | authored intent is preserved; runtime may choose a mask for speed or vector glyphs for geometric precision | `payload.source.textRendering` | unsupported values fail closed; backend behavior remains capability-gated | `text-overflow-rendering` |
 
 The preview route shows the same source in a native browser iframe and in the
 Skia-backed Protocol V2 stage. Its sidebar is generated from registered
@@ -557,9 +559,13 @@ The five foundation contracts are:
    inherited, `auto` and invalid values are distinct states.
 4. **Box coordinate contract** — composition origin is top-left, x grows right,
    y grows down, frames are border-box coordinates, and Protocol timing is ms.
-    Static block flow and adjoining vertical margin collapse are supported;
-    flex/grid and advanced containing-block behavior remain deferred to the
-    layout phase.
+    Static block flow and adjoining vertical margin collapse are supported,
+    including sibling-to-sibling collapse and a single level of parent/first-
+    child collapse (a childless-of-border/padding container's own top margin
+    adjoining its first in-flow child's top margin). Multi-level collapse
+    chains, last-child-through-auto-height-parent collapse, and self-collapsing
+    empty boxes are not yet implemented; flex/grid and advanced
+    containing-block behavior remain deferred to the layout phase.
 5. **Source diagnostics** — parse and normalization errors carry `kind`, source
    character `offset`, `line` and `column` whenever the source span is known.
 

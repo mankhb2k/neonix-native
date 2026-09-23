@@ -18,6 +18,7 @@ import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePain
 import { parsePathStyle, parseSvgPathData } from "../path";
 import { parsePerspectiveContext, parseTransform } from "../transform";
 import { resolveGeometry, resizeResolvedGeometry } from "../geometry";
+import { collapseVerticalMargins } from "../layout";
 import { assertLayoutBox, compositionRect, paddingBox, type LayoutRect } from "../layout-ir";
 import { createLayoutEngine, layoutFlowChildren, type FlowState } from "../layout/engine";
 import { resolveFlexLayout } from "../flex";
@@ -356,6 +357,40 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       if (box === "padding-box") return { x: border[3], y: border[0], width: Math.max(1, geometry.width - border[1] - border[3]), height: Math.max(1, geometry.height - border[0] - border[2]) };
       return { x: border[3] + padding[3], y: border[0] + padding[0], width: Math.max(1, geometry.contentWidth), height: Math.max(1, geometry.contentHeight) };
     };
+    // CSS collapses an adjoining top margin between a block container and its
+    // first in-flow child onto the container itself, provided the container
+    // has no top border/padding, doesn't establish a new block formatting
+    // context, and isn't itself out of flow. `blocksTopMarginCollapse` mirrors
+    // that gate; `firstInFlowChildTopMargin` finds the margin to collapse
+    // with, recursing through `display: contents` wrappers and skipping
+    // out-of-flow/`display: none` children (which generate no box to collapse
+    // through).
+    const blocksTopMarginCollapse = (style: Style, paddingTop: number, borderTopWidth: number): boolean => {
+      if (paddingTop > 0 || borderTopWidth > 0) return true;
+      const overflow = (style.get("overflow") ?? style.get("overflow-y") ?? "visible").trim().toLowerCase();
+      if (overflow !== "visible") return true;
+      const display = (style.get("display") ?? "block").trim().toLowerCase();
+      if (display === "flex" || display === "inline-flex" || display === "grid" || display === "inline-grid") return true;
+      const position = (style.get("position") ?? "static").trim().toLowerCase();
+      return position === "absolute" || position === "fixed";
+    };
+    const firstInFlowChildTopMargin = (children: Node[], parentStyle: Style, containingWidth: number): number | undefined => {
+      for (const child of children) {
+        const childStyle = styles.get(child) ?? parentStyle;
+        const display = (childStyle.get("display") ?? "block").trim().toLowerCase();
+        if (display === "none") continue;
+        const childPosition = (childStyle.get("position") ?? "static").trim().toLowerCase();
+        if (childPosition === "absolute" || childPosition === "fixed") continue;
+        if (display === "contents") {
+          const nested = firstInFlowChildTopMargin(child.children, childStyle, containingWidth);
+          if (nested !== undefined) return nested;
+          continue;
+        }
+        const childFont = number(childStyle, "font-size", containingWidth, 16, 16, viewport) || 16;
+        return edges(childStyle, "margin", containingWidth, childFont, 16, viewport)[0];
+      }
+      return undefined;
+    };
     const flowLayout = (children: Node[], parent: Node | null, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style, positionedBlock: ContainingBlock, state: FlowState): void => layoutFlowChildren({
       children,
       parent,
@@ -394,7 +429,25 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       // layer. They must not become independent layers or resolve their own
       // default font/geometry.
       if (parent !== null && isTextFlowNode(parent) && isTextFlowNode(node)) return;
-      const authoredStyle = styles.get(node) ?? computed(node, rules, parentStyle); const style = resolveAnchorStyle(authoredStyle, positionedBlock, anchorBoxes); const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16; const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont; const nodeTextContent = isTextFlowNode(node) ? normalizeTextContent(collectTextContentWithBreaks(node), true) : { text: node.text.normalize("NFC").trim(), hardBreaks: [] }; const geometryText = nodeTextContent.text; const intrinsicContentHeight = geometryText && node.tag !== "body" && (!Number.isFinite(number(style, "height", containingHeight, font, 16, viewport)) || style.get("height")?.trim().toLowerCase() === "auto") ? estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport) : undefined; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport, ...(intrinsicContentHeight === undefined ? {} : { intrinsicContentHeight }) }); const geometry = layoutEngine.state.layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutEngine.state.layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
+      const authoredStyle = styles.get(node) ?? computed(node, rules, parentStyle); const style = resolveAnchorStyle(authoredStyle, positionedBlock, anchorBoxes); const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16; const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
+      // Adjoining-margin collapse between this box and its first in-flow
+      // child (single level only — does not chase the collapse through a
+      // grandchild when the first child itself has zero padding/border).
+      let firstChildMarginConsumed = 0;
+      let topMarginOverride: number | undefined;
+      if (node.tag !== "body" && node.tag !== "html" && node.children.length > 0) {
+        const ownPaddingTop = edges(style, "padding", containingWidth, font, 16, viewport)[0];
+        const ownBorderTopWidth = parseBorderEdges(style, containingWidth, font, viewport).top.width;
+        if (!blocksTopMarginCollapse(style, ownPaddingTop, ownBorderTopWidth)) {
+          const firstChildTopMargin = firstInFlowChildTopMargin(node.children, style, containingWidth);
+          if (firstChildTopMargin !== undefined) {
+            const ownMarginTop = edges(style, "margin", containingWidth, font, 16, viewport)[0];
+            topMarginOverride = collapseVerticalMargins(ownMarginTop, firstChildTopMargin);
+            firstChildMarginConsumed = firstChildTopMargin;
+          }
+        }
+      }
+      const nodeTextContent = isTextFlowNode(node) ? normalizeTextContent(collectTextContentWithBreaks(node), true) : { text: node.text.normalize("NFC").trim(), hardBreaks: [] }; const geometryText = nodeTextContent.text; const intrinsicContentHeight = geometryText && node.tag !== "body" && (!Number.isFinite(number(style, "height", containingHeight, font, 16, viewport)) || style.get("height")?.trim().toLowerCase() === "auto") ? estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport) : undefined; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport, ...(intrinsicContentHeight === undefined ? {} : { intrinsicContentHeight }), ...(topMarginOverride === undefined ? {} : { topMarginOverride }) }); const geometry = layoutEngine.state.layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutEngine.state.layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
       const loweringKind = classifyNode(node);
       layoutEngine.record(node, layoutBox, normalX, normalY);
       for (const name of parseAnchorNames(style)) {
@@ -1286,7 +1339,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       } else if (node.tag === "svg" || node.tag === "g") {
         svgLayout(node.children, node, childX, childY, Math.max(1, geometry.contentWidth), Math.max(1, geometry.contentHeight), style, childContainingBlock);
       } else {
-        flowLayout(node.children, node, childX, childY, Math.max(1, geometry.contentWidth), Math.max(1, geometry.contentHeight), style, childContainingBlock, { flowY: childY, previousBottomMargin: 0, hasFlowChild: false });
+        flowLayout(node.children, node, childX, childY, Math.max(1, geometry.contentWidth), Math.max(1, geometry.contentHeight), style, childContainingBlock, { flowY: childY - firstChildMarginConsumed, previousBottomMargin: 0, hasFlowChild: false });
       }
       // Outline is a paint-only pass. Emit it after descendants so it remains
       // on top of the element's content without affecting layout geometry.

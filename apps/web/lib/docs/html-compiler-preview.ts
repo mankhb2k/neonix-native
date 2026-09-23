@@ -703,69 +703,6 @@ export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
 
 export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.new-project.blue-rectangle",
-    "phase": "P0",
-    "topic": "New project",
-    "label": "New project / blue rectangle",
-    "properties": [
-      "fixed composition",
-      "one object",
-      "rectangle",
-      "blue paint"
-    ],
-    "hint": "The smallest authored project starts from the fixed composition envelope and compiles one rectangle into a valid Neonix JSON V2 shape layer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/new-project-blue-rectangle.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.geometry.explicit-size",
-    "phase": "P0",
-    "topic": "Composition & geometry",
-    "label": "Geometry / width + height",
-    "properties": [
-      "width",
-      "height",
-      "explicit px",
-      "composition pixels"
-    ],
-    "hint": "Explicit width and height resolve directly to a composition-space frame that both browser reference and Neonix JSON V2 share.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/explicit-size.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.geometry.min-max",
-    "phase": "P0",
-    "topic": "Composition & geometry",
-    "label": "Geometry / min + max",
-    "properties": [
-      "min-width",
-      "max-width",
-      "min-height",
-      "max-height"
-    ],
-    "hint": "Four child shapes make each size constraint visible: minimum width, maximum width, minimum height and maximum height are resolved before lowering.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/min-max.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
     "id": "html-compiler.tags.div-shape",
     "phase": "P0",
     "topic": "HTML tags",
@@ -829,41 +766,22 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.p0.cascade-values",
-    "phase": "P0",
-    "topic": "Cascade & values",
-    "label": "Cascade + value normalization",
-    "properties": [
-      "selector list",
-      "specificity",
-      "inheritance",
-      "custom properties",
-      "calc/min/max/clamp",
-      "!important"
-    ],
-    "hint": "A single card resolves selector precedence, scoped variables, inheritance, special keywords and typed length functions before lowering to V2.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/p0-cascade-values.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.geometry.aspect-box-sizing",
+    "id": "html-compiler.geometry.sizing-constraints",
     "phase": "P0",
     "topic": "Composition & geometry",
-    "label": "Geometry / aspect ratio + box sizing",
+    "label": "Geometry / sizing constraints",
     "properties": [
+      "width",
+      "height",
+      "min-width",
+      "max-width",
+      "min-height",
+      "max-height",
       "aspect-ratio",
-      "content-box",
-      "border-box",
-      "padding + border"
+      "box-sizing"
     ],
-    "hint": "Two equal-width objects show how aspect-ratio derives height and how box-sizing changes whether padding and border expand the final frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/aspect-box-sizing.html",
+    "hint": "Explicit width/height, the four min/max constraint longhands, and aspect-ratio combined with content-box vs border-box, all resolved before lowering to V2.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/sizing-constraints.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -873,41 +791,18 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.geometry.margin",
+    "id": "html-compiler.geometry.box-model-spacing",
     "phase": "P0",
     "topic": "Composition & geometry",
-    "label": "Geometry / margin",
+    "label": "Geometry / box-model spacing",
     "properties": [
       "margin",
-      "margin-top",
-      "margin-right",
-      "margin-bottom",
-      "margin-left"
-    ],
-    "hint": "Static block children make the four margin shorthand forms and the individual longhands visible in deterministic composition-space flow.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/margin.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.geometry.padding",
-    "phase": "P0",
-    "topic": "Composition & geometry",
-    "label": "Geometry / padding",
-    "properties": [
       "padding",
-      "padding-top",
-      "padding-right",
-      "padding-bottom",
-      "padding-left"
+      "shorthand forms",
+      "longhands"
     ],
-    "hint": "Four fixed objects show how padding shorthand and longhands expand the content box into the final Neonix JSON V2 frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/padding.html",
+    "hint": "Margin and padding shorthand forms (all/YX/three-value) plus the four individual longhands, resolved into the final composition-space frame.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/box-model-spacing.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -917,42 +812,19 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.geometry.position",
+    "id": "html-compiler.geometry.positioning",
     "phase": "P0",
     "topic": "Composition & geometry",
-    "label": "Geometry / position modes",
+    "label": "Geometry / positioning",
     "properties": [
       "position: static",
       "position: relative",
       "position: absolute",
-      "normal flow",
-      "inset offset"
-    ],
-    "hint": "Static stays in normal flow and ignores inset values; relative keeps its flow slot while offsetting its paint; absolute leaves flow and uses the positioned container.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/position.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.geometry.inset",
-    "phase": "P0",
-    "topic": "Composition & geometry",
-    "label": "Geometry / inset edges",
-    "properties": [
       "inset",
-      "top",
-      "right",
-      "bottom",
-      "left",
       "auto size"
     ],
-    "hint": "Inset expands to top/right/bottom/left; when an absolute box has auto dimensions, opposite edges resolve the remaining width and height inside its containing block.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/inset.html",
+    "hint": "Static/relative/absolute positioning modes, plus the inset shorthand resolving remaining width/height from opposite edges inside its containing block.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/geometry/positioning.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1280,116 +1152,6 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
-    "id": "html-compiler.typography.font-family-three-fonts",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / three font families",
-    "properties": [
-      "font-family",
-      "font-size",
-      "font-weight",
-      "Inter",
-      "Lora",
-      "Roboto"
-    ],
-    "hint": "Three exact font assets are resolved from the ordered CSS family and weight, then emitted as semantic Neonix JSON V2 text layers.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/font-family-three-fonts.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.public-font-catalog",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / public font catalog",
-    "properties": [
-      "font-family",
-      "font-size",
-      "font-style",
-      "font-weight",
-      "Inter",
-      "Lora",
-      "Noto Sans",
-      "Noto Color Emoji",
-      "Roboto"
-    ],
-    "hint": "Exercises every system family currently exposed by the public Neonix font catalog and keeps each line on an exact registered family/weight so CanvasKit and the browser resolve the same face.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/public-font-catalog.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.emoji-fallback",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / emoji fallback",
-    "properties": [
-      "emoji",
-      "emoji with text",
-      "three emoji",
-      "font-family"
-    ],
-    "hint": "Emoji glyphs use the explicit Noto Color Emoji fallback while the mixed line keeps Inter as its primary text face.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/emoji-fallback.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.weight-fallback",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / CSS weight fallback",
-    "properties": [
-      "font-family",
-      "font-weight",
-      "620 → 700 fallback"
-    ],
-    "hint": "When a requested CSS weight is unavailable, the compiler selects the deterministic nearest catalog face and records its asset ID.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/weight-fallback.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.family-fallback",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / family fallback",
-    "properties": [
-      "font-family",
-      "ordered fallback",
-      "catalog lookup"
-    ],
-    "hint": "A missing user-like family is skipped and the next concrete system family is selected without relying on browser-installed fonts.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/family-fallback.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
     "id": "html-compiler.typography.style-stretch",
     "phase": "P0",
     "topic": "Typography",
@@ -1404,112 +1166,6 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     ],
     "hint": "Style and stretch remain semantic span values; without a condensed asset in the refreshed Google catalog, the requested condensed lines deterministically fall back to the normal Roboto faces.",
     "fixtureUrl": "/docs/html-compiler/fixtures/typography/style-stretch.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.line-height-short",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / line-height short paragraph",
-    "properties": [
-      "line-height",
-      "paragraph",
-      "short",
-      "64px"
-    ],
-    "hint": "A short paragraph with an explicit line-height is lowered to a numeric line box in composition pixels.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/line-height-short.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.line-height-normal",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / line-height normal",
-    "properties": [
-      "line-height",
-      "paragraph",
-      "normal",
-      "1.2 normalization"
-    ],
-    "hint": "The CSS normal keyword is normalized deterministically to 1.2 times the computed font size.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/line-height-normal.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.line-height-long",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / line-height long paragraph",
-    "properties": [
-      "line-height",
-      "paragraph",
-      "long",
-      "1.75"
-    ],
-    "hint": "A longer paragraph uses a unitless line-height, which the compiler resolves against the computed font size.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/line-height-long.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.text-overflow-ellipsis",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / text-overflow ellipsis",
-    "properties": [
-      "text-overflow",
-      "ellipsis",
-      "overflow",
-      "nowrap",
-      "deterministic clipping"
-    ],
-    "hint": "Ellipsis is emitted only for a clipped single-line text box; the runtime trims grapheme clusters before shaping the final ellipsis glyph.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/text-overflow-ellipsis.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.typography.text-rendering-capability",
-    "phase": "P0",
-    "topic": "Typography",
-    "label": "Typography / text-rendering capability",
-    "properties": [
-      "text-rendering",
-      "auto",
-      "optimizeSpeed",
-      "geometricPrecision"
-    ],
-    "hint": "The authored rendering intent is preserved in Neonix JSON V2; optimizeSpeed may use a mask while geometricPrecision selects vector glyphs.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/typography/text-rendering-capability.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1741,39 +1397,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.text.paint.gradient-linear",
-    "phase": "P2.9",
-    "category": "Text compiler & layout",
-    "topic": "Typography",
-    "label": "Text paint / linear gradient",
-    "properties": ["background-clip: text", "linear-gradient", "text fill", "CanvasKit parity"],
-    "hint": "A CSS linear gradient clipped to glyphs lowers to the same Protocol V2 text fill paint consumed by CanvasKit and the native renderer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/gradient-linear.html",
-    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
-  },
-  {
-    "id": "html-compiler.text.paint.gradient-radial",
-    "phase": "P2.9",
-    "category": "Text compiler & layout",
-    "topic": "Typography",
-    "label": "Text paint / radial gradient",
-    "properties": ["background-clip: text", "radial-gradient", "text fill", "CanvasKit parity"],
-    "hint": "A CSS radial gradient clipped to glyphs preserves its center and stops as a Protocol V2 text fill paint.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/gradient-radial.html",
-    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
-  },
-  {
-    "id": "html-compiler.text.paint.gradient-conic",
-    "phase": "P2.9",
-    "category": "Text compiler & layout",
-    "topic": "Typography",
-    "label": "Text paint / conic gradient",
-    "properties": ["background-clip: text", "conic-gradient", "text fill", "CanvasKit parity"],
-    "hint": "A CSS conic gradient clipped to glyphs preserves its start angle, center and stops for CanvasKit/native comparison.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/gradient-conic.html",
-    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
-  },
-  {
     "id": "html-compiler.text.compiler.br-hard-break",
     "phase": "P0",
     "category": "Text compiler & layout",
@@ -1786,7 +1409,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "text layer"
     ],
     "hint": "The compiler must preserve a <br> as a semantic hard break while keeping normal whitespace collapsing available to the runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/compiler-br-hard-break.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/compiler-br-hard-break.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1809,7 +1432,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "text layer"
     ],
     "hint": "Nested inline tags contribute text content to one semantic text layer while preserving source order, character ranges and per-span font semantics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/compiler-nested-inline-content.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/compiler-nested-inline-content.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1831,7 +1454,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "wrap policy"
     ],
     "hint": "The compiler emits the source text and computed whitespace mode separately so normal and pre layout can be evaluated without conflating source newlines with hard breaks.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/compiler-whitespace-contract.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/compiler-whitespace-contract.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1853,7 +1476,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "baseline"
     ],
     "hint": "Explicit line-height and hard breaks produce deterministic line boxes inside a fixed text frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/layout-fixed-line-height.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/layout-fixed-line-height.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1875,7 +1498,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "line count"
     ],
     "hint": "A constrained width creates multiple runtime line boxes while the Protocol frame remains the authored fixed width.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/layout-wrap-width.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/layout-wrap-width.html",
     "composition": {
       "width": 1920,
       "height": 1080,
@@ -1897,7 +1520,7 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
       "wrapping"
     ],
     "hint": "When width is authored but height is auto, compiler layout estimates the wrapped text height and emits a usable frame for runtime shaping.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/text/layout-auto-height.html",
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/layout-auto-height.html",
     "composition": {
       "width": 1920,
       "height": 1080,

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .txt { position: absolute; top: 220px; width: 560px; height: 200px; color: #f8fafc; }
+      .weight-fallback { left: 40px; font-family: "Inter", sans-serif; font-size: 40px; font-weight: 620; }
+      .family-fallback { left: 680px; font-family: "User Uploaded Sans", "Inter", sans-serif; font-size: 40px; font-weight: 400; }
+      .emoji-fallback { left: 1320px; font-family: "Inter", "Noto Color Emoji", sans-serif; font-size: 52px; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Requested weight 620 → nearest catalog face (700)</div>
+    <div class="cell-label cell-label-2">Missing family → Inter catalog fallback</div>
+    <div class="cell-label cell-label-3">Emoji script falls back to Noto Color Emoji</div>
+
+    <div id="weight-fallback" class="txt weight-fallback">Inter 620 resolves to the CSS heavier fallback face (700)</div>
+    <div id="family-fallback" class="txt family-fallback">Missing family → Inter catalog fallback</div>
+    <div id="emoji-text" class="txt emoji-fallback">Neonix 🚀</div>
+  </body>
+</html>

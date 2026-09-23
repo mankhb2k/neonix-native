@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .fixed-lines { position: absolute; left: 40px; top: 160px; width: 560px; height: 220px; margin: 0; color: #f8fafc; font-family: Inter; font-size: 36px; line-height: 50px; }
+      .wrap-width { position: absolute; left: 680px; top: 160px; width: 360px; height: 220px; color: #f8fafc; font-family: Inter; font-size: 32px; line-height: 44px; white-space: normal; }
+      .auto-height { position: absolute; left: 1320px; top: 160px; width: 360px; height: auto; color: #f8fafc; font-family: Inter; font-size: 28px; line-height: 40px; white-space: normal; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">Fixed height, explicit line breaks</div>
+    <div class="cell-label cell-label-2">Fixed width, wraps at word boundaries</div>
+    <div class="cell-label cell-label-3">width authored, height: auto (wraps)</div>
+
+    <p id="fixed-lines" class="fixed-lines">Line one<br>Line two<br>Line three</p>
+    <div id="wrap-width" class="wrap-width">A narrow composition text block wraps at deterministic word boundaries.</div>
+    <div id="auto-height" class="auto-height">Intrinsic height follows the number of wrapped lines in this deterministic video text block.</div>
+  </body>
+</html>
