@@ -13,7 +13,7 @@ Author (Editor / MCP / AI Agent) → MotionProtocolV2 → Compiler → RuntimePr
 
 **Read [`ARCHITECHTURE.md`](ARCHITECHTURE.md) before making any cross-package change.** It is the authoritative, current description of the pipeline, every package's responsibility, and — critically — what each package must **not** own. It is kept in sync with the code; treat any mismatch you find between it and the code as a bug to fix, not a doc to ignore.
 
-**Do not trust the root `README.md` for architecture.** It references packages/apps that no longer exist in this repo (`packages/patterns`, `packages/remotion-renderer`, `apps/remotion-site`, `docs/guide/v2-architechture.md`) and describes a WebGPU/WebGL2 preview + Remotion/Lambda export path that has since been replaced by the CanvasKit/Skia preview + native Skia/FFmpeg export path described in `ARCHITECHTURE.md`. `.github/workflows/remotion-e2e.yml` is similarly orphaned (its path filters point at deleted directories, so it never actually runs). `apps/web/README.md`, by contrast, is accurate and worth reading for the editor boundary.
+Both `README.md` and `apps/web/README.md` have been audited and cleaned up to match the current package layout; trust them again. `README.md`'s changelog-style commit history explains what used to exist (`packages/remotion-renderer`, `apps/remotion-site`, `packages/patterns`, the WebGPU/WebGL2 preview + Remotion/Lambda export path) if you need that context.
 
 ## Commands
 

@@ -197,10 +197,7 @@ pnpm --filter @motionvideo/web e2e
 ```
 
 CI runs repository typecheck, V2 checks, web tests/E2E, and protocol schema
-freeze. The active workflows live in [`.github/workflows`](.github/workflows)
-— note that `remotion-e2e.yml` is currently orphaned (its path filters point
-at `packages/remotion-renderer` and `apps/remotion-site`, which no longer
-exist, so it never triggers).
+freeze. The active workflows live in [`.github/workflows`](.github/workflows).
 
 ## Documentation map
 
