@@ -922,6 +922,26 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
     }
   },
   {
+    "id": "html-compiler.transform.matrix-functions",
+    "phase": "P0",
+    "topic": "Transform 2D",
+    "label": "Transform / matrix and matrix3d",
+    "properties": [
+      "matrix()",
+      "matrix3d()",
+      "projective terms"
+    ],
+    "hint": "matrix() lowers to the native 2D matrix operation; matrix3d() with non-trivial projective terms (row 4) lowers to the motion.matrix4 extension inside a perspective context.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/transform/matrix-functions.html",
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#081018",
+      "colorSpace": "srgb"
+    }
+  },
+  {
     "id": "html-compiler.paint.svg-fill",
     "phase": "P0",
     "topic": "Paint",
@@ -2186,65 +2206,22 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
 
 export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.perspective.group-translate-z",
+    "id": "html-compiler.perspective.perspective-basics",
     "phase": "P5",
     "topic": "Motion & animation",
-    "label": "Perspective / group + translateZ",
+    "label": "Perspective / basics",
     "properties": [
       "perspective",
       "perspective-origin",
-      "translateZ",
-      "Matrix4"
-    ],
-    "hint": "A parent perspective becomes a group render3d context while the child keeps translateZ in its ordered Matrix4 transform.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/group-translate-z.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.rotate-x",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective / rotateX plane",
-    "properties": [
-      "perspective",
+      "transform-style",
       "rotateX",
-      "transform-origin"
-    ],
-    "hint": "The child plane rotates around its center in 3D; the compiler preserves the authored transform origin and parent camera context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/rotate-x.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.origin-offset",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective / off-center origin",
-    "properties": [
-      "perspective-origin",
       "rotateY",
-      "translateZ"
+      "translateZ",
+      "transform: perspective()"
     ],
-    "hint": "An off-center perspective-origin changes the convergence point without changing the child's layout frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/origin-offset.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "A centered perspective-origin with preserve-3d, a default (flat) transform-style with rotateX, an off-center perspective-origin, and the local transform: perspective() function used with no parent perspective context at all.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/perspective-basics.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.flat-preserve-3d",
@@ -2252,225 +2229,116 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
     "topic": "Motion & animation",
     "label": "Perspective / flat vs preserve-3d",
     "properties": [
-      "transform-style",
-      "flat",
-      "preserve-3d",
-      "nested groups"
+      "transform-style: flat",
+      "transform-style: preserve-3d"
     ],
-    "hint": "Two independent group contexts keep transform-style explicit in JSON so the runtime can apply the intended flattening boundary.",
+    "hint": "Two identically-transformed cards side by side under the same perspective distance, differing only in transform-style, isolating what the declaration alone changes.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/flat-preserve-3d.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.perspective.transform-function",
+    "id": "html-compiler.perspective.atomic-transform-style",
     "phase": "P5",
     "topic": "Motion & animation",
-    "label": "Perspective / transform() function",
+    "label": "Perspective / transform-style A/B",
     "properties": [
-      "transform: perspective()",
-      "ordered operations",
-      "rotateY"
+      "transform-style: flat",
+      "transform-style: preserve-3d"
     ],
-    "hint": "transform: perspective() remains an ordered motion.perspective operation and is kept distinct from a parent perspective context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/transform-function.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "Byte-identical scene and single leaf card, differing only in transform-style. With no grandchildren to flatten, both panes should render identically to each other and to Chrome.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-transform-style.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.perspective.backface-hidden",
+    "id": "html-compiler.perspective.backface-visibility",
     "phase": "P5",
     "topic": "Motion & animation",
-    "label": "Perspective / hidden backface",
+    "label": "Perspective / backface-visibility",
     "properties": [
-      "backface-visibility",
-      "rotateY(180deg)",
-      "layer state"
+      "backface-visibility: visible",
+      "backface-visibility: hidden",
+      "rotateY(180deg)"
     ],
-    "hint": "backface-visibility is preserved on the transformed layer; the runtime decides whether the reverse surface is paintable.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backface-hidden.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.near-far-clipping",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective / near and far clipping",
-    "properties": [
-      "perspective",
-      "translateZ",
-      "near/far clip"
-    ],
-    "hint": "The perspective context keeps the layer's authored frame while Runtime V2 clips projected geometry at the camera planes.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/near-far-clipping.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "A rotateY(180deg) card with backface-visibility visible vs hidden on identical geometry, plus a third card with no translateZ to test culling exactly at the perspective plane.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backface-visibility.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.animated-3d",
     "phase": "P5",
     "topic": "Motion & animation",
-    "label": "Perspective / animated translateZ + rotateY",
+    "label": "Perspective / animated 3D transform",
     "properties": [
       "@keyframes",
-      "translateZ",
-      "rotateY",
-      "tracks"
+      "transform: translateZ + rotateY",
+      "animation-fill-mode"
     ],
-    "hint": "3D transform keyframes lower to typed Matrix4 operations on the shared timeline; no CSS animation engine is introduced in Runtime V2.",
+    "hint": "The card's own transform (translateZ + rotateY) animates inside a static perspective context, as opposed to the camera's perspective/perspective-origin animating.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animated-3d.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.perspective.atomic-transform-style-flat",
+    "id": "html-compiler.perspective.parallax-three-depths",
     "phase": "P5",
     "topic": "Motion & animation",
-    "label": "Perspective atomic / transform-style flat",
+    "label": "Perspective / parallax showcase",
     "properties": [
-      "transform-style: flat",
-      "single 3D child",
-      "solid paint"
+      "perspective",
+      "overflow: hidden",
+      "preserve-3d",
+      "infinite animated translateZ (camera dolly)",
+      "svg path"
     ],
-    "hint": "The parent establishes the minimum camera context while flat is tested without filters, masks, blending or animation.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-transform-style-flat.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.atomic-transform-style-preserve-3d",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective atomic / transform-style preserve-3d",
-    "properties": [
-      "transform-style: preserve-3d",
-      "single 3D child",
-      "solid paint"
-    ],
-    "hint": "The same camera and child geometry as the flat fixture isolates the preserve-3d boundary contract.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-transform-style-preserve-3d.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.atomic-backface-visible",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective atomic / backface visible",
-    "properties": [
-      "backface-visibility: visible",
-      "rotateY(180deg)",
-      "solid paint"
-    ],
-    "hint": "A reversed solid plane remains paintable when backface visibility is explicitly visible.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-backface-visible.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.atomic-backface-hidden",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective atomic / backface hidden",
-    "properties": [
-      "backface-visibility: hidden",
-      "rotateY(180deg)",
-      "solid paint"
-    ],
-    "hint": "The same reversed plane becomes non-paintable only because its backface is explicitly hidden.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/atomic-backface-hidden.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.matrix-functions",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Transform / matrix and matrix3d",
-    "properties": [
-      "matrix()",
-      "matrix3d()",
-      "ordered transform atoms",
-      "Matrix4"
-    ],
-    "hint": "CSS affine and projective matrix functions lower to the existing ordered V2 matrix atoms without a second transform path.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/matrix-functions.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "Three stroke-only planes at different depths (-380px, -90px including an inline SVG path, +140px) parallax under an infinite 6-keyframe camera dolly, with the perspective viewport itself clipped by overflow: hidden.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/parallax-three-depths.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
 
 export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] = [
   {
+    "id": "html-compiler.perspective.near-far-clipping",
+    "phase": "P6",
+    "topic": "Motion & animation",
+    "label": "Perspective / near-plane clipping",
+    "properties": [
+      "perspective: 180px",
+      "translateZ",
+      "near-plane clip"
+    ],
+    "hint": "Two cards under a very short 180px perspective distance: one at translateZ(80px) stays in front of the camera, the other at translateZ(320px) crosses behind it and must be clipped.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/near-far-clipping.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.nested-near-plane",
+    "phase": "P6",
+    "topic": "Motion & animation",
+    "label": "Perspective / nested near-plane clipping",
+    "properties": [
+      "nested perspective",
+      "perspective: 170px (inner)",
+      "translateZ",
+      "near-plane clip"
+    ],
+    "hint": "The same near-plane clip test as the single-level case, but through a nested preserve-3d boundary where the inner camera (170px) is the one doing the clipping.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-near-plane.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
     "id": "html-compiler.perspective.nested-distance",
     "phase": "P6",
     "topic": "Motion & animation",
-    "label": "Perspective / nested distances",
+    "label": "Perspective / nested distance",
     "properties": [
       "nested perspective",
-      "distance",
-      "Matrix4 chain"
+      "outer 900px",
+      "inner 420px",
+      "translateZ + rotateY"
     ],
-    "hint": "Each nested group keeps its own perspective distance; Runtime composes both contexts instead of collapsing them into one camera.",
+    "hint": "A card under an inner 420px perspective nested inside an outer 900px perspective; the two camera distances must compose rather than one overriding the other.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-distance.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.nested-origins",
@@ -2478,20 +2346,41 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
     "topic": "Motion & animation",
     "label": "Perspective / nested origins",
     "properties": [
-      "perspective-origin",
-      "nested origin",
-      "rotateX",
-      "rotateY"
+      "nested perspective",
+      "perspective-origin: 15% 80% (outer)",
+      "perspective-origin: 85% 20% (inner)"
     ],
-    "hint": "Outer and inner perspective-origin values remain local to their own boxes, so convergence changes twice without changing layout frames.",
+    "hint": "Outer and inner cameras use opposite-corner perspective-origins, so the composed projection must apply both offsets rather than only the innermost.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-origins.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.nested-same-origin",
+    "phase": "P6",
+    "topic": "Motion & animation",
+    "label": "Perspective / nested same-percentage origin",
+    "properties": [
+      "nested perspective",
+      "perspective-origin: 50% 50% (both levels)"
+    ],
+    "hint": "Both cameras declare perspective-origin: 50% 50%, which resolves to different absolute points because the outer and inner boxes are different sizes — equal percentages are not the same point.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-same-origin.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.nested-preserve-depth",
+    "phase": "P6",
+    "topic": "Motion & animation",
+    "label": "Perspective / nested depth sort",
+    "properties": [
+      "nested perspective",
+      "transform on the boundary itself",
+      "two siblings at different translateZ",
+      "paint order"
+    ],
+    "hint": "Two sibling cards at translateZ(40px) and translateZ(190px) inside a preserve-3d boundary that itself carries a rotateY transform; the nearer card must paint over the farther one regardless of source order.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-preserve-depth.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.nested-flat-boundary",
@@ -2500,139 +2389,55 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
     "label": "Perspective / nested flat boundary",
     "properties": [
       "nested perspective",
-      "transform-style: flat",
-      "flatten boundary"
+      "transform-style: flat (inner)",
+      "grandchild flattening"
     ],
-    "hint": "The inner group declares a flat boundary while its own perspective remains explicit for its direct child surface.",
+    "hint": "An inner transform-style: flat boundary between an outer preserve-3d camera and a card with its own 3D-transformed grandchild; the grandchild must flatten into the card's plane rather than keep its own depth.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-flat-boundary.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.nested-preserve-depth",
-    "phase": "P6",
-    "topic": "Motion & animation",
-    "label": "Perspective / nested preserve-3d depth",
-    "properties": [
-      "nested perspective",
-      "preserve-3d",
-      "sibling depth",
-      "paint order"
-    ],
-    "hint": "Two descendants retain independent depth inside the nested preserve-3d context while their paint order remains deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-preserve-depth.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.nested-near-plane",
-    "phase": "P6",
-    "topic": "Motion & animation",
-    "label": "Perspective / nested near-plane",
-    "properties": [
-      "nested perspective",
-      "near-plane",
-      "partial surface clip"
-    ],
-    "hint": "Only the inner perspective surface crosses its homogeneous camera plane; the outer surface remains visible and is not clipped as a whole.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.nested-overflow-clip",
-    "phase": "P6",
-    "topic": "Motion & animation",
-    "label": "Perspective / nested overflow clipping",
-    "properties": [
-      "nested perspective",
-      "overflow: hidden",
-      "composition clip"
-    ],
-    "hint": "The inner perspective result is clipped by its own overflow boundary and then by the composition edge without leaking outside either scope.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-overflow-clip.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.nested-backface",
-    "phase": "P6",
-    "topic": "Motion & animation",
-    "label": "Perspective / nested backface",
-    "properties": [
-      "nested perspective",
-      "backface-visibility",
-      "rotateY(180deg)"
-    ],
-    "hint": "Backface visibility is evaluated after the accumulated nested Matrix4 transform, not at an isolated child transform.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-backface.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.nested-same-origin",
-    "phase": "P6",
-    "topic": "Motion & animation",
-    "label": "Perspective / nested shared origin",
-    "properties": [
-      "nested perspective",
-      "shared origin",
-      "center convergence"
-    ],
-    "hint": "Matching percentage origins are resolved in each local box; equal percentages do not imply a shared absolute point.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-same-origin.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.nested-between-boundaries",
     "phase": "P6",
     "topic": "Motion & animation",
-    "label": "Perspective / layer between boundaries",
+    "label": "Perspective / sibling at different boundary depth",
     "properties": [
       "nested perspective",
-      "intermediate layer",
-      "stable ancestor order"
+      "direct child of outer camera",
+      "sibling nested camera"
     ],
-    "hint": "A direct child surface and a nested perspective subtree retain separate ancestor chains instead of inheriting the inner camera.",
+    "hint": "A card sits directly under the outer camera while its sibling sits inside its own nested camera; the inner boundary's projection must not leak onto the direct sibling.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-between-boundaries.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.nested-backface",
+    "phase": "P6",
+    "topic": "Motion & animation",
+    "label": "Perspective / nested backface culling",
+    "properties": [
+      "nested perspective",
+      "transform on the inner boundary",
+      "rotateY(180deg)",
+      "backface-visibility: hidden"
+    ],
+    "hint": "A rotateY(180deg) card with backface-visibility: hidden sits inside an inner camera that itself carries a rotateY(18deg) transform, so culling must be judged from the accumulated world matrix, not the card's local rotation alone.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-backface.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.nested-overflow-clip",
+    "phase": "P6",
+    "topic": "Motion & animation",
+    "label": "Perspective / nested overflow clip",
+    "properties": [
+      "nested perspective",
+      "overflow: hidden (both levels)",
+      "preserve-3d downgraded to flat"
+    ],
+    "hint": "Both the outer and inner preserve-3d boundaries also declare overflow: hidden, which forces each to flatten for its children even though preserve-3d was authored; the inner scene sits at the composition's right edge.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-overflow-clip.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.nested-clip-path",
@@ -2641,41 +2446,12 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
     "label": "Perspective / nested clip-path",
     "properties": [
       "nested perspective",
-      "clip-path",
-      "overflow",
-      "composition clip"
+      "overflow: hidden (both levels)",
+      "clip-path: polygon()"
     ],
-    "hint": "Geometric clip-path and nested overflow are intersected after the complete Matrix4 chain, before the composition edge clip.",
+    "hint": "The same double overflow: hidden flattening as the overflow-clip case, with an additional clip-path polygon on the leaf card to test clip-path composed on top of a projected, flattened surface.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/nested-clip-path.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.parallax-three-depths",
-    "phase": "P5",
-    "topic": "Motion & animation",
-    "label": "Perspective / slow stroke parallax camera shot",
-    "properties": [
-      "parallax video",
-      "camera translateZ",
-      "perspective",
-      "slow depth zoom",
-      "circle + triangle + rectangle stroke"
-    ],
-    "hint": "A slow looping camera shot travels through three flat stroke planes. The circle is nearest, the triangle is intermediate, and the rectangle is farthest, so their apparent scale changes at different rates.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/parallax-three-depths.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
 
@@ -2684,250 +2460,83 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
     "id": "html-compiler.perspective.animation-distance-linear",
     "phase": "P7",
     "topic": "Motion & animation",
-    "label": "Perspective animation / distance linear",
+    "label": "Perspective / animated distance",
     "properties": [
-      "perspective",
       "@keyframes",
-      "linear",
-      "distance"
+      "animation-name: perspective",
+      "linear"
     ],
-    "hint": "The group camera distance is a numeric render3d track; the child keeps translateZ while the perspective matrix is rebuilt per sample.",
+    "hint": "The camera's own perspective distance animates from 360px to 900px, changing the projection strength over time rather than the card's transform.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-distance-linear.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-distance-cubic",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / cubic-bezier",
-    "properties": [
-      "perspective",
-      "cubic-bezier",
-      "typed number track"
-    ],
-    "hint": "Cubic-bezier easing stays on the distance track segment and is evaluated by the shared Runtime V2 sampler.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-distance-cubic.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-distance-steps",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / steps distance",
-    "properties": [
-      "perspective",
-      "steps(4, jump-start)",
-      "discrete camera plateaus"
-    ],
-    "hint": "Steps easing creates deterministic discrete perspective distances without a separate CSS animation engine.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-distance-steps.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-origin-corner",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / center to corner",
-    "properties": [
-      "perspective-origin",
-      "center",
-      "right bottom",
-      "vec2"
-    ],
-    "hint": "Perspective-origin animates as one typed vec2 track while X and Y resolve against the group's own frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-corner.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.animation-origin-xy",
     "phase": "P7",
     "topic": "Motion & animation",
-    "label": "Perspective animation / X + Y origin",
+    "label": "Perspective / animated origin (percentage)",
     "properties": [
-      "perspective-origin",
-      "percentage X",
-      "percentage Y",
-      "simultaneous interpolation"
+      "@keyframes",
+      "animation-name: perspective-origin",
+      "percentage pair"
     ],
-    "hint": "Both origin coordinates interpolate independently, preserving local percentage resolution and the named object contract.",
+    "hint": "perspective-origin animates between two percentage pairs (8% 88% to 92% 12%), sweeping the vanishing point across the whole scene.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-xy.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.perspective.animation-delay-backwards",
+    "id": "html-compiler.perspective.animation-origin-corner",
     "phase": "P7",
     "topic": "Motion & animation",
-    "label": "Perspective animation / delay + backwards",
+    "label": "Perspective / animated origin (keywords)",
     "properties": [
-      "perspective",
-      "animation-delay",
-      "backwards fill"
+      "@keyframes",
+      "animation-name: perspective-origin",
+      "keyword values"
     ],
-    "hint": "During the positive delay, backwards fill exposes the first camera distance through the shared playback metadata.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-delay-backwards.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-alternate",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / alternate iterations",
-    "properties": [
-      "perspective",
-      "iteration-count",
-      "alternate",
-      "cycle boundary"
-    ],
-    "hint": "Alternate playback reverses the distance track on the second iteration while preserving the local perspective origin.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-alternate.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-paused",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / paused transport",
-    "properties": [
-      "perspective-origin",
-      "animation-play-state",
-      "paused",
-      "transport"
-    ],
-    "hint": "The authored paused state remains playback metadata; the preview transport can still seek a deterministic sample.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-paused.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "perspective-origin animates between keyword values (center to right bottom) instead of percentages, exercising the keyword-resolution path of the animation lowering.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-corner.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.animation-rotate",
     "phase": "P7",
     "topic": "Motion & animation",
-    "label": "Perspective animation / distance + rotateY",
+    "label": "Perspective / two simultaneous tracks",
     "properties": [
-      "perspective",
-      "rotateY",
-      "transform order",
-      "combined tracks"
+      "@keyframes (camera)",
+      "@keyframes (card)",
+      "perspective + transform animating together"
     ],
-    "hint": "Camera distance and child rotateY remain independent typed tracks while the transform order is preserved.",
+    "hint": "The camera's perspective distance and the card's transform (translateZ + rotateY) animate on two independent tracks at the same time, on the same element pair.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-rotate.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-nested-origin",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / nested origin",
-    "properties": [
-      "nested perspective",
-      "perspective-origin",
-      "local track",
-      "ancestor chain"
-    ],
-    "hint": "Only the inner camera origin animates; the outer perspective remains a separate ancestor context in the Matrix4 chain.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-nested-origin.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.animation-origin-outside",
-    "phase": "P7",
-    "topic": "Motion & animation",
-    "label": "Perspective animation / origin outside box",
-    "properties": [
-      "perspective-origin",
-      "negative length",
-      "outside border-box",
-      "no clamp"
-    ],
-    "hint": "Origin coordinates outside the border-box remain valid local camera coordinates and are not clamped during lowering.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-origin-outside.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.animation-sibling-tracks",
     "phase": "P7",
     "topic": "Motion & animation",
-    "label": "Perspective animation / sibling camera tracks",
+    "label": "Perspective / mirrored sibling cameras",
     "properties": [
-      "two sibling groups",
-      "perspective",
-      "perspective-origin",
-      "independent tracks"
+      "two independent perspective scenes",
+      "mirrored animation tracks"
     ],
-    "hint": "Sibling perspective groups keep independent distance and origin tracks; no track is merged across layer scope.",
+    "hint": "Two sibling cameras animate their perspective distance and origin in mirrored directions (one growing while the other shrinks), each with its own card at a different depth.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-sibling-tracks.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.animation-nested-origin",
+    "phase": "P7",
+    "topic": "Motion & animation",
+    "label": "Perspective / animated origin inside nested cameras",
+    "properties": [
+      "nested perspective",
+      "@keyframes on the inner perspective-origin"
+    ],
+    "hint": "The inner camera's perspective-origin animates while nested inside a static outer camera, combining the animation-lowering path with nested boundary composition.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/animation-nested-origin.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
 
@@ -3188,329 +2797,168 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
 
 export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.perspective.mask-alpha-near-plane",
+    "id": "html-compiler.perspective.mask-filter-near-plane",
     "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / mask and filter at the near plane",
+    "properties": [
+      "mask-mode: alpha",
+      "mask-mode: luminance",
+      "filter: blur()",
+      "near-plane crossing"
+    ],
+    "hint": "The same card geometry crossing the near clip plane, masked with an alpha gradient, masked with a luminance image, and blurred with no mask at all — three subsystems that must agree on the same cut line.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-filter-near-plane.html",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / alpha mask near-plane",
-    "properties": [
-      "mask-image",
-      "alpha",
-      "near-plane",
-      "homogeneous clip"
-    ],
-    "hint": "The alpha mask follows the projective surface and remains partially visible across the near camera plane.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-alpha-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.mask-luminance-near-plane",
-    "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / luminance mask near-plane",
-    "properties": [
-      "mask-image",
-      "luminance",
-      "asset URL",
-      "near-plane"
-    ],
-    "hint": "Luminance coverage is sampled from the projective image mask and converted to deterministic alpha.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-luminance-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.mask-add-intersect-near-plane",
     "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / mask add + intersect at the near plane",
+    "properties": [
+      "3 mask layers",
+      "mask-composite: add, intersect",
+      "near-plane crossing"
+    ],
+    "hint": "Three stacked mask layers combined with add then intersect on a card crossing the near clip plane, so mask compositing and projective clipping must resolve together correctly.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-add-intersect-near-plane.html",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / add then intersect",
-    "properties": [
-      "two mask layers",
-      "add",
-      "intersect",
-      "near-plane"
-    ],
-    "hint": "Mask sources remain ordered: the first establishes coverage and the second intersects it on the projective plane.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-add-intersect-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.mask-subtract-composition-edge",
     "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / mask subtract past the composition edge",
+    "properties": [
+      "mask-composite: subtract",
+      "scene extends past the composition edge"
+    ],
+    "hint": "The scene is deliberately positioned so its right edge sits 200px past the 1920px composition boundary, testing that mask-composite: subtract resolves on the private mask surface before the composition clip, not after.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-subtract-composition-edge.html",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / subtract at composition edge",
-    "properties": [
-      "mask-composite",
-      "subtract",
-      "composition clip",
-      "private surface"
-    ],
-    "hint": "Subtract is evaluated on the private mask surface before the layer is clipped at the composition boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-subtract-composition-edge.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.mask-exclude-inclined",
     "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
     "topic": "Motion & animation",
-    "label": "Mask/filter / exclude on inclined surface",
+    "label": "Perspective / mask exclude on an inclined card",
     "properties": [
-      "mask-composite",
-      "exclude",
-      "rotateX",
-      "rotateY"
+      "mask-composite: exclude",
+      "rotateX + rotateY",
+      "off-center perspective-origin"
     ],
-    "hint": "Exclude preserves the symmetric difference of two coverage sources while the visible surface is inclined.",
+    "hint": "Two overlapping radial masks combined with exclude on a card tilted on both axes under an off-center perspective-origin.",
     "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-exclude-inclined.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.filter-blur-near-plane",
-    "phase": "P9",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / blur source near-plane",
-    "properties": [
-      "filter",
-      "blur",
-      "near-plane",
-      "offscreen surface"
-    ],
-    "hint": "Blur is applied to the projectively clipped source surface and cannot leak outside the composition edge.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-blur-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.filter-drop-shadow-after-blur-near-plane",
-    "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / drop-shadow after blur",
-    "properties": [
-      "blur",
-      "drop-shadow",
-      "ordered effects",
-      "near-plane"
-    ],
-    "hint": "The drop-shadow samples the preceding blurred source, preserving CSS filter order.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-drop-shadow-after-blur-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.filter-mask-clip-path",
-    "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / mask + clip-path",
-    "properties": [
-      "mask-image",
-      "clip-path",
-      "filter",
-      "intersected coverage"
-    ],
-    "hint": "Geometric clip coverage is intersected with the mask before the filtered projective surface is composited.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-mask-clip-path.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.isolated-mask-filter-projective",
-    "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / isolated projective group",
-    "properties": [
-      "isolation",
-      "mask",
-      "filter",
-      "projective group"
-    ],
-    "hint": "The isolated group owns its mask and filter offscreen surface; its child blend remains inside that boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/isolated-mask-filter-projective.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.mask-different-perspective-boundary",
-    "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / nested mask camera",
-    "properties": [
-      "nested perspective",
-      "mask source",
-      "different boundary",
-      "Matrix4 chain"
-    ],
-    "hint": "The mask source is resolved in the element box while the visible child inherits a different nested perspective context.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-different-perspective-boundary.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.filter-far-plane-bounds",
-    "phase": "P9",
-    "classification": "combined",
-    "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Mask/filter / filter bounds at far-plane",
-    "properties": [
-      "filter",
-      "far-plane",
-      "expanded bounds",
-      "composition clip"
-    ],
-    "hint": "The filtered surface keeps expanded offscreen bounds while far-plane and composition clipping remain deterministic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-far-plane-bounds.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.perspective.mask-one-corner-near-plane",
     "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / mask + blur, one corner past the near plane",
+    "properties": [
+      "mask-mode: alpha",
+      "filter: blur()",
+      "near-plane crossing on one corner only"
+    ],
+    "hint": "A steeply tilted card where only one corner crosses the near clip plane, combined with a diagonal alpha mask and blur — a regression case for alpha inversion at a partial near-plane cut.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-one-corner-near-plane.html",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.filter-drop-shadow-after-blur-near-plane",
+    "phase": "P9",
     "topic": "Motion & animation",
-    "label": "Mask/filter / one-corner near-plane cut",
+    "label": "Perspective / filter order on a projected surface",
+    "properties": [
+      "filter: blur() drop-shadow()",
+      "filter ordering",
+      "projective surface"
+    ],
+    "hint": "blur() then drop-shadow() on a projected, tilted card — filter order must be preserved on a surface that is itself being projected, not just on a flat 2D layer.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-drop-shadow-after-blur-near-plane.html",
+    "classification": "combined",
+    "classificationLabel": "Combined pipeline",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.filter-far-plane-bounds",
+    "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / filter bounds behind the camera",
+    "properties": [
+      "filter: blur() drop-shadow()",
+      "translateZ(-260px)",
+      "negative depth"
+    ],
+    "hint": "The only fixture in the group using a negative translateZ (behind the nominal camera plane at this perspective distance), testing that filter bounds stay correct for geometry receding away from the viewer.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-far-plane-bounds.html",
+    "classification": "combined",
+    "classificationLabel": "Combined pipeline",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.filter-mask-clip-path",
+    "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / mask + clip-path + filter together",
     "properties": [
       "mask-image",
-      "one corner",
-      "rotateX + rotateY",
-      "partial source clip"
+      "clip-path: polygon()",
+      "filter: blur()",
+      "triple coverage intersection"
     ],
-    "hint": "Only one corner of the mask source crosses the near plane; remaining coverage is retained without alpha inversion.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-one-corner-near-plane.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.perspective.backdrop-filter-blur",
-    "phase": "P9",
+    "hint": "A radial mask, a clip-path polygon and a blur filter all applied to the same tilted, projected card, so all three coverage sources must intersect correctly.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/filter-mask-clip-path.html",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
-    "topic": "Motion & animation",
-    "label": "Backdrop / blur over colored layers",
-    "properties": [
-      "backdrop-filter",
-      "blur",
-      "backdrop surface",
-      "layer opacity"
-    ],
-    "hint": "The backdrop is captured before the translucent card is painted; blur affects the colored backdrop only and remains separate from the card's own filter.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backdrop-filter-blur.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.perspective.backdrop-filter-order",
+    "id": "html-compiler.perspective.isolated-mask-filter-projective",
     "phase": "P9",
+    "topic": "Motion & animation",
+    "label": "Perspective / isolated group with mask, filter and blend",
+    "properties": [
+      "isolation: isolate",
+      "mask-image",
+      "filter: contrast() blur()",
+      "mix-blend-mode: screen (child)"
+    ],
+    "hint": "A projected, masked, filtered isolation group containing a child with mix-blend-mode: screen — the blend must stay contained inside the isolated boundary rather than affecting layers behind the whole group.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/isolated-mask-filter-projective.html",
     "classification": "combined",
     "classificationLabel": "Combined pipeline",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.perspective.mask-different-perspective-boundary",
+    "phase": "P9",
     "topic": "Motion & animation",
-    "label": "Backdrop / ordered blur and contrast",
+    "label": "Perspective / mask resolved across two cameras",
     "properties": [
-      "backdrop-filter",
-      "blur",
-      "contrast",
-      "ordered effects"
+      "nested perspective",
+      "mask-image",
+      "filter: brightness() blur()"
     ],
-    "hint": "Backdrop effects retain CSS token order and never become a visible sibling or a source filter on the translucent panel.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/backdrop-filter-order.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "A masked, filtered card visible through two chained perspective boundaries (outer 900px, inner 360px) — the mask must be resolved in the element's own box while the visible geometry passes through both cameras.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/perspective/mask-different-perspective-boundary.html",
+    "classification": "combined",
+    "classificationLabel": "Combined pipeline",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
-
 export const HTML_COMPILER_DEFAULT_CASE_ID = HTML_COMPILER_PHASE0_CASES[0].id;
 
 const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [

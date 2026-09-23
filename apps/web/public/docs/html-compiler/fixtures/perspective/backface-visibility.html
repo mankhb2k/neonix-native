@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 880px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 30px; }
+      .cell-label-2 { left: 960px; top: 30px; }
+      .cell-label-3 { left: 40px; top: 654px; width: 680px; }
+
+      #atomic-backface-visible-scene { position: absolute; left: 40px; top: 64px; width: 880px; height: 560px; perspective: 760px; }
+      #atomic-backface-visible-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #f97316; transform: rotateY(180deg) translateZ(80px); backface-visibility: visible; }
+
+      #atomic-backface-hidden-scene { position: absolute; left: 960px; top: 64px; width: 880px; height: 560px; perspective: 760px; }
+      #atomic-backface-hidden-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #f97316; transform: rotateY(180deg) translateZ(80px); backface-visibility: hidden; }
+
+      #backface-scene { position: absolute; left: 40px; top: 680px; width: 680px; height: 400px; perspective: 800px; }
+      #backface-card { position: absolute; left: 190px; top: 90px; width: 300px; height: 220px; background: #fb7185; transform: rotateY(180deg); backface-visibility: hidden; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">backface-visibility: visible - rotateY(180deg) + translateZ(80px), back face shown</div>
+    <div class="cell-label cell-label-2">backface-visibility: hidden - identical geometry, back face culled</div>
+    <div class="cell-label cell-label-3">backface-visibility: hidden, no translateZ - pure rotateY(180deg) exactly at the perspective plane</div>
+
+    <div id="atomic-backface-visible-scene"><div id="atomic-backface-visible-card"></div></div>
+    <div id="atomic-backface-hidden-scene"><div id="atomic-backface-hidden-card"></div></div>
+    <div id="backface-scene"><div id="backface-card"></div></div>
+  </body>
+</html>

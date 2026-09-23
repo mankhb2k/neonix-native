@@ -412,6 +412,24 @@ const CURATED_CASES: readonly HtmlPlaygroundCase[] = [
     group: "effect",
     nativeStage: true,
   },
+  {
+    id: "backdrop-filter-blur",
+    label: "Effect / Backdrop filter blur",
+    description: "backdrop-filter: blur() sampling the layers beneath a translucent card (relocated from the perspective catalog — no 3D involved).",
+    url: fixtureUrl("effect", "backdrop-filter-blur.html"),
+    category: "review",
+    group: "effect",
+    nativeStage: true,
+  },
+  {
+    id: "backdrop-filter-order",
+    label: "Effect / Backdrop filter order",
+    description: "backdrop-filter: blur() contrast() composing multiple backdrop filters in source order.",
+    url: fixtureUrl("effect", "backdrop-filter-order.html"),
+    category: "review",
+    group: "effect",
+    nativeStage: true,
+  },
   // --- effect debug: individual fixtures pinned by automated regression tests ---
   {
     id: "inset-stroke-rounded-medium-halo-medium",

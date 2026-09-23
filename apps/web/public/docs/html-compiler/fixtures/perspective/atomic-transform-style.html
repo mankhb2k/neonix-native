@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 880px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 40px; }
+      .cell-label-2 { left: 960px; top: 40px; }
+
+      #atomic-flat-scene { position: absolute; left: 40px; top: 84px; width: 880px; height: 560px; perspective: 760px; transform-style: flat; }
+      #atomic-flat-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #38bdf8; transform: translateZ(140px) rotateY(-24deg); }
+
+      #atomic-preserve-scene { position: absolute; left: 960px; top: 84px; width: 880px; height: 560px; perspective: 760px; transform-style: preserve-3d; }
+      #atomic-preserve-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #38bdf8; transform: translateZ(140px) rotateY(-24deg); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">transform-style: flat (default) - no grandchildren, so nothing should differ from preserve-3d here</div>
+    <div class="cell-label cell-label-2">transform-style: preserve-3d - byte-identical scene, only this declaration differs</div>
+
+    <div id="atomic-flat-scene"><div id="atomic-flat-card"></div></div>
+    <div id="atomic-preserve-scene"><div id="atomic-preserve-card"></div></div>
+  </body>
+</html>

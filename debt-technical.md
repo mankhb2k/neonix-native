@@ -67,6 +67,58 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
   nên dùng để quyết định số liệu cuối cùng — cần đo lại trên bản renderer
   hiện tại.
 
+### Lệch lớn giữa browser và native khi hình học vượt qua near clip plane (perspective)
+- Phát hiện khi verify pixel-diff cụm fixture `perspective` (native-stage
+  playground), không phải lỗi mới phát sinh — các fixture này chỉ bị di
+  chuyển tọa độ khi gộp file, không đổi bất kỳ giá trị CSS nào, nên hành vi
+  lệch này đã tồn tại từ trước.
+- Case ID bị ảnh hưởng nặng nhất (pixel-diff 46%-63%, tính bằng ngưỡng
+  |ΔR|+|ΔG|+|ΔB| > 60 trên tổng 2,073,600 pixel):
+  `html-compiler.perspective.mask-filter-near-plane` (60.8%),
+  `html-compiler.perspective.mask-add-intersect-near-plane` (55.8%),
+  `html-compiler.perspective.mask-different-perspective-boundary` (46.1%),
+  `html-compiler.perspective.filter-drop-shadow-after-blur-near-plane` (63.0%);
+  nhẹ hơn nhưng vẫn đáng chú ý: `mask-one-corner-near-plane` (6.0%),
+  `nested-clip-path` (4.65%, nghi là do anti-alias viền clip-path, không
+  chắc cùng nguyên nhân).
+- Hiện tượng: cả 4-5 case đầu đều dùng `perspective` rất ngắn (190-260px,
+  hoặc perspective lồng nhau outer/inner) kết hợp góc xoay đủ lớn khiến một
+  phần bề mặt thẻ vượt qua near clip plane (w=0 trong không gian đồng nhất).
+  Browser (Chrome) vẽ ra một khối hình lớn, cạnh sắc nét, gần như lấp kín
+  canvas; native (compiler → Runtime/Skia) vẽ ra một khối rất nhỏ/mỏng ở
+  đúng vị trí lẽ ra phải hiện.
+- Đã thử tính tay ma trận perspective cho case `filter-blur-near-plane`
+  (nay gộp trong `mask-filter-near-plane.html`): `perspective:190px`,
+  card 420×280 `translateZ(160px) rotateY(28deg)` → phần bên trái thẻ
+  (khoảng 35% chiều rộng) có z vượt quá 190 (w<0, sau lưng camera), điểm
+  giao cắt w=0 nằm ở x≈-63.9 (tính từ tâm thẻ). Nếu chia phối cảnh
+  (perspective divide) trực tiếp không cắt (clip) trong không gian đồng
+  nhất trước, phần thẻ gần điểm giao cắt sẽ bị phóng to tới vô cực về mặt
+  toán học — khớp với hình lớn mà browser đang vẽ. Renderer 3D chuẩn (và
+  theo mô tả trong `packages/canvaskit-preview/src/command/geometry.ts` —
+  `projectiveMeshSvg`/`projectiveTextureMesh` clip ở `w - ε ≥ 0` trước khi
+  chia, có adaptive subdivision) phải cắt hình học trước để tránh hiện
+  tượng phóng-to-vô-hạn đó — khớp với hình nhỏ, có giới hạn mà native đang
+  vẽ.
+- **Chưa xác định được bên nào đúng theo chuẩn CSS Transforms**: có thể
+  Chrome đúng chuẩn còn native cắt quá tay (bug thật, cần sửa
+  `projectiveMeshSvg`/`projectiveTextureMesh` hoặc logic near-plane), hoặc
+  ngược lại Chrome tự nó có giới hạn xử lý near-plane cho perspective cực
+  ngắn (rất hay gặp ở nhiều engine CSS 3D, không phải lúc nào cũng đúng
+  chuẩn) còn native mới là chuẩn.
+- Cần làm để kết luận dứt điểm: (1) lấy transform/frame thực tế mà compiler
+  xuất ra cho case này (qua `compileHtmlCss`/`compileDocument` trực tiếp,
+  không qua trình duyệt), đối chiếu tay với công thức CSS Transforms spec
+  cho perspective matrix; (2) kiểm tra hành vi near-plane clipping của
+  chính Chrome qua tài liệu/spec chính thức (không suy đoán từ ảnh chụp);
+  (3) nếu xác định native sai, sửa trong
+  `packages/canvaskit-preview/src/command/geometry.ts` (đường
+  `projectiveMeshSvg`/`projectiveTextureMesh`) hoặc
+  `packages/motion-compiler/src/compiler/index.ts` (cờ `depthClip`, dòng
+  ~234-242 — hiện tại bất kỳ layer nào có CSS perspective sẽ khiến toàn bộ
+  project chuyển `depthClip: "w-only"`, tắt hẳn 2 mặt phẳng z≥0/w-z≥0, có
+  thể liên quan).
+
 ### Route download token fallback là dead code
 - Vị trí: `apps/web/app/api/v1/renders/[id]/download/route.ts` — nhánh
   không phải R2 (`artifactPath` không bắt đầu `r2://`) tự tạo một token

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 900px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 20px; top: 20px; }
+      .cell-label-2 { left: 960px; top: 20px; }
+      .cell-label-3 { left: 20px; top: 614px; }
+      .cell-label-4 { left: 960px; top: 614px; width: 500px; }
+
+      #perspective-scene { position: absolute; left: 20px; top: 44px; width: 880px; height: 520px; perspective: 760px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+      #perspective-card { position: absolute; left: 260px; top: 150px; width: 360px; height: 220px; background: #22d3ee; transform: translateZ(140px) rotateY(-16deg); }
+
+      #rotate-x-scene { position: absolute; left: 960px; top: 44px; width: 880px; height: 560px; perspective: 900px; }
+      #rotate-x-card { position: absolute; left: 260px; top: 160px; width: 360px; height: 220px; background: #a78bfa; transform-origin: 50% 50%; transform: rotateX(28deg) translateZ(80px); }
+
+      #origin-scene { position: absolute; left: 20px; top: 638px; width: 880px; height: 500px; perspective: 700px; perspective-origin: 18% 82%; }
+      #origin-card { position: absolute; left: 270px; top: 140px; width: 340px; height: 220px; background: #f97316; transform: rotateY(-32deg) translateZ(120px); }
+
+      #transform-perspective { position: absolute; left: 960px; top: 638px; width: 520px; height: 280px; background: #facc15; transform-origin: 50% 50%; transform: perspective(620px) rotateY(-24deg) translateZ(80px); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">perspective + perspective-origin: 50% 50% (centered) + preserve-3d</div>
+    <div class="cell-label cell-label-2">perspective only (transform-style defaults to flat) + rotateX + translateZ</div>
+    <div class="cell-label cell-label-3">perspective-origin offset to 18% 82% (near bottom-left)</div>
+    <div class="cell-label cell-label-4">transform: perspective(620px) inline - no parent perspective context at all</div>
+
+    <div id="perspective-scene"><div id="perspective-card"></div></div>
+    <div id="rotate-x-scene"><div id="rotate-x-card"></div></div>
+    <div id="origin-scene"><div id="origin-card"></div></div>
+    <div id="transform-perspective"></div>
+  </body>
+</html>

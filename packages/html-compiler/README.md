@@ -292,8 +292,31 @@ remain populated for the current V2 compatibility contract.
 
 Unsupported transform functions or malformed arguments fail closed with a
 `css-transform-*` diagnostic. CSS transform ordering is preserved in the
-Protocol `operations[]` list and composed by Motion Runtime; matrix and local
-perspective parsing remain a later HTML compiler slice.
+Protocol `operations[]` list and composed by Motion Runtime. `matrix()` and
+`matrix3d()` are also supported (the latter lowers to the `motion.matrix4`
+extension when it carries non-trivial projective terms), as is the local
+`transform: perspective(<length>)` function.
+
+## HTML compiler perspective and 3D subset
+
+`perspective`, `perspective-origin`, `transform-style` (`flat` \|
+`preserve-3d`) and `backface-visibility` (`visible` \| `hidden`) are
+supported on any element with children, including nested `preserve-3d`
+boundaries (an inner perspective/camera composes with an outer one rather
+than replacing it). `overflow` other than `visible`/`clip` forces
+`transform-style` to `flat` for that element's children even when
+`preserve-3d` is authored, matching browser behavior. Both properties
+animate through `@keyframes` (numeric `perspective`, and `perspective-origin`
+including keyword values in either token order).
+
+Geometry crossing the camera's near clip plane is clipped in homogeneous
+space before the perspective divide (with adaptive subdivision near the cut)
+rather than rasterized naively, which avoids the unbounded on-screen size a
+raw perspective divide produces as a point approaches the clip plane. Note:
+`depthClip` is a whole-project flag — if any layer anywhere in the document
+declares a CSS `perspective`, the orthographic near/far planes are disabled
+for every layer in that document, not just the ones under a perspective
+context.
 
 ## Image source subset
 
@@ -327,8 +350,12 @@ until the compiler can resolve the complete timeline into V2 frame tracks.
 
 ## Explicitly deferred
 
-Flex wrapping, Grid layout, masks, filters, text shaping, advanced transform matrices,
-3D context, animation and transitions are later compiler phases. Unsupported
+`element()` live element snapshots, `position-area`/`position-try` for
+anchor positioning, and complex-script text shaping (shaping itself happens
+downstream in Runtime/Skia; the compiler resolves direction and passes
+resolved text through) are later phases. Flex wrapping, grid layout, masks,
+filters, transform matrices, perspective/3D context and `@keyframes`
+animation are all implemented — see the dedicated sections above. Unsupported
 properties, selectors, text nodes and invalid values fail closed with a
 diagnostic; they are not silently ignored.
 

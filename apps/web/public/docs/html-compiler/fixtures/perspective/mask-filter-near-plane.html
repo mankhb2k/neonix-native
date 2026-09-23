@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 760px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 20px; top: 20px; }
+      .cell-label-2 { left: 800px; top: 20px; }
+      .cell-label-3 { left: 20px; top: 584px; }
+
+      #p9-alpha-scene { position: absolute; left: 20px; top: 44px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+      #p9-alpha-card { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; background: #22d3ee; mask-image: linear-gradient(90deg, #00000000 0%, #ffffffff 38%, #ffffffff 100%); mask-mode: alpha; mask-repeat: no-repeat; transform: translateZ(160px) rotateY(28deg); }
+
+      #p9-luma-scene { position: absolute; left: 800px; top: 44px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+      #p9-luma-card { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; background: #f97316; mask-image: url(/preview/image/img-alpha.png); mask-mode: luminance; mask-size: 420px 280px; mask-position: center; mask-repeat: no-repeat; transform: translateZ(160px) rotateY(28deg); }
+
+      #p9-blur-scene { position: absolute; left: 20px; top: 608px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+      #p9-blur-card { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; background: #34d399; filter: blur(14px); transform: translateZ(160px) rotateY(28deg); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">mask-mode: alpha, linear-gradient mask crossing the near clip plane</div>
+    <div class="cell-label cell-label-2">mask-mode: luminance, image mask crossing the near clip plane</div>
+    <div class="cell-label cell-label-3">filter: blur(14px) on the same geometry crossing the near clip plane (no mask)</div>
+
+    <div id="p9-alpha-scene"><div id="p9-alpha-card"></div></div>
+    <div id="p9-luma-scene"><div id="p9-luma-card"></div></div>
+    <div id="p9-blur-scene"><div id="p9-blur-card"></div></div>
+  </body>
+</html>
