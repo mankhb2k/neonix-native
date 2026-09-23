@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1800,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 600px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 180px; top: 320px; }
+      .cell-label-2 { left: 180px; top: 120px; }
+      .cell-label-3 { left: 260px; top: 900px; }
+      .cell-label-4 { left: 1540px; top: 280px; width: 370px; }
+      #track-guides { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      #track-guides path { fill: none; stroke: #2b3a4d; stroke-width: 3px; stroke-dasharray: 10 10; }
+
+      @keyframes motion-path-line { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+      #motion-path-line { position: absolute; left: 0; top: 0; width: 180px; height: 100px; background: #22d3ee; offset-path: path("M 180 420 L 1500 420"); offset-distance: 0%; offset-rotate: 0deg; offset-anchor: 50% 50%; animation-name: motion-path-line; animation-duration: 1400ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-path-cubic { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+      #motion-path-cubic { position: absolute; left: 0; top: 0; width: 150px; height: 80px; background: #a78bfa; offset-path: path("M 180 650 C 420 220, 920 980, 1540 520"); offset-distance: 0%; offset-rotate: auto 0deg; offset-anchor: 50% 50%; animation-name: motion-path-cubic; animation-duration: 1800ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-path-reverse { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+      #motion-path-reverse { position: absolute; left: 0; top: 0; width: 180px; height: 100px; background: #fb7185; offset-path: path("M 260 820 L 1320 820"); offset-distance: 0%; offset-rotate: reverse 0deg; offset-anchor: 50% 100%; animation-name: motion-path-reverse; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: steps(4, jump-end); }
+
+      @keyframes motion-path-edge { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+      #motion-path-edge { position: absolute; left: 0; top: 0; width: 260px; height: 140px; background: #facc15; offset-path: path("M 1540 180 L 2100 180"); offset-distance: 0%; offset-rotate: 0deg; offset-anchor: 0% 0%; animation-name: motion-path-edge; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <svg id="track-guides">
+      <path d="M 180 420 L 1500 420"></path>
+      <path d="M 180 650 C 420 220, 920 980, 1540 520"></path>
+      <path d="M 260 820 L 1320 820"></path>
+      <path d="M 1540 180 L 2100 180"></path>
+    </svg>
+
+    <div class="cell-label cell-label-1">offset-path: straight line, offset-rotate: 0deg (fixed heading)</div>
+    <div class="cell-label cell-label-2">offset-rotate: auto - element turns to follow the curve's tangent</div>
+    <div class="cell-label cell-label-3">offset-rotate: reverse + offset-anchor: 50% 100% (anchored at its bottom edge)</div>
+    <div class="cell-label cell-label-4">path runs past the composition edge and is clipped there</div>
+
+    <div id="motion-path-line"></div>
+    <div id="motion-path-cubic"></div>
+    <div id="motion-path-reverse"></div>
+    <div id="motion-path-edge"></div>
+  </body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 540px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 40px; }
+      .cell-label-2 { left: 600px; top: 40px; }
+      .cell-label-3 { left: 1160px; top: 40px; }
+      .cell-label-4 { left: 40px; top: 354px; }
+      .cell-label-5 { left: 600px; top: 354px; }
+      .cell-label-6 { left: 1160px; top: 354px; }
+      .cell-label-7 { left: 40px; top: 668px; }
+      .cell-label-8 { left: 600px; top: 668px; }
+
+      @keyframes motion-easing-linear { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-easing-linear { position: absolute; left: 40px; top: 74px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-easing-linear; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-easing-ease { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-easing-ease { position: absolute; left: 600px; top: 74px; width: 520px; height: 240px; background: #f97316; animation-name: motion-easing-ease; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: ease; }
+
+      @keyframes motion-easing-cubic { from { transform: translateX(0px); } to { transform: translateX(260px); } }
+      #motion-easing-cubic { position: absolute; left: 1160px; top: 74px; width: 360px; height: 180px; background: #22d3ee; animation-name: motion-easing-cubic; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+
+      @keyframes motion-easing-steps-end { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-easing-steps-end { position: absolute; left: 40px; top: 388px; width: 520px; height: 240px; background: #f97316; animation-name: motion-easing-steps-end; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(4, jump-end); }
+
+      @keyframes motion-easing-steps-start { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-easing-steps-start { position: absolute; left: 600px; top: 388px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-easing-steps-start; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(4, jump-start); }
+
+      @keyframes motion-easing-steps-jump-none { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-easing-steps-jump-none { position: absolute; left: 1160px; top: 388px; width: 520px; height: 240px; background: #facc15; animation-name: motion-easing-steps-jump-none; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(5, jump-none); }
+
+      @keyframes motion-easing-steps-jump-both { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-easing-steps-jump-both { position: absolute; left: 40px; top: 702px; width: 520px; height: 240px; background: #fb7185; animation-name: motion-easing-steps-jump-both; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(5, jump-both); }
+
+      @keyframes motion-easing-segments {
+        from { opacity: 0.1; animation-timing-function: steps(2, jump-start); }
+        50% { opacity: 0.55; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+        to { opacity: 1; }
+      }
+      #motion-easing-segments { position: absolute; left: 600px; top: 702px; width: 520px; height: 240px; background: #facc15; animation-name: motion-easing-segments; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">animation-timing-function: linear</div>
+    <div class="cell-label cell-label-2">animation-timing-function: ease (default keyword)</div>
+    <div class="cell-label cell-label-3">cubic-bezier(0.25, 0.1, 0.25, 1) on transform: translateX</div>
+    <div class="cell-label cell-label-4">steps(4, jump-end)</div>
+    <div class="cell-label cell-label-5">steps(4, jump-start)</div>
+    <div class="cell-label cell-label-6">steps(5, jump-none)</div>
+    <div class="cell-label cell-label-7">steps(5, jump-both)</div>
+    <div class="cell-label cell-label-8">timing function set per keyframe stop (steps, then cubic-bezier)</div>
+
+    <div id="motion-easing-linear"></div>
+    <div id="motion-easing-ease"></div>
+    <div id="motion-easing-cubic"></div>
+    <div id="motion-easing-steps-end"></div>
+    <div id="motion-easing-steps-start"></div>
+    <div id="motion-easing-steps-jump-none"></div>
+    <div id="motion-easing-steps-jump-both"></div>
+    <div id="motion-easing-segments"></div>
+  </body>
+</html>

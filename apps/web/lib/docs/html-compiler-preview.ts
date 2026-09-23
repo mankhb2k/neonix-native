@@ -1998,249 +1998,161 @@ export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [];
 
 export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   {
-    "id": "html-compiler.motion.opacity-delay-fill",
+    "id": "html-compiler.motion.keyframes-basics",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / opacity + delay + fill",
+    "label": "Motion / keyframes basics",
     "properties": [
       "@keyframes",
-      "opacity",
+      "from/to",
+      "0%/50%/100%",
+      "animation-name",
+      "duplicate offset"
+    ],
+    "hint": "Two-point and multi-stop keyframe tracks, a missing 0% holding the underlying value until its first explicit stop, two independent animation-name tracks on sibling elements, and a duplicate 50% offset where the later block wins.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-basics.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
+    "id": "html-compiler.motion.delay-fill-mode",
+    "phase": "P3",
+    "topic": "Motion & animation",
+    "label": "Motion / delay + fill-mode",
+    "properties": [
       "animation-delay",
-      "animation-fill-mode"
+      "animation-fill-mode",
+      "negative delay"
     ],
-    "hint": "The runtime samples opacity from the shared V2 track, including the backwards delay sample and forwards end sample.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/opacity-delay-fill.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "fill-mode none/backwards/forwards/both combined with a positive delay, plus a negative delay that starts the track partway through its timeline.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-fill-mode.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.transform-alternate",
+    "id": "html-compiler.motion.iteration-play-state",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / transform alternate",
+    "label": "Motion / iteration + play-state",
     "properties": [
-      "transform",
-      "translateX",
-      "rotate",
-      "alternate",
-      "cubic-bezier"
-    ],
-    "hint": "Transform components are typed tracks; alternate reverses the sampled direction on the second iteration.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/transform-alternate.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.steps-color",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / steps color",
-    "properties": [
-      "background-color",
-      "steps()",
+      "animation-iteration-count",
+      "fractional iteration",
+      "infinite",
       "animation-play-state"
     ],
-    "hint": "A color track keeps its typed RGBA values while steps(4, jump-start) produces deterministic discrete plateaus.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/steps-color.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "Integer, fractional and infinite iteration counts, plus animation-play-state: paused freezing the track at its current sample.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-play-state.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.transform-scale",
+    "id": "html-compiler.motion.direction",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / transform scale",
+    "label": "Motion / direction",
     "properties": [
-      "transform",
-      "scale",
-      "transform-origin"
+      "animation-direction",
+      "normal",
+      "reverse",
+      "alternate",
+      "alternate-reverse"
     ],
-    "hint": "A scale track keeps the element's layout frame fixed and applies the declared center pivot at runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/transform-scale.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "The four animation-direction keywords on the same opacity ramp, with alternate and alternate-reverse shown across two iterations to expose the flip.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.transform-rotate-origin",
+    "id": "html-compiler.motion.easing",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / rotate percentage origin",
+    "label": "Motion / easing and timing functions",
     "properties": [
-      "transform",
-      "rotate",
-      "transform-origin"
+      "linear",
+      "ease",
+      "cubic-bezier",
+      "steps()",
+      "jump-start/jump-end/jump-none/jump-both",
+      "per-keyframe timing function"
     ],
-    "hint": "Rotation is sampled around a non-central percentage origin, matching the browser's local pivot.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/transform-rotate-origin.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "The full timing-function vocabulary side by side: linear, the ease keyword, a cubic-bezier on transform, all four steps() jump terms, and a track that changes its timing function at each keyframe stop.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.background-color-rgba",
+    "id": "html-compiler.motion.animatable-properties",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / RGBA color",
+    "label": "Motion / animatable property types",
     "properties": [
-      "background-color",
-      "RGBA",
-      "color track"
+      "transform: scale",
+      "transform: rotate",
+      "transform-origin",
+      "background-color (rgba)",
+      "width/height",
+      "box-sizing"
     ],
-    "hint": "Background color is interpolated as a typed RGBA track, including alpha, instead of a CSS string.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/background-color-rgba.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "The range of value types the runtime tracks: scale and rotate with an off-center transform-origin, RGBA color interpolation including alpha, a stepped color track, and animated frame dimensions under border-box sizing.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/animatable-properties.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.frame-size-border-box",
+    "id": "html-compiler.motion.combo-transform-tracks",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / frame size + border-box",
+    "label": "Motion / transform combined with other tracks",
     "properties": [
-      "width",
-      "height",
-      "box-sizing",
-      "frame tracks"
+      "transform + opacity",
+      "multiple animation-name",
+      "transform-driven image pan",
+      "overflow: hidden"
     ],
-    "hint": "Width and height animate the V2 frame directly under border-box without changing the element's layout origin.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/frame-size-border-box.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "One animation driving two properties at once, two independent animation-name tracks with different easing on the same element, and a transform-driven image pan clipped by an overflow: hidden viewport.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-transform-tracks.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.keyframes-from-to",
+    "id": "html-compiler.motion.combo-paint-interactions",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / keyframes from + to",
+    "label": "Motion / animation combined with paint subsystems",
     "properties": [
-      "@keyframes",
-      "from",
-      "to"
+      "filter: opacity()",
+      "layer opacity",
+      "border-color/border-width",
+      "clip-path",
+      "isolation",
+      "mix-blend-mode"
     ],
-    "hint": "The canonical from/to declaration becomes a two-point opacity track with millisecond timestamps.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-from-to.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "Animation interacting with the paint pipeline: a CSS filter stacked with layer opacity, animated border paint under box-sizing: border-box, a static clip-path on an animated element, and an isolated group whose animated child blends with multiply.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-paint-interactions.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#16324f", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.keyframes-three-stops",
+    "id": "html-compiler.motion-path.basics",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / keyframes 0 50 100",
+    "label": "Motion path / offset-path basics",
     "properties": [
-      "0%",
-      "50%",
-      "100%",
-      "ordered stops"
+      "offset-path",
+      "offset-distance",
+      "offset-rotate",
+      "offset-anchor"
     ],
-    "hint": "Three authored offsets remain three ordered runtime keyframes instead of being collapsed to endpoints.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-three-stops.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "An element moving along a drawn path: a straight line with a fixed heading, a cubic curve with offset-rotate: auto turning to the tangent, a reversed heading anchored at the element's bottom edge, and a path that runs past the composition edge and gets clipped there. Dashed guide lines trace each track.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/motion-path-basics.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
-    "id": "html-compiler.motion.keyframes-missing-start",
+    "id": "html-compiler.motion-path.advanced",
     "phase": "P3",
     "topic": "Motion & animation",
-    "label": "Motion / missing first keyframe",
+    "label": "Motion path / closed loops, multi-segment paths and composition",
     "properties": [
-      "30%",
-      "to",
-      "underlying value"
+      "offset-path: closed contour (Z)",
+      "multi-segment polyline",
+      "non-monotonic offset-distance",
+      "offset-path + transform"
     ],
-    "hint": "When 0% is absent, the compiler inserts the element's underlying computed opacity before the first authored offset.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-missing-start.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.keyframes-two-names",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / two keyframe names",
-    "properties": [
-      "animation-name",
-      "sibling layers",
-      "independent tracks"
-    ],
-    "hint": "Two sibling layers resolve separate @keyframes definitions without sharing declarations or track state.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-two-names.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.keyframes-duplicate-offset",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / duplicate keyframe offset",
-    "properties": [
-      "duplicate offset",
-      "source order",
-      "cascade"
-    ],
-    "hint": "At 50%, the later keyframe block wins for opacity, so the runtime receives one deterministic keyframe at that timestamp.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-duplicate-offset.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "hint": "A closed rectangular loop that wraps seamlessly every cycle, a three-segment polyline, a track whose offset-distance moves forward then backward along the same path, and an element scaling with transform while it travels the path.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/motion-path-advanced.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.motion.keyframes-unknown-name",
@@ -2253,412 +2165,8 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "unsupported reference"
     ],
     "hint": "An animation-name without a matching @keyframes rule is a compiler diagnostic, never a silent no-op.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/keyframes-unknown-name.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.delay-fill-none",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / delay + no fill",
-    "properties": [
-      "animation-delay",
-      "fill-mode: none"
-    ],
-    "hint": "During the positive delay and after the animation, the underlying opacity remains active because no fill is requested.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-fill-none.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.delay-fill-backwards",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / delay + backwards",
-    "properties": [
-      "animation-delay",
-      "fill-mode: backwards"
-    ],
-    "hint": "The first keyframe is visible during the positive delay, then the active animation begins at the scheduled time.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-fill-backwards.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.fill-forwards",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / forwards end hold",
-    "properties": [
-      "animation-fill-mode: forwards",
-      "end sample"
-    ],
-    "hint": "After the active interval, the final keyframe remains applied instead of returning to the underlying opacity.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/fill-forwards.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.fill-both",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / both delay + end",
-    "properties": [
-      "animation-delay",
-      "animation-fill-mode: both"
-    ],
-    "hint": "Both applies the first keyframe during delay and keeps the final keyframe after completion.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/fill-both.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.delay-negative",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / negative delay",
-    "properties": [
-      "animation-delay: -350ms",
-      "initial progress"
-    ],
-    "hint": "A negative delay starts the sample inside the animation rather than waiting for a future start time.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/delay-negative.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.play-state-paused",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / play-state paused",
-    "properties": [
-      "animation-play-state: paused",
-      "transport"
-    ],
-    "hint": "An authored paused animation stays at its initial sample until transport explicitly changes the preview state.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/play-state-paused.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.iteration-two",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / two iterations",
-    "properties": [
-      "animation-iteration-count: 2",
-      "cycle boundary"
-    ],
-    "hint": "Two complete cycles reuse one normalized keyframe track without duplicating runtime geometry.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-two.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.iteration-fractional",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / fractional iteration",
-    "properties": [
-      "animation-iteration-count: 2.5",
-      "fractional endpoint"
-    ],
-    "hint": "A 2.5 iteration animation ends halfway through its third cycle, including at the exact active-duration boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-fractional.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.iteration-infinite",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / infinite loop",
-    "properties": [
-      "animation-iteration-count: infinite",
-      "loop"
-    ],
-    "hint": "Infinite playback keeps a bounded track and wraps sampled progress without accumulating timeline drift.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/iteration-infinite.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.direction-normal",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / direction normal",
-    "properties": [
-      "animation-direction: normal"
-    ],
-    "hint": "Normal samples each iteration from the first keyframe toward the last keyframe.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-normal.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.direction-reverse",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / direction reverse",
-    "properties": [
-      "animation-direction: reverse"
-    ],
-    "hint": "Reverse starts at the last keyframe and samples toward the first keyframe.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-reverse.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.direction-alternate",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / direction alternate",
-    "properties": [
-      "animation-direction: alternate",
-      "iteration boundary"
-    ],
-    "hint": "Alternate reverses every second iteration while keeping the same authored keyframe sequence.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-alternate.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.direction-alternate-reverse",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / direction alternate-reverse",
-    "properties": [
-      "animation-direction: alternate-reverse",
-      "iteration boundary"
-    ],
-    "hint": "Alternate-reverse starts reversed, then alternates direction at each iteration boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/direction-alternate-reverse.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-linear",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing linear",
-    "properties": [
-      "animation-timing-function: linear",
-      "opacity"
-    ],
-    "hint": "Linear easing keeps equal progress between each pair of keyframes.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-linear.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-steps-end",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing steps jump-end",
-    "properties": [
-      "animation-timing-function: steps(4, jump-end)",
-      "discrete plateaus"
-    ],
-    "hint": "Jump-end holds the current plateau until each step boundary, then advances.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-end.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-steps-start",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing steps jump-start",
-    "properties": [
-      "animation-timing-function: steps(4, jump-start)",
-      "first instant"
-    ],
-    "hint": "Jump-start advances to the first plateau at the first instant of the active interval.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-start.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-steps-jump-none",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing steps jump-none",
-    "properties": [
-      "animation-timing-function: steps(5, jump-none)",
-      "no start or end plateau"
-    ],
-    "hint": "Jump-none omits both the first and last plateau, so the value never holds at the boundary steps.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-jump-none.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-steps-jump-both",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing steps jump-both",
-    "properties": [
-      "animation-timing-function: steps(5, jump-both)",
-      "extra plateau at both ends"
-    ],
-    "hint": "Jump-both adds a plateau at both boundaries, one more discrete step than jump-start or jump-end alone.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-steps-jump-both.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-ease",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing ease keyword",
-    "properties": [
-      "animation-timing-function: ease",
-      "bare keyword easing"
-    ],
-    "hint": "The bare ease keyword resolves to its canonical cubic-bezier control points, distinct from an author-specified cubic-bezier() function.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-ease.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-cubic-bezier",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing cubic-bezier",
-    "properties": [
-      "animation-timing-function: cubic-bezier",
-      "transform"
-    ],
-    "hint": "The canonical ease curve is stored as typed cubic-bezier control points in each track.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-cubic-bezier.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.easing-per-segment",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / easing per segment",
-    "properties": [
-      "keyframe-local timing",
-      "steps()",
-      "cubic-bezier()"
-    ],
-    "hint": "Each segment keeps the timing function authored on its starting keyframe; the global value is only the fallback.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-per-segment.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/keyframes-unknown-name.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
     "id": "html-compiler.motion.easing-invalid",
@@ -2671,237 +2179,8 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "no silent fallback"
     ],
     "hint": "Invalid step counts and cubic-bezier control points fail compilation with a specific diagnostic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/easing-invalid.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-transform-opacity",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / transform + opacity",
-    "properties": [
-      "transform",
-      "opacity",
-      "one animation"
-    ],
-    "hint": "Transform and layer opacity remain separate typed tracks while sharing the same animation playback metadata.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-transform-opacity.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-transform-color",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / transform + background color",
-    "properties": [
-      "transform",
-      "background-color",
-      "two animation tracks",
-      "different easing"
-    ],
-    "hint": "Two authored animations keep transform and background-color as independent tracks with their own easing list entries.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-transform-color.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-filter-opacity",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / filter opacity vs layer opacity",
-    "properties": [
-      "filter: opacity()",
-      "layer opacity",
-      "separate alpha"
-    ],
-    "hint": "The animated layer alpha stays on the group while filter: opacity() remains an ordered source-surface effect.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-filter-opacity.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-border-paint",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / animated border paint",
-    "properties": [
-      "border-color",
-      "border-width",
-      "paint-only track"
-    ],
-    "hint": "Animated border color and width target the generated border paint pass without adding a second layout computation.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-border-paint.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-clip-path",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / animated shape with clip-path",
-    "properties": [
-      "transform",
-      "opacity",
-      "fixed clip-path",
-      "geometric clip"
-    ],
-    "hint": "The clip-path remains geometric and fixed while the animated shape transform and opacity are sampled on the layer.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-clip-path.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-isolated-blend",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / isolated group + child blend",
-    "properties": [
-      "isolation: isolate",
-      "mix-blend-mode: multiply",
-      "child animation"
-    ],
-    "hint": "The child animation is sampled inside the isolated group boundary so its blend does not leak into the outside backdrop.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-isolated-blend.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion.combo-image-clipping",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion / image transform + composition clip",
-    "properties": [
-      "img",
-      "transform",
-      "overflow: hidden",
-      "composition edge"
-    ],
-    "hint": "The image transform is animated inside a fixed overflow viewport and remains clipped at the composition boundary.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-image-clipping.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion-path.line-distance",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion path / line distance",
-    "properties": [
-      "offset-path",
-      "offset-distance",
-      "linear path"
-    ],
-    "hint": "A layer-owned path keeps the CSS element frame while offset-distance samples a normalized point along the parent-local line.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-line-distance.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion-path.cubic-auto",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion path / cubic auto rotate",
-    "properties": [
-      "offset-path",
-      "offset-rotate: auto",
-      "cubic tangent"
-    ],
-    "hint": "The runtime follows a cubic path and aligns the layer to the sampled tangent, making direction changes visible at the midpoint.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-cubic-auto.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion-path.reverse-anchor",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion path / reverse + anchor",
-    "properties": [
-      "offset-rotate: reverse",
-      "offset-anchor",
-      "path endpoint"
-    ],
-    "hint": "Reverse adds the CSS half-turn after tangent alignment while the bottom-center anchor keeps the layer attached to the path.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-reverse-anchor.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.motion-path.clip-edge",
-    "phase": "P3",
-    "topic": "Motion & animation",
-    "label": "Motion path / composition clipping",
-    "properties": [
-      "offset-path",
-      "overflow: hidden",
-      "composition clip"
-    ],
-    "hint": "Motion remains layer-owned and is clipped by the composition boundary when the path carries the frame beyond the right edge.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/motion/path-clip-edge.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
+    "fixtureUrl": "/docs/html-compiler/fixtures/debug/easing-invalid.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
 

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 580px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 80px; top: 60px; }
+      .cell-label-2 { left: 700px; top: 60px; }
+      .cell-label-3 { left: 80px; top: 414px; }
+
+      @keyframes motion-combo-transform-opacity { from { opacity: 0.15; transform: translateX(0px) rotate(-6deg); } to { opacity: 1; transform: translateX(260px) rotate(6deg); } }
+      #motion-combo-transform-opacity { position: absolute; left: 80px; top: 170px; width: 360px; height: 180px; background: #22d3ee; transform-origin: center; animation-name: motion-combo-transform-opacity; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-combo-move { from { transform: translateX(0px); } to { transform: translateX(260px); } }
+      @keyframes motion-combo-tint { from { background-color: #22d3ee; } to { background-color: #f97316; } }
+      #motion-combo-transform-color { position: absolute; left: 700px; top: 170px; width: 360px; height: 180px; animation-name: motion-combo-move, motion-combo-tint; animation-duration: 1000ms, 1000ms; animation-fill-mode: both, both; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1), steps(4, jump-end); }
+
+      @keyframes motion-combo-image { from { transform: translateX(-220px); } to { transform: translateX(220px); } }
+      #motion-combo-image-viewport { position: absolute; left: 80px; top: 458px; width: 520px; height: 300px; overflow: hidden; background: #1e3a8a; }
+      #motion-combo-image { position: absolute; left: 0; top: 0; width: 760px; height: 300px; object-fit: cover; animation-name: motion-combo-image; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">one animation, two tracked properties (opacity + transform)</div>
+    <div class="cell-label cell-label-2">two animation-name tracks (comma list): move, then tint on a different easing</div>
+    <div class="cell-label cell-label-3">transform-driven image pan inside an overflow: hidden viewport</div>
+
+    <div id="motion-combo-transform-opacity"></div>
+    <div id="motion-combo-transform-color"></div>
+    <div id="motion-combo-image-viewport"><img id="motion-combo-image" src="/preview/image/photo-landscape.jpg"></div>
+  </body>
+</html>

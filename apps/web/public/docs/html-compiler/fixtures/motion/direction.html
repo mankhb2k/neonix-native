@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 520px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 620px; top: 60px; }
+      .cell-label-3 { left: 60px; top: 374px; }
+      .cell-label-4 { left: 620px; top: 374px; }
+
+      @keyframes motion-direction-normal { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-direction-normal { position: absolute; left: 60px; top: 94px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-direction-normal; animation-duration: 1000ms; animation-direction: normal; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-direction-reverse { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-direction-reverse { position: absolute; left: 620px; top: 94px; width: 520px; height: 240px; background: #fb7185; animation-name: motion-direction-reverse; animation-duration: 1000ms; animation-direction: reverse; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-direction-alternate { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-direction-alternate { position: absolute; left: 60px; top: 408px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-direction-alternate; animation-duration: 500ms; animation-iteration-count: 2; animation-direction: alternate; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-direction-alternate-reverse { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-direction-alternate-reverse { position: absolute; left: 620px; top: 408px; width: 520px; height: 240px; background: #f97316; animation-name: motion-direction-alternate-reverse; animation-duration: 500ms; animation-iteration-count: 2; animation-direction: alternate-reverse; animation-fill-mode: both; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">animation-direction: normal</div>
+    <div class="cell-label cell-label-2">animation-direction: reverse</div>
+    <div class="cell-label cell-label-3">animation-direction: alternate (2 iterations, flips each cycle)</div>
+    <div class="cell-label cell-label-4">animation-direction: alternate-reverse (2 iterations, starts reversed)</div>
+
+    <div id="motion-direction-normal"></div>
+    <div id="motion-direction-reverse"></div>
+    <div id="motion-direction-alternate"></div>
+    <div id="motion-direction-alternate-reverse"></div>
+  </body>
+</html>

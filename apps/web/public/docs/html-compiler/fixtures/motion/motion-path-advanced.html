@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":2000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 600px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 300px; top: 60px; }
+      .cell-label-2 { left: 1050px; top: 60px; width: 500px; }
+      .cell-label-3 { left: 300px; top: 560px; width: 700px; }
+      .cell-label-4 { left: 1560px; top: 560px; width: 340px; }
+      #track-guides { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      #track-guides path { fill: none; stroke: #2b3a4d; stroke-width: 3px; stroke-dasharray: 10 10; }
+
+      @keyframes motion-path-loop { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+      #motion-path-loop { position: absolute; left: 0; top: 0; width: 120px; height: 70px; background: #22d3ee; offset-path: path("M 300 150 L 900 150 L 900 450 L 300 450 Z"); offset-distance: 0%; offset-rotate: auto 0deg; offset-anchor: 50% 50%; animation-name: motion-path-loop; animation-duration: 2000ms; animation-iteration-count: infinite; animation-timing-function: linear; }
+
+      @keyframes motion-path-zigzag { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+      #motion-path-zigzag { position: absolute; left: 0; top: 0; width: 120px; height: 70px; background: #a78bfa; offset-path: path("M 1050 200 L 1400 200 L 1200 450 L 1550 450"); offset-distance: 0%; offset-rotate: auto 0deg; offset-anchor: 50% 50%; animation-name: motion-path-zigzag; animation-duration: 1400ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-path-back-forth {
+        0% { offset-distance: 0%; }
+        40% { offset-distance: 70%; }
+        70% { offset-distance: 30%; }
+        100% { offset-distance: 100%; }
+      }
+      #motion-path-back-forth { position: absolute; left: 0; top: 0; width: 140px; height: 80px; background: #fb7185; offset-path: path("M 300 750 L 1400 750"); offset-distance: 0%; offset-rotate: auto 0deg; offset-anchor: 50% 50%; animation-name: motion-path-back-forth; animation-duration: 2000ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-path-scale {
+        from { offset-distance: 0%; transform: scale(0.6); }
+        to { offset-distance: 100%; transform: scale(1.3); }
+      }
+      #motion-path-scale { position: absolute; left: 0; top: 0; width: 100px; height: 100px; background: #facc15; transform-origin: center; offset-path: path("M 1600 700 C 1600 830, 1850 830, 1850 700"); offset-distance: 0%; offset-rotate: 0deg; offset-anchor: 50% 50%; animation-name: motion-path-scale; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <svg id="track-guides">
+      <path d="M 300 150 L 900 150 L 900 450 L 300 450 Z"></path>
+      <path d="M 1050 200 L 1400 200 L 1200 450 L 1550 450"></path>
+      <path d="M 300 750 L 1400 750"></path>
+      <path d="M 1600 700 C 1600 830, 1850 830, 1850 700"></path>
+    </svg>
+
+    <div class="cell-label cell-label-1">closed loop via Z: offset-distance wraps 0% to 100% seamlessly every cycle (infinite)</div>
+    <div class="cell-label cell-label-2">multi-segment polyline (three L commands in one path)</div>
+    <div class="cell-label cell-label-3">non-monotonic offset-distance (0% to 70% to 30% to 100%): the element moves back and forth along the same path</div>
+    <div class="cell-label cell-label-4">offset-path position composes with the element's own transform: scale</div>
+
+    <div id="motion-path-loop"></div>
+    <div id="motion-path-zigzag"></div>
+    <div id="motion-path-back-forth"></div>
+    <div id="motion-path-scale"></div>
+  </body>
+</html>

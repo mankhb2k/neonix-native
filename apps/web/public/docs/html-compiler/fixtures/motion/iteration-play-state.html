@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 520px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 620px; top: 60px; }
+      .cell-label-3 { left: 60px; top: 374px; }
+      .cell-label-4 { left: 620px; top: 374px; }
+
+      @keyframes motion-iteration-two { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-iteration-two { position: absolute; left: 60px; top: 94px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-iteration-two; animation-duration: 600ms; animation-iteration-count: 2; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-iteration-fractional { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-iteration-fractional { position: absolute; left: 620px; top: 94px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-iteration-fractional; animation-duration: 500ms; animation-iteration-count: 2.5; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-iteration-infinite { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-iteration-infinite { position: absolute; left: 60px; top: 408px; width: 520px; height: 240px; background: #facc15; animation-name: motion-iteration-infinite; animation-duration: 450ms; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-paused { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-paused { position: absolute; left: 620px; top: 408px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-paused; animation-duration: 700ms; animation-fill-mode: both; animation-play-state: paused; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">animation-iteration-count: 2</div>
+    <div class="cell-label cell-label-2">animation-iteration-count: 2.5 (fractional, stops mid-cycle)</div>
+    <div class="cell-label cell-label-3">animation-iteration-count: infinite</div>
+    <div class="cell-label cell-label-4">animation-play-state: paused (frozen at 0%)</div>
+
+    <div id="motion-iteration-two"></div>
+    <div id="motion-iteration-fractional"></div>
+    <div id="motion-iteration-infinite"></div>
+    <div id="motion-paused"></div>
+  </body>
+</html>

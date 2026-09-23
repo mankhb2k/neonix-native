@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 500px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 40px; }
+      .cell-label-2 { left: 760px; top: 40px; }
+      .cell-label-3 { left: 1320px; top: 40px; }
+      .cell-label-4 { left: 40px; top: 430px; }
+      .cell-label-5 { left: 600px; top: 430px; }
+      .cell-label-6 { left: 1160px; top: 430px; }
+
+      @keyframes motion-opacity { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-opacity { position: absolute; left: 40px; top: 70px; width: 680px; height: 320px; background: #22d3ee; animation-name: motion-opacity; animation-duration: 1200ms; animation-delay: 200ms; animation-fill-mode: both; }
+
+      @keyframes motion-delay-none { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-delay-none { position: absolute; left: 760px; top: 70px; width: 520px; height: 240px; opacity: 0.35; background: #22d3ee; animation-name: motion-delay-none; animation-duration: 700ms; animation-delay: 300ms; animation-fill-mode: none; animation-timing-function: linear; }
+
+      @keyframes motion-delay-backwards { from { opacity: 0.1; } to { opacity: 1; } }
+      #motion-delay-backwards { position: absolute; left: 1320px; top: 70px; width: 520px; height: 240px; opacity: 0.8; background: #a78bfa; animation-name: motion-delay-backwards; animation-duration: 700ms; animation-delay: 300ms; animation-fill-mode: backwards; animation-timing-function: linear; }
+
+      @keyframes motion-forwards { from { opacity: 1; } to { opacity: 0.2; } }
+      #motion-forwards { position: absolute; left: 40px; top: 460px; width: 520px; height: 240px; background: #fb7185; animation-name: motion-forwards; animation-duration: 700ms; animation-fill-mode: forwards; animation-timing-function: linear; }
+
+      @keyframes motion-both { from { opacity: 0.15; } to { opacity: 0.85; } }
+      #motion-both { position: absolute; left: 600px; top: 460px; width: 520px; height: 240px; background: #facc15; animation-name: motion-both; animation-duration: 700ms; animation-delay: 300ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      @keyframes motion-negative-delay { from { opacity: 0.1; } to { opacity: 0.9; } }
+      #motion-negative-delay { position: absolute; left: 1160px; top: 460px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-negative-delay; animation-duration: 700ms; animation-delay: -350ms; animation-fill-mode: both; animation-timing-function: linear; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">animation-delay: 200ms + fill-mode: both</div>
+    <div class="cell-label cell-label-2">delay 300ms + fill-mode: none (reverts to the authored style outside the active period)</div>
+    <div class="cell-label cell-label-3">delay 300ms + fill-mode: backwards (holds the first frame during the delay)</div>
+    <div class="cell-label cell-label-4">fill-mode: forwards (holds the last frame after finishing)</div>
+    <div class="cell-label cell-label-5">delay 300ms + fill-mode: both (holds both ends)</div>
+    <div class="cell-label cell-label-6">negative delay -350ms: starts partway into the timeline</div>
+
+    <div id="motion-opacity"></div>
+    <div id="motion-delay-none"></div>
+    <div id="motion-delay-backwards"></div>
+    <div id="motion-forwards"></div>
+    <div id="motion-both"></div>
+    <div id="motion-negative-delay"></div>
+  </body>
+</html>

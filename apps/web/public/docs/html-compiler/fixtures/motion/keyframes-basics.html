@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 660px; top: 60px; }
+      .cell-label-3 { left: 60px; top: 384px; }
+      .cell-label-4 { left: 660px; top: 384px; }
+      .cell-label-5 { left: 60px; top: 708px; }
+
+      @keyframes motion-from-to { from { opacity: 0.15; } to { opacity: 1; } }
+      #motion-from-to { position: absolute; left: 60px; top: 104px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-from-to; animation-duration: 1000ms; animation-fill-mode: both; }
+
+      @keyframes motion-three-stops { 0% { opacity: 0.1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
+      #motion-three-stops { position: absolute; left: 660px; top: 104px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-three-stops; animation-duration: 1200ms; animation-timing-function: linear; animation-fill-mode: both; }
+
+      @keyframes motion-missing-start { 30% { opacity: 0.35; } to { opacity: 1; } }
+      #motion-missing-start { position: absolute; left: 60px; top: 428px; width: 520px; height: 240px; opacity: 0.1; background: #22d3ee; animation-name: motion-missing-start; animation-duration: 1000ms; animation-timing-function: linear; animation-fill-mode: both; }
+
+      @keyframes motion-fade { from { opacity: 0.1; } to { opacity: 1; } }
+      @keyframes motion-tint { from { background-color: #22d3ee; } to { background-color: #f97316; } }
+      #motion-fade { position: absolute; left: 660px; top: 428px; width: 320px; height: 160px; background: #22d3ee; animation-name: motion-fade; animation-duration: 1000ms; }
+      #motion-tint { position: absolute; left: 1080px; top: 428px; width: 320px; height: 160px; animation-name: motion-tint; animation-duration: 1000ms; animation-timing-function: linear; }
+
+      @keyframes motion-duplicate { from { opacity: 0.1; } 50% { opacity: 0.2; } 50% { opacity: 0.8; } to { opacity: 1; } }
+      #motion-duplicate { position: absolute; left: 60px; top: 752px; width: 520px; height: 240px; background: #facc15; animation-name: motion-duplicate; animation-duration: 1000ms; animation-timing-function: linear; animation-fill-mode: both; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">@keyframes from / to (two-point track)</div>
+    <div class="cell-label cell-label-2">@keyframes 0% / 50% / 100% (three ordered stops)</div>
+    <div class="cell-label cell-label-3">missing 0%: value holds at the underlying style until the first explicit stop (30%)</div>
+    <div class="cell-label cell-label-4">two independent animation-name tracks on sibling elements</div>
+    <div class="cell-label cell-label-5">duplicate 50% offset: the later block in source order wins</div>
+
+    <div id="motion-from-to"></div>
+    <div id="motion-three-stops"></div>
+    <div id="motion-missing-start"></div>
+    <div id="motion-fade"></div>
+    <div id="motion-tint"></div>
+    <div id="motion-duplicate"></div>
+  </body>
+</html>

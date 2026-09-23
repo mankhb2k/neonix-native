@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 540px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 40px; }
+      .cell-label-2 { left: 680px; top: 40px; }
+      .cell-label-3 { left: 1300px; top: 40px; }
+      .cell-label-4 { left: 60px; top: 394px; }
+      .cell-label-5 { left: 680px; top: 394px; }
+      .cell-label-6 { left: 60px; top: 798px; }
+
+      @keyframes motion-scale { from { transform: scale(0.55); } to { transform: scale(1.25); } }
+      #motion-scale { position: absolute; left: 160px; top: 124px; width: 360px; height: 180px; background: #a78bfa; transform-origin: center; animation-name: motion-scale; animation-duration: 1000ms; animation-fill-mode: both; }
+
+      @keyframes motion-rotate-origin { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+      #motion-rotate-origin { position: absolute; left: 780px; top: 124px; width: 360px; height: 180px; background: #fb7185; transform-origin: 25% 75%; animation-name: motion-rotate-origin; animation-duration: 1000ms; animation-fill-mode: both; }
+
+      @keyframes motion-rgba { from { background-color: rgba(34, 211, 238, 0.25); } to { background-color: rgba(249, 115, 22, 0.85); } }
+      #motion-rgba { position: absolute; left: 1320px; top: 94px; width: 520px; height: 240px; animation-name: motion-rgba; animation-duration: 1000ms; animation-fill-mode: both; }
+
+      @keyframes motion-steps { from { background-color: #2563eb; } 50% { background-color: #facc15; } to { background-color: #fb7185; } }
+      #motion-steps { position: absolute; left: 80px; top: 473px; width: 520px; height: 240px; animation-name: motion-steps; animation-duration: 1000ms; animation-timing-function: steps(4, start); animation-fill-mode: both; }
+
+      @keyframes motion-frame { from { width: 240px; height: 120px; } to { width: 520px; height: 300px; } }
+      #motion-frame { position: absolute; left: 700px; top: 443px; width: 240px; height: 120px; box-sizing: border-box; padding: 20px; background: #22d3ee; animation-name: motion-frame; animation-duration: 1000ms; animation-fill-mode: both; }
+
+      @keyframes motion-transform { from { transform: translateX(0px) rotate(-8deg); } to { transform: translateX(260px) rotate(8deg); } }
+      #motion-transform { position: absolute; left: 200px; top: 850px; width: 360px; height: 180px; background: #a78bfa; transform-origin: center; animation-name: motion-transform; animation-duration: 1000ms; animation-iteration-count: 2; animation-direction: alternate; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">transform: scale (0.55 to 1.25), transform-origin: center</div>
+    <div class="cell-label cell-label-2">transform: rotate (+/- 18deg), transform-origin: 25% 75% (off-center)</div>
+    <div class="cell-label cell-label-3">background-color: rgba (the alpha channel interpolates too)</div>
+    <div class="cell-label cell-label-4">background-color, steps(4, start): discrete color jumps, not a blend</div>
+    <div class="cell-label cell-label-5">width + height with box-sizing: border-box</div>
+    <div class="cell-label cell-label-6">translateX + rotate combined, 2 iterations alternate, cubic-bezier</div>
+
+    <div id="motion-scale"></div>
+    <div id="motion-rotate-origin"></div>
+    <div id="motion-rgba"></div>
+    <div id="motion-steps"></div>
+    <div id="motion-frame"></div>
+    <div id="motion-transform"></div>
+  </body>
+</html>
