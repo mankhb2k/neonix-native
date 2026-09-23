@@ -85,8 +85,8 @@ the Job reads the persisted manifest from Supabase. This keeps retries,
 leases, cancellation, and idempotency in the control plane while the renderer
 remains stateless apart from its temporary `/tmp` workspace.
 
-See [`apps/web/ARCHITECHTURE.md`](../../apps/web/ARCHITECHTURE.md) for the
-end-to-end production flow and [`infra/cloud-run/export-renderer/README.md`](../../infra/cloud-run/export-renderer/README.md)
+See [`apps/web/CLAUDE.md`](../../apps/web/CLAUDE.md) for the end-to-end
+production flow and [`infra/cloud-run/export-renderer/README.md`](../../infra/cloud-run/export-renderer/README.md)
 for deployment and secret requirements.
 
 ## Current implementation
