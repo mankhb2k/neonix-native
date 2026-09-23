@@ -255,7 +255,7 @@ audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/R
 | `@motionvideo/html-compiler` | Input compiler | HTML/CSS subset → Protocol V2 | Runtime model và rendering |
 | `@motionvideo/asset-registry` | Asset contract | Font/SVG safety, asset identity và manifest/storage boundary | GPU textures, decoded media, Protocol semantics |
 | `@motionvideo/audio-analysis` | Offline media analysis | PCM decode, waveform/beat/energy/section analysis và clip mapping | Realtime audio clock, playback mixing |
-| `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts và Protocol V2 project operations | UI state, transport, renderer state |
+| `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts, Protocol V2 project operations, và project/runtime identity hash (tái dùng `computeProjectHash`/`computeRuntimeHash` từ `@motionvideo/export-renderer/contracts`) | UI state, transport, renderer state, native rendering |
 | `@motionvideo/motion-compiler` | Semantic compiler | Protocol V2 → RuntimeProjectV3, capability checks và lowering | UI, clock, media device, pixels |
 | `@motionvideo/motion-runtime` | Runtime semantics | Duration, timing, hierarchy, compiler-baked visual frame deltas, frame evaluation, paint/audio/video plans | Authoring mutation, clock, canvas, audio device |
 | `@motionvideo/editor-runtime` | Editor runtime session | Cache compile theo document generation, canonical layer sampling và frame evaluation cho editor | React, DOM, transport clock, renderer |
