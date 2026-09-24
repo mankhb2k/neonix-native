@@ -437,7 +437,7 @@ function StructuredMotion() {
         <Reveal delay={100}>
           <div className="overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[#15212A] p-5 shadow-[0_20px_45px_rgba(16,24,40,0.16)]">
             <div className={`mb-4 flex items-center gap-2 font-mono text-[#9FE7E0] ${LANDING_TYPOGRAPHY.codeMeta}`}>
-              <Braces className="h-3.5 w-3.5" /> normalized-motion.json
+              <Braces className="h-3.5 w-3.5" /> Neonix JSON V2
             </div>
             <pre className={`m-0 overflow-auto font-mono leading-7 text-[#D9E7EE] ${LANDING_TYPOGRAPHY.code}`}>
               {
