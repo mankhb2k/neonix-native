@@ -3,7 +3,15 @@ import { splitTopLevel } from "./utils";
 import type { Style } from "./model";
 
 export function isPaintToken(value: string): boolean {
-  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6}(?:[0-9a-f]{2})?)$/i.test(value) || ["transparent", "currentcolor", "none"].includes(value.toLowerCase());
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6}(?:[0-9a-f]{2})?)$/i.test(value)
+    || ["transparent", "currentcolor", "none"].includes(value.toLowerCase())
+    // Only hex reaches parseColor() successfully today (plus rgba(), handled
+    // below) — but misrouting an unrecognized function like hsl(...) here
+    // still gets a clear "unsupported color" error out of parseColor(),
+    // instead of this token being swallowed as a length/style/width token by
+    // whichever shorthand tokenizer called isPaintToken (box-shadow spread,
+    // border/outline color, filter: drop-shadow()'s color, all hit this).
+    || /^(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(/i.test(value);
 }
 
 export type CssViewport = {

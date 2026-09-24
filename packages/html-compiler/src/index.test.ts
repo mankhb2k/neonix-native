@@ -105,6 +105,50 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol?.layers[0]).toMatchObject({ id: "scene", style: { fill: "#14b8a6" }, opacity: 0.75 });
   });
 
+  it("pads the timeline to the authored durationMs when content is shorter", () => {
+    // No animation in this document, so the natural timeline is the 1000ms
+    // default — durationMs must be able to hold the export open longer than
+    // that (e.g. to sync a full clip length against background music) without
+    // any authored way to declare it, which is a real product gap this closes.
+    const result = compileDocument({
+      html: `<!doctype html>
+<html>
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb","durationMs":5000}}'>
+    <style data-neonix-bundle>#scene { position: absolute; left: 0; top: 0; width: 100px; height: 100px; background: #14b8a6; }</style>
+  </head>
+  <body><div id="scene"></div></body>
+</html>`,
+    });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "scene")?.timing).toEqual({ start: 0, duration: 5000 });
+  });
+
+  it("never truncates content that outlasts the authored durationMs", () => {
+    const result = compileDocument({
+      html: `<!doctype html>
+<html>
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb","durationMs":1000}}'>
+    <style data-neonix-bundle>
+      @keyframes reveal { to { opacity: 1; } }
+      #scene { position: absolute; left: 0; top: 0; width: 100px; height: 100px; background: #14b8a6; opacity: 0; animation: reveal 1s linear 2s forwards; }
+    </style>
+  </head>
+  <body><div id="scene"></div></body>
+</html>`,
+    });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "scene")?.timing).toEqual({ start: 0, duration: 3000 });
+  });
+
+  it("rejects a non-positive durationMs", () => {
+    const meta = `<meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb","durationMs":0}}'>`;
+    const result = compileDocument({ html: `<html><head>${meta}</head><body></body></html>` });
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("html-composition-invalid");
+  });
+
   it("rejects a document without the exact V2 metadata contract", () => {
     const result = compileDocument({ html: "<html><head></head><body></body></html>" });
     expect(result.status).toBe("error");

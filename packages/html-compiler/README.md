@@ -520,10 +520,15 @@ unit strings: percentages use the containing block, `em` uses the node's
 computed font size, `rem` uses the 16px root default, and viewport units use the
 composition viewport.
 
-The source composition is read from `neonix.config.json`; the starter default is
-`1920 x 1080`, `fps = 30`, background `#081018` and `srgb`. Compiler timing
-still defaults to `durationMs = 1000` until duration becomes part of the
-project timeline contract.
+The source composition is read from `neonix.config.json` (legacy `compileProject`
+path) or `meta[name="neonix-document"]` (the canonical single-file contract);
+the starter default is `1920 x 1080`, `fps = 30`, background `#081018` and
+`srgb`. Timeline duration is always `max(durationMs, longest animation
+timeline across all elements)`, never less — `durationMs` is optional and
+defaults to `1000`; set it to hold the export open past its last animation
+(e.g. to sync a full clip length against background music). It never
+truncates content: an animation that runs longer than `durationMs` still
+wins.
 
 `content-box` adds padding and border to the frame; `border-box` treats
 width/height as the border box. A numeric `aspect-ratio` resolves an `auto`

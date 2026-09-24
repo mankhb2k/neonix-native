@@ -40,6 +40,9 @@ function readComposition(value: unknown, issues: CompileIssue[]): HtmlCssComposi
   if (typeof composition.fps !== "number" || !Number.isFinite(composition.fps) || composition.fps <= 0) issues.push({ code: "html-composition-invalid", message: "neonix-document fps must be a positive number" });
   if (typeof composition.background !== "string" || !composition.background.trim()) issues.push({ code: "html-composition-invalid", message: "neonix-document background must be a non-empty color" });
   if (composition.colorSpace !== "srgb") issues.push({ code: "html-composition-invalid", message: "Only srgb color space is currently supported" });
+  if (composition.durationMs !== undefined && (typeof composition.durationMs !== "number" || !Number.isFinite(composition.durationMs) || composition.durationMs <= 0)) {
+    issues.push({ code: "html-composition-invalid", message: "neonix-document durationMs must be a positive number" });
+  }
   if (issues.length > before) return undefined;
   return {
     width: Number(composition.width),
@@ -47,6 +50,7 @@ function readComposition(value: unknown, issues: CompileIssue[]): HtmlCssComposi
     fps: Number(composition.fps),
     background: String(composition.background),
     colorSpace: "srgb",
+    ...(composition.durationMs === undefined ? {} : { durationMs: Number(composition.durationMs) }),
   };
 }
 

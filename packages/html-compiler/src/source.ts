@@ -6,6 +6,11 @@ export type HtmlCssComposition = Readonly<{
   fps: number;
   background: string;
   colorSpace: "srgb";
+  /** Minimum output duration in milliseconds. The export is never shorter than
+   * this, but a longer animation timeline still wins — this only pads with
+   * static trailing frames, it never truncates content. Defaults to 1000ms
+   * when omitted. */
+  durationMs?: number;
 }>;
 
 /** Canonical project configuration loaded from neonix.config.json. */
@@ -115,6 +120,12 @@ export const NEONIX_DOCUMENT_METADATA_JSON_SCHEMA = Object.freeze({
         fps: { type: "number", exclusiveMinimum: 0, description: "Frame rate." },
         background: { type: "string", minLength: 1, description: "Base background color, as any valid CSS color string." },
         colorSpace: { const: "srgb", description: 'Only "srgb" is currently supported.' },
+        durationMs: {
+          type: "number",
+          exclusiveMinimum: 0,
+          description:
+            "Optional minimum output duration in milliseconds. The export is never shorter than this, but a longer animation timeline still wins — this only pads trailing static frames, it never truncates content. Defaults to 1000ms when omitted.",
+        },
       },
     },
   },
