@@ -370,6 +370,80 @@ describe("CSS animation lowering", () => {
     expect(track?.keyframes[1]?.value).toEqual({ type: "number", value: 0.8 });
   });
 
+  it("carries the animation's own timing function onto a synthesized leading keyframe", () => {
+    // #box declares no 0%/from, so the compiler must synthesize a t=0
+    // keyframe from the underlying computed value. sampleKeyframes drives
+    // each segment from its *earlier* keyframe's easing, so that synthesized
+    // keyframe has to carry the animation's own ease-out — not a hardcoded
+    // linear ramp — or the entire first segment plays back linear no matter
+    // what timing function was authored.
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes fade { to { opacity: 1; } }
+        #box { width: 100px; height: 100px; opacity: 0; animation: fade 1s ease-out; }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const track = result.protocol?.layers.flatMap((layer) => layer.tracks ?? []).find((candidate) => candidate.path === "opacity");
+    expect(track?.keyframes[0]).toMatchObject({
+      time: 0,
+      easing: { type: "cubicBezier", x1: 0, y1: 0, x2: 0.58, y2: 1 },
+    });
+  });
+
+  it("lets two concurrent animations each own a different transform function", () => {
+    // The common "fade up, then pulse" pattern: fadeUp only ever varies
+    // translateY, pulse only ever varies scale. Both keyframe blocks still
+    // resolve all 11 transform sub-paths (CSS functions a block omits
+    // default to identity), so naively that means both claim every sub-path
+    // — this must not collide on the ones neither animation actually authors.
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        #box { width: 100px; height: 100px; opacity: 0; transform: translateY(40px); animation: fadeUp 1s ease-out 0.3s forwards, pulse 2s ease-in-out 1.5s infinite; }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = result.protocol?.layers.find((layer) => layer.id === "box")?.tracks ?? [];
+    const byPath = new Map(tracks.map((track) => [track.path, track]));
+    expect(byPath.get("transform.translate.y")?.id).toBe("animation:fadeUp:transform.translate.y");
+    expect(byPath.get("transform.translate.y")?.keyframes.map((kf) => kf.value)).toEqual([
+      { type: "number", value: 40 },
+      { type: "number", value: 0 },
+    ]);
+    expect(byPath.get("transform.scale.x")?.id).toBe("animation:pulse:transform.scale.x");
+    expect(byPath.get("transform.scale.x")?.keyframes.map((kf) => kf.value)).toEqual([
+      { type: "number", value: 1 },
+      { type: "number", value: 1.05 },
+      { type: "number", value: 1 },
+    ]);
+    expect(byPath.get("transform.scale.y")?.id).toBe("animation:pulse:transform.scale.y");
+    // Every other transform sub-path is identity for both animations *and*
+    // for the element's own static transform, so neither needs a track.
+    for (const path of ["transform.translate.x", "transform.translate.z", "transform.scale.z", "transform.rotate.x", "transform.rotate.y", "transform.rotate.z", "transform.skew.x", "transform.skew.y"]) {
+      expect(byPath.has(path), path).toBe(false);
+    }
+  });
+
+  it("still rejects two animations that genuinely animate the same transform axis, with a plain-CSS error", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes moveDown { from { transform: translateY(0); } to { transform: translateY(50px); } }
+        @keyframes moveUp { from { transform: translateY(0); } to { transform: translateY(-50px); } }
+        #box { width: 100px; height: 100px; animation: moveDown 1s, moveUp 1s; }
+      `,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-animation-transform-conflict");
+    expect(result.diagnostics[0]?.message).toBe(
+      'Two animations on the same element both animate translateY(): "moveDown" and "moveUp". CSS has no defined way to combine two animations that write the same transform function on one element — merge them into a single @keyframes block that sets the full transform at each stop instead.',
+    );
+  });
+
   it("returns a diagnostic for an unknown animation name", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: "<div id=\"box\"></div>",

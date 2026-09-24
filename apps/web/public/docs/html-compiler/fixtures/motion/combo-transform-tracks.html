@@ -8,6 +8,7 @@
       .cell-label-1 { left: 80px; top: 60px; }
       .cell-label-2 { left: 700px; top: 60px; }
       .cell-label-3 { left: 80px; top: 414px; }
+      .cell-label-4 { left: 700px; top: 414px; }
 
       @keyframes motion-combo-transform-opacity { from { opacity: 0.15; transform: translateX(0px) rotate(-6deg); } to { opacity: 1; transform: translateX(260px) rotate(6deg); } }
       #motion-combo-transform-opacity { position: absolute; left: 80px; top: 170px; width: 360px; height: 180px; background: #22d3ee; transform-origin: center; animation-name: motion-combo-transform-opacity; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
@@ -19,15 +20,28 @@
       @keyframes motion-combo-image { from { transform: translateX(-220px); } to { transform: translateX(220px); } }
       #motion-combo-image-viewport { position: absolute; left: 80px; top: 458px; width: 520px; height: 300px; overflow: hidden; background: #1e3a8a; }
       #motion-combo-image { position: absolute; left: 0; top: 0; width: 760px; height: 300px; object-fit: cover; animation-name: motion-combo-image; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+
+      /* Two concurrent animation-name tracks on the SAME element that each
+         animate a different transform function only (translateY vs scale).
+         A `transform` keyframe block resolves every translate/scale/rotate/
+         skew sub-path, defaulting the ones it never mentions to identity, so
+         both animations technically "touch" all 11 sub-paths -- this must
+         not collide as a duplicate animated property path on the 9 neither
+         one actually authors. */
+      @keyframes motion-combo-fade-up { to { opacity: 1; transform: translateY(0px); } }
+      @keyframes motion-combo-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+      #motion-combo-fade-pulse { position: absolute; left: 700px; top: 458px; width: 360px; height: 180px; background: #a855f7; opacity: 0; transform: translateY(40px); animation-name: motion-combo-fade-up, motion-combo-pulse; animation-duration: 700ms, 900ms; animation-delay: 0ms, 300ms; animation-fill-mode: forwards, none; animation-iteration-count: 1, infinite; animation-timing-function: ease-out, ease-in-out; }
     </style>
   </head>
   <body>
     <div class="cell-label cell-label-1">one animation, two tracked properties (opacity + transform)</div>
     <div class="cell-label cell-label-2">two animation-name tracks (comma list): move, then tint on a different easing</div>
     <div class="cell-label cell-label-3">transform-driven image pan inside an overflow: hidden viewport</div>
+    <div class="cell-label cell-label-4">two animation-name tracks, each owning a different transform function (translateY, then scale)</div>
 
     <div id="motion-combo-transform-opacity"></div>
     <div id="motion-combo-transform-color"></div>
     <div id="motion-combo-image-viewport"><img id="motion-combo-image" src="/preview/image/photo-landscape.jpg"></div>
+    <div id="motion-combo-fade-pulse"></div>
   </body>
 </html>

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { compileDocument, type HtmlCompilerDiagnostic, type HtmlCompilerOptions, type HtmlCompilerResult } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
+import { logCompileDiagnostics } from "./compile-diagnostics-log";
 import { HTML_COMPILER_FONT_ASSETS } from "./html-compiler-font-assets";
 
 type JsonObject = Record<string, unknown>;
@@ -112,7 +113,9 @@ function isEditor(role: string): boolean {
 }
 
 function compileHtml(html: string, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
-  return compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS }, options);
+  const result = compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS }, options);
+  logCompileDiagnostics(result.diagnostics);
+  return result;
 }
 
 function projectResponse(project: ProjectRow, revision: HtmlRevisionRow | null) {

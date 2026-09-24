@@ -2121,9 +2121,10 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
       "transform + opacity",
       "multiple animation-name",
       "transform-driven image pan",
-      "overflow: hidden"
+      "overflow: hidden",
+      "concurrent transform sub-path ownership"
     ],
-    "hint": "One animation driving two properties at once, two independent animation-name tracks with different easing on the same element, and a transform-driven image pan clipped by an overflow: hidden viewport.",
+    "hint": "One animation driving two properties at once, two independent animation-name tracks with different easing on the same element, a transform-driven image pan clipped by an overflow: hidden viewport, and two concurrent animations that each own a different transform function (translateY, then scale) without colliding on the sub-paths neither one authors.",
     "fixtureUrl": "/docs/html-compiler/fixtures/motion/combo-transform-tracks.html",
     "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },

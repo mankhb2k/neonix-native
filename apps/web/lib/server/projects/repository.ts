@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { compileDocument, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { applyMotionProtocolV2Patch } from "@motionvideo/motion-mcp";
+import { logCompileDiagnostics } from "../compile-diagnostics-log";
 import { HTML_COMPILER_FONT_ASSETS } from "../html-compiler-font-assets";
 
 export type ProjectClient = SupabaseClient;
@@ -464,6 +465,7 @@ export async function createProjectHtml(
   const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
+    logCompileDiagnostics(compiled.diagnostics);
     throw new ProjectRepositoryError(
       errors[0]?.message ?? "HTML document could not be compiled",
       "INVALID_DOCUMENT",
@@ -641,6 +643,7 @@ export async function updateProjectHtml(
   const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
+    logCompileDiagnostics(compiled.diagnostics);
     throw new ProjectRepositoryError(
       errors[0]?.message ?? "HTML document could not be compiled",
       "INVALID_DOCUMENT",

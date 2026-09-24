@@ -66,6 +66,16 @@ export const SUPPORTED_ANIMATION_TIMING_FUNCTIONS = [
   "steps(count, jump-start | jump-end | jump-none | jump-both | start | end)",
 ] as const;
 
+/** Published through get_capabilities to explain css-animation-transform-conflict in CSS terms before an author hits it. */
+export const ANIMATION_CAPABILITY_NOTES = [
+  {
+    id: "concurrent-transform-animations",
+    summary: "Two animation-name entries on one element can't vary the same transform function.",
+    detail:
+      "A `transform` keyframe block resolves every translate/scale/rotate/skew component at once — functions it omits default to identity — so two concurrent animations on one element are each free to own a *different* transform function (e.g. one only translateY, the other only scale). But if both vary the same function, that's a conflict: CSS has no defined way to combine two animations writing the same transform function on one element. Merge them into a single @keyframes block that sets the full transform at each stop instead.",
+  },
+] as const;
+
 function easing(value: string | undefined): V2Easing {
   const source = (value ?? "ease").trim().toLowerCase();
   if (source === "linear") return { type: "linear" };
@@ -229,10 +239,99 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
               : property === "opacity" ? { type: "number" as const, value: number(raw, 1) } : color(raw, options.currentColor);
       return { time: Math.round(entry.at * durationMs), value, easing: easing(styleTiming(definition, entry.at) ?? defaultTiming) };
     });
-    if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseFor(path, base, options) as typeof keyframes[number]["value"], easing: { type: "linear" } });
+    // A synthesized leading keyframe (no explicit 0%/from) still starts the
+    // animation's own declared timing function, not a forced linear ramp —
+    // sampleKeyframes drives each segment from its *earlier* keyframe's
+    // easing, so this is what actually governs the first segment's curve.
+    if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseFor(path, base, options) as typeof keyframes[number]["value"], easing: easing(defaultTiming) });
     if (keyframes.at(-1)!.time < durationMs) keyframes.push({ time: durationMs, value: keyframes.at(-1)!.value, easing: { type: "linear" } });
     return { id: `animation:${definition.name}:${path}`, path, keyframes, animation } as V2Track;
   });
+}
+
+/** The CSS-identity value of a transform sub-path: the value it holds when the
+ * function that drives it is entirely absent from a `transform` declaration.
+ * translate.x/y fold in the static layout position (see transformValues),
+ * so their "no-op" value is that offset, not literal 0. */
+const TRANSFORM_FUNCTION_LABEL: Record<string, string> = {
+  "transform.translate.x": "translateX()",
+  "transform.translate.y": "translateY()",
+  "transform.translate.z": "translateZ()",
+  "transform.scale.x": "scaleX()",
+  "transform.scale.y": "scaleY()",
+  "transform.scale.z": "scaleZ()",
+  "transform.rotate.x": "rotateX()",
+  "transform.rotate.y": "rotateY()",
+  "transform.rotate.z": "rotate() / rotateZ()",
+  "transform.skew.x": "skewX()",
+  "transform.skew.y": "skewY()",
+};
+
+/** A track's id is `animation:<keyframes-name>:<path>` (see buildTrack). */
+function animationNameOf(track: V2Track): string {
+  return track.id.slice("animation:".length, track.id.length - track.path.length - 1);
+}
+
+function transformIdentityValue(path: string, options: LowerAnimationOptions): number {
+  if (path === "transform.translate.x") return options.layoutTranslate.x;
+  if (path === "transform.translate.y") return options.layoutTranslate.y;
+  if (path.startsWith("transform.scale.")) return 1;
+  return 0;
+}
+
+function isIdentityTransformTrack(track: V2Track, identityValue: number): boolean {
+  return track.keyframes.every(
+    (keyframe) => keyframe.value.type === "number" && Math.abs(keyframe.value.value - identityValue) < 1e-6,
+  );
+}
+
+/**
+ * A `transform` keyframe block resolves every translate/scale/rotate/skew
+ * sub-path (unspecified CSS functions default to identity), so two
+ * concurrent animations that each vary a *different* transform function
+ * (one only translateY, the other only scale, the common "fade up, then
+ * pulse" pattern) both end up claiming all 11 sub-paths, colliding on the
+ * ones neither actually authored. For each transform sub-path shared by more
+ * than one animation on this element: if only one of them ever departs from
+ * the CSS-identity value, that one is the real author — drop the others. If
+ * two or more genuinely vary it, that is an authored conflict (CSS itself
+ * has no defined way to combine them) and is left for schema validation to
+ * reject. If every duplicate is identity, at most one survives, and only
+ * when the element's own static transform isn't already identity there too
+ * (needed to reset it, matching the runtime's transform-replacement
+ * semantics — see sampleMotionLayerAtTime in motion-compiler).
+ */
+function resolveTransformTrackConflicts(tracks: V2Track[], style: Style, options: LowerAnimationOptions): V2Track[] {
+  const byPath = new Map<string, V2Track[]>();
+  for (const track of tracks) {
+    if (!track.path.startsWith("transform.")) continue;
+    const bucket = byPath.get(track.path);
+    if (bucket) bucket.push(track);
+    else byPath.set(track.path, [track]);
+  }
+  const drop = new Set<V2Track>();
+  const transformBase = style.get("transform") ?? "none";
+  for (const [path, bucket] of byPath) {
+    if (bucket.length < 2) continue;
+    const identityValue = transformIdentityValue(path, options);
+    const authored = bucket.filter((track) => !isIdentityTransformTrack(track, identityValue));
+    const identity = bucket.filter((track) => isIdentityTransformTrack(track, identityValue));
+    if (authored.length >= 2) {
+      const names = [...new Set(authored.map(animationNameOf))];
+      fail(
+        "css-animation-transform-conflict",
+        `Two animations on the same element both animate ${TRANSFORM_FUNCTION_LABEL[path] ?? path}: ${names.map((name) => `"${name}"`).join(" and ")}. CSS has no defined way to combine two animations that write the same transform function on one element — merge them into a single @keyframes block that sets the full transform at each stop instead.`,
+      );
+    }
+    if (authored.length === 1) {
+      for (const track of identity) drop.add(track);
+      continue;
+    }
+    const staticValue = (baseFor(path, transformBase, options) as { type: "number"; value: number }).value;
+    const keep = Math.abs(staticValue - identityValue) > 1e-6 ? 1 : 0;
+    for (const track of identity.slice(keep)) drop.add(track);
+  }
+  return drop.size ? tracks.filter((track) => !drop.has(track)) : tracks;
 }
 
 function styleTiming(definition: KeyframeDefinition, at: number): string | undefined {
@@ -337,7 +436,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
       for (const track of tracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
     }
   });
-  return { group, paint };
+  return { group: resolveTransformTrackConflicts(group, style, options), paint };
 }
 
 /** Returns the minimum layer timeline needed to expose a finite animation. */

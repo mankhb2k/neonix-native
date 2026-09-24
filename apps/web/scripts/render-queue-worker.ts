@@ -24,7 +24,13 @@ import {
 loadEnvConfig(process.cwd());
 
 const pollMilliseconds = Number(process.env.RENDER_QUEUE_POLL_MS ?? 1_000);
-const visibilityTimeoutSeconds = Number(process.env.RENDER_QUEUE_VISIBILITY_TIMEOUT_SECONDS ?? 900);
+// Must stay >= queue-worker-client.ts's RENDER_QUEUE_STATUS_TIMEOUT_MS
+// (default 30min): processOne holds this message the whole time it waits for
+// the render to finish. A shorter visibility timeout lets the message become
+// visible again mid-wait, so the same job gets dispatched a second time
+// while the first attempt is still in flight (observed as a duplicate Cloud
+// Run execution and a render_jobs row stuck between "publishing" and "done").
+const visibilityTimeoutSeconds = Number(process.env.RENDER_QUEUE_VISIBILITY_TIMEOUT_SECONDS ?? 1_800);
 const maxAttempts = Number(process.env.RENDER_QUEUE_MAX_ATTEMPTS ?? 5);
 const staleAfterSeconds = Number(process.env.RENDER_QUEUE_STALE_SECONDS ?? Math.max(visibilityTimeoutSeconds * 2, 1_800));
 const recoveryIntervalMilliseconds = Number(process.env.RENDER_QUEUE_RECOVERY_INTERVAL_MS ?? 30_000);

@@ -8,7 +8,7 @@ export {
   TEXT_TAGS,
 } from "./compiler/model";
 
-export { SUPPORTED_ANIMATION_TIMING_FUNCTIONS } from "./compiler/animation";
+export { ANIMATION_CAPABILITY_NOTES, SUPPORTED_ANIMATION_TIMING_FUNCTIONS } from "./compiler/animation";
 
 export {
   DEFAULT_HTML_CSS_COMPOSITION,

@@ -190,6 +190,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     htmlTags: jsonObject,
     cssProperties: z.array(z.string()),
     values: jsonObject.optional(),
+    constraints: z.array(z.object({ id: z.string(), summary: z.string(), detail: z.string() })).optional(),
     fonts: z.array(jsonObject).optional(),
   },
   validate_html: {

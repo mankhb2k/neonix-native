@@ -656,7 +656,7 @@ export function createRemoteMcpServer(options: {
       "get_capabilities",
       {
         title: "Get capabilities",
-        description: "Return supported HTML tags, CSS properties, document metadata, Protocol version, and allowed values for properties that reject most values (e.g. animation-timing-function only accepts linear, ease, ease-in, ease-out, ease-in-out, cubic-bezier() and steps() — not every CSS easing keyword).",
+        description: "Return supported HTML tags, CSS properties, document metadata, Protocol version, allowed values for properties that reject most values (e.g. animation-timing-function only accepts linear, ease, ease-in, ease-out, ease-in-out, cubic-bezier() and steps() — not every CSS easing keyword), and constraints on how supported features combine (e.g. two concurrent animation-name entries on one element can't vary the same transform function).",
         inputSchema: {},
         annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get capabilities"),
         outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_capabilities,

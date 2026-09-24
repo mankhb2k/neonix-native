@@ -126,5 +126,11 @@ describe("createMcpServer", () => {
     const api = buildApi();
     const capabilities = await api.documentApi!.getCapabilities();
     expect(capabilities).toMatchObject({ protocolVersion: 2 });
+    // The transform-conflict constraint (two animation-name entries on one
+    // element can't vary the same transform function) must be discoverable
+    // here so an author/agent can learn it without a failed compile first.
+    expect(capabilities.constraints).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "concurrent-transform-animations" })]),
+    );
   });
 });
