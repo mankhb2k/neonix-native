@@ -1,4 +1,4 @@
-import { CompileError, fail } from "./errors";
+import { CompileError, CompileIssues, fail, type CompileIssue } from "./errors";
 import type { HtmlCssComposition, HtmlDocumentInput, NeonixHtmlDocumentV2 } from "../source";
 
 type ParsedDocument = Readonly<{
@@ -22,14 +22,25 @@ function decodeHtmlAttribute(value: string): string {
     .replace(/&amp;/gi, "&");
 }
 
-function readComposition(value: unknown): HtmlCssComposition {
-  if (!value || typeof value !== "object" || Array.isArray(value)) fail("html-composition-invalid", "neonix-document composition must be an object");
+/**
+ * Reports every invalid composition field in one pass (pushed onto `issues`)
+ * instead of stopping at the first one, since the five fields are
+ * independent of each other and a caller fixing them one at a time
+ * shouldn't need a validate round-trip per field.
+ */
+function readComposition(value: unknown, issues: CompileIssue[]): HtmlCssComposition | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    issues.push({ code: "html-composition-invalid", message: "neonix-document composition must be an object" });
+    return undefined;
+  }
   const composition = value as Record<string, unknown>;
-  if (!Number.isInteger(composition.width) || Number(composition.width) <= 0) fail("html-composition-invalid", "neonix-document width must be a positive integer");
-  if (!Number.isInteger(composition.height) || Number(composition.height) <= 0) fail("html-composition-invalid", "neonix-document height must be a positive integer");
-  if (typeof composition.fps !== "number" || !Number.isFinite(composition.fps) || composition.fps <= 0) fail("html-composition-invalid", "neonix-document fps must be a positive number");
-  if (typeof composition.background !== "string" || !composition.background.trim()) fail("html-composition-invalid", "neonix-document background must be a non-empty color");
-  if (composition.colorSpace !== "srgb") fail("html-composition-invalid", "Only srgb color space is currently supported");
+  const before = issues.length;
+  if (!Number.isInteger(composition.width) || Number(composition.width) <= 0) issues.push({ code: "html-composition-invalid", message: "neonix-document width must be a positive integer" });
+  if (!Number.isInteger(composition.height) || Number(composition.height) <= 0) issues.push({ code: "html-composition-invalid", message: "neonix-document height must be a positive integer" });
+  if (typeof composition.fps !== "number" || !Number.isFinite(composition.fps) || composition.fps <= 0) issues.push({ code: "html-composition-invalid", message: "neonix-document fps must be a positive number" });
+  if (typeof composition.background !== "string" || !composition.background.trim()) issues.push({ code: "html-composition-invalid", message: "neonix-document background must be a non-empty color" });
+  if (composition.colorSpace !== "srgb") issues.push({ code: "html-composition-invalid", message: "Only srgb color space is currently supported" });
+  if (issues.length > before) return undefined;
   return {
     width: Number(composition.width),
     height: Number(composition.height),
@@ -55,9 +66,16 @@ function parseMetadata(html: string): NeonixHtmlDocumentV2 {
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) fail("html-document-metadata-invalid", "neonix-document meta content must be a JSON object");
   const metadata = parsed as { kind?: unknown; schemaVersion?: unknown; composition?: unknown };
-  if (metadata.kind !== "neonix-html-document") fail("html-document-kind-invalid", "neonix-document kind must be neonix-html-document");
-  if (metadata.schemaVersion !== 2) fail("html-document-schema-unsupported", "neonix-document schemaVersion must be 2");
-  return { kind: "neonix-html-document", schemaVersion: 2, composition: readComposition(metadata.composition) };
+
+  // These three checks are independent of each other, so every failure is
+  // reported together rather than one validate_html round-trip per field.
+  const issues: CompileIssue[] = [];
+  if (metadata.kind !== "neonix-html-document") issues.push({ code: "html-document-kind-invalid", message: "neonix-document kind must be neonix-html-document" });
+  if (metadata.schemaVersion !== 2) issues.push({ code: "html-document-schema-unsupported", message: "neonix-document schemaVersion must be 2" });
+  const composition = readComposition(metadata.composition, issues);
+  if (issues.length > 0) throw new CompileIssues(issues);
+
+  return { kind: "neonix-html-document", schemaVersion: 2, composition: composition! };
 }
 
 function collectStyles(html: string): { html: string; css: string } {

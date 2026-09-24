@@ -111,6 +111,16 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.diagnostics[0]?.code).toBe("html-document-metadata-missing");
   });
 
+  it("reports every invalid metadata/composition field in one pass instead of one at a time", () => {
+    const meta = `<meta name="neonix-document" content='{"kind":"wrong-kind","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30}}'>`;
+    const result = compileDocument({ html: `<html><head>${meta}</head><body></body></html>` });
+    expect(result.status).toBe("error");
+    const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
+    expect(codes).toContain("html-document-kind-invalid");
+    expect(codes).toContain("html-composition-invalid");
+    expect(result.diagnostics.length).toBeGreaterThan(1);
+  });
+
   it("reports duplicate metadata instead of choosing one document envelope", () => {
     const meta = `<meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>`;
     const result = compileDocument({ html: `<html><head>${meta}${meta}</head><body></body></html>` });

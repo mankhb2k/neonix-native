@@ -8,7 +8,7 @@ import {
   type HtmlCssSource,
   type HtmlDocumentInput,
 } from "../../source";
-import { CompileError, fail } from "../errors";
+import { CompileError, CompileIssues, fail } from "../errors";
 import { neonixManifest, withoutNeonixManifest } from "../html/manifest";
 import { parseHtml } from "../html/parser";
 import { parseAnimationStyles, parseRules } from "../css/parser";
@@ -243,6 +243,10 @@ export function compileDocument(document: HtmlDocumentInput, options: HtmlCompil
       css: parsed.css,
     }, documentOptions);
   } catch (error) {
+    if (error instanceof CompileIssues) {
+      const diagnostics = error.issues.map((issue) => ({ severity: "error" as const, code: issue.code, message: issue.message }));
+      return { status: "error", source: fallbackSource, protocol: null, diagnostics };
+    }
     const diagnostic = isCompileError(error)
       ? { severity: "error" as const, code: error.code, message: error.message, ...(error.source ? { source: error.source } : {}) }
       : { severity: "error" as const, code: "html-compiler-internal", message: error instanceof Error ? error.message : String(error) };

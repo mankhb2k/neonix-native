@@ -91,6 +91,40 @@ export const DEFAULT_HTML_CSS_COMPOSITION: HtmlCssComposition = Object.freeze({
   colorSpace: "srgb",
 });
 
+/**
+ * JSON Schema for the content of `meta[name="neonix-document"]`, kept in sync
+ * by hand with the runtime checks in compiler/document.ts (there is no
+ * schema-validator dependency in this package to generate it from).
+ */
+export const NEONIX_DOCUMENT_METADATA_JSON_SCHEMA = Object.freeze({
+  $schema: "http://json-schema.org/draft-07/schema#",
+  title: "Neonix HTML document metadata",
+  description:
+    'JSON content of the meta[name="neonix-document"] tag required in every Neonix HTML document.',
+  type: "object",
+  required: ["kind", "schemaVersion", "composition"],
+  properties: {
+    kind: { const: "neonix-html-document" },
+    schemaVersion: { const: 2 },
+    composition: {
+      type: "object",
+      required: ["width", "height", "fps", "background", "colorSpace"],
+      properties: {
+        width: { type: "integer", minimum: 1, description: "Output width in pixels." },
+        height: { type: "integer", minimum: 1, description: "Output height in pixels." },
+        fps: { type: "number", exclusiveMinimum: 0, description: "Frame rate." },
+        background: { type: "string", minLength: 1, description: "Base background color, as any valid CSS color string." },
+        colorSpace: { const: "srgb", description: 'Only "srgb" is currently supported.' },
+      },
+    },
+  },
+  example: {
+    kind: "neonix-html-document",
+    schemaVersion: 2,
+    composition: DEFAULT_HTML_CSS_COMPOSITION,
+  },
+} as const);
+
 export const DEFAULT_NEONIX_HTML_DOCUMENT = `<!DOCTYPE html>
 <html lang="vi">
 <head>

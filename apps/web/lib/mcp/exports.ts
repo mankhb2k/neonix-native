@@ -16,7 +16,7 @@ import { getMcpSupabaseClient } from "./projects";
 import type { McpPrincipal } from "./auth";
 
 export class McpExportError extends Error {
-  constructor(message: string, readonly code = "EXPORT_ERROR") {
+  constructor(message: string, readonly code = "EXPORT_ERROR", readonly details?: Record<string, unknown>) {
     super(message);
     this.name = "McpExportError";
   }
@@ -24,6 +24,13 @@ export class McpExportError extends Error {
 
 const CREATE_EXPORT_RATE_LIMIT_WINDOW_SECONDS = 300;
 const CREATE_EXPORT_RATE_LIMIT_MAX_REQUESTS = 10;
+
+/** The rate limit bucket is a fixed window aligned to the epoch (see check_and_increment_rate_limit), so the reset time is derivable without another DB round-trip. */
+function secondsUntilRateLimitReset(windowSeconds: number): number {
+  const nowSeconds = Date.now() / 1000;
+  const windowStart = Math.floor(nowSeconds / windowSeconds) * windowSeconds;
+  return Math.max(1, Math.ceil(windowStart + windowSeconds - nowSeconds));
+}
 
 async function enforceCreateExportRateLimit(principal: McpPrincipal): Promise<void> {
   try {
@@ -34,7 +41,12 @@ async function enforceCreateExportRateLimit(principal: McpPrincipal): Promise<vo
     });
     if (allowed.error) throw allowed.error;
     if (allowed.data !== true) {
-      throw new McpExportError("Too many export requests. Please wait a few minutes and try again.", "RATE_LIMITED");
+      const retryAfterSeconds = secondsUntilRateLimitReset(CREATE_EXPORT_RATE_LIMIT_WINDOW_SECONDS);
+      throw new McpExportError(
+        `Too many export requests. Try again in ${retryAfterSeconds}s.`,
+        "RATE_LIMITED",
+        { retryAfterSeconds },
+      );
     }
   } catch (error) {
     if (error instanceof McpExportError) throw error;
