@@ -440,6 +440,20 @@ export async function createProject(
   };
 }
 
+export function extractHtmlTitle(html: string): string | null {
+  const match = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+  if (!match) return null;
+  const decoded = match[1]
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  return decoded || null;
+}
+
 export async function createProjectHtml(
   client: ProjectClient,
   actor: ProjectActor,
@@ -458,7 +472,7 @@ export async function createProjectHtml(
   }
 
   const workspace = await resolveWorkspace(client, actor, input.workspaceId);
-  const title = input.title?.trim() || "Untitled project";
+  const title = input.title?.trim() || extractHtmlTitle(input.html) || "Untitled project";
   const document = compiled.protocol as unknown as JsonObject;
   const committed = await client.rpc("create_html_project", {
     p_workspace_id: workspace.id,
