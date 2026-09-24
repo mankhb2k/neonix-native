@@ -38,6 +38,11 @@ const FAQ_ITEMS: readonly FaqItem[] = [
       "AI agents such as Claude, ChatGPT and Grok connect to Neonix's Remote MCP server and call tools like create_project_html to compile HTML/CSS into a video project, then export it as MP4.",
   },
   {
+    question: "How is Neonix different from code-first video frameworks like Remotion?",
+    answer:
+      "Code-first frameworks need a developer writing React to render video. Neonix is agent-first: an AI agent such as Claude, ChatGPT or Grok creates the HTML/CSS motion project directly over MCP, and a person can then refine it in the editor. No React or rendering code required.",
+  },
+  {
     question: "What does Neonix compile HTML/CSS into?",
     answer:
       "A structured JSON scene document that stays editable after compilation, in the Neonix editor or programmatically, before the final video render.",
