@@ -61,6 +61,31 @@ RUN mkdir -p /opt/ffmpeg-compat \
         esac; \
       done
 
+# Full workspace install (large, never shipped) then pruned two ways:
+# (1) `pnpm deploy --prod` drops every devDependency (tsx, typescript,
+#     vitest...) from the deployed node_modules; (2) esbuild bundles each Job
+#     entrypoint (first-party TS across the whole workspace, since
+#     workspace:* packages point straight at .ts source) into one plain JS
+#     file, so cold start never pays for tsx's on-the-fly transpilation.
+# Real npm dependencies (sharp, @aws-sdk/*, google-auth-library, zod...) stay
+# external — resolved from the deployed node_modules at runtime, not bundled.
+FROM node:22-bookworm-slim AS app-builder
+WORKDIR /workspace
+COPY . .
+RUN corepack enable && pnpm install --frozen-lockfile
+RUN pnpm --filter @motionvideo/export-renderer deploy --prod --legacy /app
+# Only export-renderer's own real npm dependencies (transitively, through
+# motion-runtime/html-compiler/motion-protocol too) are excluded from the
+# bundle; every @motionvideo/* workspace package is plain .ts source with no
+# other runtime, so esbuild bundles those in directly.
+RUN pnpm exec esbuild \
+  packages/export-renderer/src/render-job.ts \
+  packages/export-renderer/src/render-chunk-job.ts \
+  packages/export-renderer/src/render-finalizer-job.ts \
+  packages/export-renderer/src/benchmark-native-skia-command-cpu.ts \
+  --bundle --platform=node --format=esm --outdir=/app/dist \
+  --external:@aws-sdk/client-s3 --external:google-auth-library --external:@supabase/supabase-js --external:sharp --external:zod
+
 FROM node:22-bookworm-slim
 
 RUN apt-get update \
@@ -68,13 +93,16 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . .
-RUN corepack enable && pnpm install --frozen-lockfile
+COPY --from=app-builder /app .
 COPY --from=skia-build /opt/skia/out/Release/neonix_skia_command_cpu_backend_libyuv /usr/local/bin/neonix-skia-command-cpu-backend
 COPY --from=skia-build /opt/ffmpeg-compat /opt/ffmpeg-compat
 
 ENV NODE_ENV=production
 ENV NATIVE_SKIA_BINARY=/usr/local/bin/neonix-skia-command-cpu-backend
+# render-job.ts spawns this as a child process per render; pointing it at the
+# pre-bundled JS (instead of the pnpm+tsx path used in local dev) means the
+# child process pays no tsx transpile cost either.
+ENV NATIVE_COMMAND_BUNDLE_PATH=/app/dist/benchmark-native-skia-command-cpu.js
 ENV BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat
 ENV BENCHMARK_DURATION_SECONDS=60
 ENV BENCHMARK_FRAMES=1800
@@ -85,4 +113,7 @@ ENV BENCHMARK_MODE=in-process
 ENV BENCHMARK_COLOR_CONVERTER=libyuv
 ENV BENCHMARK_SURFACE_MODE=direct-raster
 ENV LIBYUV_REVISION=2dd4257364d39c38d79465c4ddc4b93137fe729b
-CMD ["pnpm", "--filter", "@motionvideo/export-renderer", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"]
+# The Cloud Run Service (control plane) still runs the full package via pnpm;
+# only the Job entrypoints (render-job/render-chunk-job/render-finalizer-job)
+# are pre-bundled above and invoked as plain `node dist/*.js` at deploy time.
+CMD ["node", "dist/render-job.js"]

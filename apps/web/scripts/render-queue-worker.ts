@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import os from "node:os";
 import { loadEnvConfig } from "@next/env";
 import {
@@ -29,6 +30,8 @@ const staleAfterSeconds = Number(process.env.RENDER_QUEUE_STALE_SECONDS ?? Math.
 const recoveryIntervalMilliseconds = Number(process.env.RENDER_QUEUE_RECOVERY_INTERVAL_MS ?? 30_000);
 const workerId = process.env.RENDER_QUEUE_WORKER_ID?.trim() || `render-queue-${os.hostname()}-${process.pid}`;
 const exitAfterOne = process.env.RENDER_QUEUE_EXIT_AFTER_ONE?.trim().toLowerCase() === "true";
+/** Caps concurrent Cloud Run Job executions this worker will have in flight at once (cost control, not a Cloud Run limitation). */
+const maxConcurrency = Math.max(1, Number(process.env.RENDER_QUEUE_MAX_CONCURRENCY ?? 5));
 
 let stopping = false;
 process.once("SIGTERM", () => { stopping = true; });
@@ -83,6 +86,7 @@ async function processOne(messageId: number, rawMessage: unknown, readCount: num
       return;
     }
     if (cloudRunDispatch) {
+      console.log("[render-queue] dispatching", { messageId, jobId: message.jobId });
       await runCloudRunQueuedRender({ job: claimed, workerId });
     } else {
       await runQueuedRender({ job: claimed, runtime, workerId });
@@ -121,7 +125,12 @@ async function main(): Promise<void> {
     throw new Error("Production render queue worker requires RENDER_DISPATCH_MODE=cloud-run-job");
   }
   let lastRecoveryAt = 0;
-  console.log("[render-queue] consumer started", { pollMilliseconds, visibilityTimeoutSeconds, maxAttempts, staleAfterSeconds, workerId, exitAfterOne });
+  // Each entry owns one message end-to-end (dispatch, wait, delete/retry); up
+  // to maxConcurrency run at once so independent jobs don't queue behind each
+  // other, while still bounding how many Cloud Run executions (cost) this
+  // worker can have in flight simultaneously.
+  const inFlight = new Set<Promise<void>>();
+  console.log("[render-queue] consumer started", { pollMilliseconds, visibilityTimeoutSeconds, maxAttempts, staleAfterSeconds, workerId, exitAfterOne, maxConcurrency });
   while (!stopping) {
     try {
       if (Date.now() - lastRecoveryAt >= recoveryIntervalMilliseconds) {
@@ -130,13 +139,19 @@ async function main(): Promise<void> {
         if (recovered.length > 0) console.log("[render-queue] recovered stale jobs", { jobs: recovered });
         lastRecoveryAt = Date.now();
       }
-      const messages = await readRenderQueue({ visibilityTimeoutSeconds, batchSize: 1 });
+      const availableSlots = maxConcurrency - inFlight.size;
+      if (availableSlots <= 0) {
+        await sleep(pollMilliseconds);
+        continue;
+      }
+      const messages = await readRenderQueue({ visibilityTimeoutSeconds, batchSize: availableSlots });
+      if (messages.length > 0) console.log("[render-queue] read batch", { count: messages.length, availableSlots, inFlightBefore: inFlight.size, jobIds: messages.map((m) => m.message.jobId) });
       for (const message of messages) {
-        await processOne(message.msg_id, message.message, message.read_ct);
-        if (exitAfterOne) {
-          stopping = true;
-          break;
-        }
+        const task = processOne(message.msg_id, message.message, message.read_ct)
+          .catch((error: unknown) => console.error("[render-queue] unhandled processOne error", { messageId: message.msg_id, error }))
+          .finally(() => inFlight.delete(task));
+        inFlight.add(task);
+        if (exitAfterOne) stopping = true;
       }
       if (messages.length === 0) await sleep(pollMilliseconds);
     } catch (error) {
@@ -144,6 +159,7 @@ async function main(): Promise<void> {
       await sleep(Math.max(pollMilliseconds, 2_000));
     }
   }
+  await Promise.allSettled(inFlight);
   console.log("[render-queue] consumer stopped");
 }
 

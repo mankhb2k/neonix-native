@@ -117,8 +117,14 @@ export async function renderNativeCommandBuffer(
   await mkdir(dirname(outputPath), { recursive: true });
   const runtimePath = join(dirname(outputPath), `.runtime-native-${process.pid}-${Date.now()}.json`);
   await writeFile(runtimePath, `${JSON.stringify(project)}\n`, "utf8");
-  const command = process.env.PNPM_PATH?.trim() || (process.platform === "win32" ? "pnpm.cmd" : "pnpm");
-  const args = ["--filter", "@motionvideo/export-renderer", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"];
+  // Production images bundle this entrypoint to plain JS (no pnpm/tsx at
+  // runtime); NATIVE_COMMAND_BUNDLE_PATH points at it when present. Local
+  // dev has no bundle, so it falls back to the pnpm+tsx invocation.
+  const bundlePath = process.env.NATIVE_COMMAND_BUNDLE_PATH?.trim();
+  const command = bundlePath ? process.execPath : (process.env.PNPM_PATH?.trim() || (process.platform === "win32" ? "pnpm.cmd" : "pnpm"));
+  const args = bundlePath
+    ? [bundlePath]
+    : ["--filter", "@motionvideo/export-renderer", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"];
   const fps = project.visual.composition.fps;
   const frameCount = range.endFrameExclusive - range.startFrame;
   const durationSeconds = frameCount / fps;

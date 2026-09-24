@@ -323,4 +323,5 @@ async function main(): Promise<void> {
   }
 }
 
+console.log(JSON.stringify({ marker: "render-job-started", atMs: Date.now() }));
 await main();
