@@ -89,19 +89,10 @@ The OpenAI submission manifest may repeat the first three fields and add
 review justifications, but those justifications are not part of the runtime
 MCP protocol.
 
-## Optional OAuth operation scopes
-
-The hosted adapter supports least-privilege operation scopes when
-`MCP_ENFORCE_OPERATION_SCOPES=true`:
-
-```text
-projects:read    projects:write    projects:delete
-assets:read      assets:write      assets:delete
-exports:read     exports:write     exports:delete
-```
-
-The default is disabled so existing OAuth clients remain compatible. When
-enabled, the authorization server must issue the requested custom scopes (or
-`neonix:admin`); otherwise the MCP server returns a structured `FORBIDDEN`
-error. The protected-resource metadata advertises these scopes only when the
-feature flag is enabled.
+Access control is identity-based only: every tool call runs as the
+authenticated `principal.userId`, and persistence-layer RLS scopes each
+operation to that user's own workspaces/projects. There is no separate
+operation-scope gate — Supabase Auth (the OAuth authorization server) only
+issues `openid`/`profile`/`email`/`offline_access`, so a client-requested
+scope like `projects:write` can never actually be granted, and gating tool
+calls on it would lock out every legitimately authenticated caller.

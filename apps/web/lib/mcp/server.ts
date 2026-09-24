@@ -1,7 +1,7 @@
 import "server-only";
 
-import { compileHtmlDocument } from "@/lib/server/html-project-repository";
 import { HTML_COMPILER_FONT_ASSETS } from "@/lib/server/html-compiler-font-assets";
+import { compileHtmlDocument } from "@/lib/server/html-project-repository";
 import { HTML_TAG_PROFILE, SUPPORTED_ANIMATION_TIMING_FUNCTIONS, SUPPORTED_PROPERTIES } from "@motionvideo/html-compiler";
 import {
   createRemoteMcpServer,
@@ -15,11 +15,7 @@ import {
   listAssets,
   requestAssetUpload,
 } from "./assets";
-import {
-  requireMcpScope,
-  type McpOperationScope,
-  type McpPrincipal,
-} from "./auth";
+import { type McpPrincipal } from "./auth";
 import {
   cancelExport,
   createExport,
@@ -50,25 +46,21 @@ import {
  */
 export function createMcpServer(principal: McpPrincipal) {
   const remotePrincipal: RemoteMcpPrincipal = principal;
-  const guarded = <T>(scope: McpOperationScope, operation: () => Promise<T>) => {
-    requireMcpScope(principal, scope);
-    return operation();
-  };
 
   return createRemoteMcpServer({
     principal: remotePrincipal,
     api: {
-      listWorkspaces: () => guarded("projects:read", () => listWorkspaces(principal)),
-      createProject: (input) => guarded("projects:write", () => createProtocolProject(principal, input)),
-      createProjectHtml: (input) => guarded("projects:write", () => createProjectHtml(principal, input)),
-      listProjects: (input) => guarded("projects:read", () => listProjects(principal, input)),
-      getProject: (input) => guarded("projects:read", () => getProtocolProject(principal, input)),
-      updateProject: (input) => guarded("projects:write", () => updateProtocolProject(principal, input)),
-      deleteProject: (input) => guarded("projects:delete", () => deleteProtocolProject(principal, input)),
-      openEditor: (input) => guarded("projects:read", () => openEditor(principal, input)),
-      openPreview: (input) => guarded("projects:read", () => openPreview(principal, input)),
+      listWorkspaces: () => listWorkspaces(principal),
+      createProject: (input) => createProtocolProject(principal, input),
+      createProjectHtml: (input) => createProjectHtml(principal, input),
+      listProjects: (input) => listProjects(principal, input),
+      getProject: (input) => getProtocolProject(principal, input),
+      updateProject: (input) => updateProtocolProject(principal, input),
+      deleteProject: (input) => deleteProtocolProject(principal, input),
+      openEditor: (input) => openEditor(principal, input),
+      openPreview: (input) => openPreview(principal, input),
       documentApi: {
-        getCapabilities: () => guarded("projects:read", () => Promise.resolve({
+        getCapabilities: () => Promise.resolve({
             apiVersion: 1,
             protocolVersion: 2,
             document: {
@@ -94,50 +86,46 @@ export function createMcpServer(principal: McpPrincipal) {
                  .map((font) => font.style))]
                  .sort(),
              })),
-           })),
+           }),
         validateDocument: ({ html }) => {
-          return guarded("projects:read", () => {
-            const result = compileHtmlDocument(html);
-            return Promise.resolve({
-              valid: result.status === "success" && !result.diagnostics.some((item) => item.severity === "error"),
-              composition: result.source.composition,
-              diagnostics: result.diagnostics,
-              stats: { layerCount: result.protocol?.layers.length ?? 0 },
-            });
+          const result = compileHtmlDocument(html);
+          return Promise.resolve({
+            valid: result.status === "success" && !result.diagnostics.some((item) => item.severity === "error"),
+            composition: result.source.composition,
+            diagnostics: result.diagnostics,
+            stats: { layerCount: result.protocol?.layers.length ?? 0 },
           });
         },
         compileDocument: ({ html }) => {
-          return guarded("projects:read", () => {
-            const result = compileHtmlDocument(html);
-            if (result.status !== "success" || !result.protocol) {
-              return Promise.reject(new Error(result.diagnostics.find((item) => item.severity === "error")?.message ?? "HTML compilation failed"));
-            }
-            return Promise.resolve({
-              status: "succeeded",
-              protocolVersion: 2,
-              composition: result.source.composition,
-              protocol: result.protocol,
-              diagnostics: result.diagnostics,
-            });
+          const result = compileHtmlDocument(html);
+          if (result.status !== "success" || !result.protocol) {
+            return Promise.reject(new Error(result.diagnostics.find((item) => item.severity === "error")?.message ?? "HTML compilation failed"));
+          }
+          return Promise.resolve({
+            status: "succeeded",
+            protocolVersion: 2,
+            composition: result.source.composition,
+            protocol: result.protocol,
+            diagnostics: result.diagnostics,
           });
         },
       },
-      getProjectJson: (input) => guarded("projects:read", () => getProtocolProjectJson(principal, input)),
-      applyJsonPatch: (input) => guarded("projects:write", () => applyProjectJsonPatch(principal, input)),
-      getProjectHtml: (input) => guarded("projects:read", () => getProjectHtmlSource(principal, input)),
-      updateProjectHtml: (input) => guarded("projects:write", () => updateProjectHtmlSource(principal, input)),
-      listHtmlRevisions: (input) => guarded("projects:read", () => listProjectHtmlRevisions(principal, input)),
-      getHtmlRevision: (input) => guarded("projects:read", () => getProjectHtmlRevision(principal, input)),
-      listAssets: (input) => guarded("assets:read", () => listAssets(principal, input)),
-      requestAssetUpload: (input) => guarded("assets:write", () => requestAssetUpload(principal, input)),
-      completeAssetUpload: (input) => guarded("assets:write", () => completeAssetUpload(principal, input)),
-      importAsset: (input) => guarded("assets:write", () => importAsset(principal, input)),
-      attachAssetToProject: (input) => guarded("assets:write", () => attachAssetToProject(principal, input)),
-      deleteAsset: (input) => guarded("assets:delete", () => deleteAsset(principal, input)),
-      createExport: (input) => guarded("exports:write", () => createExport(principal, input)),
-      getExport: (input) => guarded("exports:read", () => getExport(principal, input)),
-      getExportDownloadUrl: (input) => guarded("exports:read", () => getExportDownloadUrl(principal, input)),
-      cancelExport: (input) => guarded("exports:delete", () => cancelExport(principal, input)),
+      getProjectJson: (input) => getProtocolProjectJson(principal, input),
+      applyJsonPatch: (input) => applyProjectJsonPatch(principal, input),
+      getProjectHtml: (input) => getProjectHtmlSource(principal, input),
+      updateProjectHtml: (input) => updateProjectHtmlSource(principal, input),
+      listHtmlRevisions: (input) => listProjectHtmlRevisions(principal, input),
+      getHtmlRevision: (input) => getProjectHtmlRevision(principal, input),
+      listAssets: (input) => listAssets(principal, input),
+      requestAssetUpload: (input) => requestAssetUpload(principal, input),
+      completeAssetUpload: (input) => completeAssetUpload(principal, input),
+      importAsset: (input) => importAsset(principal, input),
+      attachAssetToProject: (input) => attachAssetToProject(principal, input),
+      deleteAsset: (input) => deleteAsset(principal, input),
+      createExport: (input) => createExport(principal, input),
+      getExport: (input) => getExport(principal, input),
+      getExportDownloadUrl: (input) => getExportDownloadUrl(principal, input),
+      cancelExport: (input) => cancelExport(principal, input),
     },
   });
 }

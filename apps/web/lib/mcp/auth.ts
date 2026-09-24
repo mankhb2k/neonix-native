@@ -11,29 +11,6 @@ export type McpPrincipal = {
   expiresAt?: number;
 };
 
-export type McpOperationScope =
-  | "projects:read"
-  | "projects:write"
-  | "projects:delete"
-  | "assets:read"
-  | "assets:write"
-  | "assets:delete"
-  | "exports:read"
-  | "exports:write"
-  | "exports:delete";
-
-export function operationScopesEnabled(): boolean {
-  return process.env.MCP_ENFORCE_OPERATION_SCOPES === "true";
-}
-
-export function requireMcpScope(principal: McpPrincipal, scope: McpOperationScope): void {
-  if (!operationScopesEnabled()) return;
-  if (principal.scopes.includes(scope) || principal.scopes.includes("neonix:admin")) return;
-  const error = new Error(`Scope ${scope} is required for this operation`);
-  Object.assign(error, { code: "FORBIDDEN" });
-  throw error;
-}
-
 type AuthenticationResult =
   | { ok: true; config: McpConfig; principal: McpPrincipal }
   | { ok: false; reason: "misconfigured" | "unauthorized"; config: McpConfig | null };
