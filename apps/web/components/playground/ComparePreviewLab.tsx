@@ -240,7 +240,7 @@ export function ComparePreviewLab({
               size. {layout === "stacked" ? "No CSS scaling is applied." : "Both panels are scaled down equally to fit side by side."}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             <div
               className="flex h-8 items-center rounded-md border border-[#b8dcd6] bg-white p-0.5"
               role="tablist"
