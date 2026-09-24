@@ -186,11 +186,14 @@ async function updateJob(
   worker: string,
   patch: Record<string, unknown>,
 ): Promise<void> {
+  console.log(JSON.stringify({ diag: "updateJob:start", atMs: Date.now(), keys: Object.keys(patch) }));
   const result = await database
     .from("render_jobs")
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("public_ref", jobId)
-    .eq("lease_owner", worker);
+    .eq("lease_owner", worker)
+    .select("public_ref");
+  console.log(JSON.stringify({ diag: "updateJob:done", atMs: Date.now(), keys: Object.keys(patch), matchedRows: Array.isArray(result.data) ? result.data.length : null, error: result.error?.message ?? null }));
   if (result.error) throw new Error(`Unable to update render job: ${result.error.message}`);
 }
 

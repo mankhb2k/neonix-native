@@ -24,10 +24,14 @@ async function main() {
   await client.connect(transport);
   try {
     const ids = process.argv.slice(2);
+    let ok = 0;
+    let failed = 0;
     for (const projectId of ids) {
       const res = await client.callTool({ name: "delete_project", arguments: { project_id: projectId } });
-      console.log(projectId, JSON.stringify(res));
+      if (res.isError) { failed += 1; console.log(projectId, "FAILED", JSON.stringify(res)); }
+      else { ok += 1; }
     }
+    console.log(JSON.stringify({ ok, failed, total: ids.length }));
   } finally {
     await client.close();
   }
