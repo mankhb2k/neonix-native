@@ -1,0 +1,8 @@
+services:
+  render-queue-worker:
+    build:
+      context: ../..
+      dockerfile: infra/render-queue-worker/Dockerfile
+    env_file:
+      - ../../apps/web/.env
+    restart: unless-stopped
