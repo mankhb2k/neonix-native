@@ -340,7 +340,7 @@ export function ComparePreviewLab({
                 </span>
               </>
             ) : null}
-            <Button type="button" variant="outline" size="md" onClick={reset}>
+            <Button type="button" variant="outline" size="md" className="ml-auto" onClick={reset}>
               <RotateCcw size={14} /> Reset
             </Button>
           </div>
