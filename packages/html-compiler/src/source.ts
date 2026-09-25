@@ -79,12 +79,24 @@ export type HtmlCompilerMediaAsset = {
   channels?: number;
   mimeType?: string;
 };
+/**
+ * Real per-node text measurement, keyed by `textSizingCacheKey()`
+ * (compiler/text-sizing.ts) - produced ahead of time by `prepareHtmlTextSizing()`
+ * from the SAME real HarfBuzz shaping Preview/export use, and consulted by
+ * `layout()` instead of its own character-count heuristic wherever a key
+ * matches. Optional and purely additive: omitting it (the default) keeps
+ * today's synchronous, heuristic-only behavior unchanged.
+ */
+export type HtmlTextSizingLookup = ReadonlyMap<string, { height: number }>;
+
 export type HtmlCompilerOptions = {
   composition?: { width?: number; height?: number; fps?: number; durationMs?: number; id?: string };
   /** Exact font binaries available to the compiler/runtime. CSS fallback is never implicit. */
   fontAssets?: readonly HtmlCompilerFontAsset[];
   /** Optional catalog metadata for CSS image/video URLs. */
   mediaAssets?: readonly HtmlCompilerMediaAsset[];
+  /** Real per-node text measurement from `prepareHtmlTextSizing()`. See `HtmlTextSizingLookup`. */
+  textSizing?: HtmlTextSizingLookup;
 };
 export type HtmlCompilerResult = { status: "success" | "error"; source: HtmlCssSource; protocol: MotionProtocolV2 | null; diagnostics: HtmlCompilerDiagnostic[] };
 

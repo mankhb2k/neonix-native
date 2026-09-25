@@ -15,12 +15,14 @@
     "cli": "tsx src/cli/index.ts"
   },
   "dependencies": {
-    "@motionvideo/motion-protocol": "workspace:*"
+    "@motionvideo/motion-protocol": "workspace:*",
+    "@motionvideo/motion-runtime": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@types/node": "^22.13.10",
     "eslint": "^9.22.0",
+    "harfbuzzjs": "^1.6.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
     "tsx": "^4.23.1",

@@ -288,6 +288,7 @@ flowchart TD
 
     editor-core --> motion-protocol
     html-compiler --> motion-protocol
+    html-compiler --> motion-runtime
     motion-compiler --> motion-protocol
     motion-compiler --> motion-runtime
     editor-runtime --> motion-compiler
@@ -335,7 +336,7 @@ hay bất kỳ `package.json` nào nữa; chỉ còn `node_modules` rác trên �
 | --- | --- | --- | --- |
 | `@motionvideo/motion-protocol` | Contract | Schema, migration và canonical Protocol V2 | Runtime timing, rendering, transport |
 | `@motionvideo/editor-core` | Authoring domain | Document commands, inverse commands, selection, timeline projection/geometry và pure interactions | Compile/evaluate runtime, playhead clock, DOM, React, persistence |
-| `@motionvideo/html-compiler` | Input compiler | HTML/CSS subset → Protocol V2 | Runtime model và rendering |
+| `@motionvideo/html-compiler` | Input compiler | HTML/CSS subset → Protocol V2 (tái dùng text-shaping utilities của `@motionvideo/motion-runtime` — `measureVisualRuntimeText` qua `prepareHtmlTextSizing()` — làm nguồn đo `height:auto` text box chính xác, thay heuristic đếm ký tự) | Runtime model và rendering |
 | `@motionvideo/asset-registry` | Asset contract | Font/SVG safety, asset identity và manifest/storage boundary | GPU textures, decoded media, Protocol semantics |
 | `@motionvideo/audio-analysis` | Offline media analysis | PCM decode, waveform/beat/energy/section analysis và clip mapping | Realtime audio clock, playback mixing |
 | `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts, Protocol V2 project operations, và project/runtime identity hash (tái dùng `computeProjectHash`/`computeRuntimeHash` từ `@motionvideo/export-renderer/contracts`) | UI state, transport, renderer state, native rendering |

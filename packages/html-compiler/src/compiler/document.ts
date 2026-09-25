@@ -82,7 +82,7 @@ function parseMetadata(html: string): NeonixHtmlDocumentV2 {
   return { kind: "neonix-html-document", schemaVersion: 2, composition: composition! };
 }
 
-function collectStyles(html: string): { html: string; css: string } {
+export function collectStyles(html: string): { html: string; css: string } {
   const css: string[] = [];
   const withoutStyles = html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style\s*>/gi, (_match, attributes: string, content: string) => {
     const type = attributeValue(attributes, "type");

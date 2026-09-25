@@ -4,17 +4,19 @@ import {
   type HtmlCssProject,
   type HtmlCompilerOptions,
   type HtmlCompilerResult,
+  type HtmlTextSizingLookup,
   type NeonixHtmlProjectConfig,
   type HtmlCssSource,
   type HtmlDocumentInput,
 } from "../../source";
+import { resolveTextContentWidth, textSizingCacheKey } from "../text-sizing";
 import { CompileError, CompileIssues, fail } from "../errors";
 import { neonixManifest, withoutNeonixManifest } from "../html/manifest";
 import { parseHtml } from "../html/parser";
 import { parseAnimationStyles, parseRules } from "../css/parser";
 import { computed } from "../css/cascade";
 import { edges, number, resolveVar } from "../css/values";
-import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePaintLayers, type CornerRadius, type Paint, type Outline } from "../paint";
+import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePaintLayers, type Paint } from "../paint";
 import { resolveNodeTransformState } from "../transform";
 import { resolveGeometry, resizeResolvedGeometry } from "../geometry";
 import { collapseVerticalMargins } from "../layout";
@@ -23,7 +25,7 @@ import { createLayoutEngine, layoutFlowChildren, type FlowState } from "../layou
 import { resolveFlexLayout } from "../flex";
 import { resolveGridLayout } from "../grid";
 import { mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "../lowering/media";
-import { parseBackgroundBox, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages, type BackgroundImage } from "../background";
+import { parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages } from "../background";
 import { parseFilter } from "../filter";
 import { resolveNodeBackground, resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
 import { emitNodePaint } from "./paint-node";
@@ -39,20 +41,25 @@ import { createCompileContext } from "../compile-context";
 import { createAssetRegistry } from "../lowering/assets";
 import { parseNeonixDocument, isCompileError } from "../document";
 
-function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: { width: number; height: number }): number {
+/**
+ * A `height:auto` text box's intrinsic height. When `textSizing` (real
+ * HarfBuzz-measured, from `prepareHtmlTextSizing()`) has an entry for this
+ * exact (text, font, content-width) combination, use it - otherwise fall
+ * back to a character-count heuristic (`fontSize * 0.55` average glyph
+ * width) that only approximates real text shaping. See text-sizing.ts for
+ * why a cache miss here is always safe, never wrong.
+ */
+function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: { width: number; height: number }, textSizing: HtmlTextSizingLookup | undefined): number {
   const lineHeight = parseLineHeight(style, fontSize, viewport);
   const whiteSpace = parseWhiteSpace(style.get("white-space"));
   const explicitLines = text.split(/\r?\n/);
   if (whiteSpace === "nowrap" || whiteSpace === "pre") return Math.max(1, explicitLines.length) * lineHeight;
 
-  const padding = edges(style, "padding", containingWidth, fontSize, 16, viewport);
-  const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
-  const horizontalDecorations = padding[1] + padding[3] + border.right.width + border.left.width;
-  const boxSizing = (style.get("box-sizing") ?? "content-box").trim().toLowerCase();
-  const declaredWidth = number(style, "width", containingWidth, fontSize, 16, viewport);
-  const contentWidth = Number.isFinite(declaredWidth)
-    ? Math.max(1, boxSizing === "border-box" ? declaredWidth - horizontalDecorations : declaredWidth)
-    : Math.max(1, containingWidth - horizontalDecorations);
+  const contentWidth = resolveTextContentWidth(style, containingWidth, fontSize, viewport);
+  if (textSizing) {
+    const measured = textSizing.get(textSizingCacheKey(text, style, fontSize, contentWidth));
+    if (measured) return measured.height;
+  }
   const averageGlyphWidth = Math.max(1, fontSize * 0.55);
   const charactersPerLine = Math.max(1, Math.floor(contentWidth / averageGlyphWidth));
   const normalizedLines = text.replace(/[ \t]+/g, " ").split(/\r?\n/);
@@ -280,7 +287,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       const isBlockFlowContainer = child.tag !== "svg" && child.tag !== "g" && display !== "flex" && display !== "inline-flex" && display !== "grid" && display !== "inline-grid";
       let contentHeight = 0;
       if (text) {
-        contentHeight = estimateTextIntrinsicHeight(text, childStyle, childFont, containingWidth, viewport);
+        contentHeight = estimateTextIntrinsicHeight(text, childStyle, childFont, containingWidth, viewport, options.textSizing);
       } else if (isBlockFlowContainer && child.children.length > 0) {
         const horizontalDecorations = padding[1] + padding[3] + border.right.width + border.left.width;
         const childContentWidth = Math.max(1, containingWidth - horizontalDecorations);
@@ -368,7 +375,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       const isBlockFlowContainer = node.tag !== "svg" && node.tag !== "g" && ownDisplayForHeight !== "flex" && ownDisplayForHeight !== "inline-flex" && ownDisplayForHeight !== "grid" && ownDisplayForHeight !== "inline-grid";
       let intrinsicContentHeight: number | undefined;
       if (heightIsAuto && geometryText) {
-        intrinsicContentHeight = estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport);
+        intrinsicContentHeight = estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport, options.textSizing);
       } else if (heightIsAuto && isBlockFlowContainer && node.children.length > 0) {
         const ownPadding = edges(style, "padding", containingWidth, font, 16, viewport);
         const ownBorder = parseBorderEdges(style, containingWidth, font, viewport);

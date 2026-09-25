@@ -1,5 +1,7 @@
 export { compileDocument, compileHtmlCss, compileProject } from "./compiler/pipeline/compile";
 export { ensureBrowserPreviewBodyStyle } from "./browser-preview-style";
+export { prepareHtmlTextSizing, textSizingCacheKey } from "./compiler/text-sizing";
+export type { PrepareHtmlTextSizingOptions } from "./compiler/text-sizing";
 
 export {
   HTML_TAG_PROFILE,

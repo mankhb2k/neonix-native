@@ -347,6 +347,9 @@ importers:
       '@motionvideo/motion-protocol':
         specifier: workspace:*
         version: link:../motion-protocol
+      '@motionvideo/motion-runtime':
+        specifier: workspace:*
+        version: link:../motion-runtime
     devDependencies:
       '@eslint/js':
         specifier: ^9.22.0
@@ -357,6 +360,9 @@ importers:
       eslint:
         specifier: ^9.22.0
         version: 9.39.5(jiti@2.7.0)
+      harfbuzzjs:
+        specifier: ^1.6.0
+        version: 1.6.0
       tsx:
         specifier: ^4.23.1
         version: 4.23.12
