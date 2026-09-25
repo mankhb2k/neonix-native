@@ -155,6 +155,44 @@ function contentOffset(mode: ContentAlignment, remaining: number, count: number)
   return { lead: 0, gap: 0 };
 }
 
+type GridAreaRect = { rowStart: number; colStart: number; rowEnd: number; colEnd: number };
+
+/**
+ * `grid-template-areas: "a b" "c c";` - one quoted string per row, cells
+ * separated by whitespace, `.` marking an empty (unnamed) cell. Each name's
+ * cells must form one contiguous rectangle (CSS Grid §7.4); this is
+ * verified after computing each name's bounding box, not merely assumed
+ * from the syntax, so an author's typo (an "L" shape) fails loudly instead
+ * of silently placing the item at the wrong size.
+ */
+function parseGridTemplateAreas(raw: string | undefined): { columnCount: number; rowCount: number; areas: Map<string, GridAreaRect> } | undefined {
+  if (raw === undefined || raw.trim().toLowerCase() === "none") return undefined;
+  const rowStrings = [...raw.matchAll(/"([^"]*)"/g)].map((match) => match[1]!);
+  if (rowStrings.length === 0) fail("css-grid-template-areas-invalid", `grid-template-areas must be one or more quoted rows: ${raw}`);
+  const rows = rowStrings.map((row) => row.trim().split(/\s+/).filter(Boolean));
+  const columnCount = rows[0]!.length;
+  if (columnCount === 0 || rows.some((row) => row.length !== columnCount)) fail("css-grid-template-areas-invalid", "grid-template-areas rows must all have the same number of cells");
+  const areas = new Map<string, GridAreaRect>();
+  rows.forEach((row, rowIndex) => {
+    row.forEach((name, colIndex) => {
+      if (name === ".") return;
+      const existing = areas.get(name);
+      if (!existing) { areas.set(name, { rowStart: rowIndex + 1, colStart: colIndex + 1, rowEnd: rowIndex + 2, colEnd: colIndex + 2 }); return; }
+      existing.rowEnd = Math.max(existing.rowEnd, rowIndex + 2);
+      existing.colStart = Math.min(existing.colStart, colIndex + 1);
+      existing.colEnd = Math.max(existing.colEnd, colIndex + 2);
+    });
+  });
+  for (const [name, rect] of areas) {
+    for (let row = rect.rowStart; row < rect.rowEnd; row += 1) {
+      for (let col = rect.colStart; col < rect.colEnd; col += 1) {
+        if (rows[row - 1]?.[col - 1] !== name) fail("css-grid-template-areas-invalid", `grid-template-areas region "${name}" is not a single rectangle`);
+      }
+    }
+  }
+  return { columnCount, rowCount: rows.length, areas };
+}
+
 function fits(occupied: boolean[][], row: number, col: number, rowSpan: number, colSpan: number, rows: number, columns: number): boolean {
   if (row < 0 || col < 0 || col + colSpan > columns || row + rowSpan > rows) return false;
   for (let y = row; y < row + rowSpan; y += 1) for (let x = col; x < col + colSpan; x += 1) if (occupied[y]?.[x]) return false;
@@ -173,8 +211,16 @@ export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
     : 0;
   const columnGap = gap(input.containerStyle, "column-gap", baseGap, contentWidth, input.fontSize, input.viewport);
   const rowGap = gap(input.containerStyle, "row-gap", baseGap, contentWidth, input.fontSize, input.viewport);
+  const templateAreas = parseGridTemplateAreas(input.containerStyle.get("grid-template-areas"));
   const columns = parseTracks(input.containerStyle.get("grid-template-columns"), contentWidth, input.fontSize, input.viewport, "1fr");
   const rows = parseTracks(input.containerStyle.get("grid-template-rows"), contentHeight, input.fontSize, input.viewport, "auto");
+  // grid-template-areas can name more cells than grid-template-columns/rows
+  // explicitly size; the remaining ones become implicit auto tracks, same
+  // as an item placed past the end of the explicit grid.
+  if (templateAreas) {
+    while (columns.length < templateAreas.columnCount) columns.push({ kind: "auto", value: 0 });
+    while (rows.length < templateAreas.rowCount) rows.push({ kind: "auto", value: 0 });
+  }
   let columnSizes = resolveTrackSizes(columns, contentWidth, columnGap);
   let rowSizes = resolveTrackSizes(rows, contentHeight, rowGap);
   const columnCount = columnSizes.length;
@@ -186,14 +232,18 @@ export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
     const style = input.styles.get(node) ?? new Map<string, string>();
     if (value(style, "display", "block") === "none" || value(style, "position", "static") === "absolute") continue;
     if (value(style, "display", "block") === "contents") fail("css-grid-contents-unsupported", "display: contents inside a grid container is deferred until grid flattening is supported");
-    const colStart = lineNumber(style.get("grid-column-start"), "grid-column-start");
-    const rowStart = lineNumber(style.get("grid-row-start"), "grid-row-start");
-    const colStartSpan = spanNumber(style.get("grid-column-start"), "grid-column-start");
-    const rowStartSpan = spanNumber(style.get("grid-row-start"), "grid-row-start");
-    const colEnd = lineNumber(style.get("grid-column-end"), "grid-column-end");
-    const rowEnd = lineNumber(style.get("grid-row-end"), "grid-row-end");
-    const colEndSpan = spanNumber(style.get("grid-column-end"), "grid-column-end");
-    const rowEndSpan = spanNumber(style.get("grid-row-end"), "grid-row-end");
+    const gridAreaName = style.get("grid-area")?.trim();
+    if (gridAreaName !== undefined && gridAreaName.includes("/")) fail("css-grid-area-unsupported", `grid-area only supports a named region, not the row/column line shorthand: ${gridAreaName}`);
+    const areaRect = gridAreaName !== undefined ? templateAreas?.areas.get(gridAreaName) : undefined;
+    if (gridAreaName !== undefined && !areaRect) fail("css-grid-area-invalid", `grid-area references a region not defined by the container's grid-template-areas: ${gridAreaName}`);
+    const colStart = areaRect ? areaRect.colStart : lineNumber(style.get("grid-column-start"), "grid-column-start");
+    const rowStart = areaRect ? areaRect.rowStart : lineNumber(style.get("grid-row-start"), "grid-row-start");
+    const colStartSpan = areaRect ? undefined : spanNumber(style.get("grid-column-start"), "grid-column-start");
+    const rowStartSpan = areaRect ? undefined : spanNumber(style.get("grid-row-start"), "grid-row-start");
+    const colEnd = areaRect ? areaRect.colEnd : lineNumber(style.get("grid-column-end"), "grid-column-end");
+    const rowEnd = areaRect ? areaRect.rowEnd : lineNumber(style.get("grid-row-end"), "grid-row-end");
+    const colEndSpan = areaRect ? undefined : spanNumber(style.get("grid-column-end"), "grid-column-end");
+    const rowEndSpan = areaRect ? undefined : spanNumber(style.get("grid-row-end"), "grid-row-end");
     const colSpan = colEndSpan ?? colStartSpan ?? (colStart !== undefined && colEnd !== undefined ? colEnd - colStart : 1);
     const rowSpan = rowEndSpan ?? rowStartSpan ?? (rowStart !== undefined && rowEnd !== undefined ? rowEnd - rowStart : 1);
     if (colSpan < 1 || rowSpan < 1) fail("css-grid-span-invalid", "Grid spans must be positive");

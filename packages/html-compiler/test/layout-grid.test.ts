@@ -113,3 +113,53 @@ describe("HTML/CSS compiler P1.3 explicit grid", () => {
     expect(protocol.clipPaths).toHaveLength(1);
   });
 });
+
+// grid-template-areas ("header header" / "sidebar main") was not in
+// SUPPORTED_PROPERTIES at all - it is the most common way real authors name
+// a grid's regions, more readable than placing every item by raw line
+// numbers.
+describe("HTML/CSS compiler grid-template-areas", () => {
+  it("places named regions, including one spanning multiple columns", () => {
+    const protocol = compile(
+      `<div id="grid"><div id="header"></div><div id="sidebar"></div><div id="main"></div></div>`,
+      `#grid { position: absolute; left: 0; top: 0; width: 900px; height: 500px; display: grid; grid-template-columns: 300px 1fr; grid-template-rows: 100px 400px; grid-template-areas: "header header" "sidebar main"; }
+       #header { grid-area: header; background: #38bdf8; }
+       #sidebar { grid-area: sidebar; background: #a78bfa; }
+       #main { grid-area: main; background: #facc15; }`,
+    );
+    expect(layer(protocol, "header")).toMatchObject({ frame: { width: 900, height: 100 }, transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "sidebar")).toMatchObject({ frame: { width: 300, height: 400 }, transform: { translate: { x: 0, y: 100, z: 0 } } });
+    expect(layer(protocol, "main")).toMatchObject({ frame: { width: 600, height: 400 }, transform: { translate: { x: 300, y: 100, z: 0 } } });
+  });
+
+  it("leaves a `.` cell empty", () => {
+    const protocol = compile(
+      `<div id="grid"><div id="b"></div><div id="c"></div></div>`,
+      `#grid { position: absolute; left: 0; top: 0; width: 900px; height: 500px; display: grid; grid-template-columns: 300px 300px 300px; grid-template-rows: 250px 250px; grid-template-areas: ". b ." "c c c"; }
+       #b { grid-area: b; background: #a78bfa; }
+       #c { grid-area: c; background: #facc15; }`,
+    );
+    expect(layer(protocol, "b")).toMatchObject({ frame: { width: 300, height: 250 }, transform: { translate: { x: 300, y: 0, z: 0 } } });
+    expect(layer(protocol, "c")).toMatchObject({ frame: { width: 900, height: 250 }, transform: { translate: { x: 0, y: 250, z: 0 } } });
+  });
+
+  it("rejects a non-rectangular named region instead of guessing its bounds", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<body><div id="grid"><div id="a"></div></div></body>`,
+      css: `#grid { position: absolute; left: 0; top: 0; width: 900px; height: 500px; display: grid; grid-template-areas: "a a b" "c a b"; }
+            #a { grid-area: a; background: #38bdf8; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-grid-template-areas-invalid");
+  });
+
+  it("rejects grid-area referencing a region the container never defined", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<body><div id="grid"><div id="x"></div></div></body>`,
+      css: `#grid { position: absolute; left: 0; top: 0; width: 900px; height: 500px; display: grid; grid-template-areas: "a b"; }
+            #x { grid-area: nope; background: #38bdf8; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-grid-area-invalid");
+  });
+});
