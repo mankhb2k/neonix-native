@@ -10,7 +10,9 @@ import type { Node, Style } from "../model";
 import type { HtmlCompilerFontAsset } from "../../source";
 import type { ResolvedGeometry } from "../geometry";
 import type { AssetRegistry } from "../lowering/assets";
-import { parseColor, parsePaintLayers, parseShadows, type Paint, type ShadowEffect } from "../paint";
+import { parseBorderEdges, parseColor, parsePaintLayers, parseShadows, type CornerRadius, type Outline, type Paint, type ShadowEffect } from "../paint";
+import { parseBackgroundBox, parseBackgroundImages, type BackgroundBox, type BackgroundImage } from "../background";
+import type { LayoutRect } from "../layout-ir";
 import { parseFilter, type HtmlFilterEffect } from "../filter";
 import { parseComposite, type HtmlComposite } from "../composite";
 import { parsePathStyle, parseSvgPathData } from "../path";
@@ -33,7 +35,6 @@ import {
 } from "../css/typography";
 import { number } from "../css/values";
 import { fail } from "../errors";
-import type { CornerRadius, Outline } from "../paint";
 import type { CompileClipPaths, CompileLayers } from "../compile-context";
 import type { NodeTransformState } from "../transform";
 import { rectangleContour, roundedRectContour, roundedRectContourAtInset, type HtmlPathContour } from "./shape-contours";
@@ -392,4 +393,65 @@ export function resolveNodeClipPath(input: NodeClipPathInput): NodeClipPathResol
     return elementClipPathId;
   };
   return { registerClipPath, elementClipPath };
+}
+
+/** Resolves one of the 3 CSS background-box reference rects (border/padding/content-box) for a node's own resolved geometry - background-origin, background-clip and the mask box reference all share this. */
+export function backgroundBox(geometry: ResolvedGeometry, box: BackgroundBox): LayoutRect {
+  const border = geometry.borderEdges;
+  const padding = geometry.padding;
+  if (box === "border-box") return { x: 0, y: 0, width: geometry.width, height: geometry.height };
+  if (box === "padding-box") return { x: border[3], y: border[0], width: Math.max(1, geometry.width - border[1] - border[3]), height: Math.max(1, geometry.height - border[0] - border[2]) };
+  return { x: border[3] + padding[3], y: border[0] + padding[0], width: Math.max(1, geometry.contentWidth), height: Math.max(1, geometry.contentHeight) };
+}
+
+export type NodeBackgroundInput = {
+  node: Node;
+  style: Style;
+  parentStyle: Style;
+  width: number;
+  height: number;
+  containingWidth: number;
+  fontSize: number;
+  viewport: { width: number; height: number };
+  geometry: ResolvedGeometry;
+  hasChildren: boolean;
+  /** A `background-clip: text` gradient already consumes `background` as the text fill - the element itself paints nothing. */
+  authoredTextGradient: Paint | undefined;
+};
+
+export type NodeBackgroundResolution = {
+  backgroundValue: string | undefined;
+  paints: Paint[];
+  border: ReturnType<typeof parseBorderEdges>;
+  backgroundImages: BackgroundImage[];
+  boxFor: (box: BackgroundBox) => LayoutRect;
+  paintBoxFor: (index: number) => LayoutRect;
+  borderBox: LayoutRect;
+  hasBorder: boolean;
+  hasSizedGradientBackground: boolean;
+};
+
+/** Resolves an element's background paint layers, background-image layers and border edges together - `paints`/`border` decide `hasBorder`/`hasSizedGradientBackground`, both inputs to the needsPaintGroup decision every emitted layer for this element depends on. */
+export function resolveNodeBackground(input: NodeBackgroundInput): NodeBackgroundResolution {
+  const { node, style, parentStyle, width: w, height: h, containingWidth, fontSize, viewport, geometry, hasChildren, authoredTextGradient } = input;
+  const currentColor = style.get("color") ?? parentStyle.get("color") ?? "#000000";
+  const backgroundShorthand = style.get("background")?.trim();
+  const backgroundValue = authoredTextGradient
+    ? undefined
+    : backgroundShorthand && (/^\w+-gradient\(/i.test(backgroundShorthand) || backgroundShorthand.includes(","))
+      ? backgroundShorthand
+      : style.get("background-color") ?? backgroundShorthand;
+  const paints = backgroundValue === undefined
+    ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint])
+    : parsePaintLayers(backgroundValue, "background", currentColor, { width: w, height: h });
+  const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
+  const backgroundImages = parseBackgroundImages(style, currentColor, { width: w, height: h });
+  const boxFor = (box: BackgroundBox): LayoutRect => backgroundBox(geometry, box);
+  const paintBoxFor = (index: number): LayoutRect => boxFor(parseBackgroundBox(style, "background-clip", index));
+  const borderBox = boxFor("border-box");
+  const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
+  const hasSizedGradientBackground = style.get("background-size") !== undefined
+    && style.get("background-size")?.trim().toLowerCase() !== "auto"
+    && paints.some((fill) => typeof fill !== "string" && (fill.type === "linear-gradient" || fill.type === "radial-gradient" || fill.type === "conic-gradient"));
+  return { backgroundValue, paints, border, backgroundImages, boxFor, paintBoxFor, borderBox, hasBorder, hasSizedGradientBackground };
 }

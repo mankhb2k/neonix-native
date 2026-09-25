@@ -1,4 +1,4 @@
-import { MotionProtocolV2Schema, type MotionProtocolV2, type V2Paint, type V2SvgDefinitionNode } from "@motionvideo/motion-protocol/v2";
+import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import {
   DEFAULT_HTML_CSS_COMPOSITION,
   type HtmlCssProject,
@@ -23,9 +23,10 @@ import { createLayoutEngine, layoutFlowChildren, type FlowState } from "../layou
 import { resolveFlexLayout } from "../flex";
 import { resolveGridLayout } from "../grid";
 import { mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "../lowering/media";
-import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages, type BackgroundBox, type BackgroundImage } from "../background";
+import { parseBackgroundBox, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages, type BackgroundImage } from "../background";
 import { parseFilter } from "../filter";
-import { resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
+import { resolveNodeBackground, resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
+import { emitNodePaint } from "./paint-node";
 import { parseLineHeight, parseWhiteSpace } from "../css/typography";
 import { splitTopLevel } from "../utils";
 import { animationTimelineDuration, resolveNodeAnimationTracks } from "../css/animation";
@@ -39,94 +40,6 @@ import { parseNeonixDocument, isCompileError } from "../document";
 import { borderBand, borderRegion, circlePolygon, clipConvexPolygon, fitBorderDashRuns, shadeBorderColor } from "./border/geometry";
 import { buildRoundedDashRuns, buildRoundedDotRuns } from "./border/rounded-dash";
 import { rectangleContour, roundedRectContour } from "./shape-contours";
-
-/**
- * Preserve CSS background-image's two coordinate systems for the common
- * repeat/repeat case: the element is the owner rect, while the gradient is
- * authored inside one background tile. Chromium rasterizes that tile first
- * and repeats the generated image over the owner. Protocol V2 already has a
- * pattern paint that represents the same contract.
- *
- * This is intentionally limited to zero-position, two-axis linear gradients
- * with a repeated background image. Other repeat modes still use the bounded lowering below until
- * their per-axis phase semantics are represented explicitly in the pattern
- * backend.
- */
-function repeatLinearGradientPattern(
-  fill: Paint,
-  tileWidth: number,
-  tileHeight: number,
-  repeat: ReturnType<typeof parseBackgroundRepeat>,
-  position: ReturnType<typeof parseBackgroundPosition>,
-): V2Paint | undefined {
-  if (
-    typeof fill === "string" ||
-    fill.type !== "linear-gradient" ||
-    repeat !== "repeat" ||
-    position.x !== 0 ||
-    position.y !== 0
-  ) return undefined;
-  if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) return undefined;
-
-  const angle = ((fill.angle ?? 0) * Math.PI) / 180;
-  const tileLength = Math.abs(Math.cos(angle)) * tileWidth + Math.abs(Math.sin(angle)) * tileHeight;
-  if (!Number.isFinite(tileLength) || tileLength <= 0) return undefined;
-
-  const halfLength = tileLength / 2;
-  const startX = tileWidth / 2 - Math.cos(angle) * halfLength;
-  const startY = tileHeight / 2 - Math.sin(angle) * halfLength;
-  const endX = tileWidth / 2 + Math.cos(angle) * halfLength;
-  const endY = tileHeight / 2 + Math.sin(angle) * halfLength;
-
-  const tileGradient = {
-    ...fill,
-    gradientUnits: "userSpaceOnUse" as const,
-    x1: startX,
-    y1: startY,
-    x2: endX,
-    y2: endY,
-  } as Extract<V2Paint, { type: "linear-gradient" }>;
-
-  return {
-    type: "pattern",
-    x: 0,
-    y: 0,
-    width: tileWidth,
-    height: tileHeight,
-    patternUnits: "userSpaceOnUse",
-    patternContentUnits: "userSpaceOnUse",
-    content: [{ type: "rect", x: 0, y: 0, width: tileWidth, height: tileHeight, fill: tileGradient }],
-  };
-}
-
-/**
- * Re-resolve radial circle geometry in the local background-image tile.
- *
- * CSS resolves a background gradient inside its background-size image before
- * that image is repeated over the owner box. The parser initially receives
- * the owner box, so a `circle` farthest-corner radius can be normalized against
- * the wrong aspect ratio. A materialized tile must use its own dimensions.
- */
-function resolveGradientForTile(fill: Paint, tileWidth: number, tileHeight: number): Paint {
-  if (
-    typeof fill === "string" ||
-    fill.type !== "radial-gradient" ||
-    fill.radius === undefined ||
-    !Number.isFinite(tileWidth) ||
-    !Number.isFinite(tileHeight) ||
-    tileWidth <= 0 ||
-    tileHeight <= 0
-  ) return fill;
-
-  const cx = fill.cx ?? 0.5;
-  const cy = fill.cy ?? 0.5;
-  const radius = Math.hypot(
-    Math.max(cx * tileWidth, (1 - cx) * tileWidth),
-    Math.max(cy * tileHeight, (1 - cy) * tileHeight),
-  ) / Math.min(tileWidth, tileHeight);
-
-  return Number.isFinite(radius) ? { ...fill, radius } : fill;
-}
 
 function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: { width: number; height: number }): number {
   const lineHeight = parseLineHeight(style, fontSize, viewport);
@@ -302,13 +215,6 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
         maskRefs.push({ maskIds, mode, composite });
       });
       return maskRefs;
-    };
-    const backgroundBox = (geometry: ReturnType<typeof resolveGeometry>, box: BackgroundBox): LayoutRect => {
-      const border = geometry.borderEdges;
-      const padding = geometry.padding;
-      if (box === "border-box") return { x: 0, y: 0, width: geometry.width, height: geometry.height };
-      if (box === "padding-box") return { x: border[3], y: border[0], width: Math.max(1, geometry.width - border[1] - border[3]), height: Math.max(1, geometry.height - border[0] - border[2]) };
-      return { x: border[3] + padding[3], y: border[0] + padding[0], width: Math.max(1, geometry.contentWidth), height: Math.max(1, geometry.contentHeight) };
     };
     // CSS collapses an adjoining top margin between a block container and its
     // first in-flow child onto the container itself, provided the container
@@ -566,11 +472,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
             fontAssets: options.fontAssets ?? [],
             assetRegistry, registerClipPath, elementClipPath,
           });
-          const backgroundShorthand = style.get("background")?.trim(); const backgroundValue = authoredTextGradient ? undefined : backgroundShorthand && (/^\w+-gradient\(/i.test(backgroundShorthand) || backgroundShorthand.includes(",")) ? backgroundShorthand : style.get("background-color") ?? backgroundShorthand; const paints = backgroundValue === undefined ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint]) : parsePaintLayers(backgroundValue, "background", style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h }); const border = parseBorderEdges(style, containingWidth, font, viewport);
-          const backgroundImages = parseBackgroundImages(style, style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h });
-          const boxFor = (box: BackgroundBox): LayoutRect => backgroundBox(geometry, box);
-          const paintBoxFor = (index: number): LayoutRect => boxFor(parseBackgroundBox(style, "background-clip", index));
-          const borderBox = boxFor("border-box");
+          const { backgroundValue, paints, border, backgroundImages, boxFor, paintBoxFor, borderBox, hasBorder, hasSizedGradientBackground } = resolveNodeBackground({ node, style, parentStyle, width: w, height: h, containingWidth, fontSize: font, viewport, geometry, hasChildren, authoredTextGradient });
          const { isPath, pathContours, pathStyle, fillRuleValue } = resolveNodeSvgPath(node, style, parentStyle);
          if (isPath) {
            const styleForPath = pathStyle?.fill === "none"
@@ -585,7 +487,6 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
           // Keep all generated paint passes inside the element's stacking
            // scope. A border is a separate pass so its centered stroke can be
            // inset without changing the element's sibling order.
-           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
            const textGroupRequired = textPayload !== undefined && (backgroundValue !== undefined || backgroundImages.length > 0 || hasBorder || hasOutline);
            const clipPathId = elementClipPath();
            if (textPayload !== undefined && !textGroupRequired && !maskLayerRefs && !paintEffects.length && !backdropFilterEffects.length && !compositeNeedsGroup && clipPathId === undefined && motion === undefined && !animationTracks.group.length && !animationTracks.paint.length && render3d === undefined && backfaceVisibility === "visible") {
@@ -593,7 +494,6 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
              emitOutline(false);
              return;
            }
-           const hasSizedGradientBackground = style.get("background-size") !== undefined && style.get("background-size")?.trim().toLowerCase() !== "auto" && paints.some((fill) => typeof fill !== "string" && (fill.type === "linear-gradient" || fill.type === "radial-gradient" || fill.type === "conic-gradient"));
            const needsPaintGroup = textGroupRequired || hasChildren || backgroundImages.length > 0 || hasSizedGradientBackground || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || backdropFilterEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
            // Element opacity belongs to the stacking group. Generated paint
            // passes are children of that group and must remain opaque, or a
@@ -601,159 +501,11 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
            const paintOpacity = needsPaintGroup ? 1 : opacity;
            if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(render3d ? { render3d } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration } });
           const paintLayerBaseOrder = layers.length;
-           paints.forEach((fill, index) => {
-          const paintId = paints.length === 1 ? (needsPaintGroup ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;
-          const paintBox = paintBoxFor(index);
-          // A CSS gradient used as a background image has two independent
-          // coordinate systems: the gradient itself and the background image
-          // tile. The old lowering kept only the gradient and painted it over
-          // the complete element, silently dropping background-size and
-          // background-repeat for shorthand backgrounds. Lower explicit
-          // sized gradient tiles through the same bounded path as URL
-          // backgrounds so the V2 contract remains deterministic for Skia.
-          const isGradientPaint = typeof fill !== "string" && (
-            fill.type === "linear-gradient" || fill.type === "radial-gradient" || fill.type === "conic-gradient"
-          );
-          const backgroundSize = isGradientPaint
-            ? parseBackgroundSize(style, index, paintBox.width, paintBox.height, viewport)
-            : { type: "auto" as const };
-          const backgroundRepeat = isGradientPaint ? parseBackgroundRepeat(style, index) : "repeat" as const;
-          const shouldTileGradient = isGradientPaint && backgroundSize.type === "length";
-          // CSS background layers are painted back-to-front: the last
-          // listed layer is underneath the first listed layer. Protocol V2
-          // draws larger order values later, so reverse only this paint-layer
-          // offset while keeping the source array and generated ids stable.
-          const paintOrderOffset = paints.length > 1 ? paints.length - index - 1 : 0;
-          const order = Number.isFinite(zIndex)
-            ? Math.max(0, 100000 + (zIndex as number)) + paintOrderOffset
-            : paintLayerBaseOrder + paintOrderOffset;
-          const paintTransform = transformFor(needsPaintGroup ? paintBox.x : localX + paintBox.x, needsPaintGroup ? paintBox.y : localY + paintBox.y, !needsPaintGroup);
-          if (shouldTileGradient && backgroundSize.type === "length") {
-            const drawWidth = Math.max(1, backgroundSize.width);
-            const drawHeight = Math.max(1, backgroundSize.height);
-            const position = parseBackgroundPosition(style, index);
-            const xRepeats = backgroundRepeat === "repeat" || backgroundRepeat === "repeat-x";
-            const yRepeats = backgroundRepeat === "repeat" || backgroundRepeat === "repeat-y";
-            const startX = paintBox.x + (paintBox.width - drawWidth) * position.x;
-            const startY = paintBox.y + (paintBox.height - drawHeight) * position.y;
-            const rectRepeatFill = repeatLinearGradientPattern(fill, drawWidth, drawHeight, backgroundRepeat, position);
-            if (rectRepeatFill) {
-              layers.push({
-                id: paintId,
-                type: "shape",
-                parentLayerId: needsPaintGroup ? groupId : parentId,
-                order,
-                frame: { width: paintBox.width, height: paintBox.height },
-                transform: paintTransform,
-                opacity: paintOpacity,
-                ...state,
-                ...(paintAnimationTracks.length ? { tracks: paintAnimationTracks } : {}),
-                timing: { start: 0, duration },
-                payload: { shape: "rectangle" },
-                style: { fill: rectRepeatFill },
-              });
-              return;
-            }
-            // Emit only tiles that intersect the background clip box. The
-            // previous +/-1 overscan was useful for image sampling but creates
-            // unnecessary layers and clip paths for deterministic CSS paints.
-            const xStart = xRepeats ? Math.floor((paintBox.x - startX) / drawWidth) : 0;
-            const xEnd = xRepeats ? Math.ceil((paintBox.x + paintBox.width - startX) / drawWidth) - 1 : 0;
-            const yStart = yRepeats ? Math.floor((paintBox.y - startY) / drawHeight) : 0;
-            const yEnd = yRepeats ? Math.ceil((paintBox.y + paintBox.height - startY) / drawHeight) - 1 : 0;
-            const tileCount = Math.max(1, xEnd - xStart + 1) * Math.max(1, yEnd - yStart + 1);
-            // Each bounded tile currently owns a clipPath in Protocol V2;
-            // keep the generated document within the V2 clipPaths limit.
-            if (tileCount > 256) fail("css-background-repeat-too-many-tiles", "background-repeat would generate more than 256 deterministic gradient tiles");
-            let tileIndex = 0;
-            for (let xTile = xStart; xTile <= xEnd; xTile += 1) for (let yTile = yStart; yTile <= yEnd; yTile += 1) {
-              const tileX = startX + (xRepeats ? xTile * drawWidth : 0);
-              const tileY = startY + (yRepeats ? yTile * drawHeight : 0);
-              const clipId = `html-background-clip-${clipPaths.length}`;
-              clipPaths.push({ id: clipId, clipPathUnits: "userSpaceOnUse", children: [{ type: "rect", x: paintBox.x - tileX, y: paintBox.y - tileY, width: paintBox.width, height: paintBox.height, ...(typeof cornerRadius === "number" ? { rx: cornerRadius, ry: cornerRadius } : {}) }] });
-              layers.push({
-                id: `${paintId}::tile:${tileIndex++}`,
-                type: "shape",
-                parentLayerId: needsPaintGroup ? groupId : parentId,
-                order: (Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : paintLayerBaseOrder) + (paints.length - index - 1) * 10000 + tileIndex,
-                frame: { width: drawWidth, height: drawHeight },
-                transform: transformFor(needsPaintGroup ? tileX : localX + tileX, needsPaintGroup ? tileY : localY + tileY, false),
-                opacity: paintOpacity,
-                ...state,
-                ...(paintAnimationTracks.length ? { tracks: paintAnimationTracks } : {}),
-                clipPath: clipId,
-                timing: { start: 0, duration },
-                payload: { shape: "rectangle" },
-                 style: { fill: resolveGradientForTile(fill, drawWidth, drawHeight) },
-               });
-            }
-            return;
-          }
-          if (typeof cornerRadius === "object") {
-            // A rounded CSS background is one painted element. Do not split
-            // it into overlapping rectangle/ellipse atoms: each atom would
-            // source-over the same semi-transparent fill and make opacity
-            // depend on the number of generated pieces. A single contour
-            // preserves the browser's one-element compositing boundary.
-            layers.push({
-              id: paintId,
-              type: "path",
-              parentLayerId: needsPaintGroup ? groupId : parentId,
-              order,
-              frame: { width: paintBox.width, height: paintBox.height },
-              transform: paintTransform,
-              opacity: paintOpacity,
-              ...state,
-              ...(paintAnimationTracks.length ? { tracks: paintAnimationTracks } : {}),
-              timing: { start: 0, duration },
-              payload: { contours: [roundedRectContour(paintBox.width, paintBox.height, cornerRadius)], fillRule: "nonzero" },
-              style: { fill },
-            });
-          }
-          else layers.push({ id: paintId, type: "shape", parentLayerId: needsPaintGroup ? groupId : parentId, order, frame: { width: paintBox.width, height: paintBox.height }, transform: paintTransform, opacity: paintOpacity, ...state, ...(paintAnimationTracks.length ? { tracks: paintAnimationTracks } : {}), timing: { start: 0, duration }, payload: { shape: "rectangle", ...(cornerRadius === undefined ? {} : { cornerRadius }) }, style: { fill } });
-           });
-           if (backgroundImages.length > 0) {
-             const alignFor = (position: ReturnType<typeof parseBackgroundPosition>) => `${position.x === 0 ? "xMin" : position.x === 1 ? "xMax" : "xMid"}${position.y === 0 ? "YMin" : position.y === 1 ? "YMax" : "YMid"}` as "xMinYMin" | "xMidYMin" | "xMaxYMin" | "xMinYMid" | "xMidYMid" | "xMaxYMid" | "xMinYMax" | "xMidYMax" | "xMaxYMax";
-             const emitBackgroundLayer = (image: BackgroundImage, imageIndex: number, tileIndex: number, drawX: number, drawY: number, drawWidth: number, drawHeight: number, fit: "none" | "contain" | "cover" | "fill", align: ReturnType<typeof alignFor>, clipBox: LayoutRect) => {
-               const clipId = `html-background-clip-${clipPaths.length}`;
-               clipPaths.push({ id: clipId, clipPathUnits: "userSpaceOnUse", children: [{ type: "rect", x: clipBox.x - drawX, y: clipBox.y - drawY, width: clipBox.width, height: clipBox.height, ...(typeof cornerRadius === "number" ? { rx: cornerRadius, ry: cornerRadius } : {}) }] });
-               const orderBase = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : paintLayerBaseOrder + paints.length;
-               const order = orderBase + (backgroundImages.length - imageIndex) * 10000 + tileIndex;
-               const id = `${groupId}::background:${imageIndex}${tileIndex === 0 ? "" : `:${tileIndex}`}`;
-               const parentLayerId = groupId;
-               if (image.type === "paint" || image.type === "color") {
-                 layers.push({ id, type: "shape", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity * (image.opacity ?? 1), ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { shape: "rectangle" }, style: { fill: image.type === "paint" ? image.paint : image.color } });
-                 return;
-               }
-               const preserveAspectRatio = fit === "fill" ? { align: "none" as const } : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
-              layers.push({ id, type: "image", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity * (image.opacity ?? 1), ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", image.uri, `background-${imageIndex}-${tileIndex}-asset`), x: 0, y: 0, width: drawWidth, height: drawHeight, fit, preserveAspectRatio } });
-             };
-             backgroundImages.forEach((image, imageIndex) => {
-               const origin = boxFor(parseBackgroundBox(style, "background-origin", imageIndex));
-               const clipBox = boxFor(parseBackgroundBox(style, "background-clip", imageIndex));
-               const position = parseBackgroundPosition(style, imageIndex);
-               const size = parseBackgroundSize(style, imageIndex, origin.width, origin.height, viewport);
-               const repeat = parseBackgroundRepeat(style, imageIndex);
-               if (repeat !== "no-repeat" && size.type !== "length") fail("css-background-repeat-needs-size", "Repeating a background image requires an explicit two-dimensional background-size in the deterministic compiler");
-               if (size.type === "length") {
-                 const drawWidth = Math.max(1, size.width); const drawHeight = Math.max(1, size.height);
-                 const startX = origin.x + (origin.width - drawWidth) * position.x; const startY = origin.y + (origin.height - drawHeight) * position.y;
-                 const xRepeats = repeat === "repeat" || repeat === "repeat-x"; const yRepeats = repeat === "repeat" || repeat === "repeat-y";
-                 const xStart = xRepeats ? Math.floor((clipBox.x - startX) / drawWidth) - 1 : 0; const xEnd = xRepeats ? Math.ceil((clipBox.x + clipBox.width - startX) / drawWidth) + 1 : 0;
-                 const yStart = yRepeats ? Math.floor((clipBox.y - startY) / drawHeight) - 1 : 0; const yEnd = yRepeats ? Math.ceil((clipBox.y + clipBox.height - startY) / drawHeight) + 1 : 0;
-                 const tileCount = Math.max(1, xEnd - xStart + 1) * Math.max(1, yEnd - yStart + 1);
-                 if (tileCount > 4096) fail("css-background-repeat-too-many-tiles", "background-repeat would generate more than 4096 deterministic image tiles");
-                 let tileIndex = 0;
-                 for (let xTile = xStart; xTile <= xEnd; xTile += 1) for (let yTile = yStart; yTile <= yEnd; yTile += 1) {
-                   emitBackgroundLayer(image, imageIndex, tileIndex++, startX + (xRepeats ? xTile * drawWidth : 0), startY + (yRepeats ? yTile * drawHeight : 0), drawWidth, drawHeight, "fill", "xMinYMin", clipBox);
-                 }
-                 return;
-               }
-               const fit = size.type === "cover" ? "cover" : size.type === "contain" ? "contain" : "none";
-               const align = alignFor(position);
-               emitBackgroundLayer(image, imageIndex, 0, origin.x, origin.y, origin.width, origin.height, fit, align, clipBox);
-             });
-           }
+          emitNodePaint({
+            style, node, viewport, paints, paintBoxFor, backgroundImages, boxFor, cornerRadius,
+            needsPaintGroup, paintOpacity, groupId, parentId, zIndex, localX, localY, transformFor,
+            state, duration, paintAnimationTracks, paintLayerBaseOrder, layers, clipPaths, mediaAsset,
+          });
           if (hasBorder) {
              const uniformBorder = Object.values(border).every((side) => side.style === "solid" && side.width === Object.values(border)[0]!.width && side.color === Object.values(border)[0]!.color);
              const inset = uniformBorder ? Object.values(border)[0]!.width / 2 : 0;
