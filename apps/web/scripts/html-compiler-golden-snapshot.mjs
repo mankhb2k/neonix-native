@@ -25,7 +25,10 @@ for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
   const html = readFileSync(join(publicRoot, fixture.fixtureUrl.replace(/^\//, "")), "utf8");
   let compiled;
   try {
-    compiled = compileDocument({ html }, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS });
+    // Pin composition.id to the fixture's own catalog id - compileDocument()
+    // otherwise mints a fresh random id per call, which would make every
+    // fixture "diff" on that field alone regardless of any real change.
+    compiled = compileDocument({ html }, { composition: { id: fixture.id }, fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS });
   } catch (error) {
     errors += 1;
     console.error("THROW", fixture.id, error instanceof Error ? error.message : String(error));

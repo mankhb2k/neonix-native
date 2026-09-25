@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "../src/index";
 
 describe("HTML/CSS normalization contract", () => {
-  it("uses standard HTML id and structural fallback", () => {
+  it("uses the standard HTML id, or a readable class/tag fallback, as the layer id", () => {
     const explicit = compileHtmlCss(createHtmlCssSource({
       html: `<div id="hero"></div>`,
       css: `#legacy { width: 10px; height: 10px; background: #ffffff; }`,
@@ -16,9 +16,9 @@ describe("HTML/CSS normalization contract", () => {
     }));
     expect(fallback.status).toBe("success");
     expect(fallback.protocol?.layers.map((layer) => layer.id)).toEqual([
-      "dom/div:0",
-      "dom/div:0::paint",
-      "dom/div:0/span:0",
+      "div",
+      "div::paint",
+      "span",
     ]);
   });
 

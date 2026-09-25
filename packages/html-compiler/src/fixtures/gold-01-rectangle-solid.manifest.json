@@ -1,8 +1,0 @@
-{
-  "id": "gold-01-rectangle-solid",
-  "viewport": { "width": 1920, "height": 1080, "deviceScaleFactor": 1 },
-  "sampleTimesMs": [0],
-  "requiredCapabilities": ["shape.rectangle.fill", "shape.rectangle.transform", "shape.rectangle.opacity"],
-  "backends": ["webgl2", "webgpu"],
-  "parity": { "mode": "perceptual", "maxPixelError": 0.01 }
-}

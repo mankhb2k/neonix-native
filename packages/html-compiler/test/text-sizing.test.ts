@@ -132,6 +132,7 @@ describe("prepareHtmlTextSizing", () => {
     const html = docWithText("MMMM WWWW MMMM WWWW", 150, 32);
     const withoutOption = compileDocument({ html, fontAssets: [FONT_ASSET] });
     const withUndefinedTextSizing = compileDocument({ html, fontAssets: [FONT_ASSET] }, { textSizing: undefined });
-    expect(withUndefinedTextSizing.protocol).toEqual(withoutOption.protocol);
+    // Every compile mints its own random top-level protocol id; everything else must match.
+    expect(withUndefinedTextSizing.protocol).toEqual({ ...withoutOption.protocol, id: withUndefinedTextSizing.protocol?.id });
   });
 });

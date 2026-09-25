@@ -20,7 +20,7 @@ for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
   const html = readFileSync(join(publicRoot, fixture.fixtureUrl.replace(/^\//, "")), "utf8");
   let compiled;
   try {
-    compiled = compileDocument({ html }, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS });
+    compiled = compileDocument({ html }, { composition: { id: fixture.id }, fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS });
   } catch (error) {
     console.log("THROW (was not throwing before)", fixture.id, error instanceof Error ? error.message : String(error));
     mismatches++;

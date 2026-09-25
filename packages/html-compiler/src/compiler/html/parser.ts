@@ -49,6 +49,37 @@ function decodeHtmlText(value: string): string {
   });
 }
 
+/**
+ * A readable, deterministic layer id for an element with no explicit `id`:
+ * its own last class token (the most specific one in an authoring pattern
+ * like `class="card card-a"`), falling back to the tag name, then
+ * deduplicated with a `-2`, `-3`, ... suffix in document order. Assigned as
+ * a post-pass (not inline during tokenizing) so a class-derived id can be
+ * checked against every explicit `id` in the document, including ones that
+ * appear later in the source than the element being named.
+ *
+ * Chosen over the previous fallback (the full DOM path, e.g.
+ * `dom/html:0/body:1/div:3/div:3/div:0`) because that string is what every
+ * Protocol V2 layer, asset and mask id was built from - illegible in
+ * exported JSON and in any tool (AI or human) trying to reference a specific
+ * layer, and it silently renumbers every later sibling when an element is
+ * inserted anywhere earlier in the document.
+ */
+function assignAutomaticIds(root: Node, explicitIds: ReadonlySet<string>): void {
+  const used = new Set(explicitIds);
+  const visit = (node: Node): void => {
+    if (node.id === undefined) {
+      const base = (node.classes.length > 0 ? node.classes[node.classes.length - 1]! : node.tag).replace(/^-+/, "") || node.tag;
+      let candidate = base;
+      for (let suffix = 2; used.has(candidate); suffix += 1) candidate = `${base}-${suffix}`;
+      used.add(candidate);
+      node.atomicId = candidate;
+    }
+    node.children.forEach(visit);
+  };
+  root.children.forEach(visit);
+}
+
 export function parseHtml(html: string): Node {
   const root: Node = { tag: "root", atomicId: "dom", structuralPath: "dom", classes: [], attributes: new Map(), children: [], content: [], parent: null, order: 0, style: new Map(), text: "" };
   const stack: Node[] = [root];
@@ -93,11 +124,15 @@ export function parseHtml(html: string): Node {
     if (/\bon[a-z]+\s*=\s*["']/i.test(raw)) throw new CompileError("html-event-unsupported", "Event attributes are not part of the visual-only compiler", sourceLocation(html, match.index ?? 0, "html"));
     const parent = stack[stack.length - 1]!;
     const structuralPath = `${parent.structuralPath}/${tag}:${parent.children.length}`;
+    // atomicId is a placeholder here when there's no explicit id - overwritten
+    // by assignAutomaticIds() once the full document (and its complete set of
+    // explicit ids) is known.
     const node: Node = { tag, id, atomicId: atomicId ?? structuralPath, structuralPath, classes, attributes, children: [], content: [], parent, order: order++, style: new Map(), text: "" };
     parent.children.push(node);
     parent.content.push(node);
     if (!/\/\s*>$/.test(raw) && !["meta", "link", "img", "br", "input"].includes(tag)) stack.push(node);
   }
   if (stack.length !== 1) fail("html-unclosed-tag", `Unclosed tag ${stack[stack.length - 1]!.tag}`);
+  assignAutomaticIds(root, explicitIds);
   return root;
 }
