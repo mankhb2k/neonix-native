@@ -155,21 +155,33 @@ runtime thật trong `motion-runtime/src/visual/text-layout.test.ts`):
   được). Đã verify chiều dấu (positive=xuống, negative=lên) bằng dữ liệu
   thật trước khi chốt, không suy đoán từ đọc code.
 
-**Còn lại, chưa sửa** (Text, tần suất thấp hơn các mục đã sửa):
-- [ ] `vertical-align` — gap đã biết từ trước, chưa sửa
-- [ ] `text-decoration-style` khác `solid` (`wavy`/`dotted`/`dashed` underline)
-      — chỉ nhận `solid`
+**Đã sửa** (commit `30151d6e`, có test `test/text-decoration-style.test.ts`
++ test thật ở cả `canvaskit-preview/test/command-replay.test.ts` và
+`export-renderer/test/svg-rasterizer.test.ts`):
+- **`text-decoration-style: wavy`/`dotted`/`dashed`** — mục lớn nhất và
+  cuối cùng trong 5 gap, đụng cả 2 renderer (trước đây cả hai chỉ vẽ 1
+  hình chữ nhật đặc, không có khái niệm style). Hình học (x/y/width/height)
+  không đổi — chỉ bước vẽ cuối cùng của mỗi renderer diễn giải khác nhau:
+  dotted/dashed chuyển sang stroke đường centerline với dash pattern
+  (`configureStroke`/`PathEffect.MakeDash` ở canvaskit, `stroke-dasharray`
+  ở SVG), wavy vẽ path zigzag bezier bậc 2 lặp lại. Đã verify hình học 2
+  renderer khớp nhau y hệt (cùng dash interval, cùng toạ độ wavy path)
+  bằng dữ liệu thật trước khi chốt. `double` vẫn báo lỗi rõ ràng (cần 2
+  đường song song, hình học khác hẳn, ngoài phạm vi).
 
 **Không cần làm** (đã xác nhận không phù hợp với sản phẩm video/motion,
 không phải gap thật): `position: sticky` (không có khái niệm scroll),
 `float` (CSS legacy, layout hiện đại dùng flex/grid).
 
-**Trạng thái**: 2/2 gap text tần suất cao nhất đã xong. Layout đã xong hết
-gap đã biết (`grid-template-areas`, `flex-direction` reverse,
-`grid-auto-flow`). `-webkit-line-clamp`, `text-indent`, `font-variant:
-small-caps`, `overflow-wrap`/`word-break`, `vertical-align` đã xong. Còn 1
-gap text (`text-decoration-style` khác `solid`) — mục lớn nhất trong 5 gap,
-đụng cả 2 renderer (canvaskit-preview + export-renderer). Box model không
+**Trạng thái**: **Hết tất cả gap Text đã biết ở Cấp 1 → 1.0** — 2 gap tần
+suất cao nhất (`font` shorthand, `text-transform`) cộng 5 gap tần suất
+thấp hơn (`-webkit-line-clamp`, `text-indent`, `font-variant: small-caps`,
+`overflow-wrap`/`word-break`, `vertical-align`, `text-decoration-style`)
+đều đã sửa. Chưa re-run lại battery 15-case gốc để lấy con số pass chính
+xác cuối cùng — không suy đoán con số, ghi lại ở đây để nhắc verify khi
+cần (đúng nguyên tắc đã áp dụng ở mục Layout trước đó). Layout cũng đã
+xong hết gap đã biết (`grid-template-areas`, `flex-direction` reverse,
+`grid-auto-flow`). Box model không
 cần làm gì thêm ở Cấp 1.
 
 ### 1.1 Audit toàn bộ tổ hợp "box-shadow + hiệu ứng khác" cùng phần tử — XONG
@@ -334,11 +346,14 @@ còn thiếu.
   `text-transform`, đã xong, commit `fdcaa167`). `-webkit-line-clamp`
   (commit `3a0172c7`), `text-indent` + `font-variant: small-caps` (commit
   `ee8255df`), `overflow-wrap`/`word-break` (commit `c64875fd`),
-  `vertical-align` (commit `f583389f`) cũng đã xong. Còn 1 gap:
-  `text-decoration-style` khác `solid`.
+  `vertical-align` (commit `f583389f`), `text-decoration-style` (commit
+  `30151d6e`) cũng đã xong. **Hết gap text đã biết ở 1.0.**
 - Layout: `grid-template-areas` + `grid-area` (commit `adc9f4e2`),
   `flex-direction` reverse (commit `20357004`), `grid-auto-flow` (commit
   `0374fd4d`) đều đã xong. Hết gap layout đã biết ở 1.0.
+
+**1.0 giờ đã xong hoàn toàn** (box model, paint/gradient, text, layout đều
+sạch, không còn gap nào đã biết).
 
 **1.1 (audit tổ hợp box-shadow) xong** — xác nhận 2 bug riêng (1.2:
 shadow+filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
@@ -355,8 +370,10 @@ mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
    1.0)~~ — XONG.
 2. ~~1.3 (khoá test cho hiệu ứng an toàn)~~ — XONG.
 3. ~~`-webkit-line-clamp`, `text-indent`, `font-variant: small-caps`,
-   `overflow-wrap`/`word-break`, `vertical-align`~~ — XONG. Còn
-   `text-decoration-style` (mục cuối cùng, lớn nhất, đụng 2 renderer).
-4. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
+   `overflow-wrap`/`word-break`, `vertical-align`,
+   `text-decoration-style`~~ — XONG. **1.0 đã xong hoàn toàn.**
+4. Quay lại 1.2 + 1.2b (case mix box-shadow — root-cause đã xác định ở mục
+   1.2 phía trên nhưng chưa sửa) — mục tiếp theo, đúng thứ tự đã định từ
+   đầu ("case cơ bản đủ điều kiện trước case mix").
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
