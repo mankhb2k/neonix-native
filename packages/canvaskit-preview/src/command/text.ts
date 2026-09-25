@@ -2,6 +2,7 @@ import type { PaintCommand, PaintTextColorLayer, PaintTextGlyph } from "@motionv
 import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
+import { configureStroke } from "./paint";
 
 export function skiaTextGlyphAssetId(commandKey: string, glyphIndex: number): string {
   return `__skia-text-glyph:${commandKey}:${glyphIndex}`;
@@ -250,6 +251,27 @@ export function drawTextStroke(
   return drawn;
 }
 
+/**
+ * A repeating quadratic-bezier zigzag across [x, x+width] centered on
+ * centerY - the standard way to draw a CSS wavy text-decoration line, since
+ * neither backend has a dedicated "wavy stroke" primitive.
+ */
+function wavyDecorationPathData(x: number, centerY: number, width: number, thickness: number): string {
+  const amplitude = Math.max(1, thickness * 0.9);
+  const halfPeriod = Math.max(2, thickness * 2);
+  let data = `M ${x} ${centerY}`;
+  let cursor = x;
+  let direction = 1;
+  while (cursor < x + width) {
+    const next = Math.min(cursor + halfPeriod, x + width);
+    const controlX = (cursor + next) / 2;
+    data += ` Q ${controlX} ${centerY + direction * amplitude} ${next} ${centerY}`;
+    cursor = next;
+    direction *= -1;
+  }
+  return data;
+}
+
 export function drawTextDecoration(
   kit: SkiaCanvasKit,
   canvas: SkiaCanvas,
@@ -257,7 +279,30 @@ export function drawTextDecoration(
   decoration: NonNullable<Extract<PaintCommand, { op: "drawText" }>["decorations"]>[number],
   alpha: number,
 ): void {
-  const paint = createSkiaPaint(kit, decoration.fill, alpha * (decoration.opacity ?? 1), kit.PaintStyle.Fill, decoration.fillPaint, command.width, command.height);
-  canvas.drawRect([decoration.x, decoration.y, decoration.x + decoration.width, decoration.y + decoration.height], paint);
+  if (!decoration.style) {
+    const paint = createSkiaPaint(kit, decoration.fill, alpha * (decoration.opacity ?? 1), kit.PaintStyle.Fill, decoration.fillPaint, command.width, command.height);
+    canvas.drawRect([decoration.x, decoration.y, decoration.x + decoration.width, decoration.y + decoration.height], paint);
+    paint.delete();
+    return;
+  }
+  const centerY = decoration.y + decoration.height / 2;
+  const paint = createSkiaPaint(kit, decoration.fill, alpha * (decoration.opacity ?? 1), kit.PaintStyle.Stroke, decoration.fillPaint, command.width, command.height);
+  if (decoration.style === "wavy") {
+    paint.setStrokeWidth(Math.max(1, decoration.height * 0.7));
+    paint.setStrokeCap(kit.StrokeCap.Round);
+    const path = kit.Path.MakeFromSVGString(wavyDecorationPathData(decoration.x, centerY, decoration.width, decoration.height));
+    if (path) { canvas.drawPath(path, paint); path.delete(); }
+  } else {
+    // Dotted: a near-zero dash length with a round cap renders as filled
+    // circles (the standard dasharray trick for "dots"). Dashed: longer
+    // dashes with a butt cap for sharp rectangular segments.
+    const strokeDash = decoration.style === "dotted"
+      ? { array: [0.01, decoration.height * 2] }
+      : { array: [decoration.height * 3, decoration.height * 2] };
+    const effect = configureStroke(kit, paint, { strokeWidth: decoration.height, strokeCap: decoration.style === "dotted" ? "round" : "butt", strokeDash });
+    const path = kit.Path.MakeFromSVGString(`M ${decoration.x} ${centerY} L ${decoration.x + decoration.width} ${centerY}`);
+    if (path) { canvas.drawPath(path, paint); path.delete(); }
+    effect?.delete();
+  }
   paint.delete();
 }

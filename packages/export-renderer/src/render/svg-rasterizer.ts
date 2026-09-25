@@ -62,6 +62,42 @@ function pathData(command: Extract<PaintCommand, { op: "drawPath" }>): string {
   }).join(" ");
 }
 
+/**
+ * A repeating quadratic-bezier zigzag across [x, x+width] centered on
+ * centerY - the standard way to draw a CSS wavy text-decoration line.
+ * Duplicated (not imported) from canvaskit-preview's identical helper:
+ * these two render backends must stay decoupled from each other.
+ */
+function wavyDecorationPathData(x: number, centerY: number, width: number, thickness: number): string {
+  const amplitude = Math.max(1, thickness * 0.9);
+  const halfPeriod = Math.max(2, thickness * 2);
+  let data = `M ${x} ${centerY}`;
+  let cursor = x;
+  let direction = 1;
+  while (cursor < x + width) {
+    const next = Math.min(cursor + halfPeriod, x + width);
+    const controlX = (cursor + next) / 2;
+    data += ` Q ${controlX} ${centerY + direction * amplitude} ${next} ${centerY}`;
+    cursor = next;
+    direction *= -1;
+  }
+  return data;
+}
+
+function decorationSvg(item: NonNullable<Extract<PaintCommand, { op: "drawText" }>["decorations"]>[number]): string {
+  if (!item.style) return `<rect x="${item.x}" y="${item.y}" width="${item.width}" height="${item.height}" fill="${fill(item.fill)}" fill-opacity="${opacity(item.opacity)}"/>`;
+  const centerY = item.y + item.height / 2;
+  if (item.style === "wavy") {
+    return `<path d="${wavyDecorationPathData(item.x, centerY, item.width, item.height)}" fill="none" stroke="${fill(item.fill)}" stroke-opacity="${opacity(item.opacity)}" stroke-width="${Math.max(1, item.height * 0.7)}" stroke-linecap="round"/>`;
+  }
+  // Dotted: a near-zero dash length with a round cap renders as filled
+  // circles (the standard dasharray trick for "dots"). Dashed: longer
+  // dashes with a butt cap for sharp rectangular segments.
+  const dasharray = item.style === "dotted" ? `0.01 ${item.height * 2}` : `${item.height * 3} ${item.height * 2}`;
+  const cap = item.style === "dotted" ? "round" : "butt";
+  return `<line x1="${item.x}" y1="${centerY}" x2="${item.x + item.width}" y2="${centerY}" stroke="${fill(item.fill)}" stroke-opacity="${opacity(item.opacity)}" stroke-width="${item.height}" stroke-dasharray="${dasharray}" stroke-linecap="${cap}"/>`;
+}
+
 function glyphTransform(glyph: PaintTextGlyph): string {
   const rotation = glyph.rotation ? ` rotate(${glyph.rotation} ${glyph.x} ${glyph.y})` : "";
   const scaleX = glyph.scaleX ?? 1;
@@ -149,7 +185,7 @@ function draw(command: Extract<PaintCommand, { op: "drawText" | "drawShape" | "d
         : "";
       return `<path d="${escapeXml(glyph.path)}" transform="${glyphTransform(glyph)}" fill="${fill(glyph.fill ?? command.fill)}"${stroke}/>`;
     }).join("");
-    const decorations = (command.decorations ?? []).map((item) => `<rect x="${item.x}" y="${item.y}" width="${item.width}" height="${item.height}" fill="${fill(item.fill)}" fill-opacity="${opacity(item.opacity)}"/>`).join("");
+    const decorations = (command.decorations ?? []).map((item) => decorationSvg(item)).join("");
     return `${glyphs}${decorations}`;
   }
   const anchor = command.align === "center" ? "middle" : command.align === "right" ? "end" : "start";

@@ -292,9 +292,9 @@ export type VisualRuntimeText = {
   strokeOpacity?: number;
   paintOrder?: PaintOrder;
   textDecoration?: {
-    underline?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number };
-    overline?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number };
-    lineThrough?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number };
+    underline?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number; style?: "dotted" | "dashed" | "wavy" };
+    overline?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number; style?: "dotted" | "dashed" | "wavy" };
+    lineThrough?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number; style?: "dotted" | "dashed" | "wavy" };
   };
   width: number;
   height: number;

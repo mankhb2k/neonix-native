@@ -732,3 +732,103 @@ describe("text-shadow + filter on the same text layer", () => {
     expect(glyphCalls).toEqual([{ glyphs: [36], positions: [expect.any(Number), expect.any(Number)] }]);
   });
 });
+
+// text-decoration-style: wavy/dotted/dashed previously had no draw-call
+// coverage at all (only solid, drawn as a filled rect, existed). Each
+// non-solid style switches from drawRect to a stroked drawPath instead -
+// this locks in the switch and the exact dash/wave parameters per style.
+describe("text-decoration-style: wavy/dotted/dashed", () => {
+  function makeKit() {
+    const drawRectCalls: unknown[] = [];
+    const drawPathCalls: string[] = [];
+    const dashCalls: Array<{ intervals: number[]; phase: number }> = [];
+    const strokeWidths: number[] = [];
+    const strokeCaps: unknown[] = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+      setStrokeWidth(value: number) { strokeWidths.push(value); }
+      setStrokeCap(value: unknown) { strokeCaps.push(value); }
+      setStrokeJoin() {}
+      setPathEffect() {}
+    }
+    let lastPathData = "";
+    const path = { delete() {} } as unknown as SkiaPath;
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect(rect: unknown) { drawRectCalls.push(rect); },
+      drawPath() { drawPathCalls.push(lastPathData); },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: () => 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      StrokeCap: { Butt: "butt", Square: "square", Round: "round" },
+      StrokeJoin: { Miter: 0, Bevel: 1, Round: 2 },
+      Path: { MakeFromSVGString: (data: string) => { lastPathData = data; return path; } },
+      PathEffect: { MakeDash: (intervals: number[], phase = 0) => { dashCalls.push({ intervals, phase }); return { delete() {} } as SkiaPathEffect; } },
+    } as unknown as SkiaCanvasKit;
+    return { kit, canvas, drawRectCalls, drawPathCalls, dashCalls, strokeWidths, strokeCaps };
+  }
+
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  function replayDecoration(kit: SkiaCanvasKit, canvas: SkiaCanvas, decoration: Record<string, unknown>) {
+    replaySkiaCommands(kit, canvas, {
+      commands: [
+        { op: "beginFrame", width: 400, height: 100, background: "#000000", graphId: "decoration-style", frame: 0, time: 0 },
+        { op: "setTransform", key: "text", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawText", key: "text", layerId: "text", text: "A", fontSize: 20, fontAssetId: "noto", width: 200, height: 40, fill: "#ffffff", align: "left", verticalAlign: "top", wrap: "none", overflow: "visible", direction: "ltr", glyphs: [], decorations: [decoration] },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer);
+  }
+
+  it("keeps drawing solid (no style field) as a filled rect, unchanged", () => {
+    const { kit, canvas, drawRectCalls, drawPathCalls } = makeKit();
+    replayDecoration(kit, canvas, { x: 10, y: 20, width: 100, height: 2, fill: "#ffffff" });
+    expect(drawRectCalls).toEqual([[10, 20, 110, 22]]);
+    expect(drawPathCalls).toHaveLength(0);
+  });
+
+  it("draws dotted as a stroked centerline with a near-zero dash and round caps (renders as dots)", () => {
+    const { kit, canvas, drawRectCalls, drawPathCalls, dashCalls, strokeWidths, strokeCaps } = makeKit();
+    replayDecoration(kit, canvas, { x: 10, y: 20, width: 100, height: 2, fill: "#ffffff", style: "dotted" });
+    expect(drawRectCalls).toHaveLength(0);
+    expect(drawPathCalls).toEqual(["M 10 21 L 110 21"]);
+    expect(dashCalls).toEqual([{ intervals: [0.01, 4], phase: 0 }]);
+    expect(strokeWidths).toEqual([2]);
+    expect(strokeCaps).toEqual(["round"]);
+  });
+
+  it("draws dashed as a stroked centerline with longer dashes and butt caps", () => {
+    const { kit, canvas, drawRectCalls, drawPathCalls, dashCalls, strokeWidths, strokeCaps } = makeKit();
+    replayDecoration(kit, canvas, { x: 10, y: 20, width: 100, height: 2, fill: "#ffffff", style: "dashed" });
+    expect(drawRectCalls).toHaveLength(0);
+    expect(drawPathCalls).toEqual(["M 10 21 L 110 21"]);
+    expect(dashCalls).toEqual([{ intervals: [6, 4], phase: 0 }]);
+    expect(strokeCaps).toEqual(["butt"]);
+  });
+
+  it("draws wavy as a quadratic-bezier zigzag path spanning the full decoration width, no dash effect", () => {
+    const { kit, canvas, drawRectCalls, drawPathCalls, dashCalls, strokeWidths, strokeCaps } = makeKit();
+    replayDecoration(kit, canvas, { x: 10, y: 20, width: 100, height: 2, fill: "#ffffff", style: "wavy" });
+    expect(drawRectCalls).toHaveLength(0);
+    expect(dashCalls).toHaveLength(0);
+    expect(drawPathCalls).toHaveLength(1);
+    expect(drawPathCalls[0]).toMatch(/^M 10 21( Q [\d.]+ [\d.]+ [\d.]+ 21)+$/);
+    // The path's last endpoint reaches the decoration's right edge exactly.
+    expect(drawPathCalls[0]).toMatch(/ 110 21$/);
+    expect(strokeCaps).toEqual(["round"]);
+    expect(strokeWidths).toEqual([1.4]);
+  });
+});

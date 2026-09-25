@@ -252,6 +252,8 @@ export type PaintTextDecoration = {
   fill: string;
   fillPaint?: PaintFill;
   opacity?: number;
+  /** CSS text-decoration-style. Omitted draws the classic filled rectangle (`height` = thickness); the others stroke a centerline path instead. */
+  style?: "dotted" | "dashed" | "wavy";
 };
 
 export type PaintTextLine = {

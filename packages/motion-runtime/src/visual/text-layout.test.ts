@@ -330,6 +330,39 @@ describe("runtime text shaping and materialization", () => {
     expect(overrideContent.layout!.glyphs[1]!.y).toBeCloseTo(textWideContent.layout!.glyphs[1]!.y, 5);
   });
 
+  it("passes text-decoration-style through to the generated decoration geometry, unchanged from solid otherwise", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "Hello",
+        textDecoration: { underline: { fill: "#ff0000", thickness: 2, style: "wavy" } },
+      })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout!.decorations).toHaveLength(1);
+    expect(content.layout!.decorations![0]).toMatchObject({ fill: "#ff0000", height: 2, style: "wavy" });
+  });
+
+  it("omits the style field for a plain (solid) decoration, same as before this feature existed", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "Hello",
+        textDecoration: { underline: { fill: "#ff0000", thickness: 2 } },
+      })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout!.decorations![0]!.style).toBeUndefined();
+  });
+
   it("trims grapheme clusters and shapes an ellipsis inside a clipped line", async () => {
     const bytes = await readFile(notoSansPath);
     const value = "Hello world from Neonix";

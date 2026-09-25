@@ -628,9 +628,9 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
     }
     if (!vertical && text.textDecoration) {
       const lineStartX = alignedX;
-      const addDecoration = (style: { fill: string; fillPaint?: import("../paint/paint-types").PaintFill; thickness: number; opacity?: number } | undefined, y: number) => {
+      const addDecoration = (style: { fill: string; fillPaint?: import("../paint/paint-types").PaintFill; thickness: number; opacity?: number; style?: "dotted" | "dashed" | "wavy" } | undefined, y: number) => {
         if (!style || finalAdvance <= 0) return;
-        decorations.push({ x: lineStartX, y, width: finalAdvance, height: style.thickness, fill: style.fill, ...(style.fillPaint ? { fillPaint: style.fillPaint } : {}), ...(style.opacity === undefined ? {} : { opacity: style.opacity }) });
+        decorations.push({ x: lineStartX, y, width: finalAdvance, height: style.thickness, fill: style.fill, ...(style.fillPaint ? { fillPaint: style.fillPaint } : {}), ...(style.opacity === undefined ? {} : { opacity: style.opacity }), ...(style.style ? { style: style.style } : {}) });
       };
       addDecoration(text.textDecoration.underline, adjustedBaselineY + text.fontSize * 0.08);
       addDecoration(text.textDecoration.overline, adjustedBaselineY - text.fontSize * 0.82);

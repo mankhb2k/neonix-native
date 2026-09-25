@@ -66,6 +66,8 @@ export const V2TextDecorationStyleSchema = z
     fill: V2PaintSchema.optional(),
     stroke: V2PaintSchema.optional(),
     strokeWidth: V2PositiveSvgLengthSchema.optional(),
+    /** CSS text-decoration-style. Omitted/`solid` keeps the existing filled-rectangle line; the others draw a dashed/dotted/wavy stroke instead. `double` is not supported. */
+    style: z.enum(["solid", "dotted", "dashed", "wavy"]).optional(),
   })
   .strict();
 

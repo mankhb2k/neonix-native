@@ -10,7 +10,7 @@ export type HtmlCompilerTextDirection = "ltr" | "rtl";
 export type HtmlCompilerWritingMode = "horizontal-tb" | "vertical-rl" | "vertical-lr";
 export type HtmlCompilerWhiteSpace = "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces";
 export type HtmlCompilerTextSpacing = "normal" | { value: number; unit: "px" };
-export type HtmlCompilerTextDecoration = Partial<Record<"underline" | "overline" | "lineThrough", { fill: string; strokeWidth?: { value: number; unit: "px" } }>>;
+export type HtmlCompilerTextDecoration = Partial<Record<"underline" | "overline" | "lineThrough", { fill: string; strokeWidth?: { value: number; unit: "px" }; style?: "dotted" | "dashed" | "wavy" }>>;
 export type HtmlCompilerTextOverflow = "clip" | "ellipsis";
 export type HtmlCompilerTextRendering = "auto" | "optimizeSpeed" | "geometricPrecision";
 
@@ -39,15 +39,17 @@ export function parseTextDecoration(value: string | undefined, currentColor: str
   const lines = new Set<"underline" | "overline" | "lineThrough">();
   let color = currentColor;
   let strokeWidth: { value: number; unit: "px" } | undefined;
+  let style: "dotted" | "dashed" | "wavy" | undefined;
   for (const token of normalized.split(/\s+/).filter(Boolean)) {
     if (token === "underline" || token === "overline" || token === "line-through") {
       lines.add(token === "line-through" ? "lineThrough" : token);
       continue;
     }
     if (token === "solid") continue;
-    if (token === "double" || token === "dotted" || token === "dashed" || token === "wavy") {
-      return fail("css-text-decoration-style-unsupported", `Only solid text-decoration is supported: ${token}`);
-    }
+    if (token === "dotted" || token === "dashed" || token === "wavy") { style = token; continue; }
+    // `double` (two parallel lines) needs different geometry entirely, not
+    // just a different stroke pattern on the same centerline - out of scope.
+    if (token === "double") return fail("css-text-decoration-style-unsupported", `text-decoration-style: double is not supported: ${token}`);
     if (token === "currentcolor" || token === "transparent" || /^#[0-9a-f]{3,8}$/i.test(token)) {
       color = parseColor(token, "text-decoration-color", currentColor);
       continue;
@@ -58,7 +60,7 @@ export function parseTextDecoration(value: string | undefined, currentColor: str
     strokeWidth = { value: resolved.value, unit: "px" };
   }
   if (!lines.size) return fail("css-text-decoration-line-invalid", `text-decoration must include underline, overline or line-through: ${value}`);
-  return Object.fromEntries([...lines].map((line) => [line, { fill: color, ...(strokeWidth ? { strokeWidth } : {}) }])) as HtmlCompilerTextDecoration;
+  return Object.fromEntries([...lines].map((line) => [line, { fill: color, ...(strokeWidth ? { strokeWidth } : {}), ...(style ? { style } : {}) }])) as HtmlCompilerTextDecoration;
 }
 
 export function parseWhiteSpace(value: string | undefined): HtmlCompilerWhiteSpace {

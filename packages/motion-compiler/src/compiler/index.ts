@@ -1497,7 +1497,7 @@ function compileVisualRuntimeInternal(
               const fill = paintColor(paint, paintServers, context.currentColor) ?? "#000000";
               const fillPaint = runtimePaint(paint, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
               const thickness = resolveSvgLength(style.strokeWidth, fontSize, fontSize) ?? Math.max(1, fontSize / 16);
-              return [name, { fill, ...(fillPaint ? { fillPaint } : {}), thickness }];
+              return [name, { fill, ...(fillPaint ? { fillPaint } : {}), thickness, ...(style.style && style.style !== "solid" ? { style: style.style } : {}) }];
             }),
           ) as VisualRuntimeText["textDecoration"]
         : undefined;

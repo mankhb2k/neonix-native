@@ -5697,6 +5697,15 @@
                                           },
                                           "strokeWidth": {
                                             "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                          },
+                                          "style": {
+                                            "type": "string",
+                                            "enum": [
+                                              "solid",
+                                              "dotted",
+                                              "dashed",
+                                              "wavy"
+                                            ]
                                           }
                                         },
                                         "additionalProperties": false

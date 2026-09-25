@@ -64,3 +64,48 @@ describe("native SVG export", () => {
     expect(standalone.endsWith("</g></svg>")).toBe(true);
   });
 });
+
+// text-decoration-style: wavy/dotted/dashed previously had no draw-call
+// coverage (only solid, emitted as a plain <rect>, existed). Each non-solid
+// style switches to a stroked <line>/<path> instead of a filled rect - this
+// locks in the switch and matches canvaskit-preview's identical dash/wave
+// parameters, so both render backends stay visually consistent.
+describe("text-decoration-style: wavy/dotted/dashed", () => {
+  const decorationGlyph: PaintTextGlyph = {
+    glyphId: 1, cluster: 0, clusterEnd: 1, x: 0, y: 0, width: 10, height: 14,
+    path: "M 0 0 L 10 0 L 10 14 L 0 14 Z", pathScale: 1, outline: { x: 0, y: 0, width: 1, height: 1 },
+  };
+
+  function svgFor(decoration: Record<string, unknown>): string {
+    return paintCommandsToSvg({
+      commands: [
+        buffer.commands[0]!,
+        { op: "setTransform", key: "text", matrix4: Array.from(identityMatrix4()), alpha: 1, visible: true, order: 0 },
+        { op: "drawText", key: "text", layerId: "text", text: "A", fontSize: 20, fill: "#ffffff", width: 200, height: 40, glyphs: [decorationGlyph], decorations: [decoration] },
+        buffer.commands[3]!,
+      ],
+      diagnostics: [],
+    } as unknown as PaintCommandBuffer);
+  }
+
+  it("keeps rendering solid (no style field) as a plain rect, unchanged", () => {
+    const svg = svgFor({ x: 10, y: 20, width: 100, height: 2, fill: "#ffffff" });
+    expect(svg).toContain('<rect x="10" y="20" width="100" height="2" fill="#ffffff" fill-opacity="1"/>');
+  });
+
+  it("renders dotted as a stroked line with a near-zero dash and round caps", () => {
+    const svg = svgFor({ x: 10, y: 20, width: 100, height: 2, fill: "#ffffff", style: "dotted" });
+    expect(svg).toContain('<line x1="10" y1="21" x2="110" y2="21" stroke="#ffffff" stroke-opacity="1" stroke-width="2" stroke-dasharray="0.01 4" stroke-linecap="round"/>');
+  });
+
+  it("renders dashed as a stroked line with longer dashes and butt caps", () => {
+    const svg = svgFor({ x: 10, y: 20, width: 100, height: 2, fill: "#ffffff", style: "dashed" });
+    expect(svg).toContain('<line x1="10" y1="21" x2="110" y2="21" stroke="#ffffff" stroke-opacity="1" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="butt"/>');
+  });
+
+  it("renders wavy as an unfilled zigzag path spanning the decoration's full width", () => {
+    const svg = svgFor({ x: 10, y: 20, width: 100, height: 2, fill: "#ffffff", style: "wavy" });
+    expect(svg).toMatch(/<path d="M 10 21(?: Q [\d.]+ [\d.]+ [\d.]+ 21)+" fill="none" stroke="#ffffff" stroke-opacity="1" stroke-width="1.4" stroke-linecap="round"\/>/);
+    expect(svg).toContain(" 110 21\" fill=\"none\"");
+  });
+});
