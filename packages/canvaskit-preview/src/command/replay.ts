@@ -110,6 +110,16 @@ type BoxShadowOverlayBranch = {
   offset?: Extract<RuntimeEffectOp, { kind: "offset" }>;
 };
 
+/**
+ * Stops (rather than failing the whole parse) at the first op that doesn't
+ * start/continue a shadow block, instead of requiring the ENTIRE program to
+ * be shadow branches. `box-shadow: ...; filter: blur(...);` lowers to
+ * [shadow branches][trailing filter ops] - effectFilterFor already
+ * recognizes that combined shape (see splitLeadingBoxShadowThenFilter) and
+ * installs the trailing filter on the layer's saveLayer paint separately;
+ * this function only needs the leading shadow branches to draw their halos,
+ * so a trailing op it doesn't recognize is expected, not an error.
+ */
 function boxShadowOverlayBranches(
   program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'],
 ): BoxShadowOverlayBranch[] | null {
@@ -118,12 +128,12 @@ function boxShadowOverlayBranches(
   let index = 0;
   while (index < program.ops.length) {
     const alpha = program.ops[index];
-    if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") return null;
+    if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") break;
 
     const maybeOffset = program.ops[index + 1];
     const hasOffset = maybeOffset?.kind === "offset";
     const blur = program.ops[index + (hasOffset ? 2 : 1)];
-    if (blur?.kind !== "blur") return null;
+    if (blur?.kind !== "blur") break;
 
     const maybeInner = program.ops[index + (hasOffset ? 3 : 2)];
     if (maybeInner?.kind === "inner-alpha") {
@@ -136,7 +146,7 @@ function boxShadowOverlayBranches(
         composite?.kind !== "composite" ||
         composite.source !== tint.output ||
         composite.mode !== "source-over"
-      ) return null;
+      ) break;
       branches.push({
         kind: "inner",
         blur,
@@ -155,7 +165,7 @@ function boxShadowOverlayBranches(
       offset?.kind !== "offset" ||
       composite?.kind !== "composite" ||
       composite.mode !== "source-over"
-    ) return null;
+    ) break;
     branches.push({ kind: "outer", blur, tint, offset });
     index += 5;
   }
@@ -200,7 +210,10 @@ function drawProjectiveSnapshot(
     kit.TileMode.Clamp,
     kit.TileMode.Clamp,
     kit.FilterMode?.Linear ?? 1,
-    kit.MipmapMode?.None ?? 0,
+    // See the identical comment in images.ts: a projective quad minifies
+    // unevenly across the surface, so mip sampling is needed to avoid
+    // aliasing at the most foreshortened edge.
+    kit.MipmapMode?.Linear ?? kit.MipmapMode?.None ?? 0,
     shaderMatrix ?? [1, 0, 0, 0, 1, 0, 0, 0, 1],
   );
   const vertices = shader
@@ -817,7 +830,9 @@ export function replaySkiaCommands(
     if (resources.filterCache.size >= 64) {
       const oldest = resources.filterCache.keys().next().value as string | undefined;
       if (oldest !== undefined) {
-        resources.filterCache.get(oldest)?.filter?.delete();
+        const evicted = resources.filterCache.get(oldest);
+        evicted?.filter?.delete();
+        evicted?.tailFilter?.delete();
         resources.filterCache.delete(oldest);
       }
     }
@@ -914,7 +929,13 @@ export function replaySkiaCommands(
         // Non-projective layers keep the compact saveLayer path. Projective
         // layers apply their filter after projection in the draw branches —
         // never install the same filter on this parent saveLayer.
-        const layerFilter = projectiveFilter || effectFilter.sourceOnly ? null : effectFilter.filter;
+        // A sourceOnly box-shadow's own `filter` never goes here either (its
+        // pixels come from drawBoxEffect instead) - but `tailFilter` does: a
+        // `box-shadow: ...; filter: blur(...);` combination keeps the shadow
+        // as sourceOnly while still needing that trailing CSS filter applied
+        // to the whole composited layer (owner + every shadow halo, both
+        // drawn inside this same saveLayer) once it restores.
+        const layerFilter = projectiveFilter ? null : effectFilter.sourceOnly ? (effectFilter.tailFilter ?? null) : effectFilter.filter;
         if (layerFilter && paint.setImageFilter) paint.setImageFilter(layerFilter);
         // Bound kinds (Phase 5):
         // - layer content bounds: union of drawable geometry inside the layer
@@ -971,6 +992,10 @@ export function replaySkiaCommands(
         canvas.saveLayer(paint, saveBounds, backdropEffectFilter.filter);
         paint.delete();
         if (!resources && !projectiveFilter && !effectFilter.sourceOnly) effectFilter.filter?.delete();
+        // tailFilter (see layerFilter above) is always consumed here on the
+        // saveLayer paint, unlike `filter` which a sourceOnly box-shadow
+        // keeps alive for drawBoxEffect to use later at endLayer.
+        if (!resources) effectFilter.tailFilter?.delete();
         if (!resources) backdropEffectFilter.filter?.delete();
       } else {
         canvas.save();

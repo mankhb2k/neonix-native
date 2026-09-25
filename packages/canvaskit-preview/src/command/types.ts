@@ -1,5 +1,6 @@
 import type { PaintCommand, RuntimeNoiseEffectOp } from "@motionvideo/motion-runtime";
 import type { SkiaFont, SkiaImage, SkiaImageFilter, SkiaPath, SkiaSurface, SkiaTypeface } from "../canvas-kit";
+import type { EffectFilterResult } from "./effects";
 import type { ProjectiveTextureMesh } from "./geometry";
 
 export type SkiaReplayStats = {
@@ -28,7 +29,7 @@ export type SkiaReplayStats = {
 
 export type SkiaReplayResources = {
   imageCache: Map<string, { identity: string; image: SkiaImage }>;
-  filterCache: Map<string, { filter: SkiaImageFilter | null; supported: boolean; sourceOnly?: boolean }>;
+  filterCache: Map<string, EffectFilterResult>;
   maskCache: Map<string, SkiaImage>;
   projectiveMeshCache: Map<string, ProjectiveTextureMesh | null>;
   pathCache: Map<string, { signature: string; path: SkiaPath }>;

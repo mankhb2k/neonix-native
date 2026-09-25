@@ -2,7 +2,13 @@ import type { PaintCommand, RuntimeEffectOp } from "@motionvideo/motion-runtime"
 import { cssColorToRgba } from "../color";
 import type { SkiaCanvasKit, SkiaColorFilter, SkiaImageFilter } from "../canvas-kit";
 
-export type EffectFilterResult = { filter: SkiaImageFilter | null; supported: boolean; sourceOnly?: boolean };
+export type EffectFilterResult = {
+  filter: SkiaImageFilter | null;
+  supported: boolean;
+  sourceOnly?: boolean;
+  /** A filter to install on the layer's own saveLayer paint alongside a sourceOnly box-shadow `filter` (see splitLeadingBoxShadowThenFilter). */
+  tailFilter?: SkiaImageFilter | null;
+};
 type ColorMatrix = number[];
 type EffectProgram = Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
 
@@ -356,6 +362,71 @@ function makeMixedBoxShadowFilter(
       );
 }
 
+type BoxShadowThenFilter = { branches: BoxShadowBranch[]; tailOps: LinearColorSpatialOp[] };
+
+/**
+ * Parses as many leading box-shadow branches as possible (the same outer/
+ * inner block shapes boxShadowBranches recognizes for a pure shadow-list
+ * program), then requires everything left over to be one linear filter
+ * chain wired off the last branch's composite output. This is the
+ * `box-shadow: ...; filter: blur(...);` shape - CSS applies the filter to
+ * the box-shadow+owner composite as a whole. None of the whole-program
+ * patterns in this file recognize it on their own, since they all require
+ * the ENTIRE op list to be either all-shadow or all-filter.
+ */
+function splitLeadingBoxShadowThenFilter(program: NonNullable<EffectProgram>): BoxShadowThenFilter | null {
+  const branches: BoxShadowBranch[] = [];
+  let index = 0;
+  let lastOutput = "source";
+  while (index < program.ops.length) {
+    const alpha = program.ops[index];
+    if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") break;
+
+    const maybeOffset = program.ops[index + 1];
+    const hasInnerOffset = maybeOffset?.kind === "offset";
+    const blur = program.ops[index + (hasInnerOffset ? 2 : 1)];
+    if (blur?.kind !== "blur") break;
+
+    const maybeInner = program.ops[index + (hasInnerOffset ? 3 : 2)];
+    if (maybeInner?.kind === "inner-alpha") {
+      const tint = program.ops[index + (hasInnerOffset ? 4 : 3)];
+      const composite = program.ops[index + (hasInnerOffset ? 5 : 4)];
+      if (
+        maybeInner.source !== alpha.output ||
+        maybeInner.blurred !== blur.output ||
+        tint?.kind !== "tint" ||
+        composite?.kind !== "composite" ||
+        composite.source !== tint.output ||
+        composite.mode !== "source-over"
+      ) break;
+      branches.push({ kind: "inner", blur, tint, ...(hasInnerOffset ? { offset: maybeOffset } : {}) });
+      lastOutput = composite.output;
+      index += hasInnerOffset ? 6 : 5;
+      continue;
+    }
+
+    const tint = maybeInner;
+    const offset = program.ops[index + 3];
+    const composite = program.ops[index + 4];
+    if (
+      tint?.kind !== "tint" ||
+      offset?.kind !== "offset" ||
+      composite?.kind !== "composite" ||
+      composite.backdrop !== offset.output ||
+      composite.mode !== "source-over"
+    ) break;
+    branches.push({ kind: "outer", blur, tint, offset });
+    lastOutput = composite.output;
+    index += 5;
+  }
+  if (branches.length === 0 || index >= program.ops.length) return null;
+  const tailOps = program.ops.slice(index);
+  if (!tailOps.every(isLinearColorSpatialOp)) return null;
+  if (tailOps.some((op, position) => op.input !== (position === 0 ? lastOutput : tailOps[position - 1]!.output))) return null;
+  if (tailOps.at(-1)!.output !== program.output) return null;
+  return { branches, tailOps };
+}
+
 /**
  * Noise is applied to the rasterized layer by the Skia backend as a separate
  * CPU pass after readback (see `applyNoise` in backend.ts); it never
@@ -400,6 +471,24 @@ export function effectFilterFor(kit: SkiaCanvasKit, fullProgram: EffectProgram):
     // activation token; CanvasKit builds may not expose a usable drop-shadow
     // filter even though the primitive mask/blur APIs are available.
     return { filter, supported: true, sourceOnly: true };
+  }
+  const shadowThenFilter = splitLeadingBoxShadowThenFilter(program);
+  if (shadowThenFilter) {
+    const filter = makeMixedBoxShadowFilter(kit, shadowThenFilter.branches);
+    const tailFilter = filter ? buildLinearColorSpatialFilter(kit, shadowThenFilter.tailOps) : null;
+    if (!filter || !tailFilter) {
+      filter?.delete();
+      tailFilter?.delete();
+      return { filter: null, supported: false };
+    }
+    // Same activation-token caveat as the mixedBoxBranches case above: the
+    // real box-shadow pixels are drawn by replay's isolated-mask compositor
+    // (boxShadowOverlayBranches/drawBoxEffect), not this `filter`. `tailFilter`
+    // is real, though - it is what actually applies the trailing CSS filter
+    // to the whole composited layer (owner + every shadow halo) once
+    // compositing reaches the saveLayer restore, since sourceOnly keeps
+    // `filter` itself off that saveLayer paint.
+    return { filter, supported: true, sourceOnly: true, tailFilter };
   }
   if (shadows.length > 1 && shadows.length * 5 === ops.length && kit.ImageFilter.MakeDropShadow && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend) {
     // CSS paints the first listed shadow above later shadows. Keep the first

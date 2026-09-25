@@ -832,3 +832,122 @@ describe("text-decoration-style: wavy/dotted/dashed", () => {
     expect(strokeWidths).toEqual([1.4]);
   });
 });
+
+// css-effects-roadmap.md 1.2 (Bug A): box-shadow + filter used to break both
+// effects entirely (skia_effect_unsupported), confirmed via a real
+// html-compiler -> motion-compiler -> replay run before this fix. This
+// locks in the replay-level behavior: no diagnostic, the shadow halo is
+// actually drawn onto the canvas (not just recognized by effectFilterFor),
+// and the trailing CSS filter is installed on the layer.
+describe("box-shadow + filter composes instead of both effects disappearing", () => {
+  it("draws the shadow halo and installs the trailing filter on the layer, with zero diagnostics", () => {
+    const filters: Array<{ kind: string; delete(): void }> = [];
+    const makeFilter = (kind: string) => { const f = { kind, delete() {} }; filters.push(f); return f; };
+    // Ordering, not just presence, is what actually distinguishes "the
+    // layer's own tailFilter, installed during beginLayer" from
+    // "drawBoxEffect's internal halo-blur paints, installed later during
+    // endLayer" - both are `kind: "blur"` filters in this stub, so a naive
+    // "was setImageFilter ever called with a blur" assertion would still
+    // pass even without the fix (confirmed by temporarily reverting the fix
+    // and re-running this test before finalizing it).
+    let sequence = 0;
+    let firstMakeSurfaceSequence: number | undefined;
+    const setImageFilterCalls: Array<{ value: unknown; sequence: number }> = [];
+    const drawImageRectCalls: unknown[] = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setPathEffect() {}
+      setImageFilter(value: unknown) { setImageFilterCalls.push({ value, sequence: sequence++ }); }
+    }
+    const snapshotImage = { delete() {}, makeShaderOptions: () => ({ delete() {} }) };
+    const localCanvas = { clear() {}, save() {}, restore() {}, concat() {}, drawRect() {}, drawRRect() {}, drawOval() {}, drawImageRect() {} };
+    const fakeSurface = { getCanvas: () => localCanvas, flush() {}, dispose() {}, makeImageSnapshot: () => snapshotImage };
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      clipRect() {},
+      saveLayer() { return 1; },
+      drawImageRect(...args: unknown[]) { drawImageRectCalls.push(args); },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      TRANSPARENT: 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      FilterMode: { Linear: 1 },
+      MipmapMode: { Linear: 1, None: 0 },
+      MakeVertices: () => ({ delete() {} }),
+      MakeSurface: () => { firstMakeSurfaceSequence ??= sequence++; return fakeSurface; },
+      ColorFilter: {
+        MakeMatrix() { return { matrix: [], delete() {} }; },
+        MakeBlend() { return { delete() {} }; },
+      },
+      ImageFilter: {
+        MakeBlur: () => makeFilter("blur"),
+        MakeDropShadowOnly: () => makeFilter("drop-shadow-only"),
+        MakeDropShadow: () => makeFilter("drop-shadow"),
+        MakeBlend: () => makeFilter("blend"),
+        MakeColorFilter: () => makeFilter("color-filter"),
+      },
+    } as unknown as SkiaCanvasKit;
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    // Same op shape a real `box-shadow: 0 0 8px black; filter: blur(4px);`
+    // compiles to (verified against the real html-compiler ->
+    // motion-compiler pipeline before writing this test).
+    const effectProgram = {
+      input: "source",
+      ops: [
+        { id: "box-shadow:0:alpha", kind: "alpha-mask", input: "source", output: "effect:box-shadow:0:alpha", source: "box" },
+        { id: "box-shadow:0:blur", kind: "blur", input: "effect:box-shadow:0:alpha", output: "effect:box-shadow:0:blur", radius: 8 },
+        { id: "box-shadow:0:tint", kind: "tint", input: "effect:box-shadow:0:blur", output: "effect:box-shadow:0:tint", color: "#000000", opacity: 1 },
+        { id: "box-shadow:0:offset", kind: "offset", input: "effect:box-shadow:0:tint", output: "effect:box-shadow:0:offset", x: 0, y: 0 },
+        { id: "box-shadow:0:composite", kind: "composite", backdrop: "effect:box-shadow:0:offset", source: "source", output: "effect:box-shadow:0", mode: "source-over" },
+        { id: "filter:0", kind: "blur", input: "effect:box-shadow:0", output: "effect:filter:0", radius: 4 },
+      ],
+      output: "effect:filter:0",
+      requiresOffscreen: true,
+    };
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-filter", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, effectProgram, effectBox: { width: 100, height: 60, cornerRadius: 0, matrix4: identity } },
+        { op: "setTransform", key: "card", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card", layerId: "card", fill: "#38bdf8", width: 100, height: 60 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    expect(stats.diagnostics).toEqual([]);
+    // The shadow halo was actually drawn (composited onto the main canvas),
+    // not just recognized as supported.
+    expect(drawImageRectCalls.length).toBeGreaterThan(0);
+    expect(firstMakeSurfaceSequence).toBeDefined();
+    // The trailing CSS filter (blur) is installed on the layer's own
+    // saveLayer paint during beginLayer - strictly before drawBoxEffect
+    // acquires its first offscreen surface at endLayer - applying to the
+    // whole composited layer (owner + halo). Ordering (not just "a blur
+    // filter was installed somewhere") is what actually proves this: both
+    // this filter and drawBoxEffect's own internal halo-blur paints are
+    // `kind: "blur"` in this stub.
+    expect(setImageFilterCalls.length).toBeGreaterThan(0);
+    expect(setImageFilterCalls[0]!.value).toMatchObject({ kind: "blur" });
+    expect(setImageFilterCalls[0]!.sequence).toBeLessThan(firstMakeSurfaceSequence!);
+  });
+});

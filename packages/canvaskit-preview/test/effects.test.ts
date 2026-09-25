@@ -386,4 +386,91 @@ describe("Skia CSS effect lowering", () => {
     expect(result.supported).toBe(true);
     expect(filters.some((filter) => filter.kind === "erode" && filter.meta?.radiusX === 5)).toBe(true);
   });
+
+  // css-effects-roadmap.md 1.2 (Bug A): box-shadow followed by a CSS filter
+  // lowers to [shadow block(s)][trailing linear filter ops off the last
+  // shadow's composite output] - a shape none of the whole-program patterns
+  // above recognized (each requires the ENTIRE op list to be all-shadow or
+  // all-filter), so this fell through to `{supported: false}` and both
+  // effects silently disappeared. Confirmed via a real html-compiler ->
+  // motion-compiler -> replay pipeline run before writing this test: with
+  // the fix, diagnostics are empty, the shadow halo is actually drawn
+  // (not just "recognized"), and the filter still applies to the whole
+  // composited layer.
+  it("supports a single box-shadow followed by a CSS filter (box-shadow: ...; filter: blur(...);)", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "box-shadow:0:alpha", kind: "alpha-mask", input: "source", output: "effect:box-shadow:0:alpha", source: "box" },
+        { id: "box-shadow:0:blur", kind: "blur", input: "effect:box-shadow:0:alpha", output: "effect:box-shadow:0:blur", radius: 8 },
+        { id: "box-shadow:0:tint", kind: "tint", input: "effect:box-shadow:0:blur", output: "effect:box-shadow:0:tint", color: "#000000", opacity: 1 },
+        { id: "box-shadow:0:offset", kind: "offset", input: "effect:box-shadow:0:tint", output: "effect:box-shadow:0:offset", x: 0, y: 0 },
+        { id: "box-shadow:0:composite", kind: "composite", backdrop: "effect:box-shadow:0:offset", source: "source", output: "effect:box-shadow:0", mode: "source-over" },
+        { id: "filter:0", kind: "blur", input: "effect:box-shadow:0", output: "effect:filter:0", radius: 4 },
+      ],
+      output: "effect:filter:0",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    // sourceOnly: the shadow itself is drawn by replay's isolated-mask
+    // compositor (boxShadowOverlayBranches/drawBoxEffect), same as a plain
+    // box-shadow; `filter` here is only the activation token.
+    expect(result).toMatchObject({ supported: true, sourceOnly: true });
+    expect(result.filter).toBeTruthy();
+    // `tailFilter` is the real trailing CSS filter, applied to the whole
+    // composited layer (owner + shadow halo) separately from `filter`.
+    expect(result.tailFilter).toBeTruthy();
+    expect(filters.some((filter) => filter.kind === "blur" && filter === result.tailFilter)).toBe(true);
+  });
+
+  it("supports an ordered box-shadow list followed by a CSS filter (2 shadows + filter: brightness(...))", () => {
+    const { kit } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "outer:alpha", kind: "alpha-mask", input: "source", output: "effect:outer:alpha", source: "box" },
+        { id: "outer:blur", kind: "blur", input: "effect:outer:alpha", output: "effect:outer:blur", radius: 8 },
+        { id: "outer:tint", kind: "tint", input: "effect:outer:blur", output: "effect:outer:tint", color: "#000000", opacity: 1 },
+        { id: "outer:offset", kind: "offset", input: "effect:outer:tint", output: "effect:outer:offset", x: 0, y: 0 },
+        { id: "outer:composite", kind: "composite", backdrop: "effect:outer:offset", source: "source", output: "effect:outer", mode: "source-over" },
+        { id: "second:alpha", kind: "alpha-mask", input: "source", output: "effect:second:alpha", source: "box" },
+        { id: "second:blur", kind: "blur", input: "effect:second:alpha", output: "effect:second:blur", radius: 0 },
+        { id: "second:tint", kind: "tint", input: "effect:second:blur", output: "effect:second:tint", color: "#ff0000", opacity: 1 },
+        { id: "second:offset", kind: "offset", input: "effect:second:tint", output: "effect:second:offset", x: 4, y: 4 },
+        { id: "second:composite", kind: "composite", backdrop: "effect:second:offset", source: "effect:outer", output: "effect:second", mode: "source-over" },
+        { id: "filter:0", kind: "color-adjust", input: "effect:second", output: "effect:filter:0", brightness: 0.2, contrast: 1, saturation: 1, hueRotate: 0 },
+      ],
+      output: "effect:filter:0",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result).toMatchObject({ supported: true, sourceOnly: true });
+    expect(result.filter).toBeTruthy();
+    expect(result.tailFilter).toBeTruthy();
+  });
+
+  it("still fails a box-shadow + filter combo closed (not silently dropped) when the trailing ops aren't a valid linear filter chain", () => {
+    const { kit } = createKit();
+    // A malformed trailing op (references an output that doesn't exist)
+    // must not be mistaken for a valid filter chain.
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "box-shadow:0:alpha", kind: "alpha-mask", input: "source", output: "effect:box-shadow:0:alpha", source: "box" },
+        { id: "box-shadow:0:blur", kind: "blur", input: "effect:box-shadow:0:alpha", output: "effect:box-shadow:0:blur", radius: 8 },
+        { id: "box-shadow:0:tint", kind: "tint", input: "effect:box-shadow:0:blur", output: "effect:box-shadow:0:tint", color: "#000000", opacity: 1 },
+        { id: "box-shadow:0:offset", kind: "offset", input: "effect:box-shadow:0:tint", output: "effect:box-shadow:0:offset", x: 0, y: 0 },
+        { id: "box-shadow:0:composite", kind: "composite", backdrop: "effect:box-shadow:0:offset", source: "source", output: "effect:box-shadow:0", mode: "source-over" },
+        { id: "filter:0", kind: "blur", input: "effect:not-the-shadow-output", output: "effect:filter:0", radius: 4 },
+      ],
+      output: "effect:filter:0",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result).toEqual({ filter: null, supported: false });
+  });
 });
