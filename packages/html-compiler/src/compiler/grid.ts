@@ -193,6 +193,18 @@ function parseGridTemplateAreas(raw: string | undefined): { columnCount: number;
   return { columnCount, rowCount: rows.length, areas };
 }
 
+type GridAutoFlow = "row" | "column";
+
+/** `grid-auto-flow: row | column | row dense | column dense | dense`. `dense` back-fills earlier holes instead of only ever searching forward from the last placed cell - not yet supported, so it fails loudly rather than silently placing items in sparse (non-dense) order. */
+function parseGridAutoFlow(raw: string | undefined): GridAutoFlow {
+  const tokens = (raw ?? "row").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.includes("dense")) fail("css-grid-auto-flow-dense-unsupported", "grid-auto-flow: dense is not yet supported");
+  const axisTokens = tokens.filter((token) => token !== "dense");
+  if (axisTokens.length === 0) return "row";
+  if (axisTokens.length === 1 && (axisTokens[0] === "row" || axisTokens[0] === "column")) return axisTokens[0];
+  return fail("css-grid-auto-flow-unsupported", `Unsupported grid-auto-flow value: ${raw}`);
+}
+
 function fits(occupied: boolean[][], row: number, col: number, rowSpan: number, colSpan: number, rows: number, columns: number): boolean {
   if (row < 0 || col < 0 || col + colSpan > columns || row + rowSpan > rows) return false;
   for (let y = row; y < row + rowSpan; y += 1) for (let x = col; x < col + colSpan; x += 1) if (occupied[y]?.[x]) return false;
@@ -201,6 +213,14 @@ function fits(occupied: boolean[][], row: number, col: number, rowSpan: number, 
 
 function occupy(occupied: boolean[][], row: number, col: number, rowSpan: number, colSpan: number): void {
   for (let y = row; y < row + rowSpan; y += 1) for (let x = col; x < col + colSpan; x += 1) occupied[y]![x] = true;
+}
+
+function extendRows(occupied: boolean[][], targetRows: number, columns: number): void {
+  for (let row = occupied.length; row < targetRows; row += 1) occupied.push(Array.from({ length: columns }, () => false));
+}
+
+function extendColumns(occupied: boolean[][], targetColumns: number): void {
+  for (const row of occupied) while (row.length < targetColumns) row.push(false);
 }
 
 export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
@@ -223,8 +243,9 @@ export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
   }
   let columnSizes = resolveTrackSizes(columns, contentWidth, columnGap);
   let rowSizes = resolveTrackSizes(rows, contentHeight, rowGap);
-  const columnCount = columnSizes.length;
+  let columnCount = columnSizes.length;
   let rowCount = rowSizes.length;
+  const flow = parseGridAutoFlow(input.containerStyle.get("grid-auto-flow"));
   const items: GridItem[] = [];
 
   const gridChildren = flattenChildren(input.children, input.styles);
@@ -266,14 +287,12 @@ export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
     const explicitCol = item.colStart !== undefined;
     const startRow = explicitRow ? item.rowStart! - 1 : 0;
     const startCol = explicitCol ? item.colStart! - 1 : 0;
-    if (startRow + item.rowSpan > occupied.length) {
-      for (let row = occupied.length; row < startRow + item.rowSpan; row += 1) occupied.push(Array.from({ length: columnCount }, () => false));
-    }
+    if (startRow + item.rowSpan > occupied.length) extendRows(occupied, startRow + item.rowSpan, columnCount);
     let foundRow = startRow;
     let foundCol = startCol;
     if (explicitRow && explicitCol) {
       if (!fits(occupied, foundRow, foundCol, item.rowSpan, item.colSpan, occupied.length, columnCount)) fail("css-grid-overlap-invalid", `Grid item ${item.node.atomicId} overlaps an occupied cell or exceeds the grid`);
-    } else {
+    } else if (flow === "row") {
       let found = false;
       for (let row = explicitRow ? startRow : cursorRow; row < occupied.length && !found; row += 1) {
         const firstCol = explicitCol ? startCol : row === cursorRow ? cursorCol : 0;
@@ -282,23 +301,45 @@ export function resolveGridLayout(input: GridLayoutInput): GridPlacement[] {
       if (!found) {
         if (explicitRow) fail("css-grid-placement-invalid", `Grid item ${item.node.atomicId} does not fit its explicit row`);
         foundRow = occupied.length;
-        for (let row = occupied.length; row < foundRow + item.rowSpan; row += 1) occupied.push(Array.from({ length: columnCount }, () => false));
+        extendRows(occupied, foundRow + item.rowSpan, columnCount);
         foundCol = 0;
       }
+      cursorRow = foundRow;
+      cursorCol = foundCol + item.colSpan;
+      if (cursorCol >= columnCount) { cursorRow += 1; cursorCol = 0; }
+    } else {
+      // grid-auto-flow: column - mirrors the row-major search above with the
+      // primary (growing) and secondary (fixed) axes swapped: search
+      // columns-outer/rows-inner, and grow columnCount instead of rowCount
+      // when every existing column has been tried.
+      let found = false;
+      for (let col = explicitCol ? startCol : cursorCol; col < columnCount && !found; col += 1) {
+        const firstRow = explicitRow ? startRow : col === cursorCol ? cursorRow : 0;
+        for (let row = firstRow; row < occupied.length; row += 1) if (fits(occupied, row, col, item.rowSpan, item.colSpan, occupied.length, columnCount)) { foundRow = row; foundCol = col; found = true; break; }
+      }
+      if (!found) {
+        if (explicitCol) fail("css-grid-placement-invalid", `Grid item ${item.node.atomicId} does not fit its explicit column`);
+        foundCol = columnCount;
+        columnCount += item.colSpan;
+        extendColumns(occupied, columnCount);
+        foundRow = 0;
+      }
+      cursorCol = foundCol;
+      cursorRow = foundRow + item.rowSpan;
+      if (cursorRow >= occupied.length) { cursorCol += 1; cursorRow = 0; }
     }
     item.row = foundRow;
     item.col = foundCol;
     occupy(occupied, foundRow, foundCol, item.rowSpan, item.colSpan);
-    cursorRow = foundRow;
-    cursorCol = foundCol + item.colSpan;
-    if (cursorCol >= columnCount) { cursorRow += 1; cursorCol = 0; }
   }
   rowCount = Math.max(rowCount, occupied.length);
   while (rowSizes.length < rowCount) rowSizes.push(0);
-  const resolvedColumns = columns.map((track, index) => track.kind === "auto" ? Math.max(0, ...items.filter((item) => item.col === index && item.colSpan === 1).map((item) => item.preferredWidth)) : columnSizes[index] ?? 0);
+  while (columnSizes.length < columnCount) columnSizes.push(0);
+  const columnTracks = [...columns, ...Array.from({ length: Math.max(0, columnCount - columns.length) }, () => ({ kind: "auto" as const, value: 0 }))];
+  const resolvedColumns = columnTracks.map((track, index) => track.kind === "auto" ? Math.max(0, ...items.filter((item) => item.col === index && item.colSpan === 1).map((item) => item.preferredWidth)) : columnSizes[index] ?? 0);
   const rowTracks = [...rows, ...Array.from({ length: Math.max(0, rowSizes.length - rows.length) }, () => ({ kind: "auto" as const, value: 0 }))];
   const resolvedRows = rowTracks.map((track, index) => track.kind === "auto" ? Math.max(0, ...items.filter((item) => item.row === index && item.rowSpan === 1).map((item) => item.preferredHeight)) : rowSizes[index] ?? 0);
-  columnSizes = resolveTrackSizes(columns.map((track, index) => track.kind === "auto" ? { kind: "length" as const, value: resolvedColumns[index] ?? 0 } : track), contentWidth, columnGap);
+  columnSizes = resolveTrackSizes(columnTracks.map((track, index) => track.kind === "auto" ? { kind: "length" as const, value: resolvedColumns[index] ?? 0 } : track), contentWidth, columnGap);
   rowSizes = resolveTrackSizes(rowTracks.map((track, index) => track.kind === "auto" ? { kind: "length" as const, value: resolvedRows[index] ?? 0 } : track), contentHeight, rowGap);
 
   const totalWidth = columnSizes.reduce((sum, size) => sum + size, 0) + Math.max(0, columnSizes.length - 1) * columnGap;

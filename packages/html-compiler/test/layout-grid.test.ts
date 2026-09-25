@@ -163,3 +163,51 @@ describe("HTML/CSS compiler grid-template-areas", () => {
     expect(result.diagnostics[0]?.code).toBe("css-grid-area-invalid");
   });
 });
+
+describe("HTML/CSS compiler grid-auto-flow", () => {
+  it("fills column-by-column and grows an implicit column once the explicit grid is full", () => {
+    const protocol = compile(
+      `<div id="grid"><div id="a"></div><div id="b"></div><div id="c"></div><div id="d"></div><div id="e"></div></div>`,
+      `#grid { position: absolute; left: 0; top: 0; width: 600px; height: 280px; display: grid; grid-template-columns: 200px 200px; grid-template-rows: 140px 140px; grid-auto-flow: column; }
+       #a, #b, #c, #d, #e { background: #38bdf8; }`,
+    );
+    expect(layer(protocol, "a")).toMatchObject({ transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "b")).toMatchObject({ transform: { translate: { x: 0, y: 140, z: 0 } } });
+    expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 200, y: 0, z: 0 } } });
+    expect(layer(protocol, "d")).toMatchObject({ transform: { translate: { x: 200, y: 140, z: 0 } } });
+    expect(layer(protocol, "e")).toMatchObject({ transform: { translate: { x: 400, y: 0, z: 0 } } });
+  });
+
+  it("skips cells already occupied by a row-spanning item when searching column-major", () => {
+    const protocol = compile(
+      `<div id="grid"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,
+      `#grid { position: absolute; left: 0; top: 0; width: 600px; height: 280px; display: grid; grid-template-columns: 200px 200px; grid-template-rows: 140px 140px; grid-auto-flow: column; }
+       #a { grid-row-start: span 2; background: #38bdf8; }
+       #b, #c { background: #38bdf8; }`,
+    );
+    expect(layer(protocol, "a")).toMatchObject({ frame: { width: 200, height: 280 }, transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "b")).toMatchObject({ transform: { translate: { x: 200, y: 0, z: 0 } } });
+    expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 200, y: 140, z: 0 } } });
+  });
+
+  it("defaults to row flow when grid-auto-flow is absent", () => {
+    const protocol = compile(
+      `<div id="grid"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,
+      `#grid { position: absolute; left: 0; top: 0; width: 400px; height: 280px; display: grid; grid-template-columns: 200px 200px; grid-template-rows: 140px 140px; }
+       #a, #b, #c { background: #38bdf8; }`,
+    );
+    expect(layer(protocol, "a")).toMatchObject({ transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "b")).toMatchObject({ transform: { translate: { x: 200, y: 0, z: 0 } } });
+    expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 0, y: 140, z: 0 } } });
+  });
+
+  it("rejects grid-auto-flow: dense instead of silently falling back to sparse placement", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<body><div id="grid"><div id="a"></div></div></body>`,
+      css: `#grid { position: absolute; left: 0; top: 0; width: 200px; height: 140px; display: grid; grid-auto-flow: column dense; }
+            #a { background: #38bdf8; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-grid-auto-flow-dense-unsupported");
+  });
+});
