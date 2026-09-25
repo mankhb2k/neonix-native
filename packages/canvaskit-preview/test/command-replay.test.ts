@@ -605,3 +605,130 @@ describe("box-shadow + mix-blend-mode on the same layer", () => {
     expect(setBlendModeCalls[0]).toBe(kit.BlendMode.Multiply);
   });
 });
+
+// 1.3 checklist: "text-shadow + filter" was confirmed safe by a real
+// screenshot audit but only ever had value-parsing coverage
+// (paint-color-functions.test.ts, which checks text-shadow/drop-shadow
+// *colors* in isolation, not the combined graph on a real text draw). Unlike
+// box-shadow, this combined graph has no "box" alpha-mask source, so
+// effectFilterFor does not mark it sourceOnly - the filter installs directly
+// on the layer's own saveLayer paint, applying to whatever is drawn inside
+// (here, real glyphs), instead of going through a separate box-effect pass.
+describe("text-shadow + filter on the same text layer", () => {
+  it("installs the combined blur+contrast+drop-shadow filter on the text layer's saveLayer paint", () => {
+    const setImageFilterCalls: unknown[] = [];
+    const saveLayerCalls: unknown[] = [];
+    const glyphCalls: unknown[] = [];
+    const filters: Array<{ kind: string; input?: unknown; meta?: Record<string, unknown> }> = [];
+    const makeFilter = (kind: string, input?: unknown, meta?: Record<string, unknown>) => {
+      const filter = { kind, input, meta, delete() {} };
+      filters.push(filter);
+      return filter;
+    };
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setBlendMode() {}
+      setShader() {}
+      setImageFilter(value: unknown) { setImageFilterCalls.push(value); }
+    }
+    class Font implements SkiaFont {
+      subpixel = false;
+      delete() {}
+      setSubpixel(value: boolean) { this.subpixel = value; }
+    }
+    const font = new Font();
+    const typeface = { delete() {} } satisfies SkiaTypeface;
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      clipRect() {},
+      saveLayer(paint: unknown, bounds: unknown) { saveLayerCalls.push(bounds); return 1; },
+      drawGlyphs(glyphs: number[], positions: number[]) { glyphCalls.push({ glyphs: [...glyphs], positions: [...positions] }); },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      Paint,
+      Font: class { constructor() { return font; } },
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      StrokeCap: { Butt: 0, Square: 1, Round: 2 },
+      StrokeJoin: { Miter: 0, Bevel: 1, Round: 2 },
+      Path: { MakeFromSVGString: () => null },
+      ColorFilter: {
+        MakeMatrix(matrix: number[]) { return { matrix, delete() {} }; },
+        MakeBlend(color: unknown, mode: unknown) { return { color, mode, delete() {} }; },
+      },
+      ImageFilter: {
+        MakeBlur: (sigmaX: number, _sigmaY: number, _tile: unknown, input?: unknown) => makeFilter("blur", input, { sigmaX }),
+        MakeMatrixTransform: (matrix: number[], options: unknown, input?: unknown) => makeFilter("matrix-transform", input, { matrix, options: options as Record<string, unknown> }),
+        MakeColorFilter: (colorFilter: unknown, input?: unknown) => makeFilter("color-filter", input, { colorFilter }),
+        MakeDropShadowOnly: (dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: unknown) => makeFilter("drop-shadow-only", input, { dx, dy, sigmaX, sigmaY, color }),
+        MakeDropShadow: (dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: unknown) => makeFilter("drop-shadow", input, { dx, dy, sigmaX, sigmaY, color }),
+        MakeBlend: (mode: unknown, background: unknown, foreground: unknown) => makeFilter("blend", undefined, { mode, background, foreground }),
+      },
+    } as unknown as SkiaCanvasKit;
+    // Same combined blur + contrast + drop-shadow graph already proven
+    // "supported" at the effectFilterFor level in effects.test.ts - reused
+    // here so the only new thing under test is the layer/saveLayer wiring
+    // around a real drawText, not the filter-graph construction itself.
+    const filterAndTextShadow = {
+      input: "source",
+      ops: [
+        { id: "filter:0", kind: "blur", input: "source", output: "effect:filter:0", radius: 8 },
+        { id: "filter:1", kind: "color-adjust", input: "effect:filter:0", output: "effect:filter:1", brightness: 0, contrast: 1.18, saturation: 1, hueRotate: 0 },
+        { id: "filter:2:alpha", kind: "alpha-mask", input: "effect:filter:1", output: "effect:filter:2:alpha" },
+        { id: "filter:2:blur", kind: "blur", input: "effect:filter:2:alpha", output: "effect:filter:2:blur", radius: 16 },
+        { id: "filter:2:tint", kind: "tint", input: "effect:filter:2:blur", output: "effect:filter:2:tint", color: "#00000099", opacity: 1 },
+        { id: "filter:2:offset", kind: "offset", input: "effect:filter:2:tint", output: "effect:filter:2:offset", x: 26, y: 24 },
+        { id: "filter:2:composite", kind: "composite", backdrop: "effect:filter:2:offset", source: "effect:filter:1", output: "effect:filter:2", mode: "source-over" },
+      ],
+      output: "effect:filter:2",
+      requiresOffscreen: true,
+    };
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 320, height: 180, background: "#000000", graphId: "text-shadow-filter", frame: 0, time: 0 },
+        { op: "beginLayer", key: "text", isolation: true, offscreen: true, effectProgram: filterAndTextShadow },
+        { op: "setTransform", key: "text", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        {
+          op: "drawText",
+          key: "text", layerId: "text", text: "A", fontSize: 40, fontAssetId: "noto",
+          width: 320, height: 180, fill: "#ffffff", align: "left", verticalAlign: "top", wrap: "none", overflow: "visible", direction: "ltr",
+          glyphs: [{
+            glyphId: 36, cluster: 0, clusterEnd: 1, x: 100, y: 20, width: 24, height: 30,
+            path: "M 0 0 Z", pathScale: 0.04, outline: { x: 10, y: 760, width: 600, height: 750 },
+            fontAssetId: "noto", fontSize: 40, renderMode: "grayscale-mask",
+          }],
+        },
+        { op: "endLayer", key: "text" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer, new Map(), "#000000", () => typeface);
+
+    // The combined filter+shadow graph was recognized, not dropped.
+    expect(stats.diagnostics).not.toContain("skia_effect_unsupported:text");
+    // Unlike box-shadow (sourceOnly, applied via a separate offscreen pass),
+    // this combined graph installs directly on the layer's own saveLayer
+    // paint - confirming that path, not just that the filter graph itself
+    // can be built (already covered by effects.test.ts).
+    expect(setImageFilterCalls).toHaveLength(1);
+    expect(setImageFilterCalls[0]).toBe(filters.at(-1));
+    expect(saveLayerCalls.length).toBeGreaterThan(0);
+    // The glyphs are still drawn inside that filtered layer.
+    expect(glyphCalls).toEqual([{ glyphs: [36], positions: [expect.any(Number), expect.any(Number)] }]);
+  });
+});
