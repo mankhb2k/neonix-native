@@ -398,3 +398,210 @@ describe("Skia command replay transforms", () => {
     expect(drawOrder).toEqual([1, 0]);
   });
 });
+
+// 1.3 checklist: "box-shadow + transform 3D" was confirmed safe by a real
+// screenshot audit (glow still renders correctly on a rotated box) but had
+// no draw-call-level test. A perspective transform routes a box-shadow
+// through a completely different code path than a plain 2D box (see the
+// "projective layer" branch in replay.ts: the effect filter is applied
+// *after* projection, on an offscreen raster of the element, instead of on
+// the ordinary sourceOnly box-effect path used for 2D boxes) - this locks
+// that routing decision in with an assertion, not just a visual check.
+describe("box-shadow through a perspective (3D) transform", () => {
+  it("applies the box-shadow filter to the projected snapshot instead of silently dropping it", () => {
+    const filters: Array<{ kind: string; input?: unknown; meta?: Record<string, unknown> }> = [];
+    const makeFilter = (kind: string, input?: unknown, meta?: Record<string, unknown>) => {
+      const filter = { kind, input, meta, delete() {} };
+      filters.push(filter);
+      return filter;
+    };
+    const setImageFilterCalls: unknown[] = [];
+    const saveLayerCalls: unknown[] = [];
+    let drawVerticesCalls = 0;
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+      setImageFilter(value: unknown) { setImageFilterCalls.push(value); }
+    }
+    const shader = { delete() {} };
+    const snapshotImage = { delete() {}, makeShaderOptions: () => shader };
+    const localCanvas = { clear() {}, save() {}, restore() {}, concat() {}, drawRect() {}, drawRRect() {}, drawOval() {} };
+    const fakeSurface = { getCanvas: () => localCanvas, flush() {}, dispose() {}, makeImageSnapshot: () => snapshotImage };
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      drawVertices() { drawVerticesCalls += 1; },
+      saveLayer(paint: unknown, bounds: unknown) { saveLayerCalls.push(bounds); return 1; },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      TRANSPARENT: 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      FilterMode: { Linear: 1 },
+      MipmapMode: { Linear: 1, None: 0 },
+      MakeSurface: () => fakeSurface,
+      MakeVertices: () => ({ delete() {} }),
+      ColorFilter: {
+        MakeMatrix(matrix: number[]) { return { matrix, delete() {} }; },
+        MakeBlend(color: unknown, mode: unknown) { return { color, mode, delete() {} }; },
+      },
+      ImageFilter: {
+        MakeBlur: (sigmaX: number, _sigmaY: number, _tile: unknown, input?: unknown) => makeFilter("blur", input, { sigmaX }),
+        MakeMatrixTransform: (matrix: number[], options: unknown, input?: unknown) => makeFilter("matrix-transform", input, { matrix, options: options as Record<string, unknown> }),
+        MakeColorFilter: (colorFilter: unknown, input?: unknown) => makeFilter("color-filter", input, { colorFilter }),
+        MakeDropShadowOnly: (dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: unknown) => makeFilter("drop-shadow-only", input, { dx, dy, sigmaX, sigmaY, color }),
+        MakeDropShadow: (dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: unknown) => makeFilter("drop-shadow", input, { dx, dy, sigmaX, sigmaY, color }),
+        MakeBlend: (mode: unknown, background: unknown, foreground: unknown) => makeFilter("blend", undefined, { mode, background, foreground }),
+        MakeDilate: (radiusX: number, radiusY: number, input?: unknown) => makeFilter("dilate", input, { radiusX, radiusY }),
+        MakeErode: (radiusX: number, radiusY: number, input?: unknown) => makeFilter("erode", input, { radiusX, radiusY }),
+      },
+    } as unknown as SkiaCanvasKit;
+    // Same perspective matrix already proven to produce a valid mesh in
+    // "tessellates projective texture UVs..." above - reused so this test's
+    // only new variable is the box-shadow effect program, not the matrix math.
+    const perspectiveMatrix = [
+      1, 0, 0, 0.004,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ];
+    const outerShadow = {
+      input: "source",
+      ops: [
+        { id: "outer:alpha", kind: "alpha-mask", input: "source", output: "effect:outer:alpha", source: "box" },
+        { id: "outer:blur", kind: "blur", input: "effect:outer:alpha", output: "effect:outer:blur", radius: 12 },
+        { id: "outer:tint", kind: "tint", input: "effect:outer:blur", output: "effect:outer:tint", color: "#ffffff", opacity: 1 },
+        { id: "outer:offset", kind: "offset", input: "effect:outer:tint", output: "effect:outer:offset", x: 0, y: 0 },
+        { id: "outer:composite", kind: "composite", backdrop: "effect:outer:offset", source: "source", output: "effect:outer", mode: "source-over" },
+      ],
+      output: "effect:outer",
+      requiresOffscreen: true,
+    };
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-3d", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, effectProgram: outerShadow },
+        { op: "setTransform", key: "card", matrix4: perspectiveMatrix, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card", layerId: "card", fill: "#38bdf8", width: 200, height: 120 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    // No fallback to a flat (non-projective) draw, and the effect graph was
+    // recognized (not silently dropped as unsupported).
+    expect(stats.diagnostics).toEqual([]);
+    // The constructed box-shadow filter is applied to the projected
+    // snapshot's saveLayer paint - proof the shadow and the 3D transform
+    // actually compose, not just that neither one crashed the other.
+    expect(filters.length).toBeGreaterThan(0);
+    expect(setImageFilterCalls).toHaveLength(1);
+    expect(setImageFilterCalls[0]).toBeTruthy();
+    expect(setImageFilterCalls[0]).toBe(filters.at(-1));
+    expect(saveLayerCalls.length).toBeGreaterThan(0);
+    // Only the projective mesh-draw path (drawProjectiveSnapshot) ever calls
+    // drawVertices; the ordinary flat box-effect path composites via
+    // drawRect/drawImageRect instead. This is the one signal that actually
+    // distinguishes "routed through the projective path" from "routed
+    // through the normal 2D box-effect path" - confirmed by temporarily
+    // zeroing the perspective term above and observing this drop to 0.
+    expect(drawVerticesCalls).toBe(1);
+  });
+});
+
+// 1.3 checklist: "box-shadow + mix-blend-mode" was confirmed safe by a real
+// screenshot audit but had no draw-call test, and mix-blend-mode in general
+// had no test proving a beginLayer's blendMode ever reaches the compositing
+// paint. blendMode and the box-shadow effectProgram are applied through two
+// separate mechanisms on the same beginLayer command (blendMode -> the
+// saveLayer paint that composites the whole layer back to its parent;
+// effectProgram -> a separate box-effect pass drawn inside the layer in
+// endLayer) - this locks in that adding one does not suppress the other.
+describe("box-shadow + mix-blend-mode on the same layer", () => {
+  it("keeps the layer's blend mode and still recognizes the box-shadow effect graph", () => {
+    const setBlendModeCalls: unknown[] = [];
+    const saveLayerPaints: unknown[] = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setShader() {}
+      setImageFilter() {}
+      setBlendMode(value: unknown) { setBlendModeCalls.push(value); }
+    }
+    const localCanvas = { clear() {}, save() {}, restore() {}, concat() {}, drawRect() {}, drawRRect() {}, drawOval() {} };
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      saveLayer(paint: unknown) { saveLayerPaints.push(paint); return 1; },
+      // The flat box-effect pass fails closed here (no mask surface support)
+      // since its pixel-level rendering is already covered by effectFilterFor
+      // tests in effects.test.ts; only the blend-mode/effect-recognition
+      // interaction on THIS layer is under test.
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      TRANSPARENT: 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: "SrcOver", Multiply: "Multiply" },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      ImageFilter: { MakeBlur: () => ({ delete() {} }), MakeDropShadowOnly: () => ({ delete() {} }), MakeDropShadow: () => ({ delete() {} }), MakeBlend: () => ({ delete() {} }) },
+      MakeSurface: () => undefined,
+    } as unknown as SkiaCanvasKit;
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const outerShadow = {
+      input: "source",
+      ops: [
+        { id: "outer:alpha", kind: "alpha-mask", input: "source", output: "effect:outer:alpha", source: "box" },
+        { id: "outer:blur", kind: "blur", input: "effect:outer:alpha", output: "effect:outer:blur", radius: 12 },
+        { id: "outer:tint", kind: "tint", input: "effect:outer:blur", output: "effect:outer:tint", color: "#ffffff", opacity: 1 },
+        { id: "outer:offset", kind: "offset", input: "effect:outer:tint", output: "effect:outer:offset", x: 0, y: 0 },
+        { id: "outer:composite", kind: "composite", backdrop: "effect:outer:offset", source: "source", output: "effect:outer", mode: "source-over" },
+      ],
+      output: "effect:outer",
+      requiresOffscreen: true,
+    };
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-blend", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, blendMode: "multiply", effectProgram: outerShadow, effectBox: { width: 200, height: 120, cornerRadius: 0, matrix4: identity } },
+        { op: "setTransform", key: "card", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card", layerId: "card", fill: "#38bdf8", width: 200, height: 120 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    // The effect graph is still recognized as a supported box-shadow, not
+    // dropped because a blend mode is also present on the same layer.
+    expect(stats.diagnostics).not.toContain("skia_effect_unsupported:card");
+    // The layer's own compositing paint (the one saveLayer uses to flatten
+    // this subtree back into its parent) carries the CSS blend mode, not the
+    // SrcOver default - proof mix-blend-mode is not silently dropped when a
+    // box-shadow effect program is also present on the same layer.
+    expect(saveLayerPaints).toHaveLength(1);
+    expect(setBlendModeCalls).toContain(kit.BlendMode.Multiply);
+    expect(setBlendModeCalls[0]).toBe(kit.BlendMode.Multiply);
+  });
+});

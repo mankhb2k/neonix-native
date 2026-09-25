@@ -303,6 +303,69 @@ describe("Skia CSS effect lowering", () => {
     expect(filters.some((filter) => filter.kind === "dilate" && filter.meta?.radiusX === 8)).toBe(true);
   });
 
+  // 1.3 checklist: saturate() only ever had coverage with the neutral value
+  // (saturation: 1, a no-op) in the chain tests above. The actual
+  // luminance-preserving saturation matrix (colorAdjustMatrix in effects.ts)
+  // was never exercised with a real, non-neutral value.
+  it("builds the luminance-preserving desaturation matrix for saturate(0%)", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [{ id: "filter:0", kind: "color-adjust", input: "source", output: "effect:filter:0", brightness: 0, contrast: 1, saturation: 0, hueRotate: 0 }],
+      output: "effect:filter:0",
+      requiresOffscreen: false,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    const colorFilter = filters.find((filter) => filter.kind === "color-filter");
+    const matrix = (colorFilter?.meta?.colorFilter as { matrix: number[] } | undefined)?.matrix;
+    // Rec. 709 luma weights (same ones used by the implementation): full
+    // desaturation maps every channel onto the same weighted-luminance row.
+    const lumR = 0.2126;
+    const lumG = 0.7152;
+    const lumB = 0.0722;
+    expect(matrix).toBeDefined();
+    for (const rowStart of [0, 5, 10]) {
+      expect(matrix![rowStart + 0]).toBeCloseTo(lumR, 6);
+      expect(matrix![rowStart + 1]).toBeCloseTo(lumG, 6);
+      expect(matrix![rowStart + 2]).toBeCloseTo(lumB, 6);
+      expect(matrix![rowStart + 3]).toBeCloseTo(0, 6);
+      expect(matrix![rowStart + 4]).toBeCloseTo(0, 6);
+    }
+    expect(matrix!.slice(15)).toEqual([0, 0, 0, 1, 0]);
+  });
+
+  it("builds an oversaturation matrix for saturate(180%) whose row sums stay 1 (luminance-preserving)", () => {
+    const { kit, filters } = createKit();
+    const saturation = 1.8;
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [{ id: "filter:0", kind: "color-adjust", input: "source", output: "effect:filter:0", brightness: 0, contrast: 1, saturation, hueRotate: 0 }],
+      output: "effect:filter:0",
+      requiresOffscreen: false,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    const colorFilter = filters.find((filter) => filter.kind === "color-filter");
+    const matrix = (colorFilter?.meta?.colorFilter as { matrix: number[] } | undefined)?.matrix;
+    expect(matrix).toBeDefined();
+    const lumR = 0.2126;
+    const lumG = 0.7152;
+    const lumB = 0.0722;
+    // Diagonal terms grow past 1 for oversaturation; each row still sums to 1
+    // (a matrix that preserves a fully neutral gray input), unlike the
+    // neutral saturation:1 case exercised elsewhere in this file.
+    expect(matrix![0]).toBeCloseTo(lumR * (1 - saturation) + saturation, 6);
+    expect(matrix![6]).toBeCloseTo(lumG * (1 - saturation) + saturation, 6);
+    expect(matrix![12]).toBeCloseTo(lumB * (1 - saturation) + saturation, 6);
+    expect(matrix![0]).toBeGreaterThan(1);
+    for (const rowStart of [0, 5, 10]) {
+      expect(matrix![rowStart + 0] + matrix![rowStart + 1] + matrix![rowStart + 2]).toBeCloseTo(1, 6);
+    }
+  });
+
   it("erodes the silhouette for a box shadow with negative spread", () => {
     const { kit, filters } = createKit();
     const program: RuntimeEffectProgram = {
