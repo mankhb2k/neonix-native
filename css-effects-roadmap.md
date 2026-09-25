@@ -58,7 +58,7 @@ Audit bằng battery 50 case CSS phổ biến qua compiler thật (không suy đ
 | Nhóm | Pass/Total | Ghi chú |
 | --- | --- | --- |
 | Box model (padding/margin/border/box-sizing/min-max/aspect-ratio/overflow/z-index/inset...) | 19/19 | Sạch, không cần sửa gì (sweep bổ sung sau đó phát hiện thêm 2 lỗi paint/box khác, đã sửa — xem bên dưới) |
-| Layout (flex/grid/flow) | 11/16 → **12/16 sau khi sửa** | `grid-template-areas` đã xong, còn 2 gap |
+| Layout (flex/grid/flow) | 11/16 → **12/16 sau khi sửa `grid-template-areas`** | `flex-direction` reverse + `grid-auto-flow` xong sau đó (commit `20357004`, `0374fd4d`) nhưng chưa re-run lại battery gốc để lấy số pass chính xác — không suy đoán con số, ghi lại ở đây để nhắc verify khi cần |
 | Text/typography | 6/15 → **8/15 sau khi sửa** | 2 gap tần suất cao nhất đã sửa, còn lại xem bên dưới |
 
 **Đã sửa** (commit `fdcaa167`, có test `test/typography-shorthand.test.ts`):
@@ -90,10 +90,25 @@ xác nhận paint/gradient/box sạch trước khi sang grid, có test trong
   dạng số `row/col/row/col`, dạng đó báo lỗi rõ ràng nếu dùng). Vùng không
   tạo thành hình chữ nhật (typo dạng "L") bị từ chối thay vì đoán bừa.
 
-**Còn lại, chưa sửa** (Layout):
-- [ ] `flex-direction: column-reverse`/`row-reverse` — chỉ nhận
-      `row`/`column` (`css-flex-direction-unsupported`)
-- [ ] `grid-auto-flow` — chưa hỗ trợ
+**Đã sửa** (commit `20357004`, có test trong `test/layout-flex.test.ts`):
+- **`flex-direction: row-reverse`/`column-reverse`** — trước đó chỉ nhận
+  `row`/`column`. Tổng quát hoá cờ `rtl` (vốn chỉ dùng cho
+  `direction: rtl` trên `row`) thành `reverseMain`, dùng cùng công thức mirror
+  vị trí main-axis thay vì phải viết logic duyệt ngược item riêng — tự động
+  đúng với `justify-content` (space-between...) vì công thức đó tính trước
+  khi mirror.
+
+**Đã sửa** (commit `0374fd4d`, có test trong `test/layout-grid.test.ts`):
+- **`grid-auto-flow: column`** — trước đó chỉ đặt được theo hàng
+  (row-major). Thêm nhánh tìm ô trống column-major (đảo thứ tự tìm kiếm,
+  đảo trục tăng trưởng khi grid tường minh hết chỗ), tái dùng
+  `fits()`/`occupy()` sẵn có vì 2 hàm này không quan tâm ý nghĩa
+  hàng/cột. `grid-auto-flow: dense` báo lỗi rõ ràng
+  (`css-grid-auto-flow-dense-unsupported`) thay vì âm thầm đặt sai theo
+  kiểu sparse vì chưa hỗ trợ back-fill ô trống phía trước.
+
+**Layout ở Cấp 1 → 1.0 đã hết gap đã biết** — không còn mục nào trong danh
+sách "chưa sửa" của Layout.
 
 **Còn lại, chưa sửa** (Text, tần suất thấp hơn 2 mục đã sửa):
 - [ ] `overflow-wrap: break-word` / `word-break: break-all` — cần cho text
@@ -108,9 +123,10 @@ xác nhận paint/gradient/box sạch trước khi sang grid, có test trong
 không phải gap thật): `position: sticky` (không có khái niệm scroll),
 `float` (CSS legacy, layout hiện đại dùng flex/grid).
 
-**Trạng thái**: 2/2 gap text tần suất cao nhất đã xong. Còn layout
-(`grid-template-areas` là ưu tiên cao nhất còn lại) + phần text còn lại.
-Box model không cần làm gì thêm ở Cấp 1.
+**Trạng thái**: 2/2 gap text tần suất cao nhất đã xong. Layout đã xong hết
+gap đã biết (`grid-template-areas`, `flex-direction` reverse,
+`grid-auto-flow`). Còn 5 gap text tần suất thấp hơn. Box model không cần
+làm gì thêm ở Cấp 1.
 
 ### 1.1 Audit toàn bộ tổ hợp "box-shadow + hiệu ứng khác" cùng phần tử — XONG
 
@@ -245,8 +261,9 @@ viết test** cho các mục này:
   hơn chưa sửa (`overflow-wrap`/`word-break`, `vertical-align`,
   `-webkit-line-clamp`, `text-decoration-style` khác `solid`,
   `text-indent`/`font-variant`).
-- Layout: `grid-template-areas` + `grid-area` đã xong, commit `adc9f4e2`.
-  Còn `flex-direction` reverse + `grid-auto-flow`.
+- Layout: `grid-template-areas` + `grid-area` (commit `adc9f4e2`),
+  `flex-direction` reverse (commit `20357004`), `grid-auto-flow` (commit
+  `0374fd4d`) đều đã xong. Hết gap layout đã biết ở 1.0.
 
 **1.1 (audit tổ hợp box-shadow) xong** — xác nhận 2 bug riêng (1.2:
 shadow+filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
@@ -254,9 +271,11 @@ diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow).
 
 **Thứ tự tiếp theo** (đúng nguyên tắc "case cơ bản đủ điều kiện trước case
 mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
-1. `flex-direction` reverse + `grid-auto-flow` (layout, còn lại của 1.0)
+1. ~~`flex-direction` reverse + `grid-auto-flow` (layout, còn lại của
+   1.0)~~ — XONG.
 2. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
-   `text-decoration-style` (text, tần suất thấp hơn các mục đã xong)
+   `text-decoration-style`, `text-indent`/`font-variant` (5 gap text còn
+   lại — mục tiếp theo)
 3. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
