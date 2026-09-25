@@ -212,47 +212,55 @@ audit ảnh chụp thật hôm nay) nhưng cần rà xem đã có test canvaskit
 cấp draw-call hay chưa, thiếu thì bổ sung để khoá — **không sửa gì, chỉ
 viết test** cho các mục này:
 **Đã verify lại bằng cách đọc thật code test (2026-09-25) — 2 dòng "đã có,
-đủ" bên dưới trước đó SAI, ghi nhầm mà chưa mở file test ra xem**:
+đủ" bên dưới trước đó SAI, ghi nhầm mà chưa mở file test ra xem** — và sau
+đó đã viết đủ test còn thiếu cho cả 6 mục (cùng ngày):
 
-- [ ] `filter` chain đơn (blur/brightness/contrast/saturate/hue-rotate/
-      grayscale/sepia/invert/drop-shadow) — `effects.test.ts`
-      (`packages/canvaskit-preview/test/`) là test cấp draw-call thật (assert
-      filter-graph construction), nhưng **`saturate()` KHÔNG có coverage
-      thật**: field `saturation` chỉ xuất hiện 3 chỗ trong test
-      (dòng 122/220/259), cả 3 đều hardcode `saturation: 1` (giá trị
-      neutral/no-op) — ma trận biến đổi saturation thật
-      (`src/command/effects.ts` dòng 27-34) chưa từng được test với
-      saturation ≠ 1. **Vẫn cần viết test mới**, không phải "xác nhận lại
-      cho chắc" như ghi trước đó.
-- [x] `backdrop-filter` một mình (không kèm box-shadow) — CONFIRMED đúng:
-      `backdrop-replay.test.ts` có 4 test assert trực tiếp arg truyền vào
-      `canvas.saveLayer(paint, bounds, filter)`/`clipRect`, cấp draw-call
-      thật.
-- [ ] **`box-shadow` + `mix-blend-mode`** — audit hôm nay xác nhận render
-      đúng bằng ảnh, nhưng **chưa có test draw-call nào** cho tổ hợp này
-      lẫn `mix-blend-mode` nói chung. Verify lại: mọi test kit trong
-      `packages/canvaskit-preview/test/*.test.ts` đều stub
-      `setBlendMode(){}` thành no-op và không bao giờ assert giá trị được
-      truyền vào, `BlendMode` chỉ stub mỗi `SrcOver` — 13 giá trị CSS còn
-      lại (multiply/screen/overlay/darken/lighten/color-dodge/color-burn/
-      hard-light/soft-light/difference/exclusion/hue/saturation/color/
-      luminosity) hoàn toàn chưa có test nào đụng tới `blendModeFor()`
-      (`src/command/paint.ts` dòng 21-27) — cần viết test mới.
-- [ ] **`box-shadow` + transform 3D** — audit hôm nay xác nhận shadow vẫn
-      hiển thị đúng qua ảnh, nhưng chưa có test draw-call
-- [ ] **`text-shadow` + `filter`** — audit hôm nay xác nhận đúng qua ảnh,
-      chưa có test draw-call cho tổ hợp này (test hiện có trong
-      `paint-color-functions.test.ts` chỉ parse màu text-shadow/
-      drop-shadow riêng lẻ, không phải test tổ hợp trên cùng 1 phần tử)
-- [ ] `opacity` phần trăm + animation opacity qua keyframes — `opacity-
-      replay.test.ts` CÓ 2 test cấp draw-call thật (assert
-      `layerPaints[0].alpha`/`drawPaints[0].alpha`), nhưng cả 2 đều
-      **single-frame/tĩnh** (`"composites isolated subtree opacity once..."`
-      dòng 43, `"keeps non-isolated drawable opacity..."` dòng 59) —
-      **KHÔNG có test nào replay track animation qua nhiều frame/theo thời
-      gian**. Dòng "xác nhận opacity animation track được replay đúng theo
-      thời gian" ghi trước đó là sai, chưa từng verify — vẫn cần viết test
-      multi-frame mới.
+- [x] `filter` chain đơn (blur/brightness/contrast/saturate/hue-rotate/
+      grayscale/sepia/invert/drop-shadow) — `effects.test.ts` đã có test cấp
+      draw-call cho cả chain, nhưng **`saturate()` trước đó chỉ có coverage
+      với giá trị neutral (`saturation: 1`, no-op)** — ma trận biến đổi
+      saturation thật (`src/command/effects.ts` dòng 27-34) chưa từng được
+      test với saturation ≠ 1. Đã thêm 2 test mới: `saturate(0%)` (khớp
+      đúng công thức luminance-preserving grayscale) và `saturate(180%)`
+      (oversaturate, mỗi hàng ma trận vẫn tổng = 1), commit `f1680805`.
+- [x] `backdrop-filter` một mình (không kèm box-shadow) — CONFIRMED đúng từ
+      trước: `backdrop-replay.test.ts` có 4 test assert trực tiếp arg
+      truyền vào `canvas.saveLayer(paint, bounds, filter)`/`clipRect`, cấp
+      draw-call thật. Không cần thêm gì.
+- [x] **`box-shadow` + `mix-blend-mode`** — trước đó hoàn toàn chưa có test
+      draw-call nào cho tổ hợp này lẫn `mix-blend-mode` nói chung (mọi test
+      kit đều stub `setBlendMode(){}` thành no-op, không assert giá trị).
+      Đã thêm: (1) `command-paint.test.ts` — cả 16 giá trị CSS
+      mix-blend-mode map đúng qua `blendModeFor()`, kể cả fallback SrcOver
+      cho tên lạ; (2) `command-replay.test.ts` — beginLayer có cả
+      `blendMode` lẫn box-shadow `effectProgram` vẫn set đúng blend mode
+      trên saveLayer paint của layer VÀ effect graph vẫn được nhận diện
+      (không bị blend mode làm rớt). Commit `f1680805`.
+- [x] **`box-shadow` + transform 3D** — trước đó chưa có test draw-call.
+      Đã thêm test trong `command-replay.test.ts`: box-shadow effect filter
+      được áp lên ảnh snapshot đã chiếu (qua nhánh `drawVertices`/mesh
+      projective) thay vì âm thầm rơi về đường vẽ phẳng 2D. Verify test này
+      thật sự phân biệt được 2 nhánh bằng cách tạm xoá perspective term và
+      xác nhận assertion fail đúng như kỳ vọng. Commit `f1680805`.
+- [x] **`text-shadow` + `filter`** — trước đó chỉ có test parse màu riêng lẻ
+      (`paint-color-functions.test.ts`), không phải test tổ hợp trên cùng 1
+      phần tử. Đã thêm test trong `command-replay.test.ts`: graph
+      blur+contrast+drop-shadow gộp cài đặt trực tiếp lên saveLayer paint
+      của layer chứa `drawText` thật (khác box-shadow: graph này không có
+      alpha-mask nguồn "box" nên không phải sourceOnly, không cần pass
+      offscreen riêng). Verify non-vacuous tương tự (xoá effectProgram →
+      assertion fail). Commit `522b29e7`.
+- [x] `opacity` phần trăm + animation opacity qua keyframes — `opacity-
+      replay.test.ts` trước đó chỉ có 2 test single-frame/tĩnh, KHÔNG có
+      test nào replay track animation qua nhiều frame/theo thời gian (dòng
+      cũ "xác nhận đã replay đúng theo thời gian" là sai, chưa từng
+      verify). Đã thêm 2 test multi-frame: track opacity thường (per-frame
+      alpha độc lập trên từng lần gọi replay riêng, mô phỏng 3 frame đã
+      evaluate) và track group `compositeAlpha` qua ranh giới saveLayer
+      isolate qua nhiều frame. Commit `f1680805`.
+
+**1.3 giờ đã xong** — cả 6 mục đều có test draw-call thật, không mục nào
+còn thiếu.
 
 ## Cấp 2 — Thường gặp, không phải lõi hàng ngày
 
@@ -291,13 +299,19 @@ viết test** cho các mục này:
 shadow+filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
 diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow).
 
+**1.3 (khoá lại hiệu ứng an toàn bằng test) xong** — cả 6 mục đều có test
+draw-call thật, commit `f1680805`/`522b29e7`. Trong lúc làm phát hiện 2
+dòng "đã có, đủ" ghi trước đó (saturate(), opacity animation) thực ra SAI —
+đã sửa lại trong doc lẫn viết test bù, xem chi tiết ở mục 1.3 phía trên.
+
 **Thứ tự tiếp theo** (đúng nguyên tắc "case cơ bản đủ điều kiện trước case
 mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
 1. ~~`flex-direction` reverse + `grid-auto-flow` (layout, còn lại của
    1.0)~~ — XONG.
-2. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
+2. ~~1.3 (khoá test cho hiệu ứng an toàn)~~ — XONG.
+3. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
    `text-decoration-style`, `text-indent`/`font-variant` (5 gap text còn
    lại — mục tiếp theo)
-3. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
+4. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
