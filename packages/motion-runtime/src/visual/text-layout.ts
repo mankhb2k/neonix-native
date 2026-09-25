@@ -672,6 +672,56 @@ export async function measureVisualRuntimeText(
   };
 }
 
+export type TextIntrinsicWidths = {
+  /** The narrowest a `width:auto` box can shrink to without a single word overflowing it - CSS's min-content inline size. Equals maxContent when the text can't wrap (`wrap !== "word"`). */
+  minContent: number;
+  /** The text's width laid out on one line per explicit break, with no wrapping at all - CSS's max-content inline size. */
+  maxContent: number;
+};
+
+/**
+ * Computes CSS's min-content/max-content inline sizes for a text run, using
+ * the exact same real HarfBuzz shaping + greedy word-wrap `sourceLinesForText`
+ * already uses for actual layout - not a separate heuristic. Chromium's own
+ * `LineBreaker` computes these the same way: max-content is one unwrapped
+ * line (an unreachably wide `contentWidth`), min-content is the same wrap
+ * loop breaking at every possible opportunity (the smallest positive
+ * `contentWidth`, since `sourceLinesForText` treats an exact `<= 0` width as
+ * "wrapping disabled" rather than "wrap after every word").
+ *
+ * Ellipsis/overflow truncation is intentionally excluded from both probes:
+ * `text-overflow` is a paint-time truncation of already-wrapped content, not
+ * a contributor to the box's own intrinsic size (matching how a real browser
+ * separates intrinsic sizing from overflow handling).
+ */
+export async function measureVisualRuntimeTextIntrinsicWidths(
+  text: VisualRuntimeText,
+  resolveFont: VisualRuntimeTextFontResolver,
+  loadHarfBuzz: VisualRuntimeTextShaperLoader,
+): Promise<TextIntrinsicWidths | null> {
+  const hb = await loadHarfBuzz();
+  const resolvedFonts: ResolvedFont[] = [];
+  for (const source of fontSourcesForText(text)) {
+    const bytes = await resolveFont(source);
+    if (!bytes) continue;
+    const blob = new hb.Blob(bytes);
+    const face = new hb.Face(blob);
+    const font = configureFont(hb, face, text);
+    resolvedFonts.push({ source, face, font, fontScale: text.fontSize / face.upem, metrics: font.hExtents(), fontSize: text.fontSize });
+  }
+  if (!resolvedFonts.length) return null;
+
+  const widthAtContentWidth = (contentWidth: number): number => {
+    const probe: VisualRuntimeText = { ...text, contentWidth, width: contentWidth, textOverflow: undefined };
+    const lines = sourceLinesForText(hb, probe, resolvedFonts);
+    return Math.max(1, ...lines.map((line) => measureSourceLine(hb, text, resolvedFonts, line.text, line.start)));
+  };
+
+  const maxContent = widthAtContentWidth(Number.POSITIVE_INFINITY);
+  const minContent = text.wrap === "word" ? widthAtContentWidth(Number.MIN_VALUE) : maxContent;
+  return { minContent, maxContent };
+}
+
 export async function prepareVisualRuntimeProjectText(project: VisualRuntimeProject, resolveFont: VisualRuntimeTextFontResolver, loadHarfBuzz: VisualRuntimeTextShaperLoader): Promise<PrepareRuntimeTextResultV2> {
   const diagnostics: VisualRuntimeDiagnostic[] = [];
   const textNodes = project.nodes.filter((node) => node.content.kind === "text");

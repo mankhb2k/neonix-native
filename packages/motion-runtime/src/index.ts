@@ -75,7 +75,8 @@ export {
   normalizeVisualRuntimeProject,
   validateVisualRuntimeProject,
 } from "./visual/validate";
-export { measureVisualRuntimeText, prepareVisualRuntimeProjectText } from "./visual/text-layout";
+export { measureVisualRuntimeText, measureVisualRuntimeTextIntrinsicWidths, prepareVisualRuntimeProjectText } from "./visual/text-layout";
+export type { TextIntrinsicWidths } from "./visual/text-layout";
 export type {
   VisualRuntimeComposition,
   VisualRuntimeFrame,

@@ -2,15 +2,15 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VisualRuntimeProject, VisualRuntimeText } from "./types";
-import { measureVisualRuntimeText, prepareVisualRuntimeProjectText } from "./text-layout";
+import { measureVisualRuntimeText, measureVisualRuntimeTextIntrinsicWidths, prepareVisualRuntimeProjectText } from "./text-layout";
 
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 const repoRoot = path.resolve(process.cwd(), "../..");
-const notoSansPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans/NotoSans-Regular.ttf");
-const interRegularPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter_18pt-Regular.ttf");
-const interBoldPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter_18pt-Bold.ttf");
-const interItalicPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter_18pt-Italic.ttf");
-const notoArabicPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf");
+const notoSansPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans/NotoSans-400.ttf");
+const interRegularPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter-400.ttf");
+const interBoldPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter-700.ttf");
+const interItalicPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter-400-Italic.ttf");
+const notoArabicPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans_Arabic/NotoSansArabic-400.ttf");
 const notoEmojiPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf");
 
 function textContent(overrides: Partial<VisualRuntimeText> = {}): VisualRuntimeText {
@@ -301,5 +301,76 @@ describe("runtime text shaping and materialization", () => {
     expect(run?.glyphs.every((glyph) => glyph.fontAssetId === "noto-arabic")).toBe(true);
     expect(run?.glyphs.every((glyph) => Number.isFinite(glyph.advanceX) && Number.isFinite(glyph.advanceY))).toBe(true);
     expect(content.layout?.glyphs.every((glyph) => glyph.renderMode === "vector")).toBe(true);
+  });
+});
+
+describe("measureVisualRuntimeTextIntrinsicWidths", () => {
+  it("makes min-content equal max-content when the text can't wrap", async () => {
+    const bytes = await readFile(notoSansPath);
+    const widths = await measureVisualRuntimeTextIntrinsicWidths(
+      textContent({ text: "Hello wide world", wrap: "none" }),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    expect(widths?.minContent).toBe(widths?.maxContent);
+  });
+
+  it("makes min-content equal max-content for a single word even when wrap is enabled", async () => {
+    const bytes = await readFile(notoSansPath);
+    const widths = await measureVisualRuntimeTextIntrinsicWidths(
+      textContent({ text: "Supercalifragilistic", wrap: "word" }),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    expect(widths?.minContent).toBe(widths?.maxContent);
+  });
+
+  it("sets min-content to the widest single word and max-content to the full unwrapped line", async () => {
+    const bytes = await readFile(notoSansPath);
+    const fonts = async () => bytes;
+    const loadHarfBuzz = async () => import("harfbuzzjs");
+    const widths = await measureVisualRuntimeTextIntrinsicWidths(textContent({ text: "Hi World", wrap: "word" }), fonts, loadHarfBuzz);
+    const fullLine = await measureVisualRuntimeText(textContent({ text: "Hi World", wrap: "none" }), fonts, loadHarfBuzz);
+    const widestWord = await measureVisualRuntimeText(textContent({ text: "World", wrap: "none" }), fonts, loadHarfBuzz);
+    const narrowestWord = await measureVisualRuntimeText(textContent({ text: "Hi", wrap: "none" }), fonts, loadHarfBuzz);
+
+    expect(widths?.maxContent).toBe(fullLine?.width);
+    expect(widths?.minContent).toBe(widestWord?.width);
+    // Sanity: the two single-word measurements actually differ, or this
+    // assertion would be trivially true regardless of which word min-content picked.
+    expect(widestWord?.width).toBeGreaterThan(narrowestWord?.width ?? 0);
+  });
+
+  it("keeps min-content <= max-content for realistic mixed-length text", async () => {
+    const bytes = await readFile(notoSansPath);
+    const widths = await measureVisualRuntimeTextIntrinsicWidths(
+      textContent({ text: "The quick brown fox jumps over the lazy dog", wrap: "word" }),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    expect(widths).not.toBeNull();
+    expect(widths!.minContent).toBeLessThanOrEqual(widths!.maxContent);
+    expect(widths!.minContent).toBeGreaterThan(0);
+  });
+
+  it("wrapping at a width between min-content and max-content actually produces more than one line", async () => {
+    const bytes = await readFile(notoSansPath);
+    const fonts = async () => bytes;
+    const loadHarfBuzz = async () => import("harfbuzzjs");
+    const text = textContent({ text: "The quick brown fox jumps over the lazy dog", wrap: "word" });
+    const widths = await measureVisualRuntimeTextIntrinsicWidths(text, fonts, loadHarfBuzz);
+    const midWidth = (widths!.minContent + widths!.maxContent) / 2;
+    const measured = await measureVisualRuntimeText({ ...text, width: midWidth, contentWidth: midWidth }, fonts, loadHarfBuzz);
+    expect(measured!.lineCount).toBeGreaterThan(1);
+    expect(measured!.width).toBeLessThanOrEqual(midWidth);
+  });
+
+  it("returns null when no font asset resolves, matching measureVisualRuntimeText", async () => {
+    const widths = await measureVisualRuntimeTextIntrinsicWidths(
+      textContent({ text: "Hello" }),
+      async () => null,
+      async () => import("harfbuzzjs"),
+    );
+    expect(widths).toBeNull();
   });
 });
