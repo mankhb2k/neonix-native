@@ -369,7 +369,7 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow(/Duplicate effect id/);
   });
 
-  it("accepts blur with a positive bounded radius", () => {
+  it("accepts blur with a non-negative bounded radius", () => {
     const blur = {
       ...RECTANGLE_PROJECT,
       layers: [{
@@ -378,9 +378,13 @@ describe("Motion Protocol V2 schema", () => {
       }],
     };
     expect(MotionProtocolV2Schema.parse(blur)).toEqual(blur);
+    // radius: 0 is a valid CSS blur() endpoint (no blur), used as the rest
+    // state of a pulse/flicker keyframe animation (0 -> X -> 0).
+    const zeroBlur = { ...blur.layers[0], effects: [{ id: "soften", type: "blur" as const, radius: 0 }] };
+    expect(MotionProtocolV2Schema.parse({ ...blur, layers: [zeroBlur] })).toEqual({ ...blur, layers: [zeroBlur] });
     expect(() => MotionProtocolV2Schema.parse({
       ...blur,
-      layers: [{ ...blur.layers[0], effects: [{ id: "soften", type: "blur", radius: 0 }] }],
+      layers: [{ ...blur.layers[0], effects: [{ id: "soften", type: "blur", radius: -1 }] }],
     })).toThrow();
   });
 

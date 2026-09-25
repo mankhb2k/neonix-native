@@ -308,6 +308,7 @@ export async function updateProjectHtmlSource(
     html: string;
     expectedHtmlRevisionNo?: number;
     expectedProtocolRevisionNo?: number;
+    ensureBrowserPreviewStyle?: boolean;
   },
 ) {
   try {
@@ -512,7 +513,7 @@ export async function createProject(
 
 export async function createProjectHtml(
   principal: McpPrincipal,
-  input: { workspaceId?: string; title?: string; html: string; idempotencyKey?: string },
+  input: { workspaceId?: string; title?: string; html?: string; idempotencyKey?: string; ensureBrowserPreviewStyle?: boolean },
 ) {
   try {
     return await createSharedProjectHtml(

@@ -43,6 +43,13 @@ export async function encodeRgbaFramesToMp4(options: {
   const child = spawn(options.ffmpegPath, args, { stdio: ["pipe", "ignore", "pipe"] });
   let stderr = "";
   child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+  // If ffmpeg exits early (invalid input, unsupported filter combination,
+  // OOM, ...) a subsequent write to its stdin fails with EPIPE. A Writable's
+  // 'error' event crashes the whole process when nothing is listening for
+  // it, bypassing every try/catch up the stack - this listener is what turns
+  // that into an ordinary, catchable failure instead.
+  let stdinError: Error | undefined;
+  child.stdin.on("error", (error: Error) => { stdinError = error; });
   const exit = new Promise<number>((resolve, reject) => {
     child.once("error", reject);
     child.once("close", (code) => resolve(code ?? 1));
@@ -56,21 +63,28 @@ export async function encodeRgbaFramesToMp4(options: {
   try {
     for await (const frame of options.frames) {
       if (options.signal?.aborted) throw new ExportRendererError("Encoding was cancelled.", "CANCELLED");
+      if (stdinError || child.stdin.destroyed) break;
       const writeStarted = performance.now();
       const accepted = child.stdin.write(frame);
       pipeWriteMilliseconds += performance.now() - writeStarted;
       framesSubmitted += 1;
-      if (!accepted) {
+      if (!accepted && !stdinError && !child.stdin.destroyed) {
         const drainStarted = performance.now();
-        await new Promise<void>((resolve) => child.stdin.once("drain", resolve));
+        await new Promise<void>((resolve) => {
+          child.stdin.once("drain", resolve);
+          child.stdin.once("error", () => resolve());
+          child.stdin.once("close", () => resolve());
+        });
         backpressureWaitMilliseconds += performance.now() - drainStarted;
       }
     }
-    child.stdin.end();
+    if (!stdinError && !child.stdin.destroyed) child.stdin.end();
     const finalizeStarted = performance.now();
     const code = await exit;
     const finalizeMilliseconds = performance.now() - finalizeStarted;
-    if (code !== 0) throw new ExportRendererError(`FFmpeg failed: ${stderr.trim()}`, "FFMPEG_FAILED", { code, stderr });
+    if (code !== 0 || stdinError) {
+      throw new ExportRendererError(`FFmpeg failed: ${stderr.trim() || stdinError?.message || `exit code ${code}`}`, "FFMPEG_FAILED", { code, stderr });
+    }
     const output = await stat(options.outputPath);
     return { outputBytes: output.size, encodeMilliseconds: performance.now() - started, framesSubmitted, pipeWriteMilliseconds, backpressureWaitMilliseconds, finalizeMilliseconds };
   } catch (error) {

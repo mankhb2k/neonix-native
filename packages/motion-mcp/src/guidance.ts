@@ -4,11 +4,25 @@ export const NEONIX_WORKFLOW_GUIDE = `# Neonix MCP workflows
 
 ## Create a new project from HTML
 
-1. If the supported HTML/CSS surface is unknown, call get_capabilities.
-2. Prepare one complete neonix-document HTML string, including style blocks.
-3. Call create_project_html. It is the only public AI path for creating a new project.
-4. Use the returned project id to call open_preview. Call open_editor only when the user wants to edit manually.
-5. Call create_export only when the user explicitly asks for an export.
+create_project_html is the only public AI path for creating a new project.
+Its html field is optional - two ways to use it:
+
+- **Two-step (default, no html needed up front)**: call create_project_html
+  with no html (or an empty string). It scaffolds and actually saves the
+  project from the standard blank template (doctype, charset, neonix-document
+  meta, empty data-neonix-bundle style block). Then call update_project_html
+  to author the real content and set composition.width/height/fps/background
+  /durationMs to whatever the user actually wants (e.g. a specific aspect
+  ratio like 16:9, 1:1, 9:16).
+- **One-step**: if you already know the exact document to save, pass a
+  complete html string (start from get_capabilities' document.template
+  boilerplate; do not rewrite the scaffold from scratch). Adjust the
+  neonix-document meta's composition only if the user asked for a specific
+  size, fps, background or duration.
+
+After either path: use the returned project id to call open_preview. Call
+open_editor only when the user wants to edit manually. Call create_export
+only when the user explicitly asks for an export.
 
 ## Edit an existing project
 
@@ -35,7 +49,10 @@ export const NEONIX_HTML_GUIDE = `# Neonix HTML authoring contract
 
 The input must be a complete Neonix HTML document. Keep the
 meta[name="neonix-document"] manifest and put CSS in style blocks in the same
-document. Use get_capabilities to discover supported tags, CSS properties and
+document. Start from get_capabilities' document.template (a filled-in
+boilerplate) instead of writing the doctype/meta/style scaffold by hand each
+time; only the CSS rules, body markup and composition values change per
+project. Use get_capabilities to discover supported tags, CSS properties and
 bundled fonts. For deterministic text layout, use the bundled Inter family
 (weights 400 and 700); generic system fonts such as Arial are not implicit.
 

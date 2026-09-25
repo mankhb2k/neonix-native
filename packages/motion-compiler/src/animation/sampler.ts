@@ -273,6 +273,14 @@ function applyTrackValue(layer: V2Layer, path: string, value: unknown): V2Layer 
     && value.every((item) => typeof item === "number")) {
     return assignPath(layer, ["render3d", "perspective", "origin"], { x: value[0], y: value[1] }) as V2Layer;
   }
+  // Opacity is schema-bounded to 0..1, but an overshoot easing (e.g. a
+  // back/bounce cubic-bezier) legitimately interpolates past either endpoint
+  // for an instant even though both authored keyframes are in range. Browsers
+  // clamp the rendered value instead of failing; match that here rather than
+  // letting an out-of-range instant reach the runtime opacity validator.
+  if (path === "opacity" && typeof value === "number") {
+    value = Math.min(1, Math.max(0, value));
+  }
   const segments = path.split(".");
   if (segments[0] === "effects") {
     const effectId = segments[1];

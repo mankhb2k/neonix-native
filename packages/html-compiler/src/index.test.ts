@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
-import { compileDocument, compileHtmlCss, compileProject, createHtmlCssProject, createHtmlCssSource, createNewHtmlProject, DEFAULT_HTML_CSS_COMPOSITION, DEFAULT_NEONIX_HTML_DOCUMENT } from "./index";
+import { compileDocument, compileHtmlCss, compileProject, createHtmlCssProject, createHtmlCssSource, createNewHtmlProject, DEFAULT_HTML_CSS_COMPOSITION, DEFAULT_NEONIX_HTML_DOCUMENT, NEONIX_HTML_DOCUMENT_TEMPLATE } from "./index";
 
 const source = createHtmlCssSource({
   html: `<div id="gold-01"></div>`,
@@ -9,6 +9,21 @@ const source = createHtmlCssSource({
 });
 
 describe("HTML compiler Phase 1 vertical slice", () => {
+  // Regression test: this is the exact boilerplate handed to MCP callers via
+  // get_capabilities/create_project_html's own tool description. It must
+  // compile cleanly on its own (an empty body/style block is a legitimate
+  // starting point) and its browser-preview-parity reset rule (margin/100vw
+  // /100vh/overflow on html,body) must never change the compiled composition,
+  // since the runtime already sizes the canvas from composition metadata
+  // alone, independent of any html/body CSS.
+  it("compiles the shared starter template cleanly with no diagnostics", () => {
+    const result = compileDocument({ html: NEONIX_HTML_DOCUMENT_TEMPLATE });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.diagnostics).toEqual([]);
+    expect(result.protocol?.composition).toMatchObject(DEFAULT_HTML_CSS_COMPOSITION);
+    expect(result.protocol?.layers).toEqual([]);
+  });
+
   it("creates every source with the fixed composition envelope", () => {
     expect(createHtmlCssSource().composition).toEqual(DEFAULT_HTML_CSS_COMPOSITION);
     expect(createNewHtmlProject()).toEqual({
@@ -388,7 +403,7 @@ describe("HTML compiler Phase 1 vertical slice", () => {
   it("lowers CSS filter functions as an ordered semantic effect list", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="filtered"></div>`,
-      css: '#filtered { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #38bdf8; filter: brightness(.8) blur(6px) grayscale(.25) opacity(.6) drop-shadow(8px 10px 12px #00000099); }',
+      css: '#filtered { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #38bdf8; filter: brightness(.8) blur(6px) grayscale(.25) opacity(.6) drop-shadow(8px 10px 12px #00000099) hue-rotate(90deg); }',
     }));
     expect(result.status).toBe("success");
     expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
@@ -401,9 +416,22 @@ describe("HTML compiler Phase 1 vertical slice", () => {
         { type: "grayscale", amount: 0.25 },
         { type: "filter-opacity", amount: 0.6 },
         { type: "shadow", source: "alpha", offset: { x: 8, y: 10 }, blur: 12, spread: 0, inset: false },
+        { type: "color-adjust", brightness: 0, contrast: 1, saturation: 1, hueRotate: 90 },
       ],
     });
     expect((filtered?.effects?.[0] as { brightness?: number } | undefined)?.brightness).toBeCloseTo(-0.1, 10);
+  });
+
+  it("accepts blur(0px) as a valid filter radius, for pulse/flicker keyframe endpoints", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="pulsed"></div>`,
+      css: "#pulsed { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #38bdf8; filter: blur(0px); }",
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    expect(result.protocol?.layers.find((layer) => layer.id === "pulsed")).toMatchObject({
+      effects: [{ type: "blur", radius: 0 }],
+    });
   });
 
   it("accepts CSS unitless zero lengths in filter drop-shadow", () => {

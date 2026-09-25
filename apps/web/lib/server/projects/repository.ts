@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { compileDocument, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
+import { compileDocument, ensureBrowserPreviewBodyStyle, NEONIX_HTML_DOCUMENT_TEMPLATE, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { applyMotionProtocolV2Patch } from "@motionvideo/motion-mcp";
 import { logCompileDiagnostics } from "../compile-diagnostics-log";
@@ -458,11 +458,17 @@ export function extractHtmlTitle(html: string): string | null {
 export async function createProjectHtml(
   client: ProjectClient,
   actor: ProjectActor,
-  input: { workspaceId?: string; title?: string; html: string; idempotencyKey?: string },
+  input: { workspaceId?: string; title?: string; html?: string; idempotencyKey?: string; ensureBrowserPreviewStyle?: boolean },
 ) {
-  if (!input.html.trim()) throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
+  // html is optional: omit it (or pass an empty string) to scaffold a new
+  // project from the standard blank template, then call update_project_html
+  // to author real content and set the composition (aspect ratio, fps, ...)
+  // the user actually wants. Passing html directly still works for a caller
+  // that already knows the exact document it wants in one step.
+  const providedHtml = input.html?.trim() ? input.html : NEONIX_HTML_DOCUMENT_TEMPLATE;
+  const html = input.ensureBrowserPreviewStyle ? ensureBrowserPreviewBodyStyle(providedHtml).html : providedHtml;
 
-  const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
+  const compiled = compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
     logCompileDiagnostics(compiled.diagnostics);
@@ -474,23 +480,23 @@ export async function createProjectHtml(
   }
 
   const workspace = await resolveWorkspace(client, actor, input.workspaceId);
-  const title = input.title?.trim() || extractHtmlTitle(input.html) || "Untitled project";
+  const title = input.title?.trim() || extractHtmlTitle(html) || "Untitled project";
   const document = compiled.protocol as unknown as JsonObject;
   const committed = await client.rpc("create_html_project", {
     p_workspace_id: workspace.id,
     p_title: title,
-    p_document_html: input.html,
+    p_document_html: html,
     p_document_json: document,
     p_composition_json: compiled.source.composition,
     p_diagnostics_json: compiled.diagnostics,
-    p_html_content_hash: hash(input.html),
-    p_html_byte_size: Buffer.byteLength(input.html, "utf8"),
+    p_html_content_hash: hash(html),
+    p_html_byte_size: Buffer.byteLength(html, "utf8"),
     p_json_content_hash: hash(JSON.stringify(document)),
     p_json_byte_size: jsonSize(document),
     p_document_schema_version: compiled.protocol.formatVersion,
     p_asset_ids: documentAssetIds(compiled.protocol),
     p_idempotency_key: input.idempotencyKey?.trim() || null,
-    p_idempotency_hash: hash(JSON.stringify({ title, html: input.html })),
+    p_idempotency_hash: hash(JSON.stringify({ title, html })),
   });
   if (committed.error || !committed.data) {
     if (committed.error?.code === "P0002") throw new ProjectRepositoryError("Project revision conflict", "REVISION_CONFLICT");
@@ -619,10 +625,12 @@ export async function updateProjectHtml(
     html: string;
     expectedHtmlRevisionNo?: number;
     expectedProtocolRevisionNo?: number;
+    ensureBrowserPreviewStyle?: boolean;
   },
 ) {
   const { project } = await requireProject(client, actor, input, true);
   if (!input.html.trim()) throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
+  const html = input.ensureBrowserPreviewStyle ? ensureBrowserPreviewBodyStyle(input.html).html : input.html;
   if (input.expectedProtocolRevisionNo !== undefined && input.expectedProtocolRevisionNo !== project.current_revision_no) {
     throw new ProjectRepositoryError("Project revision conflict", "REVISION_CONFLICT");
   }
@@ -640,7 +648,7 @@ export async function updateProjectHtml(
   const discardedIndependentJsonEdits =
     previousHtml !== null && previousHtml.protocol_revision_id !== (latestProtocolBeforeCommit?.id ?? null);
 
-  const compiled = compileDocument({ html: input.html, fontAssets: HTML_COMPILER_FONT_ASSETS });
+  const compiled = compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS });
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
     logCompileDiagnostics(compiled.diagnostics);
@@ -655,12 +663,12 @@ export async function updateProjectHtml(
   const document = compiled.protocol as unknown as JsonObject;
   const committed = await client.rpc("commit_html_revision", {
     p_project_id: project.id,
-    p_document_html: input.html,
+    p_document_html: html,
     p_document_json: document,
     p_composition_json: compiled.source.composition,
     p_diagnostics_json: compiled.diagnostics,
-    p_html_content_hash: hash(input.html),
-    p_html_byte_size: Buffer.byteLength(input.html, "utf8"),
+    p_html_content_hash: hash(html),
+    p_html_byte_size: Buffer.byteLength(html, "utf8"),
     p_json_content_hash: hash(JSON.stringify(document)),
     p_json_byte_size: jsonSize(document),
     p_document_schema_version: compiled.protocol.formatVersion,

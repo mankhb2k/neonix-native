@@ -397,6 +397,9 @@ importers:
       '@motionvideo/export-renderer':
         specifier: workspace:*
         version: link:../export-renderer
+      '@motionvideo/html-compiler':
+        specifier: workspace:*
+        version: link:../html-compiler
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../motion-compiler

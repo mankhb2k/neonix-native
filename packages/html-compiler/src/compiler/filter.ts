@@ -56,12 +56,18 @@ function lengthValue(value: string, property: string, viewport: { width: number;
   return resolved.value;
 }
 
+function angleDegreesValue(value: string, property: string, viewport: { width: number; height: number }, fontSize: number, relative: number): number {
+  const resolved = calcExpression(value, property, relative, fontSize, 16, viewport);
+  if (!Number.isFinite(resolved.value) || (resolved.unit !== "angle" && !(resolved.value === 0 && resolved.unit === "number"))) fail("css-filter-number-invalid", `${property} must resolve to an angle: ${value}`);
+  return resolved.unit === "angle" ? (resolved.value * 180) / Math.PI : 0;
+}
+
 function clampedAmount(value: string, property: string, viewport: { width: number; height: number }, fontSize: number): number {
   return Math.min(1, Math.max(0, numberValue(value, property, viewport, fontSize, 1)));
 }
 
-function colorAdjust(id: string, brightness = 0, contrast = 1): HtmlFilterEffect {
-  return { id, type: "color-adjust", brightness, contrast, saturation: 1, hueRotate: 0 };
+function colorAdjust(id: string, brightness = 0, contrast = 1, hueRotate = 0): HtmlFilterEffect {
+  return { id, type: "color-adjust", brightness, contrast, saturation: 1, hueRotate };
 }
 
 function dropShadow(body: string, id: string, viewport: { width: number; height: number }, fontSize: number, relative: number, currentColor: string): HtmlFilterEffect {
@@ -104,6 +110,11 @@ export function parseFilter(value: string | undefined, relative: number, fontSiz
       const additive = 0.5 * (factor - 1);
       if (additive < -1 || additive > 1) fail("css-filter-amount-unsupported", "brightness() cannot be represented by the V2 color-adjust bounds");
       return colorAdjust(id, additive, factor);
+    }
+    if (name === "hue-rotate") {
+      if (values.length !== 1) fail("css-filter-invalid", "hue-rotate() expects one angle");
+      const hueRotate = angleDegreesValue(values[0]!, "filter.hue-rotate", viewport, fontSize, relative);
+      return colorAdjust(id, 0, 1, hueRotate);
     }
     if (["grayscale", "sepia", "invert", "opacity"].includes(name)) {
       if (values.length !== 1) fail("css-filter-invalid", `${name}() expects one number or percentage`);

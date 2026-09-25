@@ -742,7 +742,7 @@ Each effect has a unique `id`. Current types and fields are:
 | `color-adjust` | `brightness`, `contrast`, `saturation`, `hueRotate` |
 | `grayscale`, `sepia`, `invert` | `amount` in `0..1` |
 | `filter-opacity` | `amount` in `0..1`, distinct from layer `opacity` |
-| `blur` | positive `radius`, maximum 256 |
+| `blur` | non-negative `radius`, maximum 256 |
 | `shadow` | `source`, `offset`, `blur`, signed `spread`, `color`, `inset` |
 | `outer-glow`, `inner-glow` | positive `radius`, `color`, `opacity` |
 | `noise` | positive `scale`, `amount`, `opacity`, integer `seed` |

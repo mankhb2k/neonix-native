@@ -71,7 +71,10 @@ export const V2BlurEffectSchema = z
   .object({
     id: V2IdSchema,
     type: z.literal("blur"),
-    radius: V2FiniteNumberSchema.positive().max(256),
+    // 0 is a valid CSS blur() radius (no blur) and is the common endpoint for
+    // a pulse/flicker keyframe animation (0 -> X -> 0); the sibling shadow
+    // blur field above already allows it for the same reason.
+    radius: V2NonNegativeNumberSchema.max(256),
   })
   .strict();
 

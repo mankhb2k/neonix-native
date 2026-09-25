@@ -146,6 +146,46 @@ describe("sampleMotionLayerAtTime — per-id array addressing", () => {
     const mid = sampleMotionLayerAtTime(layer, 0.5);
     expect((mid as { backdropEffects?: Array<{ id: string; radius: number }> }).backdropEffects?.[0]?.radius).toBe(10);
   });
+
+  // Regression test: a back/bounce cubic-bezier (y1/y2 outside 0..1, a
+  // common "overshoot" easing) legitimately interpolates opacity past its
+  // authored endpoints for an instant even though both keyframes are valid.
+  // The Protocol V2 schema bounds opacity to 0..1, so an unclamped overshoot
+  // reaches the runtime opacity validator and fails the whole export instead
+  // of matching browser behavior, which just clamps the rendered value.
+  it("clamps an overshoot easing's interpolated opacity to 0..1 instead of letting it exceed range", () => {
+    const layer = {
+      id: "shape1",
+      type: "shape",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 200, height: 200 },
+      transform: BASE_TRANSFORM,
+      opacity: 0,
+      timing: { start: 0, duration: 1000 },
+      payload: { shape: "rectangle" },
+      style: {},
+      tracks: [
+        {
+          id: "t1",
+          path: "opacity",
+          keyframes: [
+            { time: 0, value: { type: "number", value: 0 }, easing: { type: "cubicBezier", x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 } },
+            { time: 1000, value: { type: "number", value: 1 } },
+          ],
+        },
+      ],
+    } as unknown as V2Layer;
+
+    // Near the end of the overshoot easing's curve, the raw eased progress
+    // exceeds 1 (that's the whole point of a "back"/"bounce" easing), which
+    // would otherwise carry the interpolated opacity above 1 too.
+    const samples = Array.from({ length: 21 }, (_, index) => sampleMotionLayerAtTime(layer, index / 20).opacity);
+    for (const opacity of samples) {
+      expect(opacity).toBeGreaterThanOrEqual(0);
+      expect(opacity).toBeLessThanOrEqual(1);
+    }
+  });
 });
 
 describe("sampleMotionProjectDefsAtTime — project-level def tracks (no timing.start)", () => {

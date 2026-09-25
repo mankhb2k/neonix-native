@@ -145,6 +145,41 @@ export const DEFAULT_NEONIX_HTML_DOCUMENT = `<!DOCTYPE html>
 </body>
 </html>`;
 
+/**
+ * Boilerplate for a new neonix-document: the required scaffold (doctype,
+ * charset, neonix-document meta with a default composition, empty
+ * data-neonix-bundle style block) already filled in, so callers only need to
+ * add CSS rules and body markup instead of reconstructing the contract by
+ * hand each time. Exposed to MCP callers via get_capabilities.
+ */
+export const NEONIX_HTML_DOCUMENT_TEMPLATE = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="neonix-document"
+      content='${JSON.stringify({
+        kind: "neonix-html-document",
+        schemaVersion: 2,
+        composition: DEFAULT_HTML_CSS_COMPOSITION,
+      })}'
+    />
+    <style data-neonix-bundle>
+      html, body {
+        margin: 0;
+        width: ${DEFAULT_HTML_CSS_COMPOSITION.width}px;
+        height: ${DEFAULT_HTML_CSS_COMPOSITION.height}px;
+        overflow: hidden;
+      }
+      /* Add your CSS rules here. */
+    </style>
+  </head>
+
+  <body>
+    <!-- Add your HTML elements here. -->
+  </body>
+</html>`;
+
 export const DEFAULT_NEONIX_HTML_PROJECT_CONFIG: NeonixHtmlProjectConfig = Object.freeze({
   kind: "neonix-html-project",
   schemaVersion: 1,

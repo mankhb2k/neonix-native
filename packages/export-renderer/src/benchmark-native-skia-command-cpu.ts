@@ -516,6 +516,13 @@ let ffmpeg: ChildProcess | null = null;
 
 let nativeStderr = "";
 let ffmpegStderr = "";
+// If the native Skia binary dies mid-render, the next stdin write fails with
+// EPIPE. A Writable's 'error' event crashes the whole Node process when
+// nothing is listening for it, bypassing every try/catch up the stack
+// (including the caller's job-failure handling) - this listener turns that
+// into an ordinary, catchable failure instead. Attached once per spawn,
+// independent of writeWithBackpressure's own per-write backpressure wait.
+let nativeStdinError: Error | undefined;
 function spawnNative(): void {
   const args = [benchmarkMode === "render-only" || benchmarkMode === "in-process" ? "--no-raw" : "--raw"];
   if (benchmarkMode === "in-process") {
@@ -537,6 +544,7 @@ function spawnNative(): void {
     env: nativeEnvironment,
   });
   native.stderr?.on("data", (chunk: Buffer) => { nativeStderr += chunk.toString(); });
+  native.stdin?.on("error", (error: Error) => { nativeStdinError = error; });
   nativeExit = waitForChild(native, "native Skia");
   if (benchmarkMode === "pipe") {
     ffmpeg = spawnFfmpeg("pipe");
@@ -572,6 +580,7 @@ async function writeProtocolChunk(value: Buffer): Promise<void> {
     return;
   }
   if (!native) throw new Error("Native Skia process is unavailable");
+  if (nativeStdinError) throw new Error(`Native Skia process closed its input: ${nativeStdinError.message}${nativeStderr.trim() ? ` | stderr: ${nativeStderr.trim()}` : ""}`);
   protocolBackpressureMilliseconds += await writeWithBackpressure(native, value);
 }
 
@@ -614,7 +623,7 @@ if (protocolFile) {
   protocolFile = null;
 }
 if (protocolTransport === "file") spawnNative();
-if (protocolTransport === "pipe") native!.stdin?.end();
+if (protocolTransport === "pipe" && !nativeStdinError) native!.stdin?.end();
 
 const nativeCode = await (nativeExit ?? Promise.reject(new Error("Native Skia process was not started")));
 if (typeof nativeStdoutMode === "number") closeSync(nativeStdoutMode);
@@ -625,10 +634,11 @@ if (benchmarkMode === "encode-file") {
 }
 const ffmpegCode = ffmpeg ? await waitForChild(ffmpeg, "FFmpeg") : null;
 const encodeMilliseconds = ffmpeg ? performance.now() - encodeStarted : 0;
-if (nativeCode !== 0 || ffmpegCode !== null && ffmpegCode !== 0) {
+if (nativeCode !== 0 || ffmpegCode !== null && ffmpegCode !== 0 || nativeStdinError) {
   throw new Error(JSON.stringify({
     nativeCode,
     ffmpegCode,
+    nativeStdinError: nativeStdinError?.message,
     nativeStderr,
     ffmpegStderr,
   }));
