@@ -124,7 +124,7 @@ const MARKDOWN_COMPONENTS: Components = {
 
 export function DocsMarkdown({ markdown }: { markdown: string }) {
   return (
-    <article className="mx-auto max-w-[56rem] pb-20 text-base leading-[1.7] text-[var(--fg-primary)]">
+    <article className="mx-auto max-w-[900px] pb-20 text-base leading-[1.7] text-[var(--fg-primary)]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSlug]}

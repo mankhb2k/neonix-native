@@ -12,7 +12,7 @@ export default function GuidesIndexPage() {
   const guides = listGuides();
   return (
     <main className="min-h-[calc(100vh-72px)] bg-[var(--bg-site)] text-[var(--fg-primary)]">
-      <div className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
+      <div className="mx-auto max-w-[900px] px-6 py-16 sm:py-24">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-text)]">Guides</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
           Create motion video, step by step
