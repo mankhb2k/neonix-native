@@ -47,6 +47,52 @@ thống, kèm test cho từng tổ hợp — đúng tinh thần "làm đến đ�
 
 ## Cấp 1 — Lõi, 90%+ project nào cũng đụng
 
+### 1.0 Case cơ bản độc lập (box-model/layout/text) phải đủ điều kiện trước khi làm case mix
+
+Nguyên tắc bổ sung: **case cơ bản (không tổ hợp) của box-model/paint/text/
+layout phải vững trước** khi quay lại sửa case tổ hợp (1.2/1.2b) — sửa mix
+trên nền chưa vững sẽ phải quay lại sửa 2 lần.
+
+Audit bằng battery 50 case CSS phổ biến qua compiler thật (không suy đoán):
+
+| Nhóm | Pass/Total | Ghi chú |
+| --- | --- | --- |
+| Box model (padding/margin/border/box-sizing/min-max/aspect-ratio/overflow/z-index/inset...) | 19/19 | Sạch, không cần sửa gì |
+| Layout (flex/grid/flow) | 11/16 | 3 gap thật, xem bên dưới |
+| Text/typography | 7/15 → **9/15 sau khi sửa** | 2 gap tần suất cao nhất đã sửa, còn lại xem bên dưới |
+
+**Đã sửa** (commit `fdcaa167`, có test `test/typography-shorthand.test.ts`):
+- **`font` shorthand** (`font: italic 700 24px/1.4 Inter`) — hoàn toàn chưa
+  hỗ trợ trước đó, ép người viết CSS (kể cả AI) luôn phải tách riêng
+  `font-size`/`font-weight`/`font-family`... trong khi đây là cách viết CSS
+  rất phổ biến.
+- **`text-transform: uppercase/lowercase/capitalize`** — hoàn toàn chưa hỗ
+  trợ, hay dùng cho badge/label motion-graphics. Sửa xong phát hiện thêm 1
+  bug con: quên thêm vào `INHERITED_PROPERTIES` nên không kế thừa xuống
+  phần tử con — đã sửa cùng lúc, có test khoá riêng cho trường hợp kế thừa.
+
+**Còn lại, chưa sửa** (Layout):
+- [ ] `grid-template-areas` — cách đặt tên vùng grid phổ biến nhất, chưa hỗ
+      trợ (`css-property-unsupported`)
+- [ ] `flex-direction: column-reverse`/`row-reverse` — chỉ nhận
+      `row`/`column` (`css-flex-direction-unsupported`)
+- [ ] `grid-auto-flow` — chưa hỗ trợ
+
+**Còn lại, chưa sửa** (Text, tần suất thấp hơn 2 mục đã sửa):
+- [ ] `overflow-wrap: break-word` / `word-break: break-all` — cần cho text
+      box co giãn với từ dài
+- [ ] `vertical-align` — gap đã biết từ trước, chưa sửa
+- [ ] `-webkit-line-clamp` — cắt text N dòng, hay dùng cho caption/mô tả
+- [ ] `text-indent`, `font-variant` — tần suất thấp hơn, có thể để Cấp 2
+
+**Không cần làm** (đã xác nhận không phù hợp với sản phẩm video/motion,
+không phải gap thật): `position: sticky` (không có khái niệm scroll),
+`float` (CSS legacy, layout hiện đại dùng flex/grid).
+
+**Trạng thái**: 2/2 gap text tần suất cao nhất đã xong. Còn layout
+(`grid-template-areas` là ưu tiên cao nhất còn lại) + phần text còn lại.
+Box model không cần làm gì thêm ở Cấp 1.
+
 ### 1.1 Audit toàn bộ tổ hợp "box-shadow + hiệu ứng khác" cùng phần tử — XONG
 
 Verify bằng dữ liệu thật cho từng tổ hợp: dựng HTML tối giản, nạp qua
@@ -170,13 +216,21 @@ viết test** cho các mục này:
 
 ## Trạng thái hiện tại
 
-**1.1 xong** — audit bằng ảnh chụp thật, xác nhận 2 bug riêng (1.2: shadow+
-filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
-diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow —
-chuyển sang 1.3 chỉ cần viết test khoá).
+**1.0 (case cơ bản độc lập)**: box model sạch. Text — 2/2 gap tần suất cao
+nhất (`font` shorthand, `text-transform`) đã xong, có test, đã commit
+(`fdcaa167`). Layout còn 3 gap chưa sửa (`grid-template-areas` ưu tiên cao
+nhất). Text còn 4 gap tần suất thấp hơn chưa sửa.
 
-**Tiếp theo**: root-cause 1.2b bằng code (đang mới có bằng chứng ảnh, chưa
-đọc code xác nhận), rồi sửa 1.2 + 1.2b cùng lúc (chung khu vực code
-`beginLayer`/`drawBoxEffect` trong `replay.ts`), viết test cho cả hai, rồi
-mới sang 1.3. Không mở case nào khác trong Cấp 1 tới khi 1.2+1.2b có test
-xanh và golden-diff sạch.
+**1.1 (audit tổ hợp box-shadow) xong** — xác nhận 2 bug riêng (1.2:
+shadow+filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
+diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow).
+
+**Thứ tự tiếp theo** (đúng nguyên tắc "case cơ bản đủ điều kiện trước case
+mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
+1. `grid-template-areas` (layout, ưu tiên cao nhất còn lại của 1.0)
+2. `flex-direction` reverse + `grid-auto-flow` (layout)
+3. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`
+   (text, tần suất thấp hơn 2 mục đã xong)
+4. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
+
+Không mở nhiều mục cùng lúc trong danh sách trên.
