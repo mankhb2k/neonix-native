@@ -334,6 +334,85 @@ function resolveTransformTrackConflicts(tracks: V2Track[], style: Style, options
   return drop.size ? tracks.filter((track) => !drop.has(track)) : tracks;
 }
 
+/**
+ * Two `animation-name` entries that each animate the *same* non-transform
+ * property path (opacity, background-color, width, ...) collide in Protocol
+ * V2, which allows at most one track per path (`V2TrackListSchema`) - there
+ * is no runtime "which one wins" rule for two independently-active tracks on
+ * one path. But the extremely common case is NOT a real conflict: a fade-in
+ * over [0, 1s] and an unrelated fade-out over [4s, 5s] never touch the same
+ * instant at all. Each `buildTrack()` call already produces a complete,
+ * self-contained local keyframe list for its own entry (including a
+ * synthesized boundary keyframe at 0/durationMs via `baseFor` when the
+ * author's own @keyframes doesn't cover it) - concatenating those lists in
+ * absolute (delay-shifted) time reproduces exactly the shape the documented
+ * single-@keyframes-with-percentage-offsets workaround already requires
+ * authors to hand-write. Only sequential, single-iteration, normal-direction
+ * entries are merged this way; anything else (genuine time overlap, or an
+ * iteration-count/direction that has no finite flat timeline) still fails,
+ * but with a specific diagnostic instead of Protocol V2's generic
+ * "Duplicate animated property path".
+ */
+function mergeSequentialTracksOnSamePath(tracks: V2Track[]): V2Track[] {
+  const byPath = new Map<string, V2Track[]>();
+  for (const track of tracks) {
+    // transform.* paths have their own, different conflict-resolution
+    // mechanism (resolveTransformTrackConflicts) - leave them untouched.
+    if (track.path.startsWith("transform.")) continue;
+    const bucket = byPath.get(track.path);
+    if (bucket) bucket.push(track);
+    else byPath.set(track.path, [track]);
+  }
+  const drop = new Set<V2Track>();
+  const additions: V2Track[] = [];
+  for (const [path, bucket] of byPath) {
+    if (bucket.length < 2) continue;
+    const names = () => [...new Set(bucket.map(animationNameOf))].map((name) => `"${name}"`).join(", ");
+    // A negative animation-delay is excluded too: the composition-wide
+    // timeline length (animationTimelineDuration) credits a negative-delay
+    // entry only `delay + duration` (its already-elapsed portion), not its
+    // full local keyframe span, so a merged track built from one could carry
+    // keyframe times past the layer's own computed duration.
+    const notMergeable = bucket.filter((track) => track.animation!.iterations !== 1 || track.animation!.direction !== "normal" || track.animation!.delayMs < 0);
+    if (notMergeable.length > 0) {
+      fail(
+        "css-animation-property-not-mergeable",
+        `${bucket.length} animations on this element all animate ${path} (${names()}), and at least one uses animation-iteration-count other than 1 (including infinite), a negative animation-delay, or an animation-direction other than normal, so they can't be combined into one timeline automatically. Merge them into a single @keyframes block with percentage offsets instead.`,
+      );
+    }
+    const sorted = [...bucket].sort((a, b) => a.animation!.delayMs - b.animation!.delayMs);
+    for (let index = 1; index < sorted.length; index += 1) {
+      const previousEnd = sorted[index - 1]!.animation!.delayMs + sorted[index - 1]!.animation!.durationMs;
+      const currentStart = sorted[index]!.animation!.delayMs;
+      if (currentStart < previousEnd) {
+        fail(
+          "css-animation-property-overlap",
+          `${bucket.length} animations on this element all animate ${path} (${names()}), and their time ranges overlap, so there's no defined way to combine them. Merge them into a single @keyframes block with percentage offsets instead.`,
+        );
+      }
+    }
+    // Non-overlapping and eligible: concatenate each entry's own complete
+    // local keyframe list into one merged timeline, in time relative to the
+    // earliest entry's own delay (so a negative animation-delay on that
+    // entry is preserved as the merged track's own delay, instead of pushing
+    // any keyframe to a negative time). A later entry's keyframe wins when
+    // two lists happen to touch at the exact same instant (the boundary
+    // between one entry ending and the next starting).
+    const baseDelayMs = sorted[0]!.animation!.delayMs;
+    const merged = sorted.flatMap((track) => track.keyframes.map((keyframe) => ({ ...keyframe, time: keyframe.time + track.animation!.delayMs - baseDelayMs })));
+    const keyframes = merged.filter((keyframe, index) => merged[index + 1]?.time !== keyframe.time);
+    const durationMs = sorted.at(-1)!.animation!.delayMs + sorted.at(-1)!.animation!.durationMs - baseDelayMs;
+    additions.push({
+      id: `animation:${sorted.map(animationNameOf).join("+")}:${path}`,
+      path,
+      keyframes,
+      animation: { durationMs, delayMs: baseDelayMs, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+    } as V2Track);
+    for (const track of bucket) drop.add(track);
+  }
+  return drop.size ? [...tracks.filter((track) => !drop.has(track)), ...additions] : tracks;
+}
+
 function styleTiming(definition: KeyframeDefinition, at: number): string | undefined {
   const steps = definition.steps
     .filter((candidate) => candidate.selectors.some((selector) => Math.abs(offset(selector) - at) < 1e-9))
@@ -377,8 +456,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
   const states = list(style.get("animation-play-state"), "running");
   // CSS animation-timing-function defaults to ease, not linear.
   const timings = list(style.get("animation-timing-function"), "ease");
-  const group: V2Track[] = [];
-  const paint: V2Track[] = [];
+  const allTracks: V2Track[] = [];
   names.forEach((name, index) => {
     if (name === "none") return;
     const definition = keyframes.get(name) ?? fail("css-animation-name-unknown", `animation-name references unknown @keyframes: ${name}`);
@@ -433,9 +511,13 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
               ? perspectiveOrigin(String(base), options).value
           : base;
       const tracks = buildTrack(property, definition, durationMs, animation, baseValue, options, easingValue);
-      for (const track of tracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
+      allTracks.push(...tracks);
     }
   });
+  const mergedTracks = mergeSequentialTracksOnSamePath(allTracks);
+  const group: V2Track[] = [];
+  const paint: V2Track[] = [];
+  for (const track of mergedTracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
   return { group: resolveTransformTrackConflicts(group, style, options), paint };
 }
 

@@ -2103,6 +2103,20 @@ export const HTML_COMPILER_MOTION_CASES: HtmlCompilerPreviewCase[] = [
     "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
+    "id": "html-compiler.motion.sequential-property-merge",
+    "category": "Animation & keyframe primitives",
+    "topic": "Motion & animation",
+    "label": "Motion / sequential same-property merge (non-overlapping animation-name entries)",
+    "properties": [
+      "animation-name: fadeIn, fadeOut",
+      "non-overlapping time ranges",
+      "same @keyframes reused at different delays"
+    ],
+    "hint": "Two separate animation-name entries on one element that both animate opacity, but never overlap in time, are merged into a single Protocol V2 track automatically (fade-in [0,1s] then fade-out [4s,5s]; the same @keyframes name reused twice at different delays merges the same way). Previously any two animation-name entries touching the same property hard-failed compilation regardless of overlap.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/sequential-property-merge.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
     "id": "html-compiler.motion.combo-paint-interactions",
     "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",

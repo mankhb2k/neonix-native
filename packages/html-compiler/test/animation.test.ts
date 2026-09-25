@@ -490,3 +490,147 @@ describe("CSS animation lowering", () => {
     expect(track?.animation).toMatchObject({ durationMs: 500, iterations: expected, direction: "alternate-reverse" });
   });
 });
+
+describe("sequential same-property animation merging", () => {
+  const box = (css: string) => compileHtmlCss(createHtmlCssSource({ html: "<div id=\"box\"></div>", css: `#box { width: 100px; height: 100px; ${css} }` }));
+  const opacityTracks = (result: ReturnType<typeof box>) =>
+    result.protocol?.layers.flatMap((layer) => layer.tracks ?? []).filter((track) => track.path === "opacity") ?? [];
+
+  it("[T1] one animation on one property compiles as a single track (baseline)", () => {
+    const result = box(`
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      animation-name: fadeIn; animation-duration: 1s;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(opacityTracks(result)).toHaveLength(1);
+  });
+
+  it("[T2] merges two non-overlapping animation-name entries on the same property into one track (shorthand)", () => {
+    // fadeIn runs [0, 1s]; fadeOut runs [4s, 5s] - never touch, the standard
+    // intro/outro pattern.
+    const result = box(`
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      animation: fadeIn 1s, fadeOut 1s 4s;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = opacityTracks(result);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]?.animation).toMatchObject({ durationMs: 5000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both" });
+    expect(tracks[0]?.keyframes.map((keyframe) => [keyframe.time, keyframe.value])).toEqual([
+      [0, { type: "number", value: 0 }],
+      [1000, { type: "number", value: 1 }],
+      [4000, { type: "number", value: 1 }],
+      [5000, { type: "number", value: 0 }],
+    ]);
+  });
+
+  it("[T3] still rejects two animations on the same property whose time ranges genuinely overlap", () => {
+    const result = box(`
+      @keyframes fadeA { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeB { from { opacity: 1; } to { opacity: 0.2; } }
+      animation-name: fadeA, fadeB; animation-duration: 2s, 2s;
+    `);
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-animation-property-overlap");
+    expect(result.diagnostics[0]?.message).toContain("their time ranges overlap");
+  });
+
+  it("[T4] merges the same @keyframes name reused twice at non-overlapping delays (blink-twice pattern)", () => {
+    const result = box(`
+      @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+      animation-name: pulse, pulse; animation-duration: 500ms, 500ms; animation-delay: 0ms, 2000ms;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = opacityTracks(result);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]?.id).toBe("animation:pulse+pulse:opacity");
+    expect(tracks[0]?.keyframes).toHaveLength(6);
+  });
+
+  it("[T4b] reusing the same @keyframes name with overlapping windows still errors, with the clearer message (not a track-id collision)", () => {
+    const result = box(`
+      @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+      animation-name: pulse, pulse; animation-duration: 500ms, 500ms; animation-delay: 0ms, 200ms;
+    `);
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-animation-property-overlap");
+  });
+
+  it("[T5] two animations on different properties never collide", () => {
+    const result = box(`
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes tint { from { background-color: #000000; } to { background-color: #ffffff; } }
+      animation-name: fade, tint; animation-duration: 1s, 1s;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = result.protocol?.layers.flatMap((layer) => layer.tracks ?? []) ?? [];
+    expect(tracks.filter((t) => t.path === "opacity")).toHaveLength(1);
+    expect(tracks.filter((t) => t.path === "style.fill")).toHaveLength(1);
+  });
+
+  it("[T6] merges identically to T2 when written with longhand animation-* properties instead of the shorthand", () => {
+    const result = box(`
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      animation-name: fadeIn, fadeOut; animation-duration: 1s, 1s; animation-delay: 0s, 4s;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = opacityTracks(result);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]?.keyframes.map((keyframe) => keyframe.time)).toEqual([0, 1000, 4000, 5000]);
+  });
+
+  it("[T8] three animations on three different properties all compile independently", () => {
+    const result = box(`
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes tint { from { background-color: #000000; } to { background-color: #ffffff; } }
+      @keyframes grow { from { width: 100px; } to { width: 200px; } }
+      animation-name: fade, tint, grow; animation-duration: 1s, 1s, 1s;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = result.protocol?.layers.flatMap((layer) => layer.tracks ?? []) ?? [];
+    expect(new Set(tracks.map((t) => t.path))).toEqual(new Set(["opacity", "style.fill", "frame.width"]));
+  });
+
+  it("still rejects a merge when one of the colliding animations uses an iteration-count other than 1, with a dedicated diagnostic", () => {
+    const result = box(`
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      animation-name: fadeIn, fadeOut; animation-duration: 1s, 1s; animation-delay: 0s, 4s; animation-iteration-count: 2, 1;
+    `);
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-animation-property-not-mergeable");
+    expect(result.diagnostics[0]?.message).toContain("animation-iteration-count");
+  });
+
+  it("collapses a shared boundary instant (one entry ends exactly when the next starts) to a single keyframe, favoring the later entry's value", () => {
+    const result = box(`
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      animation-name: fadeIn, fadeOut; animation-duration: 1s, 1s; animation-delay: 0s, 1s;
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = opacityTracks(result);
+    expect(tracks[0]?.keyframes.map((keyframe) => [keyframe.time, keyframe.value])).toEqual([
+      [0, { type: "number", value: 0 }],
+      [1000, { type: "number", value: 1 }],
+      [2000, { type: "number", value: 0 }],
+    ]);
+  });
+
+  it("still rejects a merge when one of the colliding animations uses a negative animation-delay", () => {
+    // animationTimelineDuration() credits a negative-delay entry only its
+    // already-elapsed portion (delay + duration), not its full local
+    // keyframe span, so merging one in could produce a keyframe time past
+    // the layer's own computed duration - excluded rather than risk that.
+    const result = box(`
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      animation-name: fadeIn, fadeOut; animation-duration: 1s, 1s; animation-delay: -500ms, 4s;
+    `);
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-animation-property-not-mergeable");
+    expect(result.diagnostics[0]?.message).toContain("negative animation-delay");
+  });
+});

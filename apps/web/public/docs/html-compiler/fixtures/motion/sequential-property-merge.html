@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":5200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 760px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 80px; top: 60px; }
+      .cell-label-2 { left: 1080px; top: 60px; }
+
+      /* Two separate animation-name entries on the SAME element, both
+         animating opacity, with time ranges that never overlap: fadeIn runs
+         [0, 1s], fadeOut runs [4s, 5s]. Previously this hard-failed compile
+         with "Duplicate animated property path: opacity" no matter the time
+         gap between them - the compiler now merges non-overlapping,
+         single-iteration, normal-direction entries on the same property into
+         one Protocol V2 track automatically, matching the standard
+         intro/outro motion-design pattern without a hand-merged @keyframes
+         block. */
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      #sequential-fade { position: absolute; left: 80px; top: 170px; width: 360px; height: 360px; background: #22d3ee; animation: fadeIn 1s, fadeOut 1s 4s; }
+
+      /* The same @keyframes name reused twice at non-overlapping delays (a
+         "blink twice" pattern) merges the same way - this used to fail even
+         harder, with both a track-id collision and a property-path
+         collision at once. */
+      @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.15; } 100% { opacity: 1; } }
+      #blink-twice { position: absolute; left: 1080px; top: 170px; width: 360px; height: 360px; background: #f97316; animation-name: pulse, pulse; animation-duration: 600ms, 600ms; animation-delay: 0ms, 2200ms; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">two separate animation-name entries, same property (opacity), non-overlapping time [0,1s] and [4s,5s] - merged into one track</div>
+    <div class="cell-label cell-label-2">the same @keyframes name reused twice at non-overlapping delays (blink twice) - also merged into one track</div>
+
+    <div id="sequential-fade"></div>
+    <div id="blink-twice"></div>
+  </body>
+</html>

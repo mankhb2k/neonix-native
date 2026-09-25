@@ -108,6 +108,19 @@ describe("Protocol V2 preview lab fixtures", () => {
     }
   });
 
+  it("compiles the sequential same-property merge fixture into one track per element instead of rejecting the duplicate property path", () => {
+    const fixture = HTML_COMPILER_PREVIEW_CASES.find((item) => item.id === "html-compiler.motion.sequential-property-merge")!;
+    const compiled = compileFixture(fixture, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+    expect(compiled.status, JSON.stringify(compiled.diagnostics)).toBe("success");
+    expect(compiled.diagnostics).toEqual([]);
+
+    for (const id of ["sequential-fade", "blink-twice"]) {
+      const layer = compiled.protocol?.layers.find((candidate) => candidate.id === id);
+      const opacityTracks = (layer?.tracks ?? []).filter((track) => track.path === "opacity");
+      expect(opacityTracks, id).toHaveLength(1);
+    }
+  });
+
   it("organizes current fixtures by render concept", () => {
     const groups = previewLabGroups();
     expect(groups.length).toBeGreaterThan(0);
