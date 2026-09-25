@@ -27,7 +27,7 @@ export function declarations(body: string, selector: string, sourceText?: string
     const value = part.slice(index + 1).trim();
     if (!value) throw new CompileError("css-empty-value", `Empty value for ${property}`, location);
     const important = /\s!important\s*$/i.test(value);
-    const normalizedValue = important ? value.replace(/\s!important\s*$/i, "").trim() : value;
+    let normalizedValue = important ? value.replace(/\s!important\s*$/i, "").trim() : value;
     if (property === "white-space" && !["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-white-space-unsupported", `Unsupported white-space value: ${normalizedValue}`, location);
     if (property === "text-align" && !["start", "end", "left", "right", "center", "justify", "match-parent", "justify-all", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-align-unsupported", `Unsupported text-align value: ${normalizedValue}`, location);
     if (property === "direction" && !["ltr", "rtl", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-direction-unsupported", `direction must be ltr or rtl: ${normalizedValue}`, location);
@@ -41,7 +41,13 @@ export function declarations(body: string, selector: string, sourceText?: string
     if (property === "justify-items" && !["stretch", "start", "end", "center", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-grid-item-alignment-unsupported", `Unsupported justify-items value: ${normalizedValue}`, location);
     if (property === "position" && !["static", "relative", "absolute", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-position-invalid", "position must be static, relative or absolute", location);
     if (property === "visibility" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-visibility-invalid", "visibility must be visible or hidden", location);
-    if (property === "overflow" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-overflow-invalid", "overflow must be visible or hidden", location);
+    if (property === "overflow" && !["visible", "hidden", "clip", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-overflow-invalid", "overflow must be visible, hidden or clip", location);
+    // `clip` and `hidden` both mean "clip, don't scroll" for a compiled
+    // video with no interactive scrolling; the only real CSS difference
+    // (hidden is still programmatically scrollable) doesn't apply here, so
+    // normalize clip to hidden once instead of teaching every consumer of
+    // the overflow value about a second spelling.
+    if (property === "overflow" && normalizedValue.toLowerCase() === "clip") normalizedValue = "hidden";
     if (property.endsWith("border-style") || property === "border-style") {
       const styles = normalizedValue.toLowerCase().split(/\s+/);
       if (styles.some((item) => !["solid", "none", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset", "initial", "inherit", "unset"].includes(item))) throw new CompileError("css-border-style-unsupported", `Unsupported border style: ${normalizedValue}`, location);

@@ -156,6 +156,13 @@ describe("opacity, border-color and saturate()", () => {
     expect(compile("background: linear-gradient(red, blue) center / 100% 100%;").status).toBe("success");
   });
 
+  it("normalizes overflow: clip to hidden (both mean 'clip, don't scroll' with no interactive scrolling)", () => {
+    const clip = compile("background:#fff; overflow: clip;");
+    const hidden = compile("background:#fff; overflow: hidden;");
+    expect(clip.status, JSON.stringify(clip.diagnostics)).toBe("success");
+    expect(clip.protocol?.layers).toEqual(hidden.protocol?.layers);
+  });
+
   it("still lets a length/calc() position token through the shorthand tokenizer (a separate, pre-existing background-position limitation may still reject it downstream)", () => {
     // These must NOT fail with css-background-shorthand-invalid (this fix's
     // token classifier correctly recognizes them as position-shaped) - any
