@@ -83,6 +83,7 @@ RUN pnpm exec esbuild \
   packages/export-renderer/src/render-chunk-job.ts \
   packages/export-renderer/src/render-finalizer-job.ts \
   packages/export-renderer/src/benchmark-native-skia-command-cpu.ts \
+  packages/export-renderer/src/api/server.ts \
   --bundle --platform=node --format=esm --outdir=/app/dist \
   --external:@aws-sdk/client-s3 --external:google-auth-library --external:@supabase/supabase-js --external:sharp --external:zod
 
@@ -113,7 +114,8 @@ ENV BENCHMARK_MODE=in-process
 ENV BENCHMARK_COLOR_CONVERTER=libyuv
 ENV BENCHMARK_SURFACE_MODE=direct-raster
 ENV LIBYUV_REVISION=2dd4257364d39c38d79465c4ddc4b93137fe729b
-# The Cloud Run Service (control plane) still runs the full package via pnpm;
-# only the Job entrypoints (render-job/render-chunk-job/render-finalizer-job)
-# are pre-bundled above and invoked as plain `node dist/*.js` at deploy time.
+# This final stage carries no pnpm/tsx (only `pnpm deploy --prod`'s pruned
+# node_modules, no devDependencies) - every entrypoint, including the Cloud
+# Run Service's control-plane API (api/server.ts), is pre-bundled above and
+# invoked as plain `node dist/*.js` at deploy time; see deploy.ps1.
 CMD ["node", "dist/render-job.js"]

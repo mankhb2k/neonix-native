@@ -438,7 +438,9 @@ export function createExportRendererServer(options: {
   });
 }
 
-if (process.argv[1]?.endsWith("server.ts")) {
+// Bundled for the Cloud Run Service as dist/server.js (see the export-renderer
+// Dockerfile); .ts is the local tsx dev path, .js is the built one.
+if (process.argv[1]?.endsWith("server.ts") || process.argv[1]?.endsWith("server.js")) {
   await mkdir(outputRoot, { recursive: true });
   createExportRendererServer().listen(port, "0.0.0.0", () => {
     console.log(`export-renderer listening on http://0.0.0.0:${port}`);

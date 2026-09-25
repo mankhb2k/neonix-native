@@ -95,8 +95,8 @@ $serviceEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,EXPORT_RENDERER_CO
   --platform=managed `
   --allow-unauthenticated `
   --service-account=$RuntimeServiceAccount `
-  --command=pnpm `
-  --args='--filter,@motionvideo/export-renderer,start' `
+  --command=node `
+  --args='dist/api/server.js' `
   --cpu=2 `
   --memory=4Gi `
   --concurrency=1 `
