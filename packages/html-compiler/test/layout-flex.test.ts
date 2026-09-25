@@ -165,4 +165,60 @@ describe("HTML/CSS compiler P1.1 flex layout", () => {
     expect(layer(protocol, "first")).toHaveProperty("parentLayerId", "container");
     expect(layer(protocol, "second")).toMatchObject({ transform: { translate: { x: 170, y: 0, z: 0 } } });
   });
+
+  // flex-direction only accepted row/column - row-reverse/column-reverse
+  // hard-failed outright, even though "reverse" is a completely ordinary
+  // flex-direction value. Reuses the same position-mirroring technique
+  // already validated for direction:rtl (mirror the fully-computed layout
+  // around the main axis) instead of physically reversing item order, so it
+  // automatically stays correct under justify-content distribution too.
+  it("mirrors row-reverse so the first DOM child ends up at the main-axis end", () => {
+    const protocol = compile(
+      `<div id="row"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,
+      `#row { position: absolute; left: 0; top: 0; width: 600px; height: 100px; display: flex; flex-direction: row-reverse; }
+       #a, #b, #c { width: 100px; height: 100px; }
+       #a { background: #38bdf8; } #b { background: #a78bfa; } #c { background: #facc15; }`,
+    );
+    // Default justify-content (flex-start) packs items against the main-end
+    // under row-reverse: left to right reads c, b, a - the reverse of DOM
+    // order a, b, c - packed against the right edge (600px container).
+    expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 300, y: 0, z: 0 } } });
+    expect(layer(protocol, "b")).toMatchObject({ transform: { translate: { x: 400, y: 0, z: 0 } } });
+    expect(layer(protocol, "a")).toMatchObject({ transform: { translate: { x: 500, y: 0, z: 0 } } });
+  });
+
+  it("mirrors column-reverse so the first DOM child ends up at the bottom", () => {
+    const protocol = compile(
+      `<div id="col"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,
+      `#col { position: absolute; left: 0; top: 0; width: 100px; height: 300px; display: flex; flex-direction: column-reverse; }
+       #a, #b, #c { width: 100px; height: 100px; }
+       #a { background: #38bdf8; } #b { background: #a78bfa; } #c { background: #facc15; }`,
+    );
+    expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "b")).toMatchObject({ transform: { translate: { x: 0, y: 100, z: 0 } } });
+    expect(layer(protocol, "a")).toMatchObject({ transform: { translate: { x: 0, y: 200, z: 0 } } });
+  });
+
+  it("keeps justify-content: space-between correct under row-reverse (mirrored, not just item order swapped)", () => {
+    const protocol = compile(
+      `<div id="row"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,
+      `#row { position: absolute; left: 0; top: 0; width: 700px; height: 100px; display: flex; flex-direction: row-reverse; justify-content: space-between; }
+       #a, #b, #c { width: 100px; height: 100px; }
+       #a { background: #38bdf8; } #b { background: #a78bfa; } #c { background: #facc15; }`,
+    );
+    expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 0, y: 0, z: 0 } } });
+    expect(layer(protocol, "b")).toMatchObject({ transform: { translate: { x: 300, y: 0, z: 0 } } });
+    expect(layer(protocol, "a")).toMatchObject({ transform: { translate: { x: 600, y: 0, z: 0 } } });
+  });
+
+  it("uses the correct (horizontal) cross axis for align-items under column-reverse", () => {
+    const protocol = compile(
+      `<div id="col"><div id="a"></div></div>`,
+      `#col { position: absolute; left: 0; top: 0; width: 300px; height: 300px; display: flex; flex-direction: column-reverse; align-items: center; }
+       #a { width: 100px; height: 50px; background: #38bdf8; }`,
+    );
+    // Cross axis (horizontal) centers normally; main axis (vertical) start
+    // is mirrored to the bottom (300 - 50 = 250).
+    expect(layer(protocol, "a")).toMatchObject({ transform: { translate: { x: 100, y: 250, z: 0 } } });
+  });
 });

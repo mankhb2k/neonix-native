@@ -4,7 +4,7 @@ import type { Node, Style } from "./model";
 import type { ResolvedGeometry } from "./geometry";
 import type { LayoutBox } from "./layout-ir";
 
-type FlexDirection = "row" | "column";
+type FlexDirection = "row" | "row-reverse" | "column" | "column-reverse";
 type JustifyContent = "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
 type AlignItems = "stretch" | "flex-start" | "flex-end" | "center" | "baseline";
 type AlignContent = "stretch" | "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
@@ -43,6 +43,11 @@ type FlexItem = {
   maxMain: number;
 };
 
+/** row/row-reverse share the horizontal main axis; column/column-reverse share the vertical one. Only the *-reverse variants flip which end is main-start (handled separately, the same way direction:rtl already is). */
+function isRowAxis(direction: FlexDirection): boolean {
+  return direction === "row" || direction === "row-reverse";
+}
+
 function flattenChildren(nodes: Node[], styles: Map<Node, Style>): Node[] {
   return nodes.flatMap((node) => keyword(styles.get(node) ?? new Map<string, string>(), "display", "block") === "contents" ? flattenChildren(node.children, styles) : [node]);
 }
@@ -77,7 +82,7 @@ function flexBasis(style: Style, property: "width" | "height" | "flex-basis", re
 
 function decorationSize(geometry: ResolvedGeometry, axis: FlexDirection): number {
   const padding = geometry.padding;
-  const decorations = axis === "row"
+  const decorations = isRowAxis(axis)
     ? padding[1] + padding[3] + geometry.borderEdges[1] + geometry.borderEdges[3]
     : padding[0] + padding[2] + geometry.borderEdges[0] + geometry.borderEdges[2];
   return geometry.boxSizing === "content-box" ? decorations : 0;
@@ -85,7 +90,7 @@ function decorationSize(geometry: ResolvedGeometry, axis: FlexDirection): number
 
 function parseContainer(style: Style): { direction: FlexDirection; justify: JustifyContent; align: AlignItems; alignContent: AlignContent; wrap: FlexWrap } {
   const direction = keyword(style, "flex-direction", "row") as FlexDirection;
-  if (direction !== "row" && direction !== "column") fail("css-flex-direction-unsupported", `P1.1 supports flex-direction row or column: ${direction}`);
+  if (!["row", "row-reverse", "column", "column-reverse"].includes(direction)) fail("css-flex-direction-unsupported", `Unsupported flex-direction value: ${direction}`);
   const justify = keyword(style, "justify-content", "flex-start") as JustifyContent;
   if (!["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"].includes(justify)) fail("css-flex-justify-unsupported", `Unsupported justify-content value: ${justify}`);
   const align = keyword(style, "align-items", "stretch") as AlignItems;
@@ -117,9 +122,9 @@ function flexItemConfig(style: Style, axis: FlexDirection, geometry: ResolvedGeo
   const grow = nonNegativeNumber(style, "flex-grow", 0);
   const shrink = nonNegativeNumber(style, "flex-shrink", 1);
   const basis = flexBasis(style, "flex-basis", mainRelative, fontSize, viewport);
-  const measuredMain = axis === "row" ? geometry.width : geometry.height;
-  const minProperty = axis === "row" ? "min-width" : "min-height";
-  const maxProperty = axis === "row" ? "max-width" : "max-height";
+  const measuredMain = isRowAxis(axis) ? geometry.width : geometry.height;
+  const minProperty = isRowAxis(axis) ? "min-width" : "min-height";
+  const maxProperty = isRowAxis(axis) ? "max-width" : "max-height";
   return { grow, shrink, baseMain: Number.isFinite(basis) ? basis + decorationSize(geometry, axis) : measuredMain, minMain: mainConstraint(style, minProperty, axis, geometry, mainRelative, fontSize, viewport, 0), maxMain: mainConstraint(style, maxProperty, axis, geometry, mainRelative, fontSize, viewport, Number.POSITIVE_INFINITY) };
 }
 
@@ -127,10 +132,10 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
   const { direction, justify, align, alignContent, wrap } = parseContainer(input.containerStyle);
   const contentWidth = input.containerBox.contentWidth;
   const contentHeight = input.containerBox.contentHeight;
-  const mainAvailable = direction === "row" ? contentWidth : contentHeight;
-  const crossAvailable = direction === "row" ? contentHeight : contentWidth;
-  const mainGapProperty = direction === "row" ? "column-gap" : "row-gap";
-  const crossGapProperty = direction === "row" ? "row-gap" : "column-gap";
+  const mainAvailable = isRowAxis(direction) ? contentWidth : contentHeight;
+  const crossAvailable = isRowAxis(direction) ? contentHeight : contentWidth;
+  const mainGapProperty = isRowAxis(direction) ? "column-gap" : "row-gap";
+  const crossGapProperty = isRowAxis(direction) ? "row-gap" : "column-gap";
   const fallbackGap = input.containerStyle.has("gap") && !input.containerStyle.has("row-gap") && !input.containerStyle.has("column-gap")
     ? nonNegativeLength(input.containerStyle, "gap", contentWidth, input.fontSize, input.viewport)
     : 0;
@@ -150,7 +155,7 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
     const orderRaw = style.get("order");
     const order = orderRaw === undefined ? 0 : Number(orderRaw);
     if (!Number.isSafeInteger(order)) fail("css-flex-order-invalid", `order must be an integer: ${orderRaw}`);
-    const crossProperty = direction === "row" ? "height" : "width";
+    const crossProperty = isRowAxis(direction) ? "height" : "width";
     items.push({
       node,
       geometry,
@@ -158,14 +163,14 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
       order,
       ...config,
       mainSize: config.baseMain,
-      crossSize: direction === "row" ? geometry.height : geometry.width,
+      crossSize: isRowAxis(direction) ? geometry.height : geometry.width,
       crossAuto: style.get(crossProperty) === undefined || style.get(crossProperty)!.trim().toLowerCase() === "auto",
     });
   });
 
   items.sort((left, right) => left.order - right.order || flexChildren.indexOf(left.node) - flexChildren.indexOf(right.node));
-  const mainMargins = (item: FlexItem): [number, number] => direction === "row" ? [item.margin[3], item.margin[1]] : [item.margin[0], item.margin[2]];
-  const crossMargins = (item: FlexItem): [number, number] => direction === "row" ? [item.margin[0], item.margin[2]] : [item.margin[3], item.margin[1]];
+  const mainMargins = (item: FlexItem): [number, number] => isRowAxis(direction) ? [item.margin[3], item.margin[1]] : [item.margin[0], item.margin[2]];
+  const crossMargins = (item: FlexItem): [number, number] => isRowAxis(direction) ? [item.margin[0], item.margin[2]] : [item.margin[3], item.margin[1]];
   const itemMainOuter = (item: FlexItem) => { const [start, end] = mainMargins(item); return item.baseMain + start + end; };
   const lines: FlexItem[][] = [];
   let currentLine: FlexItem[] = [];
@@ -226,7 +231,12 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
   const alignedCrossRemaining = Math.max(0, crossAvailable - alignedCrossUsed);
   const crossLead = alignContent === "flex-end" ? alignedCrossRemaining : alignContent === "center" ? alignedCrossRemaining / 2 : alignContent === "space-around" ? alignedCrossRemaining / (lineCrossSizes.length || 1) / 2 : alignContent === "space-evenly" ? alignedCrossRemaining / (lineCrossSizes.length + 1) : 0;
   const crossDistributedGap = alignContent === "space-between" && lineCrossSizes.length > 1 ? alignedCrossRemaining / (lineCrossSizes.length - 1) : alignContent === "space-around" ? alignedCrossRemaining / (lineCrossSizes.length || 1) : alignContent === "space-evenly" ? alignedCrossRemaining / (lineCrossSizes.length + 1) : 0;
-  const rtl = direction === "row" && keyword(input.containerStyle, "direction", "ltr") === "rtl";
+  // row-reverse/column-reverse flip which end of the main axis is "start"
+  // the same way direction:rtl already does for a plain row - mirror the
+  // final position formula around the axis instead of reversing item order,
+  // which gives the same visual result (including justify-content spacing,
+  // since that's computed before this mirroring) with far less code.
+  const reverseMain = direction === "row-reverse" || direction === "column-reverse" || (direction === "row" && keyword(input.containerStyle, "direction", "ltr") === "rtl");
   const placements: FlexPlacement[] = [];
   let crossCursor = crossLead;
   for (let lineIndex = 0; lineIndex < lineMainData.length; lineIndex += 1) {
@@ -238,7 +248,7 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
     let mainCursor = lead;
     for (const item of line) {
       const [mainStartMargin, mainEndMargin] = mainMargins(item);
-      const mainStart = rtl ? mainAvailable - mainCursor - mainStartMargin - item.mainSize : mainCursor + mainStartMargin;
+      const mainStart = reverseMain ? mainAvailable - mainCursor - mainStartMargin - item.mainSize : mainCursor + mainStartMargin;
       const itemAlign = parseAlignSelf(input.styles.get(item.node) ?? new Map<string, string>(), align);
       const [crossStartMargin, crossEndMargin] = crossMargins(item);
       if (itemAlign === "stretch" && item.crossAuto) item.crossSize = Math.max(1, lineCrossSize - crossStartMargin - crossEndMargin);
@@ -248,7 +258,7 @@ export function resolveFlexLayout(input: FlexLayoutInput): FlexPlacement[] {
       const crossStart = lineStart + (wrap === "wrap-reverse" ? reverseCrossOffset : normalCrossOffset);
       const relativeX = item.geometry.x - item.geometry.normalX;
       const relativeY = item.geometry.y - item.geometry.normalY;
-      placements.push(direction === "row"
+      placements.push(isRowAxis(direction)
         ? { node: item.node, x: input.containerBox.contentX + mainStart + relativeX, y: input.containerBox.contentY + crossStart + relativeY, width: item.mainSize, height: item.crossSize }
         : { node: item.node, x: input.containerBox.contentX + crossStart + relativeX, y: input.containerBox.contentY + mainStart + relativeY, width: item.crossSize, height: item.mainSize });
       mainCursor += mainStartMargin + item.mainSize + mainEndMargin + mainGap + distributedGap;
