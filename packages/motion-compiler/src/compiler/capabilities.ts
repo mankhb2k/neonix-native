@@ -78,6 +78,8 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "text.writingMode.vertical",
   "text.decoration",
   "text.stroke",
+  "text.indent",
+  "text.smallCaps",
   "effect.color-adjust",
   "effect.grayscale",
   "effect.sepia",

@@ -78,6 +78,7 @@ function expandFont(value: string): Array<[string, string]> {
   }
   const tokens = splitTopLevel(trimmed, " ");
   let style: string | undefined;
+  let variant: string | undefined;
   let weight: string | undefined;
   let stretch: string | undefined;
   let index = 0;
@@ -86,7 +87,7 @@ function expandFont(value: string): Array<[string, string]> {
     const lower = token.toLowerCase();
     if (lower === "normal") { index += 1; continue; }
     if (lower === "italic" || lower === "oblique") { style = token; index += 1; continue; }
-    if (lower === "small-caps") fail("css-font-shorthand-unsupported", `font shorthand: font-variant is not supported: ${value}`);
+    if (lower === "small-caps") { variant = token; index += 1; continue; }
     if (lower === "bold" || lower === "bolder" || lower === "lighter" || /^[1-9]00$/.test(token)) { weight = token; index += 1; continue; }
     if (FONT_STRETCH_KEYWORDS.has(lower)) { stretch = token; index += 1; continue; }
     break;
@@ -100,6 +101,7 @@ function expandFont(value: string): Array<[string, string]> {
   return [
     ["font", value],
     ...(style ? [["font-style", style] as [string, string]] : []),
+    ...(variant ? [["font-variant", variant] as [string, string]] : []),
     ...(weight ? [["font-weight", weight] as [string, string]] : []),
     ...(stretch ? [["font-stretch", stretch] as [string, string]] : []),
     ["font-size", size],

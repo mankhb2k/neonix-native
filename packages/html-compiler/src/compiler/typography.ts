@@ -103,6 +103,19 @@ export function parseLineClamp(style: Style): number | undefined {
   return value;
 }
 
+/** CSS text-indent offsets only the first line of a block; negative values (hanging indent) are allowed. */
+export function parseTextIndent(value: string | undefined, containingWidth: number, fontSize: number, viewport: { width: number; height: number }): number {
+  if (value === undefined) return 0;
+  const resolved = calcExpression(value.trim(), "text-indent", containingWidth, fontSize, 16, viewport);
+  if (resolved.unit === "number" || !Number.isFinite(resolved.value)) fail("css-text-indent-invalid", `text-indent must resolve to a length: ${value}`);
+  return resolved.value;
+}
+
+/** CSS font-variant: only `small-caps` is supported (the Protocol V2 span field this maps to is a boolean, not a full font-variant model). */
+export function parseSmallCaps(value: string | undefined): boolean {
+  return (value ?? "normal").trim().toLowerCase() === "small-caps";
+}
+
 export function parseTextSpacing(value: string | undefined, property: "letter-spacing" | "word-spacing", containingWidth: number, fontSize: number, viewport: { width: number; height: number }): HtmlCompilerTextSpacing {
   const normalized = (value ?? "normal").trim().toLowerCase();
   if (normalized === "normal") return "normal";

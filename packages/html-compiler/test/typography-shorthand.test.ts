@@ -50,10 +50,10 @@ describe("font shorthand", () => {
     expect(result.diagnostics[0]?.code).toBe("css-font-shorthand-unsupported");
   });
 
-  it("rejects font-variant: small-caps inside the shorthand instead of silently dropping it", () => {
+  it("expands font-variant: small-caps inside the shorthand onto the span, instead of rejecting it", () => {
     const result = compile("font: small-caps 20px Inter;");
-    expect(result.status).toBe("error");
-    expect(result.diagnostics[0]?.code).toBe("css-font-shorthand-unsupported");
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.type === "text")?.payload?.chunks?.[0]?.spans?.[0]).toMatchObject({ smallCaps: true });
   });
 
   it("rejects a shorthand missing a font-size or font-family", () => {

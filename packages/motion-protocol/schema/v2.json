@@ -5400,6 +5400,9 @@
                             "type": "integer",
                             "minimum": 0,
                             "exclusiveMinimum": 0
+                          },
+                          "textIndent": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
                           }
                         },
                         "required": [

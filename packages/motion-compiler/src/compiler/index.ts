@@ -1503,6 +1503,8 @@ function compileVisualRuntimeInternal(
         ...((layer.payload.source.writingMode === "vertical-rl" || layer.payload.source.writingMode === "vertical-lr") ? ["text.writingMode.vertical"] : []),
         ...(textDecoration ? ["text.decoration"] : []),
         ...((stroke && stroke !== "#00000000" && strokeWidth !== undefined) ? ["text.stroke"] : []),
+        ...(layer.payload.layout?.textIndent !== undefined ? ["text.indent"] : []),
+        ...(firstSpan.smallCaps ? ["text.smallCaps"] : []),
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
@@ -1592,6 +1594,8 @@ function compileVisualRuntimeInternal(
           ...(layer.payload.layout?.contentHeight === undefined ? {} : { contentHeight: layer.payload.layout.contentHeight }),
           ...(layer.payload.layout?.contentOffsetX === undefined ? {} : { contentOffsetX: layer.payload.layout.contentOffsetX }),
           ...(layer.payload.layout?.contentOffsetY === undefined ? {} : { contentOffsetY: layer.payload.layout.contentOffsetY }),
+          ...(layer.payload.layout?.textIndent === undefined ? {} : { textIndent: layer.payload.layout.textIndent }),
+          ...(firstSpan.smallCaps ? { smallCaps: true } : {}),
           ...(effects ? { effects } : {}),
         },
       };

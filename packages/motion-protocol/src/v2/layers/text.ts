@@ -97,6 +97,8 @@ export const V2TextLayoutSchema = z
     wrap: z.enum(["none", "word", "character"]),
     textOverflow: z.enum(["clip", "ellipsis"]),
     maxLines: V2NonNegativeNumberSchema.int().positive().optional(),
+    /** CSS text-indent: offsets the first line only (negative allowed, for hanging-indent authoring). */
+    textIndent: V2FiniteNumberSchema.optional(),
   })
   .strict();
 

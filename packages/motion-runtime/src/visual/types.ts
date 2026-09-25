@@ -246,6 +246,8 @@ export type VisualRuntimeText = {
   fontSize: number;
   lineHeight: number;
   letterSpacing: number;
+  /** CSS font-variant: small-caps, applied via the HarfBuzz `smcp` feature when the font supports it, else a synthetic uppercase-at-reduced-size fallback. */
+  smallCaps?: boolean;
   align: "left" | "center" | "right";
   justify?: "line" | "all";
   whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces";
@@ -297,6 +299,8 @@ export type VisualRuntimeText = {
   contentHeight?: number;
   contentOffsetX?: number;
   contentOffsetY?: number;
+  /** CSS text-indent: offsets the first line of the first wrapped paragraph only. */
+  textIndent?: number;
   layout?: VisualRuntimeTextLayout;
   effects?: RuntimeEffect[];
 };

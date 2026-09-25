@@ -169,6 +169,19 @@ function styledFonts(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolv
   return result;
 }
 
+/**
+ * CSS font-variant: small-caps. Requesting the OpenType `smcp` feature is
+ * a standards-compliant no-op when a font lacks true small-caps glyphs (the
+ * text just shapes normally) rather than a synthetic faux-small-caps
+ * fallback, which would need a second shaping pass per case-changed run -
+ * out of scope here.
+ */
+export function shapeFeatures(hb: typeof HarfBuzz, text: VisualRuntimeText) {
+  if (!text.smallCaps) return undefined;
+  const feature = hb.Feature.fromString("smcp");
+  return feature ? [feature] : undefined;
+}
+
 function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], value: string, sourceOffset = 0): number {
   let advance = 0;
   const styleCache = new Map<string, ResolvedFont[]>();
@@ -182,7 +195,7 @@ function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: 
       buffer.setLanguage(text.language);
       buffer.setDirection(text.direction === "rtl" ? 5 : 4);
       buffer.guessSegmentProperties();
-      hb.shape(resolved.font, buffer);
+      hb.shape(resolved.font, buffer, shapeFeatures(hb, text));
       const positions = buffer.getGlyphPositions();
       advance += positions.reduce((total, position) => total + position.xAdvance * resolved.fontScale, 0);
     }
@@ -220,7 +233,12 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
     start = newline + 1;
   }
   const contentWidth = text.contentWidth ?? text.width;
-  let lines = text.wrap !== "word" || contentWidth <= 0 ? explicitLines : explicitLines.flatMap((line) => {
+  // CSS text-indent only offsets the very first line of the block - this
+  // text layer is always exactly one block, so that's paragraph 0's first
+  // wrapped sub-line, never a later hard-break paragraph's first line.
+  const textIndent = text.textIndent ?? 0;
+  const wrapWidthFor = (paragraphIndex: number, subLineIndex: number) => paragraphIndex === 0 && subLineIndex === 0 ? Math.max(0, contentWidth - textIndent) : contentWidth;
+  let lines = text.wrap !== "word" || contentWidth <= 0 ? explicitLines : explicitLines.flatMap((line, paragraphIndex) => {
     if (!line.text.trim()) return [line];
     if (text.whiteSpace === "pre-wrap" || text.whiteSpace === "break-spaces") {
       const tokens = [...line.text.matchAll(/\S+|\s+/g)];
@@ -231,7 +249,7 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
         const token = match[0]!;
         const tokenStart = line.start + (match.index ?? 0);
         const candidate = current + token;
-        if (current && measureSourceLine(hb, text, fonts, candidate) > contentWidth) {
+        if (current && measureSourceLine(hb, text, fonts, candidate) > wrapWidthFor(paragraphIndex, wrapped.length)) {
           wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
           current = token;
           currentStart = tokenStart;
@@ -254,7 +272,7 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
       if (!word) continue;
       const wordStart = line.start + (match.index ?? 0);
       const candidate = current ? `${current} ${word}` : word;
-      if (current && measureSourceLine(hb, text, fonts, candidate) > contentWidth) {
+      if (current && measureSourceLine(hb, text, fonts, candidate) > wrapWidthFor(paragraphIndex, wrapped.length)) {
         wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
         current = word;
         currentStart = wordStart;
@@ -386,7 +404,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
       buffer.setLanguage(text.language);
       buffer.setDirection(text.direction === "rtl" && !vertical ? 5 : 4);
       buffer.guessSegmentProperties();
-      hb.shape(resolved.font, buffer);
+      hb.shape(resolved.font, buffer, shapeFeatures(hb, text));
       const infos = buffer.getGlyphInfos();
       const positions = buffer.getGlyphPositions();
       const clusterStarts = [...new Set(infos.map((info) => info.cluster))].sort((a, b) => a - b);
@@ -459,7 +477,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
     const lineTopBaseline = lineTop + lineIndex * text.lineHeight + (text.lineHeight - glyphHeight) / 2 + primary.metrics.ascender * primary.fontScale;
     const baselineY = text.dominantBaseline === "middle" || text.alignmentBaseline === "middle" ? lineTop + lineIndex * text.lineHeight + text.lineHeight / 2 - (primary.metrics.ascender + primary.metrics.descender) * primary.fontScale / 2 : lineTopBaseline;
     const adjustedBaselineY = baselineY + (text.baselineShift ?? 0);
-    const alignedX = vertical ? 0 : contentOffsetX + (text.align === "center" ? (contentWidth - targetAdvance) / 2 : text.align === "right" ? contentWidth - targetAdvance : 0);
+    const alignedX = vertical ? 0 : contentOffsetX + (lineIndex === 0 ? (text.textIndent ?? 0) : 0) + (text.align === "center" ? (contentWidth - targetAdvance) / 2 : text.align === "right" ? contentWidth - targetAdvance : 0);
     for (const [glyphIndex, entry] of lineGlyphs.entries()) {
       const glyph = entry.glyph;
       if (!vertical) {

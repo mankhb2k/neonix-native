@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VisualRuntimeProject, VisualRuntimeText } from "./types";
-import { measureVisualRuntimeText, measureVisualRuntimeTextIntrinsicWidths, prepareVisualRuntimeProjectText } from "./text-layout";
+import { measureVisualRuntimeText, measureVisualRuntimeTextIntrinsicWidths, prepareVisualRuntimeProjectText, shapeFeatures } from "./text-layout";
 
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 const repoRoot = path.resolve(process.cwd(), "../..");
@@ -101,6 +101,88 @@ describe("runtime text shaping and materialization", () => {
     expect(content.layout?.lines.length).toBeGreaterThan(1);
     expect(content.layout?.lines[1]!.baselineY - content.layout?.lines[0]!.baselineY).toBe(48);
     expect(content.layout?.glyphs.every((glyph) => glyph.x <= 150)).toBe(true);
+  });
+
+  it("offsets only the first line's glyphs by text-indent, not later wrapped lines", async () => {
+    const bytes = await readFile(notoSansPath);
+    const baseline = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello world from Neonix and more text to wrap", width: 200, contentWidth: 200, wrap: "word" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const indented = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello world from Neonix and more text to wrap", width: 200, contentWidth: 200, wrap: "word", textIndent: 40 })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const baseContent = baseline.project.nodes[0]!.content;
+    const indentContent = indented.project.nodes[0]!.content;
+    expect(baseContent.kind).toBe("text");
+    expect(indentContent.kind).toBe("text");
+    if (baseContent.kind !== "text" || indentContent.kind !== "text") return;
+    expect(indentContent.layout!.lines.length).toBeGreaterThan(1);
+    // First line's first glyph shifts right by exactly the indent...
+    expect(indentContent.layout!.glyphs[0]!.x).toBeCloseTo(baseContent.layout!.glyphs[0]!.x + 40, 5);
+    // ...but a later line's first glyph does not - it stays near the box's
+    // left edge, nowhere close to shifting by the 40px indent too. (The
+    // reduced first-line width can itself push an extra word onto a later
+    // line, so this compares the indented render against itself rather than
+    // assuming baseline/indented share identical line counts/content.)
+    const firstLineBaselineY = indentContent.layout!.lines[0]!.baselineY;
+    const laterLineFirstGlyph = indentContent.layout!.glyphs.find((glyph) => glyph.y > firstLineBaselineY)!;
+    expect(laterLineFirstGlyph.x).toBeLessThan(20);
+  });
+
+  it("allows a negative text-indent (hanging indent) to shift the first line left", async () => {
+    const bytes = await readFile(notoSansPath);
+    const baseline = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello", wrap: "none" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const hanging = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello", wrap: "none", textIndent: -20 })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const baseContent = baseline.project.nodes[0]!.content;
+    const hangingContent = hanging.project.nodes[0]!.content;
+    expect(baseContent.kind).toBe("text");
+    expect(hangingContent.kind).toBe("text");
+    if (baseContent.kind !== "text" || hangingContent.kind !== "text") return;
+    expect(hangingContent.layout!.glyphs[0]!.x).toBeCloseTo(baseContent.layout!.glyphs[0]!.x - 20, 5);
+  });
+
+  it("requests the OpenType smcp feature for font-variant: small-caps, and only then", async () => {
+    const hb = await import("harfbuzzjs");
+    expect(shapeFeatures(hb, textContent({ smallCaps: true }))?.map((feature) => feature.tag)).toEqual(["smcp"]);
+    expect(shapeFeatures(hb, textContent({ smallCaps: false }))).toBeUndefined();
+    expect(shapeFeatures(hb, textContent({}))).toBeUndefined();
+  });
+
+  it("shapes small-caps text without corrupting glyphs on a font with no smcp table (a standards-compliant no-op)", async () => {
+    // Inter-400 has no smcp OpenType feature (confirmed against Inter-400.ttf
+    // directly: requesting the feature produces byte-identical glyph ids and
+    // positions to the same text shaped without it). This locks in that the
+    // request degrades safely instead of corrupting shaping when unsupported.
+    const bytes = await readFile(interRegularPath);
+    const plain = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "hello", wrap: "none" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const smallCaps = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "hello", wrap: "none", smallCaps: true })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const plainContent = plain.project.nodes[0]!.content;
+    const smallCapsContent = smallCaps.project.nodes[0]!.content;
+    expect(plainContent.kind).toBe("text");
+    expect(smallCapsContent.kind).toBe("text");
+    if (plainContent.kind !== "text" || smallCapsContent.kind !== "text") return;
+    expect(smallCapsContent.layout!.glyphs.map((glyph) => glyph.glyphId)).toEqual(plainContent.layout!.glyphs.map((glyph) => glyph.glyphId));
+    expect(smallCapsContent.layout!.glyphs).toHaveLength(5);
   });
 
   it("trims grapheme clusters and shapes an ellipsis inside a clipped line", async () => {

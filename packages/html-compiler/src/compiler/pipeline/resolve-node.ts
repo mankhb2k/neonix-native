@@ -21,9 +21,11 @@ import { svgPrimitivePath } from "../lowering/svg";
 import {
   parseLineClamp,
   parseLineHeight,
+  parseSmallCaps,
   parseTextAlign,
   parseTextDecoration,
   parseTextDirection,
+  parseTextIndent,
   parseTextOverflow,
   parseTextRendering,
   parseTextSpacing,
@@ -197,6 +199,7 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
       const runDecoration = parseTextDecoration(runStyle.get("text-decoration"), runColor, containingWidth, runFontSize, viewport);
       const runLetterSpacing = parseTextSpacing(runStyle.get("letter-spacing"), "letter-spacing", containingWidth, runFontSize, viewport);
       const runWordSpacing = parseTextSpacing(runStyle.get("word-spacing"), "word-spacing", containingWidth, runFontSize, viewport);
+      const runSmallCaps = parseSmallCaps(runStyle.get("font-variant"));
       return {
         id: `${groupId}::span-${runIndex}`,
         sourceRange: { start: run.start, end: run.end },
@@ -205,12 +208,14 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
         letterSpacing: runLetterSpacing,
         wordSpacing: runWordSpacing,
         ...(runDecoration ? { textDecoration: runDecoration } : {}),
+        ...(runSmallCaps ? { smallCaps: true } : {}),
         fill: runGradient ?? runColor,
       };
     });
+    const textIndent = parseTextIndent(style.get("text-indent"), containingWidth, baseFontSize, viewport);
     textPayload = {
       source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
-      layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(hardBreaks.length ? { hardBreaks } : {}), ...(textOverflow === "ellipsis" ? { maxLines: lineClamp ?? 1 } : {}) },
+      layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(hardBreaks.length ? { hardBreaks } : {}), ...(textOverflow === "ellipsis" ? { maxLines: lineClamp ?? 1 } : {}), ...(textIndent !== 0 ? { textIndent } : {}) },
       chunks: [{
         id: `${groupId}::chunk`,
         sourceRange: { start: 0, end: text.length },
