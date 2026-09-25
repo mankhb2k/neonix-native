@@ -29,8 +29,7 @@ export type HtmlCompilerPreviewClassification = "primitive" | "combined";
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P2.9" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
-  category?: HtmlCompilerPreviewCategory;
+  category: HtmlCompilerPreviewCategory;
   classification?: HtmlCompilerPreviewClassification;
   classificationLabel?: string;
   topic: HtmlCompilerPreviewTopic;
@@ -701,10 +700,10 @@ export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
   }
 ];
 
-export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_FOUNDATION_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.tags.div-shape",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "HTML tags",
     "label": "Tag / div → shape",
     "properties": [
@@ -725,7 +724,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.div-group",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "HTML tags",
     "label": "Tag / div → group",
     "properties": [
@@ -746,7 +745,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.svg-path",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "HTML tags",
     "label": "Tag / svg + path",
     "properties": [
@@ -767,7 +766,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.geometry.sizing-constraints",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "Composition & geometry",
     "label": "Geometry / sizing constraints",
     "properties": [
@@ -792,7 +791,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.geometry.box-model-spacing",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "Composition & geometry",
     "label": "Geometry / box-model spacing",
     "properties": [
@@ -813,7 +812,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.geometry.positioning",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "Composition & geometry",
     "label": "Geometry / positioning",
     "properties": [
@@ -835,7 +834,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.geometry.display-visibility",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "Composition & geometry",
     "label": "Geometry / display + visibility",
     "properties": [
@@ -857,7 +856,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.geometry.opacity-z-index-overflow",
-    "phase": "P0",
+    "category": "Layout primitives",
     "topic": "Composition & geometry",
     "label": "Geometry / opacity + stacking + overflow",
     "properties": [
@@ -879,7 +878,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.transform.functions",
-    "phase": "P0",
+    "category": "Transform & 3D primitives",
     "topic": "Transform 2D",
     "label": "Transform / 2D functions",
     "properties": [
@@ -902,7 +901,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.transform.rotate-single",
-    "phase": "P0",
+    "category": "Transform & 3D primitives",
     "topic": "Transform 2D",
     "label": "Transform / single rotate",
     "properties": [
@@ -923,7 +922,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.transform.matrix-functions",
-    "phase": "P0",
+    "category": "Transform & 3D primitives",
     "topic": "Transform 2D",
     "label": "Transform / matrix and matrix3d",
     "properties": [
@@ -943,7 +942,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.paint.svg-fill",
-    "phase": "P0",
+    "category": "Paint primitives",
     "topic": "Paint",
     "label": "Paint / SVG fill",
     "properties": [
@@ -965,7 +964,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.paint.svg-stroke",
-    "phase": "P0",
+    "category": "Paint primitives",
     "topic": "Paint",
     "label": "Paint / SVG stroke",
     "properties": [
@@ -987,7 +986,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.paint.svg-dash-order",
-    "phase": "P0",
+    "category": "Paint primitives",
     "topic": "Paint",
     "label": "Paint / dash + paint-order",
     "properties": [
@@ -1009,7 +1008,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.media.object-fit-contain",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Media",
     "label": "Media / object-fit contain",
     "properties": [
@@ -1030,7 +1029,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.media.object-fit-cover-position",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Media",
     "label": "Media / cover + position",
     "properties": [
@@ -1051,7 +1050,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.media.object-fit-fill-rendering",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Media",
     "label": "Media / fill + pixelated",
     "properties": [
@@ -1072,7 +1071,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.media.object-fit-none-clipping",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Media",
     "label": "Media / none + clipping",
     "properties": [
@@ -1093,7 +1092,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.typography.text-align-values",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Typography",
     "label": "Typography / text-align values",
     "properties": [
@@ -1119,7 +1118,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.typography.text-spacing-whitespace",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Typography",
     "label": "Typography / spacing and white-space",
     "properties": [
@@ -1145,7 +1144,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.typography.direction-writing-decoration",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Typography",
     "label": "Typography / direction, writing-mode and decoration",
     "properties": [
@@ -1173,7 +1172,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.typography.style-stretch",
-    "phase": "P0",
+    "category": "Typography & media primitives",
     "topic": "Typography",
     "label": "Typography / style + stretch",
     "properties": [
@@ -1196,7 +1195,7 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.paint.svg-stroke-dasharray-odd-count",
-    "phase": "P0",
+    "category": "Paint primitives",
     "topic": "Paint",
     "label": "Paint / odd-length stroke-dasharray",
     "properties": [
@@ -1219,7 +1218,6 @@ export const HTML_COMPILER_PHASE0_CASES: HtmlCompilerPreviewCase[] = [
 export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.tags.document-shell-container",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / document shell + containers",
@@ -1245,7 +1243,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.text-lowering",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / text elements",
@@ -1269,7 +1266,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.media-lowering",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / image + video",
@@ -1292,7 +1288,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.audio-lowering",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / audio track",
@@ -1314,7 +1309,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.svg-lowering",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / SVG primitives",
@@ -1338,7 +1332,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.container-aliases",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / container aliases",
@@ -1364,7 +1357,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.text-tag-matrix",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / complete text matrix",
@@ -1391,7 +1383,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.tags.svg-primitive-matrix",
-    "phase": "P0",
     "category": "HTML tag lowering",
     "topic": "HTML tags",
     "label": "Tag lowering / SVG path matrix",
@@ -1418,7 +1409,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
 export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.text.compiler.br-hard-break",
-    "phase": "P0",
     "category": "Text compiler & layout",
     "topic": "Typography",
     "label": "Text compiler / br hard break",
@@ -1440,7 +1430,6 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
   },
   {
     "id": "html-compiler.text.compiler.nested-inline-content",
-    "phase": "P0",
     "category": "Text compiler & layout",
     "topic": "Typography",
     "label": "Text compiler / nested inline content",
@@ -1463,7 +1452,6 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
   },
   {
     "id": "html-compiler.text.compiler.whitespace-contract",
-    "phase": "P0",
     "category": "Text compiler & layout",
     "topic": "Typography",
     "label": "Text compiler / whitespace contract",
@@ -1485,7 +1473,6 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
   },
   {
     "id": "html-compiler.text.layout.fixed-line-height",
-    "phase": "P1.4",
     "category": "Text compiler & layout",
     "topic": "Layout",
     "label": "Text layout / fixed line-height",
@@ -1507,7 +1494,6 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
   },
   {
     "id": "html-compiler.text.layout.wrap-width",
-    "phase": "P1.4",
     "category": "Text compiler & layout",
     "topic": "Layout",
     "label": "Text layout / fixed width wrapping",
@@ -1529,7 +1515,6 @@ export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[]
   },
   {
     "id": "html-compiler.text.layout.auto-height",
-    "phase": "P1.4",
     "category": "Text compiler & layout",
     "topic": "Layout",
     "label": "Text layout / auto-height wrapping",
@@ -1557,7 +1542,6 @@ const debugTextGradient = (
   properties: string[],
 ): HtmlCompilerPreviewCase => ({
   id: `html-compiler.debug.${slug}`,
-  phase: "P2.9",
   category: "Text compiler & layout",
   topic: "Typography",
   label: `Debug text gradient / ${label}`,
@@ -1585,7 +1569,6 @@ export const HTML_COMPILER_TEXT_GRADIENT_DEBUG_CASES: HtmlCompilerPreviewCase[] 
 export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
   {
     id: "html-compiler.typography.font-catalog-ui-body",
-    phase: "P0",
     category: "Typography & media primitives",
     topic: "Typography",
     label: "Typography / UI and body font catalog",
@@ -1596,7 +1579,6 @@ export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     id: "html-compiler.typography.font-catalog-display",
-    phase: "P0",
     category: "Typography & media primitives",
     topic: "Typography",
     label: "Typography / display font catalog",
@@ -1607,7 +1589,6 @@ export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     id: "html-compiler.typography.font-catalog-monospace",
-    phase: "P0",
     category: "Typography & media primitives",
     topic: "Typography",
     label: "Typography / monospace font catalog",
@@ -1618,7 +1599,6 @@ export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     id: "html-compiler.typography.font-catalog-editorial",
-    phase: "P0",
     category: "Typography & media primitives",
     topic: "Typography",
     label: "Typography / editorial and multilingual catalog",
@@ -1632,7 +1612,6 @@ export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
 export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.layout.anchor-positioning",
-    "phase": "P0",
     "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / CSS anchor positioning",
@@ -1654,10 +1633,10 @@ export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_FLEX_CONTAINER_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.layout.flex-container",
-    "phase": "P1.1",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / flex container",
     "properties": [
@@ -1680,10 +1659,10 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_FLEX_WRAPPING_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.layout.flex-wrapping",
-    "phase": "P1.2",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / flex wrapping",
     "properties": [
@@ -1705,10 +1684,10 @@ export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_GRID_LAYOUT_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.layout.grid-explicit-columns",
-    "phase": "P1.3",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / grid columns",
     "properties": [
@@ -1730,7 +1709,7 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.layout.grid-gap-alignment",
-    "phase": "P1.3",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / grid gap + alignment",
     "properties": [
@@ -1751,7 +1730,7 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.layout.grid-placement-span",
-    "phase": "P1.3",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / grid placement + spans",
     "properties": [
@@ -1773,10 +1752,10 @@ export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_LAYOUT_FLOW_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.layout.item-ordering",
-    "phase": "P1.4",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / item ordering",
     "properties": [
@@ -1798,7 +1777,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.layout.containing-block-edge-cases",
-    "phase": "P1.4",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / containing block edge cases",
     "properties": [
@@ -1821,7 +1800,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.layout.block-flow-margin-collapsing",
-    "phase": "P1.4",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / block-flow margin collapsing",
     "properties": [
@@ -1847,7 +1826,7 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
 export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.layout.text-border-box-model",
-    "phase": "P1.4",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / text border box model",
     "properties": [
@@ -1870,7 +1849,7 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.layout.text-line-metrics",
-    "phase": "P1.4",
+    "category": "Layout primitives",
     "topic": "Layout",
     "label": "Layout / text line-box metrics",
     "properties": [
@@ -1894,12 +1873,10 @@ export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_9_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_COLOR_SPACE_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.paint.color-srgb-primaries",
-    "phase": "P2.9",
+    "category": "Combined pipeline cases",
     "topic": "Paint",
     "label": "Paint / sRGB primaries, secondaries, gray, alpha and animated color",
     "properties": [
@@ -1923,7 +1900,6 @@ export const HTML_COMPILER_PAINT_PHASE2_9_CASES: HtmlCompilerPreviewCase[] = [
 export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.opacity.image",
-    "phase": "P2.0",
     "category": "Paint primitives",
     "topic": "Paint",
     "label": "Opacity / image",
@@ -1945,7 +1921,6 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.opacity.grid",
-    "phase": "P2.0",
     "category": "Paint primitives",
     "topic": "Paint",
     "label": "Opacity / grid",
@@ -1967,7 +1942,6 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.opacity.shape",
-    "phase": "P2.0",
     "category": "Paint primitives",
     "topic": "Paint",
     "label": "Opacity / shape",
@@ -1990,36 +1964,21 @@ export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
 ];
 
 /**
- * Kept as its own array purely so every basic gradient fixture (non-repeating
- * here, repeating in PHASE2_1 right after) sits together as one contiguous
- * run in the Paint dropdown, instead of being split across the far larger
- * PHASE0 catalog by unrelated background/image-function fixtures.
+ * Kept as its own array purely so every basic gradient fixture sits together
+ * as one contiguous run in the Paint dropdown, instead of being split across
+ * the far larger foundation catalog by unrelated background/image-function
+ * fixtures. Repeating-gradient and single-value filter/effect fixtures were
+ * consolidated into the native-stage `effect` topic fixtures (blur,
+ * brightness, contrast, grayscale, sepia, invert, drop-shadow, filter-order)
+ * and removed; this array stays empty until non-repeating gradient fixtures
+ * are added here directly.
  */
 export const HTML_COMPILER_PAINT_GRADIENT_CASES: HtmlCompilerPreviewCase[] = [];
 
-export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_3_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [];
-
-// P2.5 (filter/effect single-value cases) fixtures were consolidated into
-// the native-stage `effect` topic fixtures (blur, brightness, contrast,
-// grayscale, sepia, invert, drop-shadow, filter-order) and removed.
-export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [];
-
-export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_MOTION_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.motion.keyframes-basics",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / keyframes basics",
     "properties": [
@@ -2035,7 +1994,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.delay-fill-mode",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / delay + fill-mode",
     "properties": [
@@ -2049,7 +2008,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.iteration-play-state",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / iteration + play-state",
     "properties": [
@@ -2064,7 +2023,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.direction",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / direction",
     "properties": [
@@ -2080,7 +2039,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.easing",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / easing and timing functions",
     "properties": [
@@ -2097,7 +2056,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.animatable-properties",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / animatable property types",
     "properties": [
@@ -2114,7 +2073,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.combo-transform-tracks",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / transform combined with other tracks",
     "properties": [
@@ -2130,7 +2089,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.off-canvas-slide-in",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / off-canvas slide-in (negative geometry)",
     "properties": [
@@ -2145,7 +2104,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.combo-paint-interactions",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / animation combined with paint subsystems",
     "properties": [
@@ -2162,7 +2121,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion-path.basics",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion path / offset-path basics",
     "properties": [
@@ -2177,7 +2136,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion-path.advanced",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion path / closed loops, multi-segment paths and composition",
     "properties": [
@@ -2192,7 +2151,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.keyframes-unknown-name",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / unknown animation diagnostic",
     "properties": [
@@ -2206,7 +2165,7 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   },
   {
     "id": "html-compiler.motion.easing-invalid",
-    "phase": "P3",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Motion / invalid easing diagnostic",
     "properties": [
@@ -2220,10 +2179,10 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_PERSPECTIVE_BASICS_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.perspective.perspective-basics",
-    "phase": "P5",
+    "category": "Transform & 3D primitives",
     "topic": "Motion & animation",
     "label": "Perspective / basics",
     "properties": [
@@ -2241,7 +2200,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.flat-preserve-3d",
-    "phase": "P5",
+    "category": "Transform & 3D primitives",
     "topic": "Motion & animation",
     "label": "Perspective / flat vs preserve-3d",
     "properties": [
@@ -2254,7 +2213,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.atomic-transform-style",
-    "phase": "P5",
+    "category": "Transform & 3D primitives",
     "topic": "Motion & animation",
     "label": "Perspective / transform-style A/B",
     "properties": [
@@ -2267,7 +2226,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.backface-visibility",
-    "phase": "P5",
+    "category": "Transform & 3D primitives",
     "topic": "Motion & animation",
     "label": "Perspective / backface-visibility",
     "properties": [
@@ -2281,7 +2240,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.animated-3d",
-    "phase": "P5",
+    "category": "Transform & 3D primitives",
     "topic": "Motion & animation",
     "label": "Perspective / animated 3D transform",
     "properties": [
@@ -2295,7 +2254,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.parallax-three-depths",
-    "phase": "P5",
+    "category": "Transform & 3D primitives",
     "topic": "Motion & animation",
     "label": "Perspective / parallax showcase",
     "properties": [
@@ -2311,10 +2270,10 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   }
 ];
 
-export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_PERSPECTIVE_CLIPPING_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.perspective.near-far-clipping",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / near-plane clipping",
     "properties": [
@@ -2328,7 +2287,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-near-plane",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested near-plane clipping",
     "properties": [
@@ -2343,7 +2302,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-distance",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested distance",
     "properties": [
@@ -2358,7 +2317,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-origins",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested origins",
     "properties": [
@@ -2372,7 +2331,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-same-origin",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested same-percentage origin",
     "properties": [
@@ -2385,7 +2344,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-preserve-depth",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested depth sort",
     "properties": [
@@ -2400,7 +2359,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-flat-boundary",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested flat boundary",
     "properties": [
@@ -2414,7 +2373,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-between-boundaries",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / sibling at different boundary depth",
     "properties": [
@@ -2428,7 +2387,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-backface",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested backface culling",
     "properties": [
@@ -2443,7 +2402,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-overflow-clip",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested overflow clip",
     "properties": [
@@ -2457,7 +2416,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.nested-clip-path",
-    "phase": "P6",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / nested clip-path",
     "properties": [
@@ -2471,10 +2430,10 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
   }
 ];
 
-export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_PERSPECTIVE_ANIMATION_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.perspective.animation-distance-linear",
-    "phase": "P7",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Perspective / animated distance",
     "properties": [
@@ -2488,7 +2447,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.animation-origin-xy",
-    "phase": "P7",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Perspective / animated origin (percentage)",
     "properties": [
@@ -2502,7 +2461,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.animation-origin-corner",
-    "phase": "P7",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Perspective / animated origin (keywords)",
     "properties": [
@@ -2516,7 +2475,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.animation-rotate",
-    "phase": "P7",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Perspective / two simultaneous tracks",
     "properties": [
@@ -2530,7 +2489,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.animation-sibling-tracks",
-    "phase": "P7",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Perspective / mirrored sibling cameras",
     "properties": [
@@ -2543,7 +2502,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.animation-nested-origin",
-    "phase": "P7",
+    "category": "Animation & keyframe primitives",
     "topic": "Motion & animation",
     "label": "Perspective / animated origin inside nested cameras",
     "properties": [
@@ -2556,10 +2515,10 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   }
 ];
 
-export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_TEXTURE_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.texture.image-contain-rotate-y",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / image contain on rotateY",
     "properties": [
@@ -2580,7 +2539,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-cover-off-center",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / cover with off-center origin",
     "properties": [
@@ -2601,7 +2560,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-alpha-tilt",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / alpha image on inclined plane",
     "properties": [
@@ -2622,7 +2581,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.video-projective-quad",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / video frame on projective quad",
     "properties": [
@@ -2643,7 +2602,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.media-object-position",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / image object-position",
     "properties": [
@@ -2664,7 +2623,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-composition-edge",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / composition edge clipping",
     "properties": [
@@ -2685,7 +2644,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-clip-path",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / image with clip-path",
     "properties": [
@@ -2706,7 +2665,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.video-opacity-blend",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / video opacity + blend",
     "properties": [
@@ -2727,7 +2686,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-animated-z",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / animated translateZ",
     "properties": [
@@ -2748,7 +2707,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-near-plane",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / near-plane partial clipping",
     "properties": [
@@ -2769,7 +2728,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.nested-image-perspective",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / nested perspective",
     "properties": [
@@ -2790,7 +2749,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.texture.image-high-distortion",
-    "phase": "P8",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Texture / high projective distortion",
     "properties": [
@@ -2811,10 +2770,10 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   }
 ];
 
-export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] = [
+export const HTML_COMPILER_PERSPECTIVE_MASK_FILTER_CASES: HtmlCompilerPreviewCase[] = [
   {
     "id": "html-compiler.perspective.mask-filter-near-plane",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask and filter at the near plane",
     "properties": [
@@ -2831,7 +2790,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.mask-add-intersect-near-plane",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask add + intersect at the near plane",
     "properties": [
@@ -2847,7 +2806,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.mask-subtract-composition-edge",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask subtract past the composition edge",
     "properties": [
@@ -2862,7 +2821,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.mask-exclude-inclined",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask exclude on an inclined card",
     "properties": [
@@ -2878,7 +2837,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.mask-one-corner-near-plane",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask + blur, one corner past the near plane",
     "properties": [
@@ -2894,7 +2853,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.filter-drop-shadow-after-blur-near-plane",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / filter order on a projected surface",
     "properties": [
@@ -2910,7 +2869,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.filter-far-plane-bounds",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / filter bounds behind the camera",
     "properties": [
@@ -2926,7 +2885,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.filter-mask-clip-path",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask + clip-path + filter together",
     "properties": [
@@ -2943,7 +2902,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.isolated-mask-filter-projective",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / isolated group with mask, filter and blend",
     "properties": [
@@ -2960,7 +2919,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
   },
   {
     "id": "html-compiler.perspective.mask-different-perspective-boundary",
-    "phase": "P9",
+    "category": "Combined pipeline cases",
     "topic": "Motion & animation",
     "label": "Perspective / mask resolved across two cameras",
     "properties": [
@@ -2975,38 +2934,29 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
     "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
-export const HTML_COMPILER_DEFAULT_CASE_ID = HTML_COMPILER_PHASE0_CASES[0].id;
+export const HTML_COMPILER_DEFAULT_CASE_ID = HTML_COMPILER_FOUNDATION_CASES[0].id;
 
 const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
-  ...HTML_COMPILER_PHASE0_CASES,
+  ...HTML_COMPILER_FOUNDATION_CASES,
   ...HTML_COMPILER_TAG_LOWERING_CASES,
   ...HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES,
   ...HTML_COMPILER_FONT_CATALOG_CASES,
   ...HTML_COMPILER_TEXT_GRADIENT_DEBUG_CASES,
   ...HTML_COMPILER_ANCHOR_CASES,
-  ...HTML_COMPILER_PHASE1_1_CASES,
-  ...HTML_COMPILER_PHASE1_2_CASES,
-  ...HTML_COMPILER_PHASE1_3_CASES,
-  ...HTML_COMPILER_PHASE1_4_CASES,
+  ...HTML_COMPILER_FLEX_CONTAINER_CASES,
+  ...HTML_COMPILER_FLEX_WRAPPING_CASES,
+  ...HTML_COMPILER_GRID_LAYOUT_CASES,
+  ...HTML_COMPILER_LAYOUT_FLOW_CASES,
   ...HTML_COMPILER_LAYOUT_TEXT_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_0_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_9_CASES,
+  ...HTML_COMPILER_COLOR_SPACE_CASES,
   ...HTML_COMPILER_OPACITY_CASES,
   ...HTML_COMPILER_PAINT_GRADIENT_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_1_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_2_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_3_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_4_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_5_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_6_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_7_CASES,
-  ...HTML_COMPILER_PAINT_PHASE2_8_CASES,
-  ...HTML_COMPILER_MOTION_PHASE3_CASES,
-  ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES,
-  ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES,
-  ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES,
-  ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES,
-  ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES,
+  ...HTML_COMPILER_MOTION_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_BASICS_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_CLIPPING_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_ANIMATION_CASES,
+  ...HTML_COMPILER_TEXTURE_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_MASK_FILTER_CASES,
 ];
 
 const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
@@ -3025,31 +2975,10 @@ export type CategorizedHtmlCompilerPreviewCase = HtmlCompilerPreviewCase & {
   category: HtmlCompilerPreviewCategory;
 };
 
-function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCategory {
-  if (item.category !== undefined) return item.category;
-  if (item.classification === "combined") return "Combined pipeline cases";
-  if (item.phase === "P0") {
-    if (item.topic === "Paint") return "Paint primitives";
-    if (item.topic === "Transform 2D") return "Transform & 3D primitives";
-    if (item.topic === "Typography" || item.topic === "Media") return "Typography & media primitives";
-    return "Layout primitives";
-  }
-  if (item.topic === "Layout") return "Layout primitives";
-  if (["P2.4", "P2.5", "P2.6", "P2.7", "P2.8"].includes(item.phase)) {
-    return item.id.includes("mask-clip-path-isolation") ? "Combined pipeline cases" : "Effect primitives";
-  }
-  if (["P2.0", "P2.1", "P2.2", "P2.3"].includes(item.phase)) return "Paint primitives";
-  if (item.phase === "P3" || item.phase === "P7" || item.id.includes("animated-translate-z")) return "Animation & keyframe primitives";
-  if (item.phase === "P5" && !item.id.includes("slow-stroke")) return "Transform & 3D primitives";
-  return "Combined pipeline cases";
-}
-
 function categorizedCase(item: HtmlCompilerPreviewCase): CategorizedHtmlCompilerPreviewCase {
-  const category = categoryForCase(item);
-  const classification = item.classification ?? (category === "Combined pipeline cases" ? "combined" : "primitive");
+  const classification = item.classification ?? (item.category === "Combined pipeline cases" ? "combined" : "primitive");
   return {
     ...item,
-    category,
     classification,
     classificationLabel: item.classificationLabel ?? (classification === "combined" ? "Combined pipeline" : "Primitive"),
   };
@@ -3070,5 +2999,5 @@ export function htmlCompilerPreviewGroups(): Array<{ category: HtmlCompilerPrevi
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): CategorizedHtmlCompilerPreviewCase {
-  return HTML_COMPILER_PREVIEW_CASES.find((item) => item.id === id) ?? categorizedCase(HTML_COMPILER_PHASE0_CASES[0]);
+  return HTML_COMPILER_PREVIEW_CASES.find((item) => item.id === id) ?? categorizedCase(HTML_COMPILER_FOUNDATION_CASES[0]);
 }
