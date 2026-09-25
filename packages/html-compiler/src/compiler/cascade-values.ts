@@ -110,6 +110,20 @@ function expandFont(value: string): Array<[string, string]> {
 
 const BACKGROUND_REPEATS = new Set(["repeat", "repeat-x", "repeat-y", "no-repeat"]);
 const BACKGROUND_BOXES = new Set(["border-box", "padding-box", "content-box"]);
+const BACKGROUND_POSITION_KEYWORDS = new Set(["left", "right", "top", "bottom", "center"]);
+
+/**
+ * A token the `background` shorthand tokenizer can only classify by
+ * elimination (not image/repeat/box/color) must still look like a real
+ * position component (keyword, length or calc()) to be accepted - anything
+ * else used to fall through as a silent no-op "position" fragment, so e.g.
+ * `background: color-mix(...)` (a real color function, just not one
+ * isBackgroundColorToken recognizes) compiled to a fully transparent fill
+ * with no diagnostic at all instead of failing loud.
+ */
+function isBackgroundPositionToken(token: string): boolean {
+  return BACKGROUND_POSITION_KEYWORDS.has(token.toLowerCase()) || /^[-+]?(?:\d+\.?\d*|\.\d+)(?:%|px|em|rem|vw|vh)$/i.test(token) || /^calc\(/i.test(token);
+}
 
 function isBackgroundImageToken(value: string): boolean {
   return /^(?:none|url\(|image\(|cross-fade\(|(?:repeating-)?(?:linear|radial|conic)-gradient\()/i.test(value);
@@ -187,8 +201,10 @@ function expandBackground(value: string): Array<[string, string]> {
         if (layerIndex !== layers.length - 1) fail("css-background-shorthand-invalid", "background color is only allowed on the final layer");
         if (color !== undefined) fail("css-background-shorthand-invalid", `background has more than one color: ${layer}`);
         color = token;
-      } else {
+      } else if (isBackgroundPositionToken(token)) {
         position.push(token);
+      } else {
+        fail("css-background-shorthand-invalid", `background has an unrecognized value: ${token}`);
       }
     }
 

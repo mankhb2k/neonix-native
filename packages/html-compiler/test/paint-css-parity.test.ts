@@ -139,4 +139,31 @@ describe("opacity, border-color and saturate()", () => {
     ]);
     expect(compile("background: rgba(255, 255, 255, .05); backdrop-filter: blur(12px) saturate(180%);").status).toBe("success");
   });
+
+  // The `background` shorthand tokenizer classifies each space-separated
+  // token as image/repeat/box/color/position by elimination - a token that
+  // matched none of those used to fall through as a silent no-op "position"
+  // fragment instead of failing, so e.g. `background: color-mix(...)` (a
+  // real color function, just not one isBackgroundColorToken recognizes)
+  // compiled to a fully transparent fill with zero diagnostics.
+  it("rejects an unrecognized background shorthand token instead of silently discarding it", () => {
+    const result = compile("background: color-mix(in srgb, red 50%, blue);");
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-background-shorthand-invalid");
+  });
+
+  it("still accepts a real position keyword in the background shorthand", () => {
+    expect(compile("background: linear-gradient(red, blue) center / 100% 100%;").status).toBe("success");
+  });
+
+  it("still lets a length/calc() position token through the shorthand tokenizer (a separate, pre-existing background-position limitation may still reject it downstream)", () => {
+    // These must NOT fail with css-background-shorthand-invalid (this fix's
+    // token classifier correctly recognizes them as position-shaped) - any
+    // remaining error here is background-position's own value support, not
+    // a regression from this fix.
+    const byLength = compile("background: linear-gradient(red, blue) 10px 20px / 100% 100%;");
+    expect(byLength.diagnostics[0]?.code).not.toBe("css-background-shorthand-invalid");
+    const byCalc = compile("background: linear-gradient(red, blue) calc(50% - 10px) top / 100% 100%;");
+    expect(byCalc.diagnostics[0]?.code).not.toBe("css-background-shorthand-invalid");
+  });
 });
