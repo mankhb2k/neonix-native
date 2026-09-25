@@ -1,1 +1,1 @@
-export { animationTimelineDuration, lowerAnimationTracks } from "../animation";
+export { animationTimelineDuration, lowerAnimationTracks, resolveNodeAnimationTracks } from "../animation";

@@ -14,8 +14,7 @@ import { parseHtml } from "../html/parser";
 import { parseAnimationStyles, parseRules } from "../css/parser";
 import { computed } from "../css/cascade";
 import { edges, number, resolveVar } from "../css/values";
-import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePaintLayers, parseShadows, type CornerRadius, type Paint, type Outline } from "../paint";
-import { parsePathStyle, parseSvgPathData } from "../path";
+import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePaintLayers, type CornerRadius, type Paint, type Outline } from "../paint";
 import { resolveNodeTransformState } from "../transform";
 import { resolveGeometry, resizeResolvedGeometry } from "../geometry";
 import { collapseVerticalMargins } from "../layout";
@@ -26,46 +25,21 @@ import { resolveGridLayout } from "../grid";
 import { mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "../lowering/media";
 import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages, type BackgroundBox, type BackgroundImage } from "../background";
 import { parseFilter } from "../filter";
-import { parseComposite } from "../composite";
+import { resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
 import { parseClipPath, type ClipReferenceBoxes } from "../clip";
-import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirection, parseTextOverflow, parseTextRendering, parseTextSpacing, parseWhiteSpace, parseWritingMode, resolveFontAssets, type HtmlCompilerTextAlign, type HtmlCompilerTextDirection, wrapForWhiteSpace } from "../css/typography";
+import { parseLineHeight, parseWhiteSpace } from "../css/typography";
 import { splitTopLevel } from "../utils";
-import { animationTimelineDuration, lowerAnimationTracks } from "../css/animation";
+import { animationTimelineDuration, resolveNodeAnimationTracks } from "../css/animation";
 import { motionPathLength, parseMotionPath } from "../motion-path";
 import { parseAnchorNames, resolveAnchorStyle } from "../anchor";
-import { classifyNode, collectTextContentWithBreaks, collectTextContentWithStyles, isTextFlowNode, isSvgNode, normalizeTextContent, normalizeTextContentWithStyles } from "../lowering/dispatcher";
+import { classifyNode, collectTextContentWithBreaks, isTextFlowNode, normalizeTextContent } from "../lowering/dispatcher";
 import type { Node, Style } from "../model";
-import { svgPrimitivePath } from "../lowering/svg";
 import { createCompileContext } from "../compile-context";
 import { createAssetRegistry } from "../lowering/assets";
 import { parseNeonixDocument, isCompileError } from "../document";
 import { borderBand, borderRegion, circlePolygon, clipConvexPolygon, fitBorderDashRuns, shadeBorderColor } from "./border/geometry";
 import { buildRoundedDashRuns, buildRoundedDotRuns } from "./border/rounded-dash";
 import { rectangleContour, roundedRectContour, roundedRectContourAtInset, type HtmlPathContour } from "./shape-contours";
-
-function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
-  if (value === "center") return "middle";
-  if (value === "right" || (value === "end" && direction === "ltr") || (value === "start" && direction === "rtl")) return "end";
-  return "start";
-}
-
-type HtmlTextLayer = Extract<MotionProtocolV2["layers"][number], { type: "text" }>;
-
-function textGradientPaint(style: Style, width: number, height: number, currentColor: string): Paint | undefined {
-  if (style.get("background-clip")?.trim().toLowerCase() !== "text") return undefined;
-  const background = style.get("background")?.trim();
-  if (!background || /^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(background) === false) return undefined;
-  const paints = parsePaintLayers(background, "background", currentColor, { width, height });
-  const paint = paints.length === 1 ? paints[0] : undefined;
-  return paint && typeof paint !== "string" && ["linear-gradient", "radial-gradient", "conic-gradient"].includes(paint.type)
-    ? paint
-    : undefined;
-}
-
-function textPaintFallbackColor(paint: Paint, fallback: string): string {
-  if (typeof paint === "string") return paint;
-  return "stops" in paint ? paint.stops?.[0]?.color ?? fallback : fallback;
-}
 
 /**
  * Preserve CSS background-image's two coordinate systems for the common
@@ -590,7 +564,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
          const motion = parseMotionPath(style, w, h, font, viewport);
          const { perspective, render3d, backfaceVisibility, transformFor } = resolveNodeTransformState(style, w, h, font, viewport, hasChildren);
          const outline = parseOutline(style, containingWidth, font, viewport);
-         const animationTracks = lowerAnimationTracks(style, keyframes, {
+         const animationTracks = resolveNodeAnimationTracks(style, keyframes, {
            width: w,
            height: h,
            fontSize: font,
@@ -605,18 +579,8 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
            motionPathLength: motion ? motionPathLength(motion.offsetPath.contours) : undefined,
            perspective,
          });
-         const paintAnimationTracks = [
-           ...animationTracks.paint.filter((track) => track.path === "style.fill"),
-           ...animationTracks.group.filter((track) => track.path === "frame.width" || track.path === "frame.height"),
-         ];
-         const borderAnimationTracks = animationTracks.paint.filter((track) => track.path === "style.stroke" || track.path === "style.strokeWidth");
-         const textShadows = parseShadows(style, "text-shadow", containingWidth, font, viewport, currentColor);
-         const boxShadows = parseShadows(style, "box-shadow", containingWidth, font, viewport, currentColor);
-         const filterEffects = parseFilter(style.get("filter"), containingWidth, font, viewport, currentColor);
-         const paintEffects = [...boxShadows, ...filterEffects];
-         const composite = parseComposite(style);
-         const compositeState = composite ? { composite } : {};
-         const compositeNeedsGroup = composite !== undefined;
+         const { paintAnimationTracks, borderAnimationTracks } = animationTracks;
+         const { textShadows, paintEffects, compositeState, compositeNeedsGroup } = resolveNodePaintEffects(style, containingWidth, font, viewport, currentColor);
          const hasOutline = outline.style !== "none" && outline.width > 0;
          const emitOutline = (insideGroup: boolean) => {
            if (!hasOutline) return;
@@ -717,94 +681,19 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
             });
             return;
           }
-          const rawNodeText = node.text.normalize("NFC");
-          const collectedText = isTextFlowNode(node)
-            ? normalizeTextContentWithStyles(collectTextContentWithStyles(node, styles), hasChildren)
-            : { text: hasChildren ? rawNodeText.trim() : rawNodeText, hardBreaks: [], styleRuns: [{ start: 0, end: hasChildren ? rawNodeText.trim().length : rawNodeText.length, style }] };
-          const { text, hardBreaks, styleRuns } = collectedText;
-          let textPayload: HtmlTextLayer["payload"] | undefined;
-          let textClipId: string | undefined;
-          const authoredTextGradient = textGradientPaint(
-            style,
-            w,
-            h,
-            style.get("color") ?? parentStyle.get("color") ?? "#000000",
-          );
-          if (text) {
-            const font = resolveFontAssets(style, options.fontAssets ?? []);
-            assetRegistry.registerFonts(font.assets);
-            const textColor = parseColor(style.get("color") ?? parentStyle.get("color") ?? "#000000", "color");
-            const textAlign = parseTextAlign(style.get("text-align"));
-            const renderTextAlign = textAlign === "match-parent" ? parseTextAlign(parentStyle.get("text-align")) : textAlign;
-            const direction = parseTextDirection(style.get("direction"));
-            const writingMode = parseWritingMode(style.get("writing-mode"));
-            const whiteSpace = parseWhiteSpace(style.get("white-space"));
-            const wrap = wrapForWhiteSpace(whiteSpace);
-            const textOverflow = parseTextOverflow(style.get("text-overflow"));
-            const hasWidth = style.get("width") !== undefined && style.get("width")!.trim().toLowerCase() !== "auto";
-            const hasHeight = style.get("height") !== undefined && style.get("height")!.trim().toLowerCase() !== "auto";
-            const sizing = textOverflow === "ellipsis" || (hasWidth && hasHeight)
-              ? "fixed" as const
-              : hasWidth
-                ? "fixed-width-auto-height" as const
-                : "auto-width-height" as const;
-            const textRendering = parseTextRendering(style.get("text-rendering"));
-            if (textOverflow === "ellipsis" && style.get("overflow") !== "hidden") fail("css-text-overflow-requires-clipping", "text-overflow: ellipsis requires overflow: hidden");
-            if (textOverflow === "ellipsis" && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
-            textClipId = style.get("overflow") === "hidden"
-              ? registerClipPath([{ type: "rect", x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight }], "html-text-clip")
-              : elementClipPath();
-            const baseFontSize = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
-            const effectiveStyleRuns = styleRuns.length ? styleRuns : [{ start: 0, end: text.length, style }];
-            const spans = effectiveStyleRuns.map((run, runIndex) => {
-              const runStyle = run.style;
-              const runFontSize = number(runStyle, "font-size", containingWidth, baseFontSize, 16, viewport) || baseFontSize;
-              const runFont = resolveFontAssets(runStyle, options.fontAssets ?? []);
-              assetRegistry.registerFonts(runFont.assets);
-              const runColorValue = parseColor(runStyle.get("color") ?? textColor, "color");
-              const runGradient = textGradientPaint(
-                runStyle,
-                w,
-                h,
-                runStyle.get("color") ?? style.get("color") ?? parentStyle.get("color") ?? "#000000",
-              );
-              const runColor = runGradient ? textPaintFallbackColor(runGradient, runColorValue) : runColorValue;
-              const runDecoration = parseTextDecoration(runStyle.get("text-decoration"), runColor, containingWidth, runFontSize, viewport);
-              const runLetterSpacing = parseTextSpacing(runStyle.get("letter-spacing"), "letter-spacing", containingWidth, runFontSize, viewport);
-              const runWordSpacing = parseTextSpacing(runStyle.get("word-spacing"), "word-spacing", containingWidth, runFontSize, viewport);
-              return {
-                id: `${groupId}::span-${runIndex}`,
-                sourceRange: { start: run.start, end: run.end },
-                resolvedFontAssetIds: runFont.assets.map((asset) => asset.id),
-                font: { families: runFont.families, size: runFontSize, weight: runFont.weight, style: runFont.style, stretch: runFont.stretch },
-                letterSpacing: runLetterSpacing,
-                wordSpacing: runWordSpacing,
-                ...(runDecoration ? { textDecoration: runDecoration } : {}),
-                fill: runGradient ?? runColor,
-              };
-            });
-            textPayload = {
-              source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
-              layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(hardBreaks.length ? { hardBreaks } : {}), ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
-              chunks: [{
-                id: `${groupId}::chunk`,
-                sourceRange: { start: 0, end: text.length },
-                textAnchor: textAnchorForTextAlign(renderTextAlign, direction),
-                spans,
-              }],
-            };
-          }
+          const { textPayload, textClipId, authoredTextGradient } = resolveNodeTextPayload({
+            node, style, parentStyle, styles, hasChildren, groupId,
+            width: w, height: h, containingWidth, viewport,
+            parentFontSize: parentFont, geometry,
+            fontAssets: options.fontAssets ?? [],
+            assetRegistry, registerClipPath, elementClipPath,
+          });
           const backgroundShorthand = style.get("background")?.trim(); const backgroundValue = authoredTextGradient ? undefined : backgroundShorthand && (/^\w+-gradient\(/i.test(backgroundShorthand) || backgroundShorthand.includes(",")) ? backgroundShorthand : style.get("background-color") ?? backgroundShorthand; const paints = backgroundValue === undefined ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint]) : parsePaintLayers(backgroundValue, "background", style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h }); const border = parseBorderEdges(style, containingWidth, font, viewport);
           const backgroundImages = parseBackgroundImages(style, style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h });
           const boxFor = (box: BackgroundBox): LayoutRect => backgroundBox(geometry, box);
           const paintBoxFor = (index: number): LayoutRect => boxFor(parseBackgroundBox(style, "background-clip", index));
           const borderBox = boxFor("border-box");
-         const isPath = isSvgNode(node) && !["svg", "g"].includes(node.tag);
-         const pathData = node.tag === "path" ? node.attributes.get("d") ?? "" : svgPrimitivePath(node) ?? "";
-         const pathContours = isPath ? parseSvgPathData(pathData) : undefined;
-         const pathStyle = isPath ? parsePathStyle(node, style, style.get("color") ?? parentStyle.get("color") ?? "#000000") : undefined;
-         const fillRuleValue = (style.get("fill-rule") ?? node.attributes.get("fill-rule") ?? "nonzero").toLowerCase();
-         if (isPath && !["nonzero", "evenodd"].includes(fillRuleValue)) fail("css-path-fill-rule-invalid", `Unsupported fill-rule: ${fillRuleValue}`);
+         const { isPath, pathContours, pathStyle, fillRuleValue } = resolveNodeSvgPath(node, style, parentStyle);
          if (isPath) {
            const styleForPath = pathStyle?.fill === "none"
              ? { ...(pathStyle ?? {}), fill: "none" as const }

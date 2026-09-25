@@ -521,6 +521,27 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
   return { group: resolveTransformTrackConflicts(group, style, options), paint };
 }
 
+/**
+ * `lowerAnimationTracks` plus the two downstream splits every caller needs:
+ * the paint-layer subset (background-color and, for a paint-grouped element,
+ * the width/height tracks its paint children must also follow) and the
+ * border-paint subset (border-color/border-width).
+ */
+export function resolveNodeAnimationTracks(style: Style, keyframes: Map<string, KeyframeDefinition>, options: LowerAnimationOptions): {
+  group: V2Track[];
+  paint: V2Track[];
+  paintAnimationTracks: V2Track[];
+  borderAnimationTracks: V2Track[];
+} {
+  const tracks = lowerAnimationTracks(style, keyframes, options);
+  const paintAnimationTracks = [
+    ...tracks.paint.filter((track) => track.path === "style.fill"),
+    ...tracks.group.filter((track) => track.path === "frame.width" || track.path === "frame.height"),
+  ];
+  const borderAnimationTracks = tracks.paint.filter((track) => track.path === "style.stroke" || track.path === "style.strokeWidth");
+  return { ...tracks, paintAnimationTracks, borderAnimationTracks };
+}
+
 /** Returns the minimum layer timeline needed to expose a finite animation. */
 export function animationTimelineDuration(style: Style): number {
   const names = list(style.get("animation-name"), "none");
