@@ -57,7 +57,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
       <div className="px-6 pt-16 sm:pt-24">{guide.body}</div>
 
       {related.length > 0 ? (
-        <div className="mx-auto max-w-[56rem] px-6 pb-20">
+        <div className="mx-auto max-w-[900px] px-6 pb-20">
           <section className="border-t border-[var(--border-subtle)] pt-10">
             <h2 className="text-xl font-semibold text-[var(--fg-primary)]">More guides</h2>
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
