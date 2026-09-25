@@ -8,6 +8,38 @@ export type GradientSpreadMethod = "pad" | "repeat";
 export type Paint = string | { type: "linear-gradient"; angle?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "radial-gradient"; cx?: number; cy?: number; radius?: number; radiusX?: number; radiusY?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "conic-gradient"; from?: number; cx?: number; cy?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] };
 type GradientBox = { width: number; height: number };
 
+/**
+ * Every `<color>` syntax parseColor() actually accepts, for get_capabilities
+ * to surface to an authoring AI directly (this is the single source of
+ * truth both parseColor() and get_capabilities read from, so the two can
+ * never drift apart the way the hand-written docs a color-format bug report
+ * pointed at had).
+ */
+export const SUPPORTED_COLOR_FORMATS = [
+  { syntax: "#rgb / #rgba", example: "#0af / #0af8" },
+  { syntax: "#rrggbb / #rrggbbaa", example: "#22d3ee / #22d3ee80" },
+  { syntax: "rgb() / rgba()", example: "rgba(34, 211, 238, .5)  |  rgb(34 211 238 / 50%)", detail: "rgb() and rgba() are interchangeable (an alpha channel is optional on either name). Both the legacy comma syntax and the modern space+optional-slash-alpha syntax work." },
+  { syntax: "hsl() / hsla()", example: "hsl(190, 94%, 54%)  |  hsl(190 94% 54% / 50%)", detail: "hsl() and hsla() are interchangeable, comma and modern syntax both work. Hue accepts deg/grad/rad/turn or a bare number." },
+  { syntax: "named colors", example: "red, white, rebeccapurple", detail: "The full CSS Color 3 named-color keyword set (case-insensitive)." },
+  { syntax: "transparent / currentColor", example: "currentColor" },
+] as const;
+
+/** Color functions that look like a color but are NOT implemented - fail loudly with `css-color-unsupported` rather than silently. Listed so an authoring AI can avoid them instead of discovering this by trial and error. */
+export const UNSUPPORTED_COLOR_FORMATS = ["lab()", "lch()", "oklab()", "oklch()", "hwb()", "color()"] as const;
+
+export const PAINT_CAPABILITY_NOTES = [
+  {
+    id: "gradient-functions",
+    summary: "linear-gradient(), radial-gradient() and conic-gradient() - and their repeating- variants - are supported on background/background-image.",
+    detail: "Color stops accept a percentage, a length (px/calc()), or (for conic) an angle; a bare `<color>` between two color stops is a color-interpolation hint, not a third stop. `to <side-or-corner>` and an explicit angle (deg/grad/rad/turn) both work for linear-gradient. radial-gradient supports circle/ellipse, the closest-side/farthest-side/closest-corner/farthest-corner extent keywords, an explicit size, and an `at <position>` (keywords, percentages or lengths).",
+  },
+  {
+    id: "background-image-repeat-needs-size-for-raster-only",
+    summary: "A repeating background-image needs an explicit two-dimensional background-size, but only for a raster url() image.",
+    detail: "A gradient's generated image always exactly fills the background positioning area by spec, so linear-gradient()/radial-gradient()/conic-gradient() repeat (the CSS default) deterministically with no extra properties needed. A url() image has no known intrinsic size at compile time, so repeating one does require an explicit background-size plus background-repeat.",
+  },
+] as const;
+
 function toHexByte(value: number): string {
   return Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0");
 }

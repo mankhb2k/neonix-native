@@ -5,6 +5,7 @@ export type { PrepareHtmlTextSizingOptions } from "./compiler/text-sizing";
 
 export {
   HTML_TAG_PROFILE,
+  ID_AUTHORING_NOTES,
   SUPPORTED_PROPERTIES,
   SUPPORTED_TAGS,
   TEXT_CONTAINER_TAGS,
@@ -12,6 +13,7 @@ export {
 } from "./compiler/model";
 
 export { ANIMATION_CAPABILITY_NOTES, SUPPORTED_ANIMATION_TIMING_FUNCTIONS } from "./compiler/animation";
+export { PAINT_CAPABILITY_NOTES, SUPPORTED_COLOR_FORMATS, UNSUPPORTED_COLOR_FORMATS } from "./compiler/paint";
 
 export {
   DEFAULT_HTML_CSS_COMPOSITION,

@@ -56,6 +56,32 @@ project. Use get_capabilities to discover supported tags, CSS properties and
 bundled fonts. For deterministic text layout, use the bundled Inter family
 (weights 400 and 700); generic system fonts such as Arial are not implicit.
 
+## Colors
+
+get_capabilities.values.color lists every supported syntax with examples, and
+every color function that is recognized but NOT implemented (oklch(), lab(),
+...) so you can avoid it instead of hitting css-color-unsupported by trial
+and error. In short: hex (#rgb/#rgba/#rrggbb/#rrggbbaa), rgb()/rgba() and
+hsl()/hsla() (legacy comma syntax and modern space+slash-alpha syntax both
+work, and rgb()/rgba() are interchangeable, as are hsl()/hsla()), named CSS
+colors, transparent and currentColor. linear-gradient()/radial-gradient()/
+conic-gradient() (and their repeating- variants) are fully supported on
+background/background-image and never need an explicit background-size -
+that requirement only applies to a repeating url() image, whose pixel size
+isn't known at compile time.
+
+## Element ids
+
+Give an element an explicit id (matching /^[A-Za-z][A-Za-z0-9_-]{0,199}$/,
+unique in the document) whenever you or a later edit will reference its
+Protocol V2 layer - to animate it, restyle it, or read it back from
+get_project_json. An element styled only with class does not need an
+invented id: it still gets a stable, readable layer id (its own last class
+token, e.g. class="card card-a" -> "card-a"; its tag name if it has no
+class), deduplicated with a -2, -3, ... suffix where needed. Use class
+normally for shared styling; get_capabilities.constraints has the exact
+scheme if you need to predict a specific auto-generated id ahead of time.
+
 The compiler produces Protocol V2 JSON. Protocol V2 is the canonical revision
 used by the runtime and export pipeline; HTML is the linked authoring source.
 Never attempt to generate HTML by reversing project JSON.

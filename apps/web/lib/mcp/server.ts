@@ -2,7 +2,7 @@ import "server-only";
 
 import { HTML_COMPILER_FONT_ASSETS } from "@/lib/server/html-compiler-font-assets";
 import { compileHtmlDocument } from "@/lib/server/html-project-repository";
-import { ANIMATION_CAPABILITY_NOTES, HTML_TAG_PROFILE, NEONIX_DOCUMENT_METADATA_JSON_SCHEMA, NEONIX_HTML_DOCUMENT_TEMPLATE, SUPPORTED_ANIMATION_TIMING_FUNCTIONS, SUPPORTED_PROPERTIES } from "@motionvideo/html-compiler";
+import { ANIMATION_CAPABILITY_NOTES, HTML_TAG_PROFILE, ID_AUTHORING_NOTES, NEONIX_DOCUMENT_METADATA_JSON_SCHEMA, NEONIX_HTML_DOCUMENT_TEMPLATE, PAINT_CAPABILITY_NOTES, SUPPORTED_ANIMATION_TIMING_FUNCTIONS, SUPPORTED_COLOR_FORMATS, SUPPORTED_PROPERTIES, UNSUPPORTED_COLOR_FORMATS } from "@motionvideo/html-compiler";
 import {
   createRemoteMcpServer,
   type RemoteMcpPrincipal,
@@ -76,8 +76,9 @@ export function createMcpServer(principal: McpPrincipal) {
              cssProperties: [...SUPPORTED_PROPERTIES].sort(),
              values: {
                animationTimingFunction: SUPPORTED_ANIMATION_TIMING_FUNCTIONS,
+               color: { supported: SUPPORTED_COLOR_FORMATS, unsupported: UNSUPPORTED_COLOR_FORMATS },
              },
-             constraints: ANIMATION_CAPABILITY_NOTES,
+             constraints: [...ANIMATION_CAPABILITY_NOTES, ...PAINT_CAPABILITY_NOTES, ...ID_AUTHORING_NOTES],
              fonts: [...new Set(HTML_COMPILER_FONT_ASSETS.map((font) => font.family))].sort().map((family) => ({
                family,
                weights: HTML_COMPILER_FONT_ASSETS

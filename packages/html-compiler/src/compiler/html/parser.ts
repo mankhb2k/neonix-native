@@ -50,6 +50,24 @@ function decodeHtmlText(value: string): string {
 }
 
 /**
+ * get_capabilities' authoring guidance for `id`/`class`, matching
+ * ANIMATION_CAPABILITY_NOTES' {id, summary, detail} shape so every
+ * capability constraint surfaces the same way to an authoring AI.
+ */
+export const ID_AUTHORING_NOTES = [
+  {
+    id: "explicit-id-for-referenced-elements",
+    summary: "Give an element an explicit HTML id if you (or a later edit) will reference its Protocol V2 layer - to animate it, restyle it, or read it back from get_project_json.",
+    detail: "An id must match /^[A-Za-z][A-Za-z0-9_-]{0,199}$/ and be unique in the document. It becomes the layer's id verbatim (plus a `::paint`/`::border`/`::background:N` suffix for a sub-layer the element generates).",
+  },
+  {
+    id: "class-only-elements-still-get-a-stable-id",
+    summary: "An element styled only with class (no id) still gets a real, readable layer id: its own last class token, or its tag name if it has no class - not an id you need to invent.",
+    detail: "class=\"card card-a\" auto-ids to \"card-a\" (the last, most specific class); a bare <span> auto-ids to \"span\". Colliding auto-ids get a -2, -3, ... suffix in document order, and an auto-id always yields to any explicit id elsewhere in the document, wherever it appears. Reuse class for shared styling exactly as in normal CSS - it does not need to be unique, and does not by itself determine any layer's id beyond this fallback.",
+  },
+] as const;
+
+/**
  * A readable, deterministic layer id for an element with no explicit `id`:
  * its own last class token (the most specific one in an authoring pattern
  * like `class="card card-a"`), falling back to the tag name, then
