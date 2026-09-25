@@ -211,26 +211,48 @@ Các hiệu ứng sau đã xác nhận render đúng (qua battery 58 case hôm t
 audit ảnh chụp thật hôm nay) nhưng cần rà xem đã có test canvaskit-preview
 cấp draw-call hay chưa, thiếu thì bổ sung để khoá — **không sửa gì, chỉ
 viết test** cho các mục này:
+**Đã verify lại bằng cách đọc thật code test (2026-09-25) — 2 dòng "đã có,
+đủ" bên dưới trước đó SAI, ghi nhầm mà chưa mở file test ra xem**:
+
 - [ ] `filter` chain đơn (blur/brightness/contrast/saturate/hue-rotate/
-      grayscale/sepia/invert/drop-shadow) — đã có test trong
-      `effects.test.ts`, chỉ thiếu `saturate()` (vừa thêm hôm nay, code
-      compiler `html-compiler` đã có test, còn native/canvaskit thì dùng
-      chung `color-adjust` op đã test — xác nhận lại, không cần viết mới
-      nếu đúng)
-- [ ] `backdrop-filter` một mình (không kèm box-shadow) — đã có
-      `backdrop-replay.test.ts`, đủ
+      grayscale/sepia/invert/drop-shadow) — `effects.test.ts`
+      (`packages/canvaskit-preview/test/`) là test cấp draw-call thật (assert
+      filter-graph construction), nhưng **`saturate()` KHÔNG có coverage
+      thật**: field `saturation` chỉ xuất hiện 3 chỗ trong test
+      (dòng 122/220/259), cả 3 đều hardcode `saturation: 1` (giá trị
+      neutral/no-op) — ma trận biến đổi saturation thật
+      (`src/command/effects.ts` dòng 27-34) chưa từng được test với
+      saturation ≠ 1. **Vẫn cần viết test mới**, không phải "xác nhận lại
+      cho chắc" như ghi trước đó.
+- [x] `backdrop-filter` một mình (không kèm box-shadow) — CONFIRMED đúng:
+      `backdrop-replay.test.ts` có 4 test assert trực tiếp arg truyền vào
+      `canvas.saveLayer(paint, bounds, filter)`/`clipRect`, cấp draw-call
+      thật.
 - [ ] **`box-shadow` + `mix-blend-mode`** — audit hôm nay xác nhận render
       đúng bằng ảnh, nhưng **chưa có test draw-call nào** cho tổ hợp này
-      lẫn `mix-blend-mode` nói chung (`blendModeFor` có map đúng hết giá
-      trị CSS không?) — cần viết test mới
+      lẫn `mix-blend-mode` nói chung. Verify lại: mọi test kit trong
+      `packages/canvaskit-preview/test/*.test.ts` đều stub
+      `setBlendMode(){}` thành no-op và không bao giờ assert giá trị được
+      truyền vào, `BlendMode` chỉ stub mỗi `SrcOver` — 13 giá trị CSS còn
+      lại (multiply/screen/overlay/darken/lighten/color-dodge/color-burn/
+      hard-light/soft-light/difference/exclusion/hue/saturation/color/
+      luminosity) hoàn toàn chưa có test nào đụng tới `blendModeFor()`
+      (`src/command/paint.ts` dòng 21-27) — cần viết test mới.
 - [ ] **`box-shadow` + transform 3D** — audit hôm nay xác nhận shadow vẫn
       hiển thị đúng qua ảnh, nhưng chưa có test draw-call
 - [ ] **`text-shadow` + `filter`** — audit hôm nay xác nhận đúng qua ảnh,
-      chưa có test draw-call cho tổ hợp này
-- [ ] `opacity` phần trăm + animation opacity qua keyframes — đã có test
-      html-compiler hôm nay, native/replay phía canvaskit-preview đã có
-      `opacity-replay.test.ts`, xác nhận opacity animation track được replay
-      đúng theo thời gian (không chỉ giá trị tĩnh)
+      chưa có test draw-call cho tổ hợp này (test hiện có trong
+      `paint-color-functions.test.ts` chỉ parse màu text-shadow/
+      drop-shadow riêng lẻ, không phải test tổ hợp trên cùng 1 phần tử)
+- [ ] `opacity` phần trăm + animation opacity qua keyframes — `opacity-
+      replay.test.ts` CÓ 2 test cấp draw-call thật (assert
+      `layerPaints[0].alpha`/`drawPaints[0].alpha`), nhưng cả 2 đều
+      **single-frame/tĩnh** (`"composites isolated subtree opacity once..."`
+      dòng 43, `"keeps non-isolated drawable opacity..."` dòng 59) —
+      **KHÔNG có test nào replay track animation qua nhiều frame/theo thời
+      gian**. Dòng "xác nhận opacity animation track được replay đúng theo
+      thời gian" ghi trước đó là sai, chưa từng verify — vẫn cần viết test
+      multi-frame mới.
 
 ## Cấp 2 — Thường gặp, không phải lõi hàng ngày
 
