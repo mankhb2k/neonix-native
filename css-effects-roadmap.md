@@ -59,7 +59,7 @@ Audit bằng battery 50 case CSS phổ biến qua compiler thật (không suy đ
 | --- | --- | --- |
 | Box model (padding/margin/border/box-sizing/min-max/aspect-ratio/overflow/z-index/inset...) | 19/19 | Sạch, không cần sửa gì (sweep bổ sung sau đó phát hiện thêm 2 lỗi paint/box khác, đã sửa — xem bên dưới) |
 | Layout (flex/grid/flow) | 11/16 → **12/16 sau khi sửa** | `grid-template-areas` đã xong, còn 2 gap |
-| Text/typography | 7/15 → **9/15 sau khi sửa** | 2 gap tần suất cao nhất đã sửa, còn lại xem bên dưới |
+| Text/typography | 6/15 → **8/15 sau khi sửa** | 2 gap tần suất cao nhất đã sửa, còn lại xem bên dưới |
 
 **Đã sửa** (commit `fdcaa167`, có test `test/typography-shorthand.test.ts`):
 - **`font` shorthand** (`font: italic 700 24px/1.4 Inter`) — hoàn toàn chưa
@@ -100,6 +100,8 @@ xác nhận paint/gradient/box sạch trước khi sang grid, có test trong
       box co giãn với từ dài
 - [ ] `vertical-align` — gap đã biết từ trước, chưa sửa
 - [ ] `-webkit-line-clamp` — cắt text N dòng, hay dùng cho caption/mô tả
+- [ ] `text-decoration-style` khác `solid` (`wavy`/`dotted`/`dashed` underline)
+      — chỉ nhận `solid`
 - [ ] `text-indent`, `font-variant` — tần suất thấp hơn, có thể để Cấp 2
 
 **Không cần làm** (đã xác nhận không phù hợp với sản phẩm video/motion,
@@ -238,9 +240,10 @@ viết test** cho các mục này:
   xác nhận (`color-mix()` im lặng render trong suốt, `overflow: clip` bị
   từ chối) — cả 2 đã sửa, commit `e1fa6d0a`/`50f36562`.
 - Paint/gradient: sạch, xác nhận lại qua cùng đợt sweep.
-- Text: 2/2 gap tần suất cao nhất (`font` shorthand, `text-transform`) đã
-  xong, commit `fdcaa167`. Còn 4 gap tần suất thấp hơn chưa sửa
-  (`overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
+- Text: 6/15 → 8/15 (2/2 gap tần suất cao nhất: `font` shorthand,
+  `text-transform`, đã xong, commit `fdcaa167`). Còn 5 gap tần suất thấp
+  hơn chưa sửa (`overflow-wrap`/`word-break`, `vertical-align`,
+  `-webkit-line-clamp`, `text-decoration-style` khác `solid`,
   `text-indent`/`font-variant`).
 - Layout: `grid-template-areas` + `grid-area` đã xong, commit `adc9f4e2`.
   Còn `flex-direction` reverse + `grid-auto-flow`.
@@ -252,8 +255,8 @@ diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow).
 **Thứ tự tiếp theo** (đúng nguyên tắc "case cơ bản đủ điều kiện trước case
 mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
 1. `flex-direction` reverse + `grid-auto-flow` (layout, còn lại của 1.0)
-2. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`
-   (text, tần suất thấp hơn các mục đã xong)
+2. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
+   `text-decoration-style` (text, tần suất thấp hơn các mục đã xong)
 3. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
