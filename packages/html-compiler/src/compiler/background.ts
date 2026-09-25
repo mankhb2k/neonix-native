@@ -1,5 +1,5 @@
 import { fail } from "./errors";
-import { calcExpression } from "./values";
+import { calcExpression, isPaintToken } from "./values";
 import { splitTopLevel } from "./utils";
 import { parseColor, parsePaintLayers, type Paint } from "./paint";
 import type { Style } from "./model";
@@ -27,7 +27,8 @@ function parseUrlSource(value: string, property: string): BackgroundImage | unde
 }
 
 function isImageFallbackColor(value: string): boolean {
-  return /^(?:transparent|currentcolor|#[0-9a-f]{3,8}|rgba\()/i.test(value.trim());
+  const trimmed = value.trim();
+  return trimmed.toLowerCase() !== "none" && isPaintToken(trimmed);
 }
 
 /**

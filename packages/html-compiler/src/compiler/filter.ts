@@ -66,8 +66,8 @@ function clampedAmount(value: string, property: string, viewport: { width: numbe
   return Math.min(1, Math.max(0, numberValue(value, property, viewport, fontSize, 1)));
 }
 
-function colorAdjust(id: string, brightness = 0, contrast = 1, hueRotate = 0): HtmlFilterEffect {
-  return { id, type: "color-adjust", brightness, contrast, saturation: 1, hueRotate };
+function colorAdjust(id: string, brightness = 0, contrast = 1, hueRotate = 0, saturation = 1): HtmlFilterEffect {
+  return { id, type: "color-adjust", brightness, contrast, saturation, hueRotate };
 }
 
 function dropShadow(body: string, id: string, viewport: { width: number; height: number }, fontSize: number, relative: number, currentColor: string): HtmlFilterEffect {
@@ -110,6 +110,13 @@ export function parseFilter(value: string | undefined, relative: number, fontSiz
       const additive = 0.5 * (factor - 1);
       if (additive < -1 || additive > 1) fail("css-filter-amount-unsupported", "brightness() cannot be represented by the V2 color-adjust bounds");
       return colorAdjust(id, additive, factor);
+    }
+    if (name === "saturate") {
+      if (values.length !== 1) fail("css-filter-invalid", "saturate() expects one number or percentage");
+      // Unlike grayscale()/sepia(), saturate() is not clamped to 1: CSS allows oversaturation (e.g. 180%).
+      const factor = numberValue(values[0]!, "filter.saturate", viewport, fontSize, 1);
+      if (factor < 0 || factor > 4) fail("css-filter-amount-unsupported", "saturate() must resolve within 0..4");
+      return colorAdjust(id, 0, 1, 0, factor);
     }
     if (name === "hue-rotate") {
       if (values.length !== 1) fail("css-filter-invalid", "hue-rotate() expects one angle");

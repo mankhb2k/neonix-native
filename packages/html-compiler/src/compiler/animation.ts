@@ -42,6 +42,12 @@ function number(value: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/** `opacity` accepts a number or a percentage (`50%` = 0.5). */
+function opacityNumber(value: string, fallback: number): number {
+  const trimmed = value.trim();
+  return trimmed.endsWith("%") ? number(String(Number(trimmed.slice(0, -1)) / 100), fallback) : number(trimmed, fallback);
+}
+
 function color(value: string, currentColor: string): { type: "color"; value: [number, number, number, number] } {
   const hex = parseColor(value, "animation color", currentColor).slice(1);
   const bytes = hex.length === 8 ? [0, 2, 4, 6].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)) : [0, 2, 4].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).concat(255);
@@ -236,7 +242,7 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
             : property === "offset-rotate" ? { type: "number" as const, value: motionAngle(raw.replace(/^\s*(?:auto(?:-reverse)?|reverse)\s*/i, "")) }
               : property === "perspective" ? { type: "number" as const, value: perspectiveDistance(raw, options) }
                 : property === "perspective-origin" ? perspectiveOrigin(raw, options)
-              : property === "opacity" ? { type: "number" as const, value: number(raw, 1) } : color(raw, options.currentColor);
+              : property === "opacity" ? { type: "number" as const, value: opacityNumber(raw, 1) } : color(raw, options.currentColor);
       return { time: Math.round(entry.at * durationMs), value, easing: easing(styleTiming(definition, entry.at) ?? defaultTiming) };
     });
     // A synthesized leading keyframe (no explicit 0%/from) still starts the
@@ -425,7 +431,7 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): V
   if (path === "style.fill") return color(typeof base === "string" ? base : options.currentColor, options.currentColor);
   if (path === "style.stroke") return color(typeof base === "string" ? base : options.currentColor, options.currentColor);
   if (path === "style.strokeWidth") return { type: "number", value: typeof base === "number" ? base : borderSize(String(base ?? "0px"), options) };
-  if (path === "opacity") return { type: "number", value: typeof base === "number" ? base : number(String(base ?? "1"), 1) };
+  if (path === "opacity") return { type: "number", value: typeof base === "number" ? base : opacityNumber(String(base ?? "1"), 1) };
   if (path.startsWith("transform.")) {
     // When @keyframes omit 0%, CSS synthesizes it from the underlying
     // transform declaration. Preserve every base component (including rotate,
@@ -494,7 +500,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
             ? options.baseFrame[property]
             : "none";
       const baseValue = property === "opacity"
-        ? (typeof base === "number" ? base : number(base, 1))
+        ? (typeof base === "number" ? base : opacityNumber(base, 1))
         : property === "transform"
           ? base
         : property === "border-width"

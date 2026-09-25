@@ -42,7 +42,7 @@ export const NAMED_COLORS: Readonly<Record<string, string>> = Object.freeze({
 });
 
 export function isPaintToken(value: string): boolean {
-  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6}(?:[0-9a-f]{2})?)$/i.test(value)
+  return /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}(?:[0-9a-f]{2})?)$/i.test(value)
     || ["transparent", "currentcolor", "none"].includes(value.toLowerCase())
     || value.toLowerCase() in NAMED_COLORS
     // Only hex/named colors reach parseColor() successfully today (plus

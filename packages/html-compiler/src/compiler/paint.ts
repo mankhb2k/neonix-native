@@ -64,15 +64,29 @@ function hslToRgb(hueDegrees: number, saturation: number, lightness: number): [n
   return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
 }
 
-function hueToDegrees(token: string, property: string, original: string): number {
-  const match = token.match(/^(-?(?:\d+\.?\d*|\.\d+))(deg|grad|rad|turn)?$/i);
-  if (!match) return fail("css-color-invalid", `${property} contains an invalid hsl hue: ${original}`);
-  const value = Number(match[1]);
-  const unit = match[2]?.toLowerCase();
-  if (unit === "grad") return value * 0.9;
-  if (unit === "rad") return (value * 180) / Math.PI;
-  if (unit === "turn") return value * 360;
+const ANGLE_TOKEN = /^(-?(?:\d+\.?\d*|\.\d+))(deg|grad|rad|turn)$/i;
+
+function angleToDegrees(value: number, unit: string): number {
+  const lower = unit.toLowerCase();
+  if (lower === "grad") return value * 0.9;
+  if (lower === "rad") return (value * 180) / Math.PI;
+  if (lower === "turn") return value * 360;
   return value;
+}
+
+/** An `<angle>` token in degrees, or undefined if it isn't one. A bare `0` is accepted, as CSS allows for gradient angles. */
+function parseAngleToken(token: string): number | undefined {
+  if (token.trim() === "0") return 0;
+  const match = token.trim().match(ANGLE_TOKEN);
+  return match ? angleToDegrees(Number(match[1]), match[2]!) : undefined;
+}
+
+function hueToDegrees(token: string, property: string, original: string): number {
+  const bare = token.match(/^(-?(?:\d+\.?\d*|\.\d+))$/);
+  if (bare) return Number(bare[1]);
+  const degrees = parseAngleToken(token);
+  if (degrees === undefined) return fail("css-color-invalid", `${property} contains an invalid hsl hue: ${original}`);
+  return degrees;
 }
 
 function parseHslFunction(body: string, property: string, original: string): string {
@@ -96,6 +110,7 @@ export function parseColor(value: string, property: string, currentColor = "#000
   if (v === "transparent" || (v === "none" && ["background", "background-color"].includes(property))) return "#00000000";
   if (v === "currentcolor") return parseColor(currentColor, "currentColor");
   if (/^#[0-9a-f]{3}$/i.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+  if (/^#[0-9a-f]{4}$/i.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}${v[4]}${v[4]}`;
   if (/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(v)) return v;
   const rgbMatch = v.match(/^rgba?\(([\s\S]+)\)$/i);
   if (rgbMatch) return parseRgbFunction(rgbMatch[1]!, property, value);
@@ -106,14 +121,103 @@ export function parseColor(value: string, property: string, currentColor = "#000
   return fail("css-color-unsupported", `${property} must resolve to a hex color: ${value}`);
 }
 
-function parseStopOffset(value: string | undefined, property: string, allowOutsideRange = false): number | undefined {
-  if (value === undefined) return undefined;
-  const match = value.match(/^(-?(?:\d+\.?\d*|\.\d+))(%)?$/);
-  if (!match) fail("css-gradient-stop-invalid", `${property} has an invalid color-stop offset: ${value}`);
-  const parsed = match as RegExpMatchArray;
-  const offset = Number(parsed[1]) / (parsed[2] ? 100 : 1);
-  if (!Number.isFinite(offset) || (!allowOutsideRange && (offset < 0 || offset > 1))) fail("css-gradient-stop-invalid", `${property} color-stop offset must be between 0% and 100%: ${value}`);
-  return offset;
+/**
+ * How a color-stop position resolves, mirroring Blink's
+ * CSSGradientValue::AddStops(): a length (or calc()) is divided by the
+ * gradient length - the gradient line for linear, the ending radius for
+ * radial - and a conic stop takes an angle as a fraction of a full turn.
+ * `length` is undefined only on the style-validation pass, which has no box
+ * and discards the result.
+ */
+type StopResolution = { kind: "linear" | "radial" | "conic"; length: number | undefined };
+
+function parseStopPosition(token: string, property: string, resolution: StopResolution): number {
+  const plain = token.match(/^(-?(?:\d+\.?\d*|\.\d+))(%)?$/);
+  if (plain) return Number(plain[1]) / (plain[2] ? 100 : 1);
+  if (resolution.kind === "conic") {
+    const degrees = parseAngleToken(token);
+    if (degrees === undefined) fail("css-gradient-stop-invalid", `${property} conic color-stop positions must be percentages or angles: ${token}`);
+    return (degrees as number) / 360;
+  }
+  const length = resolution.length ?? 100;
+  const resolved = calcExpression(token, property, length, 16, 16, { width: length, height: length });
+  if (!Number.isFinite(resolved.value) || resolved.unit !== "px") fail("css-gradient-stop-invalid", `${property} has an invalid color-stop offset: ${token}`);
+  return length > 0 ? resolved.value / length : 0;
+}
+
+type ParsedStop = { color?: string; offset?: number };
+
+function lerpHexColor(from: string, to: string, t: number): string {
+  const channels = (hex: string) => [1, 3, 5, 7].map((index) => (index === 7 && hex.length === 7 ? 255 : Number.parseInt(hex.slice(index, index + 2), 16)));
+  const a = channels(from);
+  const b = channels(to);
+  return `#${a.map((channel, index) => toHexByte(channel + (b[index]! - channel) * t)).join("")}`;
+}
+
+/**
+ * Blink's ReplaceColorHintsWithColorStops(): a color hint bends the
+ * interpolation between its two neighbors to pos^(ln .5 / ln hint), which a
+ * piecewise-linear Skia gradient approximates with 9 extra stops placed on
+ * the curve (more of them on the side where it bends).
+ */
+function replaceColorHints(stops: Array<{ color?: string; offset: number }>): Array<{ color: string; offset: number }> {
+  const result: Array<{ color: string; offset: number }> = [];
+  stops.forEach((stop, index) => {
+    if (stop.color !== undefined) {
+      result.push({ color: stop.color, offset: stop.offset });
+      return;
+    }
+    const left = stops[index - 1]!;
+    const right = stops[index + 1]!;
+    const leftColor = left.color!;
+    const rightColor = right.color!;
+    const leftDistance = stop.offset - left.offset;
+    const rightDistance = right.offset - stop.offset;
+    const totalDistance = right.offset - left.offset;
+    if (Math.abs(leftDistance - rightDistance) < 1e-6) return;
+    if (Math.abs(leftDistance) < 1e-6) {
+      result.push({ color: rightColor, offset: stop.offset });
+      return;
+    }
+    if (Math.abs(rightDistance) < 1e-6) {
+      result.push({ color: leftColor, offset: stop.offset });
+      return;
+    }
+    const offsets = leftDistance > rightDistance
+      ? [...Array.from({ length: 7 }, (_, y) => left.offset + leftDistance * ((7 + y) / 13)), stop.offset + rightDistance / 3, stop.offset + (rightDistance * 2) / 3]
+      : [left.offset + leftDistance / 3, left.offset + (leftDistance * 2) / 3, ...Array.from({ length: 7 }, (_, y) => stop.offset + rightDistance * (y / 13))];
+    const hint = leftDistance / totalDistance;
+    for (const offset of offsets) {
+      const weighting = ((offset - left.offset) / totalDistance) ** (Math.log(0.5) / Math.log(hint));
+      if (!Number.isFinite(weighting)) continue;
+      result.push({ color: lerpHexColor(leftColor, rightColor, weighting), offset });
+    }
+  });
+  return result;
+}
+
+/**
+ * Collapse stops outside [0, 1] onto the boundary, interpolating the
+ * boundary color (Blink's ClampNegativeOffsets, applied to both ends). For a
+ * linear or conic gradient the [0, 1] range already spans everything the
+ * gradient can paint, so the result is visually identical to Blink moving
+ * its gradient points; radial handles its upper end by rescaling the radius
+ * instead (see parseGradient).
+ */
+function clampStopsToUnitRange(stops: GradientStop[], clampHigh: boolean): GradientStop[] {
+  const clampAt = (list: GradientStop[], boundary: number, beyond: (offset: number) => boolean): GradientStop[] => {
+    const inside = list.filter((stop) => !beyond(stop.offset));
+    const outside = list.filter((stop) => beyond(stop.offset));
+    if (!outside.length) return list;
+    const lastOutside = boundary === 0 ? outside[outside.length - 1]! : outside[0]!;
+    const firstInside = boundary === 0 ? inside[0] : inside[inside.length - 1];
+    const color = firstInside
+      ? lerpHexColor(lastOutside.color, firstInside.color, (boundary - lastOutside.offset) / (firstInside.offset - lastOutside.offset))
+      : lastOutside.color;
+    return boundary === 0 ? [{ offset: 0, color }, ...inside] : [...inside, { offset: 1, color }];
+  };
+  const low = clampAt(stops, 0, (offset) => offset < 0);
+  return clampHigh ? clampAt(low, 1, (offset) => offset > 1) : low;
 }
 
 /**
@@ -126,15 +230,43 @@ function cssLinearGradientAngleToRuntime(value: number): number {
   return value - 90;
 }
 
-function normalizeStops(parts: string[], property: string, currentColor = "#000000", repeating = false): GradientStop[] {
+/**
+ * Tokenize and resolve a gradient's color-stop list the way Blink's
+ * CSSGradientValue::AddStops() does. Tokens are split at the top level so a
+ * color function with internal spaces (`rgba(255, 255, 255, .1) 50%`, the
+ * form real authors and AI tools overwhelmingly write) stays one token.
+ */
+function normalizeStops(parts: string[], property: string, currentColor: string, repeating: boolean, resolution: StopResolution): GradientStop[] {
   if (parts.length < 2) fail("css-gradient-invalid", `${property} requires at least two color stops`);
-  const stops = parts.map((part) => {
-    const tokens = part.trim().split(/\s+/);
+  const parsed: ParsedStop[] = [];
+  parts.forEach((part, partIndex) => {
+    const tokens = splitTopLevel(part.replace(/\s+/g, " ").trim(), " ");
     if (!tokens[0]) fail("css-gradient-stop-invalid", `${property} contains an empty color stop`);
-    return { color: parseColor(tokens[0], property, currentColor), offset: parseStopOffset(tokens[1], property, repeating) };
+    if (tokens.length === 1 && !isPaintToken(tokens[0])) {
+      // A bare position between two color stops is a color interpolation hint.
+      if (partIndex === 0 || partIndex === parts.length - 1) fail("css-gradient-stop-invalid", `${property} color hint cannot be the first or last stop: ${part.trim()}`);
+      if (parsed.at(-1)?.color === undefined) fail("css-gradient-stop-invalid", `${property} has two consecutive color hints: ${part.trim()}`);
+      parsed.push({ offset: parseStopPosition(tokens[0], property, resolution) });
+      return;
+    }
+    if (tokens.length > 3) fail("css-gradient-stop-invalid", `${property} color stop has too many values: ${part.trim()}`);
+    const color = parseColor(tokens[0], property, currentColor);
+    // `<color> <pos> <pos>` is shorthand for two stops of the same color.
+    const positions = tokens.slice(1).map((token) => parseStopPosition(token, property, resolution));
+    if (positions.length === 0) parsed.push({ color });
+    else positions.forEach((offset) => parsed.push({ color, offset }));
   });
+  const colorStops = parsed.filter((stop) => stop.color !== undefined);
+  if (colorStops.length < 2) fail("css-gradient-invalid", `${property} requires at least two color stops`);
+  const stops = parsed;
   if (stops[0]!.offset === undefined) stops[0]!.offset = 0;
   if (stops[stops.length - 1]!.offset === undefined) stops[stops.length - 1]!.offset = 1;
+  let largestSpecified = stops[0]!.offset!;
+  for (const stop of stops) {
+    if (stop.offset === undefined) continue;
+    if (stop.offset < largestSpecified) stop.offset = largestSpecified;
+    largestSpecified = stop.offset;
+  }
   let index = 0;
   while (index < stops.length) {
     if (stops[index]!.offset !== undefined) { index += 1; continue; }
@@ -144,8 +276,16 @@ function normalizeStops(parts: string[], property: string, currentColor = "#0000
     const from = stops[start]!.offset!; const to = stops[end]!.offset!;
     for (let i = start + 1; i < end; i += 1) stops[i]!.offset = from + ((to - from) * (i - start)) / (end - start);
   }
-  for (let i = 1; i < stops.length; i += 1) if (stops[i]!.offset! < stops[i - 1]!.offset!) stops[i]!.offset = stops[i - 1]!.offset!;
-  if (!repeating) return stops as GradientStop[];
+  const resolved: GradientStop[] = replaceColorHints(stops as Array<{ color?: string; offset: number }>);
+  if (!repeating) {
+    if (resolution.kind === "radial") return clampStopsToUnitRange(resolved, false);
+    const clamped = clampStopsToUnitRange(resolved, true);
+    return clamped.length === 1 ? [clamped[0]!, { ...clamped[0]!, offset: 1 }] : clamped;
+  }
+  return repeatingStops(resolved, property);
+}
+
+function repeatingStops(stops: GradientStop[], property: string): GradientStop[] {
   const start = stops[0]!.offset!;
   const end = stops[stops.length - 1]!.offset!;
   const period = end - start;
@@ -156,50 +296,178 @@ function normalizeStops(parts: string[], property: string, currentColor = "#0000
   return stops.map((stop) => ({ ...stop, offset: stop.offset! - start }));
 }
 
+const POSITION_X_KEYWORDS: Readonly<Record<string, number>> = { left: 0, center: 0.5, right: 1 };
+const POSITION_Y_KEYWORDS: Readonly<Record<string, number>> = { top: 0, center: 0.5, bottom: 1 };
+
+/** A radial/conic `at <position>` (one or two values: keywords, percentages or lengths) as fractions of the box. */
+function parseGradientPosition(text: string, property: string, box: GradientBox | undefined): { x: number; y: number } {
+  const width = box?.width ?? 100;
+  const height = box?.height ?? 100;
+  const axisValue = (token: string, axis: "x" | "y"): number => {
+    const lower = token.toLowerCase();
+    const keywords = axis === "x" ? POSITION_X_KEYWORDS : POSITION_Y_KEYWORDS;
+    if (lower in keywords) return keywords[lower]!;
+    if (lower in POSITION_X_KEYWORDS || lower in POSITION_Y_KEYWORDS) return fail("css-gradient-position-invalid", `${property} gradient position uses "${token}" on the wrong axis: ${text}`);
+    const percent = token.match(/^(-?(?:\d+\.?\d*|\.\d+))%$/);
+    if (percent) return Number(percent[1]) / 100;
+    const extent = axis === "x" ? width : height;
+    const resolved = calcExpression(token, property, extent, 16, 16, { width, height });
+    if (!Number.isFinite(resolved.value) || resolved.unit !== "px") fail("css-gradient-position-invalid", `${property} has an invalid gradient position: ${text}`);
+    return extent > 0 ? resolved.value / extent : 0.5;
+  };
+  const tokens = text.trim().split(/\s+/);
+  if (tokens.length === 1) {
+    const lower = tokens[0]!.toLowerCase();
+    if (lower === "top" || lower === "bottom") return { x: 0.5, y: POSITION_Y_KEYWORDS[lower]! };
+    return { x: axisValue(tokens[0]!, "x"), y: 0.5 };
+  }
+  if (tokens.length === 2) {
+    const [first, second] = tokens as [string, string];
+    const swap = ["top", "bottom"].includes(first.toLowerCase()) || ["left", "right"].includes(second.toLowerCase());
+    return swap ? { x: axisValue(second, "x"), y: axisValue(first, "y") } : { x: axisValue(first, "x"), y: axisValue(second, "y") };
+  }
+  return fail("css-gradient-position-invalid", `${property} gradient position supports one or two values: ${text}`);
+}
+
+/**
+ * A `to <side-or-corner>` direction as a CSS angle in degrees. Sides are
+ * fixed; a corner depends on the box's aspect ratio (the gradient line runs
+ * perpendicular to the diagonal between the two neighboring corners), so it
+ * is only 45deg for a square box.
+ */
+function linearDirectionDegrees(direction: string, property: string, box: GradientBox | undefined): number {
+  const sides: Record<string, number> = { top: 0, right: 90, bottom: 180, left: 270 };
+  const words = direction.toLowerCase().split(/\s+/).sort();
+  if (words.length === 1 && words[0]! in sides) return sides[words[0]!]!;
+  const corner = words.join(" ");
+  const cornerAngle = box && box.width > 0 && box.height > 0 ? (Math.atan(box.height / box.width) * 180) / Math.PI : 45;
+  const corners: Record<string, number> = { "right top": cornerAngle, "bottom right": 180 - cornerAngle, "bottom left": 180 + cornerAngle, "left top": 360 - cornerAngle };
+  const angle = corners[corner];
+  if (angle === undefined) return fail("css-gradient-direction-invalid", `${property} does not support direction: to ${direction}`);
+  return angle;
+}
+
+const RADIAL_EXTENTS = new Set(["closest-side", "farthest-side", "closest-corner", "farthest-corner"]);
+
+/**
+ * The ending shape of a radial gradient, per CSS Images 3 §3.2.2: an
+ * explicit size, or an extent keyword measured from the center to the box's
+ * sides/corners (farthest-corner by default). An ellipse's corner extents
+ * keep the aspect ratio of the matching side extent (x sqrt 2). Returns the
+ * V2 normalization (circle radius against the smaller box axis, ellipse
+ * radii against their own axes) plus the horizontal radius in pixels, which
+ * is Blink's gradient length for resolving length color-stop positions.
+ */
+function radialEndingShape(sizeTokens: string[], center: { x: number; y: number }, box: GradientBox, property: string): { shape: "circle"; radius: number; lengthPx: number } | { shape: "ellipse"; radiusX: number; radiusY: number; lengthPx: number } {
+  let shape: "circle" | "ellipse" | undefined;
+  let extent: string | undefined;
+  const lengths: string[] = [];
+  for (const token of sizeTokens) {
+    const lower = token.toLowerCase();
+    if (lower === "circle" || lower === "ellipse") shape = lower;
+    else if (RADIAL_EXTENTS.has(lower)) extent = lower;
+    else lengths.push(token);
+  }
+  const resolvedShape = shape ?? (lengths.length === 1 ? "circle" : "ellipse");
+  const px = (token: string, relative: number) => {
+    const resolved = calcExpression(token, property, relative, 16, 16, box);
+    if (!Number.isFinite(resolved.value) || resolved.unit !== "px" || resolved.value < 0) fail("css-gradient-size-invalid", `${property} has an invalid radial-gradient size: ${token}`);
+    return resolved.value;
+  };
+  const minAxis = Math.min(box.width, box.height);
+  if (lengths.length > 0) {
+    if (extent) fail("css-gradient-size-invalid", `${property} radial-gradient cannot combine an extent keyword with an explicit size`);
+    if (resolvedShape === "circle") {
+      if (lengths.length !== 1 || lengths[0]!.endsWith("%")) fail("css-gradient-size-invalid", `${property} circle radial-gradient takes one non-percentage length`);
+      const radius = px(lengths[0]!, box.width);
+      return { shape: "circle", radius: radius / minAxis, lengthPx: radius };
+    }
+    if (lengths.length !== 2) fail("css-gradient-size-invalid", `${property} ellipse radial-gradient takes two lengths`);
+    const rx = px(lengths[0]!, box.width);
+    return { shape: "ellipse", radiusX: rx / box.width, radiusY: px(lengths[1]!, box.height) / box.height, lengthPx: rx };
+  }
+  const which = extent ?? "farthest-corner";
+  if (resolvedShape === "circle") {
+    const closestX = Math.min(center.x * box.width, (1 - center.x) * box.width);
+    const closestY = Math.min(center.y * box.height, (1 - center.y) * box.height);
+    const farthestX = Math.max(center.x * box.width, (1 - center.x) * box.width);
+    const farthestY = Math.max(center.y * box.height, (1 - center.y) * box.height);
+    const radius = which === "closest-side" ? Math.min(closestX, closestY)
+      : which === "farthest-side" ? Math.max(farthestX, farthestY)
+        : which === "closest-corner" ? Math.hypot(closestX, closestY)
+          : Math.hypot(farthestX, farthestY);
+    return { shape: "circle", radius: radius / minAxis, lengthPx: radius };
+  }
+  // Ellipse extents stay in box fractions so the default (farthest-corner)
+  // lowers to exactly the same numbers it always has.
+  const sideX = which.startsWith("closest") ? Math.min(center.x, 1 - center.x) : Math.max(center.x, 1 - center.x);
+  const sideY = which.startsWith("closest") ? Math.min(center.y, 1 - center.y) : Math.max(center.y, 1 - center.y);
+  const scale = which.endsWith("corner") ? Math.SQRT2 : 1;
+  return { shape: "ellipse", radiusX: sideX * scale, radiusY: sideY * scale, lengthPx: sideX * scale * box.width };
+}
+
 function parseGradient(value: string, property: string, currentColor = "#000000", box?: GradientBox): Exclude<Paint, string> {
-  const match = value.trim().match(/^(repeating-)?(linear|radial|conic)-gradient\((.*)\)$/i);
+  const match = value.trim().match(/^(repeating-)?(linear|radial|conic)-gradient\(([\s\S]*)\)$/i);
   if (!match) fail("css-gradient-unsupported", `${property} supports linear-gradient(), radial-gradient(), conic-gradient() and repeating variants`);
-  const parsed = match as RegExpMatchArray; const repeating = Boolean(parsed[1]); const kind = parsed[2]!.toLowerCase(); const args = splitTopLevel(parsed[3]!, ",");
+  const parsed = match as RegExpMatchArray; const repeating = Boolean(parsed[1]); const kind = parsed[2]!.toLowerCase() as "linear" | "radial" | "conic"; const args = splitTopLevel(parsed[3]!, ",");
   if (args.length < 2) fail("css-gradient-invalid", `${property} gradient requires at least two color stops`);
-  const descriptor = args[0]!.trim(); const stopParts = isPaintToken(descriptor.split(/\s+/)[0] ?? "") ? args : args.slice(1);
+  const firstArg = args[0]!.replace(/\s+/g, " ").trim();
+  const hasDescriptor = !isPaintToken(splitTopLevel(firstArg, " ")[0] ?? "");
+  const descriptor = hasDescriptor ? firstArg : "";
+  const stopParts = hasDescriptor ? args.slice(1) : args;
   if (stopParts.length < 2) fail("css-gradient-invalid", `${property} gradient requires at least two color stops`);
-  const stops = normalizeStops(stopParts, property, currentColor, repeating);
   const spreadMethod: GradientSpreadMethod | undefined = repeating ? "repeat" : undefined;
+
   if (kind === "linear") {
-    let angle: number | undefined;
-    const angleMatch = descriptor.match(/^(-?(?:\d+\.?\d*|\.\d+))deg$/i);
-    if (angleMatch) angle = cssLinearGradientAngleToRuntime(Number(angleMatch[1]));
-    else if (/^to\s+/i.test(descriptor)) {
-      const direction = descriptor.toLowerCase().replace(/^to\s+/, ""); const angles: Record<string, number> = { top: 0, right: 90, bottom: 180, left: 270, "top right": 45, "right top": 45, "bottom right": 135, "right bottom": 135, "bottom left": 225, "left bottom": 225, "top left": 315, "left top": 315 };
-      angle = angles[direction]; if (angle === undefined) fail("css-gradient-direction-invalid", `${property} does not support direction: ${descriptor}`); angle = cssLinearGradientAngleToRuntime(angle);
-    } else if (stopParts === args) angle = cssLinearGradientAngleToRuntime(180);
-    else fail("css-gradient-direction-invalid", `${property} has an invalid linear direction: ${descriptor}`);
-    return angle === undefined ? { type: "linear-gradient", ...(spreadMethod ? { spreadMethod } : {}), stops } : { type: "linear-gradient", angle, ...(spreadMethod ? { spreadMethod } : {}), stops };
+    let cssAngle = 180;
+    if (/^to\s+/i.test(descriptor)) cssAngle = linearDirectionDegrees(descriptor.replace(/^to\s+/i, ""), property, box);
+    else if (descriptor) {
+      const degrees = parseAngleToken(descriptor);
+      if (degrees === undefined) fail("css-gradient-direction-invalid", `${property} has an invalid linear direction: ${descriptor}`);
+      cssAngle = degrees as number;
+    }
+    // Blink's gradient length: the gradient line through the box center, long enough to reach the corners.
+    const radians = (cssAngle * Math.PI) / 180;
+    const length = box ? Math.abs(box.width * Math.sin(radians)) + Math.abs(box.height * Math.cos(radians)) : undefined;
+    const stops = normalizeStops(stopParts, property, currentColor, repeating, { kind, length });
+    return { type: "linear-gradient", angle: cssLinearGradientAngleToRuntime(cssAngle), ...(spreadMethod ? { spreadMethod } : {}), stops };
   }
-  const center = descriptor.match(/\bat\s+(-?(?:\d+\.?\d*|\.\d+))%\s+(-?(?:\d+\.?\d*|\.\d+))%/i);
+
+  const [sizeText = "", positionText] = descriptor.split(/\bat\b/i).map((part) => part.trim());
+  if (descriptor && /\bat\b/i.test(descriptor) && !positionText) fail("css-gradient-position-invalid", `${property} gradient "at" needs a position: ${descriptor}`);
+  const center = positionText ? parseGradientPosition(positionText, property, box) : undefined;
+
   if (kind === "radial") {
-    const cx = center ? Number(center[1]) / 100 : 0.5;
-    const cy = center ? Number(center[2]) / 100 : 0.5;
-    // CSS `circle` with no explicit size defaults to farthest-corner. The V2
-    // radial primitive stores one scalar radius, normalized against the
-    // smaller local axis, so lower the physical farthest-corner radius into
-    // that scalar before the protocol is emitted.
-    const circleRadius = /\bcircle\b/i.test(descriptor) && box
-      ? Math.hypot(Math.max(cx * box.width, (1 - cx) * box.width), Math.max(cy * box.height, (1 - cy) * box.height)) / Math.min(box.width, box.height)
-      : undefined;
-    // CSS radial gradients default to an ellipse. The farthest-side ellipse
-    // has independent horizontal/vertical radii (the farthest side on each
-    // axis); farthest-corner then scales both by sqrt(2) to pass through the
-    // farthest corner. Keep these normalized until V2 resolves each axis.
-    const farthestSideX = Math.max(cx, 1 - cx);
-    const farthestSideY = Math.max(cy, 1 - cy);
-    const ellipseRadii = !/\bcircle\b/i.test(descriptor) && box
-      ? { radiusX: farthestSideX * Math.SQRT2, radiusY: farthestSideY * Math.SQRT2 }
-      : undefined;
-    return { type: "radial-gradient", ...(center ? { cx, cy } : {}), ...(circleRadius === undefined ? {} : { radius: circleRadius }), ...(ellipseRadii ?? {}), ...(spreadMethod ? { spreadMethod } : {}), stops };
+    const origin = center ?? { x: 0.5, y: 0.5 };
+    const sizeTokens = sizeText ? sizeText.split(/\s+/) : [];
+    const ending = box ? radialEndingShape(sizeTokens, origin, box, property) : undefined;
+    let stops = normalizeStops(stopParts, property, currentColor, repeating, { kind, length: ending?.lengthPx });
+    // Blink's AdjustGradientRadiiForOffsetRange(): a non-repeating stop list
+    // that runs past 100% extends the ending shape instead of being cut off.
+    let radiusScale = 1;
+    const lastOffset = stops[stops.length - 1]!.offset;
+    if (!repeating && lastOffset > 1) {
+      radiusScale = lastOffset;
+      stops = stops.map((stop) => ({ ...stop, offset: stop.offset / lastOffset }));
+    }
+    if (stops.length === 1) stops = [stops[0]!, { ...stops[0]!, offset: 1 }];
+    // V2 stores a circle's radius against the smaller box axis and an
+    // ellipse's radii against their own axes.
+    const scaled = (value: number) => Math.max(1e-6, radiusScale === 1 ? value : value * radiusScale);
+    const radii = ending
+      ? ending.shape === "circle"
+        ? { radius: scaled(ending.radius) }
+        : { radiusX: scaled(ending.radiusX), radiusY: scaled(ending.radiusY) }
+      : {};
+    return { type: "radial-gradient", ...(center ? { cx: center.x, cy: center.y } : {}), ...radii, ...(spreadMethod ? { spreadMethod } : {}), stops };
   }
-  const from = descriptor.match(/\bfrom\s+(-?(?:\d+\.?\d*|\.\d+))deg/i);
-  return { type: "conic-gradient", ...(from ? { from: Number(from[1]) } : {}), ...(center ? { cx: Number(center[1]) / 100, cy: Number(center[2]) / 100 } : {}), ...(spreadMethod ? { spreadMethod } : {}), stops };
+
+  const fromMatch = sizeText.match(/^from\s+(\S+)$/i);
+  if (sizeText && !fromMatch) fail("css-gradient-direction-invalid", `${property} has an invalid conic-gradient descriptor: ${descriptor}`);
+  const from = fromMatch ? parseAngleToken(fromMatch[1]!) : undefined;
+  if (fromMatch && from === undefined) fail("css-gradient-direction-invalid", `${property} has an invalid conic-gradient angle: ${fromMatch[1]}`);
+  const stops = normalizeStops(stopParts, property, currentColor, repeating, { kind, length: 1 });
+  return { type: "conic-gradient", ...(from !== undefined ? { from } : {}), ...(center ? { cx: center.x, cy: center.y } : {}), ...(spreadMethod ? { spreadMethod } : {}), stops };
 }
 
 export function parsePaintLayers(value: string, property: string, currentColor = "#000000", box?: GradientBox): Paint[] {
