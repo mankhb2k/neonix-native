@@ -951,3 +951,178 @@ describe("box-shadow + filter composes instead of both effects disappearing", ()
     expect(setImageFilterCalls[0]!.sequence).toBeLessThan(firstMakeSurfaceSequence!);
   });
 });
+
+// css-effects-roadmap.md 1.2b: box-shadow + backdrop-filter used to make the
+// shadow's halo disappear silently (no diagnostic at all), confirmed via a
+// real html-compiler -> motion-compiler -> replay run before this fix. Root
+// cause: the backdrop-filter's pre-saveLayer clipRect (installed to keep
+// the sampled/blurred backdrop from leaking past the owner's own shape)
+// stayed active for the whole saveLayer scope, including wherever the
+// shadow halo would normally composite - and Skia clips can only narrow
+// within a save/restore scope, so there is no way to "unclip" the halo
+// once inside it. This locks in that the halo now draws (and is drawn)
+// strictly before that clip is installed, for both an ordinary single
+// box-shadow (which normally uses a completely different, non-halo-based
+// code path - a DropShadow filter directly on the saveLayer paint - unlike
+// a mixed/inset box-shadow list) and a mixed shadow list.
+describe("box-shadow + backdrop-filter: the halo escapes the backdrop's own clip", () => {
+  function makeKit() {
+    let sequence = 0;
+    const events: Array<{ type: string; sequence: number }> = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setPathEffect() {}
+      setImageFilter() {}
+    }
+    const snapshotImage = { delete() {}, makeShaderOptions: () => ({ delete() {} }) };
+    const localCanvas = { clear() {}, save() {}, restore() {}, concat() {}, drawRect() {}, drawRRect() {}, drawOval() {}, drawImageRect() {} };
+    const fakeSurface = { getCanvas: () => localCanvas, flush() {}, dispose() {}, makeImageSnapshot: () => snapshotImage };
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      clipRect() { events.push({ type: "clipRect", sequence: sequence++ }); },
+      clipPath() { events.push({ type: "clipPath", sequence: sequence++ }); },
+      saveLayer() { events.push({ type: "saveLayer", sequence: sequence++ }); return 1; },
+      drawImageRect() { events.push({ type: "drawImageRect(halo)", sequence: sequence++ }); },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      TRANSPARENT: 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      ClipOp: { Intersect: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      FilterMode: { Linear: 1 },
+      MipmapMode: { Linear: 1, None: 0 },
+      MakeVertices: () => ({ delete() {} }),
+      MakeSurface: () => fakeSurface,
+      ColorFilter: {
+        MakeMatrix() { return { matrix: [], delete() {} }; },
+        MakeBlend() { return { delete() {} }; },
+      },
+      ImageFilter: {
+        MakeBlur: () => ({ kind: "blur", delete() {} }),
+        MakeDropShadowOnly: () => ({ kind: "drop-shadow-only", delete() {} }),
+        MakeDropShadow: () => ({ kind: "drop-shadow", delete() {} }),
+        MakeBlend: () => ({ kind: "blend", delete() {} }),
+        MakeColorFilter: () => ({ kind: "color-filter", delete() {} }),
+      },
+    } as unknown as SkiaCanvasKit;
+    return { kit, canvas, events };
+  }
+
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const outerShadow = {
+    input: "source",
+    ops: [
+      { id: "outer:alpha", kind: "alpha-mask", input: "source", output: "effect:outer:alpha", source: "box" },
+      { id: "outer:blur", kind: "blur", input: "effect:outer:alpha", output: "effect:outer:blur", radius: 8 },
+      { id: "outer:tint", kind: "tint", input: "effect:outer:blur", output: "effect:outer:tint", color: "#000000", opacity: 1 },
+      { id: "outer:offset", kind: "offset", input: "effect:outer:tint", output: "effect:outer:offset", x: 0, y: 0 },
+      { id: "outer:composite", kind: "composite", backdrop: "effect:outer:offset", source: "source", output: "effect:outer", mode: "source-over" },
+    ],
+    output: "effect:outer",
+    requiresOffscreen: true,
+  };
+  const backdropBlur = {
+    input: "source",
+    ops: [{ id: "backdrop-blur", kind: "blur", input: "source", output: "effect:backdrop-blur", radius: 12 }],
+    output: "effect:backdrop-blur",
+    requiresOffscreen: true,
+  };
+
+  it("draws the halo before the backdrop clip exists, instead of silently cutting it off", () => {
+    const { kit, canvas, events } = makeKit();
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-backdrop", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, effectProgram: outerShadow, backdropEffectProgram: backdropBlur, effectBox: { width: 100, height: 60, cornerRadius: 0, matrix4: identity } },
+        { op: "setTransform", key: "card", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card", layerId: "card", fill: "#ffffff66", width: 100, height: 60 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    expect(stats.diagnostics).toEqual([]);
+    const halo = events.find((event) => event.type === "drawImageRect(halo)");
+    const clip = events.find((event) => event.type === "clipRect" || event.type === "clipPath");
+    expect(halo).toBeDefined();
+    expect(clip).toBeDefined();
+    expect(halo!.sequence).toBeLessThan(clip!.sequence);
+  });
+
+  it("draws every branch's halo before the clip for a mixed (multi) box-shadow list too", () => {
+    const { kit, canvas, events } = makeKit();
+    const mixedProgram = {
+      input: "source",
+      ops: [
+        ...outerShadow.ops,
+        { id: "second:alpha", kind: "alpha-mask" as const, input: "source", output: "effect:second:alpha", source: "box" as const },
+        { id: "second:blur", kind: "blur" as const, input: "effect:second:alpha", output: "effect:second:blur", radius: 0 },
+        { id: "second:tint", kind: "tint" as const, input: "effect:second:blur", output: "effect:second:tint", color: "#ff0000", opacity: 1 },
+        { id: "second:offset", kind: "offset" as const, input: "effect:second:tint", output: "effect:second:offset", x: 4, y: 4 },
+        { id: "second:composite", kind: "composite" as const, backdrop: "effect:second:offset", source: "effect:outer", output: "effect:second", mode: "source-over" as const },
+      ],
+      output: "effect:second",
+      requiresOffscreen: true,
+    };
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-backdrop-mixed", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, effectProgram: mixedProgram, backdropEffectProgram: backdropBlur, effectBox: { width: 100, height: 60, cornerRadius: 0, matrix4: identity } },
+        { op: "setTransform", key: "card", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card", layerId: "card", fill: "#ffffff66", width: 100, height: 60 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    expect(stats.diagnostics).toEqual([]);
+    const halos = events.filter((event) => event.type === "drawImageRect(halo)");
+    const clip = events.find((event) => event.type === "clipRect" || event.type === "clipPath");
+    expect(halos.length).toBeGreaterThanOrEqual(2);
+    expect(clip).toBeDefined();
+    expect(halos.every((halo) => halo.sequence < clip!.sequence)).toBe(true);
+  });
+
+  it("leaves a plain box-shadow (no backdrop-filter) on its ordinary timing, unaffected", () => {
+    const { kit, canvas, events } = makeKit();
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-only", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, effectProgram: outerShadow, effectBox: { width: 100, height: 60, cornerRadius: 0, matrix4: identity } },
+        { op: "setTransform", key: "card", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card", layerId: "card", fill: "#38bdf8", width: 100, height: 60 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    expect(stats.diagnostics).toEqual([]);
+    // A single (non-mixed) box-shadow with no backdrop-filter renders through
+    // a completely different path (a DropShadow filter installed directly on
+    // the saveLayer paint) that never calls drawImageRect for a halo at all -
+    // this is the pre-existing, correct behavior this fix must not disturb.
+    expect(events.some((event) => event.type === "drawImageRect(halo)")).toBe(false);
+  });
+});

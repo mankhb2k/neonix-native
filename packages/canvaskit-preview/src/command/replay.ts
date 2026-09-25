@@ -889,7 +889,22 @@ export function replaySkiaCommands(
       const projectiveFilter = projectiveFilterTransform && hasPerspectiveTerms(projectiveFilterTransform.matrix4)
         ? effectFilter.filter
         : undefined;
-      const boxEffectActive = effectFilter.sourceOnly && !projectiveFilter;
+      // css-effects-roadmap.md 1.2b: a backdrop-filter's pre-saveLayer clip
+      // (see below) is fatal to a box-shadow rendered the "ordinary" way -
+      // as a DropShadow ImageFilter installed directly on this same
+      // saveLayer's paint - because that filter's output (which
+      // deliberately expands past the owner's own bounds) restores while
+      // the clip is still active, silently cutting the halo off at the
+      // owner's edge. sourceOnly box-shadows (mixed lists, insets) already
+      // route around this via drawBoxEffect's isolated-mask compositor
+      // instead of a saveLayer-paint filter; force the SAME routing for an
+      // ordinary single box-shadow whenever a backdrop-filter is also
+      // present on this layer, using the same branch parser
+      // (boxShadowOverlayBranches) drawBoxEffect itself uses to confirm
+      // there is real box-shadow content to route.
+      const boxEffectActive = !projectiveFilter && Boolean(
+        effectFilter.sourceOnly || (backdropEffectFilter.filter && boxShadowOverlayBranches(command.effectProgram)),
+      );
       const layer: ReplayLayer = {
         key: command.key,
         saved: false,
@@ -929,13 +944,14 @@ export function replaySkiaCommands(
         // Non-projective layers keep the compact saveLayer path. Projective
         // layers apply their filter after projection in the draw branches —
         // never install the same filter on this parent saveLayer.
-        // A sourceOnly box-shadow's own `filter` never goes here either (its
-        // pixels come from drawBoxEffect instead) - but `tailFilter` does: a
+        // A box-effect-active box-shadow's own `filter` never goes here
+        // either (its pixels come from drawBoxEffect instead, per
+        // boxEffectActive above) - but `tailFilter` does: a
         // `box-shadow: ...; filter: blur(...);` combination keeps the shadow
-        // as sourceOnly while still needing that trailing CSS filter applied
-        // to the whole composited layer (owner + every shadow halo, both
-        // drawn inside this same saveLayer) once it restores.
-        const layerFilter = projectiveFilter ? null : effectFilter.sourceOnly ? (effectFilter.tailFilter ?? null) : effectFilter.filter;
+        // box-effect-active while still needing that trailing CSS filter
+        // applied to the whole composited layer (owner + every shadow halo,
+        // both drawn inside this same saveLayer) once it restores.
+        const layerFilter = projectiveFilter ? null : boxEffectActive ? (effectFilter.tailFilter ?? null) : effectFilter.filter;
         if (layerFilter && paint.setImageFilter) paint.setImageFilter(layerFilter);
         // Bound kinds (Phase 5):
         // - layer content bounds: union of drawable geometry inside the layer
@@ -945,8 +961,23 @@ export function replaySkiaCommands(
         // Foreground filters use filter-expanded bounds so shadows/blurs are
         // not cropped, without always allocating the full composition.
         const frameBounds = compositionBounds(frameWidth, frameHeight);
-        const boxEffectActive = effectFilter.sourceOnly && !projectiveFilter;
         const boxEffectFilter = boxEffectActive ? effectFilter.filter : null;
+        // css-effects-roadmap.md 1.2b: the backdrop-filter clip pushed just
+        // below is scoped to the owner's own content bounds, to keep the
+        // sampled backdrop from leaking past the box's shape. Skia clips can
+        // only narrow within a save/restore scope - there is no way to
+        // "unclip" a box-shadow halo once it is drawn inside that scope, so
+        // drawing it at the normal endLayer timing (inside the clip) cuts
+        // the halo off entirely and silently, with no diagnostic. Draw it
+        // now instead, before that clip exists. Its position only depends on
+        // effectBox's own matrix4 (applied via an explicit canvas.concat
+        // inside drawBoxEffect, not ambient transform state), so calling it
+        // here instead of at endLayer produces identical geometry - only the
+        // clip state around it differs, which is exactly the point.
+        if (boxEffectActive && backdropEffectFilter.filter) {
+          drawBoxEffect(layer);
+          layer.boxEffectDrawnEarly = true;
+        }
         const contentBounds = (command.offscreen || command.isolation || command.compositeAlpha !== undefined
           || backdropEffectFilter.filter || layerFilter || boxEffectFilter || boxEffectActive)
           ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
@@ -1132,7 +1163,7 @@ export function replaySkiaCommands(
       }
       if (layer?.noiseEffect && layer.noiseBounds) stats.noiseRegions.push({ effect: layer.noiseEffect, bounds: layer.noiseBounds });
       if (layer?.boxEffectProgram && layer.boxEffectSource) {
-        drawBoxEffect(layer);
+        if (!layer.boxEffectDrawnEarly) drawBoxEffect(layer);
         if (!resources) layer.boxEffectFilter?.delete();
       }
       if (layer?.saved) {

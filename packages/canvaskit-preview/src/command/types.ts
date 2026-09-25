@@ -65,6 +65,12 @@ export type ReplayLayer = {
   boxEffectFilter?: SkiaImageFilter | null;
   boxEffectProgram?: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
   boxEffectSource?: Extract<PaintCommand, { op: "beginLayer" }>['effectBox'];
+  /**
+   * Set when a box-shadow halo was already drawn during beginLayer, before
+   * this layer's backdrop-filter clip/saveLayer existed (see beginLayer) -
+   * endLayer's normal drawBoxEffect timing must not draw it a second time.
+   */
+  boxEffectDrawnEarly?: boolean;
   /** Filter applied to the backdrop captured by this layer's saveLayer. */
   backdropFilter?: SkiaImageFilter | null;
   backdropFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['backdropEffectProgram'];
