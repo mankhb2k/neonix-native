@@ -250,6 +250,86 @@ describe("runtime text shaping and materialization", () => {
     expect(smallCapsContent.layout!.glyphs).toHaveLength(5);
   });
 
+  it("shifts only the styled span's glyph (CSS vertical-align), not the rest of the line", async () => {
+    const bytes = await readFile(notoSansPath);
+    const plain = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "AB" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const shifted = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "AB",
+        spanStyles: [{ start: 0, end: 1, fontAssetIds: ["noto"], fontSize: 32, baselineShift: 10 }],
+      })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const plainContent = plain.project.nodes[0]!.content;
+    const shiftedContent = shifted.project.nodes[0]!.content;
+    expect(plainContent.kind).toBe("text");
+    expect(shiftedContent.kind).toBe("text");
+    if (plainContent.kind !== "text" || shiftedContent.kind !== "text") return;
+    // A positive baseline-shift moves the glyph down (larger y) in this
+    // coordinate system, where y already grows downward line-to-line.
+    // Compares the same glyph ("A") against its own unshifted render,
+    // rather than against sibling glyph "B" (whose natural y differs
+    // slightly just from having a different shape/extents).
+    expect(shiftedContent.layout!.glyphs[0]!.y).toBeCloseTo(plainContent.layout!.glyphs[0]!.y + 10, 5);
+    // "B" (unstyled) is unaffected.
+    expect(shiftedContent.layout!.glyphs[1]!.y).toBeCloseTo(plainContent.layout!.glyphs[1]!.y, 5);
+  });
+
+  it("applies a negative baseline-shift (raises the glyph) in the opposite direction", async () => {
+    const bytes = await readFile(notoSansPath);
+    const plain = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "AB" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const shifted = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "AB",
+        spanStyles: [{ start: 0, end: 1, fontAssetIds: ["noto"], fontSize: 32, baselineShift: -10 }],
+      })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const plainContent = plain.project.nodes[0]!.content;
+    const shiftedContent = shifted.project.nodes[0]!.content;
+    expect(plainContent.kind).toBe("text");
+    expect(shiftedContent.kind).toBe("text");
+    if (plainContent.kind !== "text" || shiftedContent.kind !== "text") return;
+    expect(shiftedContent.layout!.glyphs[0]!.y).toBeCloseTo(plainContent.layout!.glyphs[0]!.y - 10, 5);
+  });
+
+  it("lets a span's own baseline-shift override the text-wide default instead of adding to it", async () => {
+    const bytes = await readFile(notoSansPath);
+    const textWideOnly = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "AB", baselineShift: 3 })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const spanOverride = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "AB",
+        baselineShift: 3,
+        spanStyles: [{ start: 0, end: 1, fontAssetIds: ["noto"], fontSize: 32, baselineShift: 10 }],
+      })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const textWideContent = textWideOnly.project.nodes[0]!.content;
+    const overrideContent = spanOverride.project.nodes[0]!.content;
+    expect(textWideContent.kind).toBe("text");
+    expect(overrideContent.kind).toBe("text");
+    if (textWideContent.kind !== "text" || overrideContent.kind !== "text") return;
+    // "A" uses its own span shift (10), not the text-wide one (3) plus its own.
+    expect(overrideContent.layout!.glyphs[0]!.y).toBeCloseTo(textWideContent.layout!.glyphs[0]!.y - 3 + 10, 5);
+    // "B" (unstyled) still falls back to the text-wide shift in both renders.
+    expect(overrideContent.layout!.glyphs[1]!.y).toBeCloseTo(textWideContent.layout!.glyphs[1]!.y, 5);
+  });
+
   it("trims grapheme clusters and shapes an ellipsis inside a clipped line", async () => {
     const bytes = await readFile(notoSansPath);
     const value = "Hello world from Neonix";

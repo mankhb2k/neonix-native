@@ -90,6 +90,22 @@ function strokeReference(width: number, height: number): number {
   return Math.sqrt((width * width + height * height) / 2);
 }
 
+/**
+ * CSS vertical-align: sub/super (and SVG baseline-shift's matching
+ * "subscript"/"superscript" keywords) have no single font-independent pixel
+ * value - real browsers derive it from the font's OS/2 subscript/superscript
+ * metrics, which this compiler doesn't read. These ratios (20% of font-size
+ * down, 40% up) are a common approximation, the same category of pragmatic
+ * shortcut already used for the text-decoration offset constants in
+ * motion-runtime's text-layout.ts.
+ */
+function resolveBaselineShift(value: "baseline" | "subscript" | "superscript" | V2SvgLength | undefined, fontSize: number): number | undefined {
+  if (value === undefined || value === "baseline") return undefined;
+  if (value === "subscript") return fontSize * 0.2;
+  if (value === "superscript") return fontSize * -0.4;
+  return resolveSvgLength(value, fontSize, fontSize) ?? undefined;
+}
+
 function lowerStrokeWidth(value: V2SvgLength | undefined, width: number, height: number, fallback: number): number {
   return resolveSvgLength(value, strokeReference(width, height)) ?? fallback;
 }
@@ -1418,6 +1434,9 @@ function compileVisualRuntimeInternal(
         ...(span.font.variations ? { variations: { ...span.font.variations } } : {}),
         ...(span.letterSpacing === undefined || span.letterSpacing === "normal" ? {} : { letterSpacing: resolveSvgLength(span.letterSpacing, layer.frame.width, fontSize) ?? 0 }),
         ...(span.wordSpacing === undefined || span.wordSpacing === "normal" ? {} : { wordSpacing: resolveSvgLength(span.wordSpacing, layer.frame.width, fontSize) ?? 0 }),
+        ...(resolveBaselineShift(span.baselineShift, resolveSvgLength(span.font.size, layer.frame.width, fontSize) ?? fontSize) !== undefined
+          ? { baselineShift: resolveBaselineShift(span.baselineShift, resolveSvgLength(span.font.size, layer.frame.width, fontSize) ?? fontSize) }
+          : {}),
         ...(paintColor(span.fill, paintServers, context.currentColor) ? { fill: paintColor(span.fill, paintServers, context.currentColor) } : {}),
         ...(span.fill === undefined ? {} : { fillPaint: runtimePaint(span.fill, layer.frame.width, layer.frame.height, paintServers, context.currentColor) }),
       })));
@@ -1505,6 +1524,7 @@ function compileVisualRuntimeInternal(
         ...((stroke && stroke !== "#00000000" && strokeWidth !== undefined) ? ["text.stroke"] : []),
         ...(layer.payload.layout?.textIndent !== undefined ? ["text.indent"] : []),
         ...(firstSpan.smallCaps ? ["text.smallCaps"] : []),
+        ...(runtimeSpanStyles.some((span) => span.baselineShift !== undefined) ? ["text.verticalAlign"] : []),
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
@@ -1555,8 +1575,8 @@ function compileVisualRuntimeInternal(
           ...(firstChunk.rotate ? { rotate: [...firstChunk.rotate] } : {}),
           ...(firstSpan.dominantBaseline ? { dominantBaseline: firstSpan.dominantBaseline } : {}),
           ...(firstSpan.alignmentBaseline ? { alignmentBaseline: firstSpan.alignmentBaseline } : {}),
-          ...(firstSpan.baselineShift
-            ? { baselineShift: typeof firstSpan.baselineShift === "string" ? 0 : resolveSvgLength(firstSpan.baselineShift, fontSize, fontSize) ?? 0 }
+          ...(resolveBaselineShift(firstSpan.baselineShift, fontSize) !== undefined
+            ? { baselineShift: resolveBaselineShift(firstSpan.baselineShift, fontSize) }
             : {}),
           ...(textPathContours && firstChunk.textPath
             ? { textPath: { contours: textPathContours, startOffset: textPathStartOffset ?? 0, method: firstChunk.textPath.method ?? "align", spacing: firstChunk.textPath.spacing ?? "auto" } }

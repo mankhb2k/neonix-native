@@ -30,6 +30,7 @@ import {
   parseTextOverflow,
   parseTextRendering,
   parseTextSpacing,
+  parseVerticalAlign,
   parseWhiteSpace,
   parseWordBreak,
   parseWritingMode,
@@ -212,6 +213,7 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
       const runLetterSpacing = parseTextSpacing(runStyle.get("letter-spacing"), "letter-spacing", containingWidth, runFontSize, viewport);
       const runWordSpacing = parseTextSpacing(runStyle.get("word-spacing"), "word-spacing", containingWidth, runFontSize, viewport);
       const runSmallCaps = parseSmallCaps(runStyle.get("font-variant"));
+      const runBaselineShift = parseVerticalAlign(runStyle.get("vertical-align"), containingWidth, runFontSize, viewport);
       return {
         id: `${groupId}::span-${runIndex}`,
         sourceRange: { start: run.start, end: run.end },
@@ -221,6 +223,7 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
         wordSpacing: runWordSpacing,
         ...(runDecoration ? { textDecoration: runDecoration } : {}),
         ...(runSmallCaps ? { smallCaps: true } : {}),
+        ...(runBaselineShift !== undefined ? { baselineShift: runBaselineShift } : {}),
         fill: runGradient ?? runColor,
       };
     });

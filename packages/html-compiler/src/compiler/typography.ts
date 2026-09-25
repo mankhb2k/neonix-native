@@ -130,6 +130,34 @@ export function parseSmallCaps(value: string | undefined): boolean {
   return (value ?? "normal").trim().toLowerCase() === "small-caps";
 }
 
+export type HtmlCompilerBaselineShift = "baseline" | "subscript" | "superscript" | { value: number; unit: "px" };
+
+/**
+ * CSS vertical-align, resolved per inline span (via Protocol V2's SVG-style
+ * `baseline-shift` field). Only `baseline`/`sub`/`super`/a length/percentage
+ * are supported - `top`/`bottom`/`middle`/`text-top`/`text-bottom` align
+ * within the line box's own metrics rather than shifting by a fixed amount
+ * relative to the baseline, which this SVG-shaped field can't express, so
+ * they fail loudly instead of rendering at the wrong position.
+ */
+export function parseVerticalAlign(value: string | undefined, containingWidth: number, fontSize: number, viewport: { width: number; height: number }): HtmlCompilerBaselineShift | undefined {
+  const normalized = (value ?? "baseline").trim().toLowerCase();
+  if (normalized === "baseline") return undefined;
+  if (normalized === "sub") return "subscript";
+  if (normalized === "super") return "superscript";
+  if (["top", "bottom", "middle", "text-top", "text-bottom"].includes(normalized)) {
+    fail("css-vertical-align-unsupported", `vertical-align only supports baseline, sub, super, or a length/percentage: ${value}`);
+  }
+  const resolved = calcExpression(normalized, "vertical-align", containingWidth, fontSize, 16, viewport);
+  if (resolved.unit === "number" || !Number.isFinite(resolved.value)) fail("css-vertical-align-invalid", `vertical-align must resolve to a length: ${value}`);
+  // CSS vertical-align: a positive length raises the box (shifts up). The
+  // numeric baseline-shift channel this lowers into is signed the other way
+  // (positive moves down, matching how glyph.y grows downward through the
+  // rest of this coordinate system) - negate here, once, rather than at
+  // every downstream consumer.
+  return { value: -resolved.value, unit: "px" };
+}
+
 export function parseTextSpacing(value: string | undefined, property: "letter-spacing" | "word-spacing", containingWidth: number, fontSize: number, viewport: { width: number; height: number }): HtmlCompilerTextSpacing {
   const normalized = (value ?? "normal").trim().toLowerCase();
   if (normalized === "normal") return "normal";

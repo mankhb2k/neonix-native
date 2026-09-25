@@ -28,6 +28,7 @@ SUPPORTED_PROPERTIES.add("font-variant");
 SUPPORTED_PROPERTIES.add("word-break");
 SUPPORTED_PROPERTIES.add("overflow-wrap");
 SUPPORTED_PROPERTIES.add("word-wrap");
+SUPPORTED_PROPERTIES.add("vertical-align");
 export const INHERITED_PROPERTIES = new Set(["color", "font-size", "font-family", "font-weight", "font-style", "font-stretch", "font-variant", "line-height", "letter-spacing", "word-spacing", "white-space", "text-align", "text-transform", "text-indent", "word-break", "overflow-wrap", "word-wrap", "direction", "writing-mode", "text-rendering", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linejoin", "stroke-linecap", "stroke-dasharray", "stroke-dashoffset", "paint-order"]);
 export type Declaration = { property: string; value: string; important: boolean; order: number };
 export type Rule = { selectors: string[]; declarations: Declaration[]; order: number };

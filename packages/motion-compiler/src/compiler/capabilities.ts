@@ -80,6 +80,7 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "text.stroke",
   "text.indent",
   "text.smallCaps",
+  "text.verticalAlign",
   "effect.color-adjust",
   "effect.grayscale",
   "effect.sepia",

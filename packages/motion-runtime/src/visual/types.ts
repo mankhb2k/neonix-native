@@ -220,6 +220,8 @@ export type VisualRuntimeTextSpan = {
   variations?: Record<string, number>;
   letterSpacing?: number;
   wordSpacing?: number;
+  /** CSS vertical-align (sub/super/baseline/length), resolved to a pixel shift; falls back to the text-wide baselineShift when unset. */
+  baselineShift?: number;
   fill?: string;
   fillPaint?: PaintFill;
 };

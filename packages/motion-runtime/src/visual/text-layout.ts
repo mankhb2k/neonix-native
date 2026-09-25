@@ -29,7 +29,7 @@ type ResolvedFont = {
   fontSize: number;
 };
 type UnmaterializedTextLayout = Omit<VisualRuntimeTextLayout, "glyphs"> & { runs: GlyphRun[] };
-type LineGlyph = { glyph: GlyphRunGlyph; font: ResolvedFont; advanceStart: number };
+type LineGlyph = { glyph: GlyphRunGlyph; font: ResolvedFont; advanceStart: number; baselineShift?: number };
 
 function variationKey(text: VisualRuntimeText): string {
   return Object.entries(text.variations ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([tag, value]) => `${tag}=${value}`).join(",");
@@ -538,7 +538,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
             advanceStart: vertical ? penY : penX,
           };
           glyphRun.glyphs.push(glyph);
-          lineGlyphs.push({ glyph, font: resolved, advanceStart: glyph.advanceStart });
+          lineGlyphs.push({ glyph, font: resolved, advanceStart: glyph.advanceStart, baselineShift: slice.span?.baselineShift });
         }
         if (vertical) penY += Math.abs(position.yAdvance * resolved.fontScale) || Math.abs(position.xAdvance * resolved.fontScale) || resolved.fontSize;
         else {
@@ -564,6 +564,9 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
     const lengthScale = naturalAdvance > 0 ? targetAdvance / naturalAdvance : 1;
     const lineTopBaseline = lineTop + lineIndex * text.lineHeight + (text.lineHeight - glyphHeight) / 2 + primary.metrics.ascender * primary.fontScale;
     const baselineY = text.dominantBaseline === "middle" || text.alignmentBaseline === "middle" ? lineTop + lineIndex * text.lineHeight + text.lineHeight / 2 - (primary.metrics.ascender + primary.metrics.descender) * primary.fontScale / 2 : lineTopBaseline;
+    // Text-wide shift only - used for decorations and the reported line
+    // baseline, neither of which is per-span aware. Per-glyph shifts (which
+    // also honor a span's own vertical-align) are applied separately below.
     const adjustedBaselineY = baselineY + (text.baselineShift ?? 0);
     const alignedX = vertical ? 0 : contentOffsetX + (lineIndex === 0 ? (text.textIndent ?? 0) : 0) + (text.align === "center" ? (contentWidth - targetAdvance) / 2 : text.align === "right" ? contentWidth - targetAdvance : 0);
     for (const [glyphIndex, entry] of lineGlyphs.entries()) {
@@ -573,7 +576,10 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         const spacingShift = text.textLength !== undefined && !useGlyphScale && lineGlyphs.length > 1 ? (targetAdvance - naturalAdvance) * glyphIndex / (lineGlyphs.length - 1) : 0;
         const justifyShift = extraPerGap * justificationGapsBefore(lineText, glyph.cluster - sourceOffset);
         glyph.x = (useGlyphScale ? glyph.x * lengthScale : glyph.x) + alignedX + spacingShift + justifyShift;
-        glyph.y += adjustedBaselineY;
+        // A span's own vertical-align (CSS: sub/super/superscript/length)
+        // overrides the text-wide baselineShift for just its glyphs -
+        // mirrors how letterSpacing/wordSpacing fall back from span to text.
+        glyph.y += baselineY + (entry.baselineShift ?? text.baselineShift ?? 0);
         if (useGlyphScale) {
           glyph.width *= lengthScale;
           glyph.advanceX *= lengthScale;

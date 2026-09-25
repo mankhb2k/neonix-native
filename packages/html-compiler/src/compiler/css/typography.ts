@@ -12,6 +12,7 @@ export {
   parseTextOverflow,
   parseTextRendering,
   parseTextSpacing,
+  parseVerticalAlign,
   parseWhiteSpace,
   parseWordBreak,
   parseWritingMode,
