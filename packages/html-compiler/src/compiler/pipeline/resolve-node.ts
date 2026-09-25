@@ -19,6 +19,7 @@ import { parsePathStyle, parseSvgPathData } from "../path";
 import { isSvgNode, isTextFlowNode, collectTextContentWithStyles, normalizeTextContentWithStyles } from "../lowering/dispatcher";
 import { svgPrimitivePath } from "../lowering/svg";
 import {
+  parseLineClamp,
   parseLineHeight,
   parseTextAlign,
   parseTextDecoration,
@@ -157,8 +158,13 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
     const direction = parseTextDirection(style.get("direction"));
     const writingMode = parseWritingMode(style.get("writing-mode"));
     const whiteSpace = parseWhiteSpace(style.get("white-space"));
-    const wrap = wrapForWhiteSpace(whiteSpace);
-    const textOverflow = parseTextOverflow(style.get("text-overflow"));
+    const lineClamp = parseLineClamp(style);
+    // -webkit-line-clamp always wraps (it clips *wrapped* lines past N),
+    // regardless of what white-space says, and always truncates with an
+    // ellipsis - real stylesheets rarely repeat text-overflow: ellipsis
+    // alongside it since browsers apply it implicitly for the clamp.
+    const wrap = lineClamp !== undefined ? "word" as const : wrapForWhiteSpace(whiteSpace);
+    const textOverflow = lineClamp !== undefined ? "ellipsis" as const : parseTextOverflow(style.get("text-overflow"));
     const hasWidth = style.get("width") !== undefined && style.get("width")!.trim().toLowerCase() !== "auto";
     const hasHeight = style.get("height") !== undefined && style.get("height")!.trim().toLowerCase() !== "auto";
     const sizing = textOverflow === "ellipsis" || (hasWidth && hasHeight)
@@ -168,7 +174,8 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
         : "auto-width-height" as const;
     const textRendering = parseTextRendering(style.get("text-rendering"));
     if (textOverflow === "ellipsis" && style.get("overflow") !== "hidden") fail("css-text-overflow-requires-clipping", "text-overflow: ellipsis requires overflow: hidden");
-    if (textOverflow === "ellipsis" && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
+    if (textOverflow === "ellipsis" && lineClamp === undefined && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
+    if (textOverflow === "ellipsis" && lineClamp !== undefined && writingMode !== "horizontal-tb") fail("css-text-overflow-ellipsis-unsupported", "-webkit-line-clamp requires horizontal-tb writing-mode");
     textClipId = style.get("overflow") === "hidden"
       ? registerClipPath([{ type: "rect", x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight }], "html-text-clip")
       : elementClipPath();
@@ -203,7 +210,7 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
     });
     textPayload = {
       source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
-      layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(hardBreaks.length ? { hardBreaks } : {}), ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
+      layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(hardBreaks.length ? { hardBreaks } : {}), ...(textOverflow === "ellipsis" ? { maxLines: lineClamp ?? 1 } : {}) },
       chunks: [{
         id: `${groupId}::chunk`,
         sourceRange: { start: 0, end: text.length },

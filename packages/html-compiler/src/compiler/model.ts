@@ -21,6 +21,8 @@ SUPPORTED_PROPERTIES.add("offset-anchor");
 SUPPORTED_PROPERTIES.add("mask-composite");
 SUPPORTED_PROPERTIES.add("font");
 SUPPORTED_PROPERTIES.add("text-transform");
+SUPPORTED_PROPERTIES.add("line-clamp");
+SUPPORTED_PROPERTIES.add("box-orient");
 export const INHERITED_PROPERTIES = new Set(["color", "font-size", "font-family", "font-weight", "font-style", "font-stretch", "line-height", "letter-spacing", "word-spacing", "white-space", "text-align", "text-transform", "direction", "writing-mode", "text-rendering", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linejoin", "stroke-linecap", "stroke-dasharray", "stroke-dashoffset", "paint-order"]);
 export type Declaration = { property: string; value: string; important: boolean; order: number };
 export type Rule = { selectors: string[]; declarations: Declaration[]; order: number };

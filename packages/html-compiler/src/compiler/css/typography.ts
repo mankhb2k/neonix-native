@@ -1,6 +1,7 @@
 export {
   parseFontFamilies,
   parseFontWeight,
+  parseLineClamp,
   parseLineHeight,
   parseTextAlign,
   parseTextDecoration,

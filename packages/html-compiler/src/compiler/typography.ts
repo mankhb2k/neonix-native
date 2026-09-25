@@ -85,6 +85,24 @@ export function wrapForWhiteSpace(value: HtmlCompilerWhiteSpace): "none" | "word
   return value === "nowrap" || value === "pre" ? "none" : "word";
 }
 
+/**
+ * `-webkit-line-clamp: N` only takes effect paired with `-webkit-box-orient:
+ * vertical` (the legacy flexbox-based clamp syntax this authoring surface
+ * accepts); `display: -webkit-box` itself is normalized to `block` in
+ * css-parser.ts; -webkit-line-clamp/box-orient are ignored, not the trigger.
+ */
+export function parseLineClamp(style: Style): number | undefined {
+  const raw = style.get("line-clamp");
+  if (raw === undefined) return undefined;
+  const boxOrient = (style.get("box-orient") ?? "horizontal").trim().toLowerCase();
+  if (boxOrient !== "vertical") return undefined;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "none") return undefined;
+  const value = Number(normalized);
+  if (!Number.isSafeInteger(value) || value < 1) fail("css-line-clamp-invalid", `-webkit-line-clamp must be a positive integer or none: ${raw}`);
+  return value;
+}
+
 export function parseTextSpacing(value: string | undefined, property: "letter-spacing" | "word-spacing", containingWidth: number, fontSize: number, viewport: { width: number; height: number }): HtmlCompilerTextSpacing {
   const normalized = (value ?? "normal").trim().toLowerCase();
   if (normalized === "normal") return "normal";

@@ -30,7 +30,7 @@ import { parseFilter } from "../filter";
 import { resolveNodeBackground, resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
 import { emitNodePaint } from "./paint-node";
 import { emitNodeBorder } from "./border-node";
-import { parseLineHeight, parseWhiteSpace } from "../css/typography";
+import { parseLineClamp, parseLineHeight, parseWhiteSpace } from "../css/typography";
 import { splitTopLevel } from "../utils";
 import { animationTimelineDuration, resolveNodeAnimationTracks } from "../css/animation";
 import { motionPathLength, parseMotionPath } from "../motion-path";
@@ -51,20 +51,24 @@ import { parseNeonixDocument, isCompileError } from "../document";
  */
 function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: { width: number; height: number }, textSizing: HtmlTextSizingLookup | undefined): number {
   const lineHeight = parseLineHeight(style, fontSize, viewport);
+  const lineClamp = parseLineClamp(style);
+  const cap = (lines: number) => lineClamp !== undefined ? Math.min(lines, lineClamp) : lines;
   const whiteSpace = parseWhiteSpace(style.get("white-space"));
   const explicitLines = text.split(/\r?\n/);
-  if (whiteSpace === "nowrap" || whiteSpace === "pre") return Math.max(1, explicitLines.length) * lineHeight;
+  if (whiteSpace === "nowrap" || whiteSpace === "pre") return cap(Math.max(1, explicitLines.length)) * lineHeight;
 
   const contentWidth = resolveTextContentWidth(style, containingWidth, fontSize, viewport);
   if (textSizing) {
     const measured = textSizing.get(textSizingCacheKey(text, style, fontSize, contentWidth));
-    if (measured) return measured.height;
+    // The probe measures natural (unclamped) wrapped height; -webkit-line-clamp
+    // still caps it here rather than needing its own probe variant.
+    if (measured) return lineClamp !== undefined ? Math.min(measured.height, lineClamp * lineHeight) : measured.height;
   }
   const averageGlyphWidth = Math.max(1, fontSize * 0.55);
   const charactersPerLine = Math.max(1, Math.floor(contentWidth / averageGlyphWidth));
   const normalizedLines = text.replace(/[ \t]+/g, " ").split(/\r?\n/);
   const lineCount = normalizedLines.reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0);
-  return Math.max(1, lineCount) * lineHeight;
+  return cap(Math.max(1, lineCount)) * lineHeight;
 }
 
 /**
