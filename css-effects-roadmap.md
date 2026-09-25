@@ -57,8 +57,8 @@ Audit bằng battery 50 case CSS phổ biến qua compiler thật (không suy đ
 
 | Nhóm | Pass/Total | Ghi chú |
 | --- | --- | --- |
-| Box model (padding/margin/border/box-sizing/min-max/aspect-ratio/overflow/z-index/inset...) | 19/19 | Sạch, không cần sửa gì |
-| Layout (flex/grid/flow) | 11/16 | 3 gap thật, xem bên dưới |
+| Box model (padding/margin/border/box-sizing/min-max/aspect-ratio/overflow/z-index/inset...) | 19/19 | Sạch, không cần sửa gì (sweep bổ sung sau đó phát hiện thêm 2 lỗi paint/box khác, đã sửa — xem bên dưới) |
+| Layout (flex/grid/flow) | 11/16 → **12/16 sau khi sửa** | `grid-template-areas` đã xong, còn 2 gap |
 | Text/typography | 7/15 → **9/15 sau khi sửa** | 2 gap tần suất cao nhất đã sửa, còn lại xem bên dưới |
 
 **Đã sửa** (commit `fdcaa167`, có test `test/typography-shorthand.test.ts`):
@@ -71,9 +71,26 @@ Audit bằng battery 50 case CSS phổ biến qua compiler thật (không suy đ
   bug con: quên thêm vào `INHERITED_PROPERTIES` nên không kế thừa xuống
   phần tử con — đã sửa cùng lúc, có test khoá riêng cho trường hợp kế thừa.
 
+**Đã sửa** (commit `e1fa6d0a`, `50f36562`, phát hiện thêm trong lúc sweep
+xác nhận paint/gradient/box sạch trước khi sang grid, có test trong
+`test/paint-css-parity.test.ts`):
+- **`background: color-mix(...)` (hoặc bất kỳ token lạ nào) compile
+  "thành công" nhưng render trong suốt hoàn toàn im lặng** — cùng root
+  cause với bug `background: red` đã sửa trước đó (bộ phân loại token của
+  `expandBackground` coi token không nhận diện được là "position" rỗng),
+  nhưng lần trước chỉ vá đúng case named-color, chưa vá tận gốc. Giờ token
+  lạ nào cũng báo lỗi rõ ràng thay vì bị nuốt.
+- `overflow: clip` (cách viết CSS hiện đại thay `hidden`) — thêm làm alias
+  của `hidden` (sản phẩm video không có khái niệm scroll nên 2 giá trị này
+  tương đương).
+
+**Đã sửa** (commit `adc9f4e2`, có test `test/layout-grid.test.ts`):
+- **`grid-template-areas` + `grid-area`** — cách đặt tên vùng grid phổ biến
+  nhất, hoàn toàn chưa hỗ trợ trước đó. Hỗ trợ cú pháp tên vùng (không phải
+  dạng số `row/col/row/col`, dạng đó báo lỗi rõ ràng nếu dùng). Vùng không
+  tạo thành hình chữ nhật (typo dạng "L") bị từ chối thay vì đoán bừa.
+
 **Còn lại, chưa sửa** (Layout):
-- [ ] `grid-template-areas` — cách đặt tên vùng grid phổ biến nhất, chưa hỗ
-      trợ (`css-property-unsupported`)
 - [ ] `flex-direction: column-reverse`/`row-reverse` — chỉ nhận
       `row`/`column` (`css-flex-direction-unsupported`)
 - [ ] `grid-auto-flow` — chưa hỗ trợ
@@ -216,10 +233,17 @@ viết test** cho các mục này:
 
 ## Trạng thái hiện tại
 
-**1.0 (case cơ bản độc lập)**: box model sạch. Text — 2/2 gap tần suất cao
-nhất (`font` shorthand, `text-transform`) đã xong, có test, đã commit
-(`fdcaa167`). Layout còn 3 gap chưa sửa (`grid-template-areas` ưu tiên cao
-nhất). Text còn 4 gap tần suất thấp hơn chưa sửa.
+**1.0 (case cơ bản độc lập)**:
+- Box model: sạch (19/19 case gốc), cộng thêm 2 lỗi phát hiện qua sweep
+  xác nhận (`color-mix()` im lặng render trong suốt, `overflow: clip` bị
+  từ chối) — cả 2 đã sửa, commit `e1fa6d0a`/`50f36562`.
+- Paint/gradient: sạch, xác nhận lại qua cùng đợt sweep.
+- Text: 2/2 gap tần suất cao nhất (`font` shorthand, `text-transform`) đã
+  xong, commit `fdcaa167`. Còn 4 gap tần suất thấp hơn chưa sửa
+  (`overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
+  `text-indent`/`font-variant`).
+- Layout: `grid-template-areas` + `grid-area` đã xong, commit `adc9f4e2`.
+  Còn `flex-direction` reverse + `grid-auto-flow`.
 
 **1.1 (audit tổ hợp box-shadow) xong** — xác nhận 2 bug riêng (1.2:
 shadow+filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
@@ -227,10 +251,9 @@ diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow).
 
 **Thứ tự tiếp theo** (đúng nguyên tắc "case cơ bản đủ điều kiện trước case
 mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
-1. `grid-template-areas` (layout, ưu tiên cao nhất còn lại của 1.0)
-2. `flex-direction` reverse + `grid-auto-flow` (layout)
-3. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`
-   (text, tần suất thấp hơn 2 mục đã xong)
-4. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
+1. `flex-direction` reverse + `grid-auto-flow` (layout, còn lại của 1.0)
+2. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`
+   (text, tần suất thấp hơn các mục đã xong)
+3. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
