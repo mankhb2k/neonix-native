@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "..";
-import { parseBorderEdges, parseOutline, parseShadows } from "../src/compiler/paint";
+import { parseBorderEdges, parseColor, parseOutline, parseShadows } from "../src/compiler/paint";
 import { parseFilter } from "../src/compiler/filter";
 
 const viewport = { width: 1920, height: 1080 };
@@ -64,5 +64,84 @@ describe("color-function tokens in shorthand properties", () => {
     expect(result.protocol?.layers.find((layer) => layer.id === "card")).toMatchObject({
       effects: [{ type: "shadow", offset: { x: 0, y: 20 }, blur: 60, color: "#00000066" }],
     });
+  });
+});
+
+// parseColor() previously only accepted hex and rgba() with legacy comma
+// syntax - named colors (e.g. `red`), rgb() (with or without an "a"), and
+// hsl()/hsla() all hard-failed with a generic "must resolve to a hex color"
+// error, even though every one of these is basic, extremely common CSS that
+// hand-written and AI-generated stylesheets both reach for constantly.
+describe("parseColor() named colors, rgb() and hsl()", () => {
+  it("resolves CSS named colors to hex", () => {
+    expect(parseColor("red", "color")).toBe("#ff0000");
+    expect(parseColor("White", "color")).toBe("#ffffff");
+    expect(parseColor("rebeccapurple", "color")).toBe("#663399");
+  });
+
+  it("still rejects an unknown color keyword", () => {
+    expect(() => parseColor("notacolor", "color")).toThrow(/must resolve to a hex color/);
+  });
+
+  it("parses rgb() with legacy comma syntax (no alpha channel in the function name)", () => {
+    expect(parseColor("rgb(255, 0, 0)", "color")).toBe("#ff0000ff");
+  });
+
+  it("parses rgb()/rgba() with modern space syntax and an optional slash alpha", () => {
+    expect(parseColor("rgb(0 255 0)", "color")).toBe("#00ff00ff");
+    expect(parseColor("rgba(0 0 255 / 50%)", "color")).toBe("#0000ff80");
+    expect(parseColor("rgb(100% 0% 0%)", "color")).toBe("#ff0000ff");
+  });
+
+  it("parses hsl()/hsla() with legacy comma and modern space+slash syntax", () => {
+    expect(parseColor("hsl(0, 100%, 50%)", "color")).toBe("#ff0000ff");
+    expect(parseColor("hsl(120 100% 25% / 60%)", "color")).toBe("#00800099");
+  });
+
+  it("normalizes hsl() hue units (grad/rad/turn) the same as bare degrees", () => {
+    expect(parseColor("hsl(0.5turn, 100%, 50%)", "color")).toBe("#00ffffff");
+    expect(parseColor("hsl(200grad, 100%, 50%)", "color")).toBe("#00ffffff");
+  });
+
+  it("compiles a full document using a named color and rgb() end to end", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="card"></div>`,
+      css: "#card { position: absolute; left: 0; top: 0; width: 100px; height: 100px; background: red; color: rgb(0, 0, 255); }",
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "card")).toMatchObject({ style: { fill: "#ff0000" } });
+  });
+});
+
+// A CSS <gradient> background-image has no unknown intrinsic size the way a
+// raster/url() image does - its generated image is defined by spec to
+// exactly fill the background positioning area when background-size is
+// auto, so repeating it (the CSS default background-repeat) is fully
+// deterministic without an explicit background-size. Only a raster image
+// (unknown pixel dimensions ahead of time) genuinely needs one.
+describe("background-image gradients don't need an explicit background-size to repeat", () => {
+  it("compiles a plain gradient background-image with no background-size/repeat declared", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box"></div>`,
+      css: "#box { position: absolute; left: 0; top: 0; width: 200px; height: 200px; background-image: linear-gradient(#ff0000, #0000ff); }",
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+  });
+
+  it("compiles a repeating gradient background-image with no background-size declared", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box"></div>`,
+      css: "#box { position: absolute; left: 0; top: 0; width: 200px; height: 200px; background-image: repeating-linear-gradient(45deg, #ff0000, #00ff00 20%); }",
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+  });
+
+  it("still requires an explicit background-size to repeat a raster url() image", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box"></div>`,
+      css: "#box { position: absolute; left: 0; top: 0; width: 200px; height: 200px; background-image: url(/preview/image/photo-landscape.jpg); }",
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-background-repeat-needs-size");
   });
 });

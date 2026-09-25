@@ -12,7 +12,7 @@ import type { V2Paint, V2Track } from "@motionvideo/motion-protocol/v2";
 import type { Node, Style } from "../model";
 import type { Paint, CornerRadius } from "../paint";
 import type { LayoutRect } from "../layout-ir";
-import type { BackgroundImage } from "../background";
+import type { BackgroundImage, BackgroundSize } from "../background";
 import type { CompileClipPaths, CompileLayers } from "../compile-context";
 import type { NodeTransformState } from "../transform";
 import { parseBackgroundBox, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize } from "../background";
@@ -273,8 +273,17 @@ export function emitNodePaint(input: NodePaintInput): void {
       const origin = boxFor(parseBackgroundBox(style, "background-origin", imageIndex));
       const clipBox = boxFor(parseBackgroundBox(style, "background-clip", imageIndex));
       const position = parseBackgroundPosition(style, imageIndex);
-      const size = parseBackgroundSize(style, imageIndex, origin.width, origin.height, viewport);
+      const rawSize = parseBackgroundSize(style, imageIndex, origin.width, origin.height, viewport);
       const repeat = parseBackgroundRepeat(style, imageIndex);
+      // A CSS <gradient> (or the plain-color fallback of an unsupported
+      // image()) has no unknown intrinsic size the way a raster/url() image
+      // does: its generated image is defined by spec to exactly fill the
+      // background positioning area whenever background-size is auto.
+      // Repeating that box-sized tile is fully deterministic without an
+      // explicit size, unlike repeating an asset of unknown pixel dimensions.
+      const size: BackgroundSize = rawSize.type === "length" || image.type === "asset"
+        ? rawSize
+        : { type: "length", width: origin.width, height: origin.height };
       if (repeat !== "no-repeat" && size.type !== "length") fail("css-background-repeat-needs-size", "Repeating a background image requires an explicit two-dimensional background-size in the deterministic compiler");
       if (size.type === "length") {
         const drawWidth = Math.max(1, size.width); const drawHeight = Math.max(1, size.height);

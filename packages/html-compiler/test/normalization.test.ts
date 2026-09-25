@@ -44,7 +44,10 @@ describe("HTML/CSS normalization contract", () => {
     const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="color"></div>`, css: `#color { width: 10px; height: 10px; background: #AbC; }` }));
     expect(result.status).toBe("success");
     expect(result.protocol?.layers[0]).toMatchObject({ style: { fill: "#aabbcc" } });
-    const unsupported = compileHtmlCss(createHtmlCssSource({ html: `<div id="color"></div>`, css: `#color { width: 10px; height: 10px; background: rgb(1, 2, 3); }` }));
+    // rgb() (legacy comma syntax) resolves to hex like rgba()/hsl() do.
+    const rgb = compileHtmlCss(createHtmlCssSource({ html: `<div id="color"></div>`, css: `#color { width: 10px; height: 10px; background: rgb(1, 2, 3); }` }));
+    expect(rgb.protocol?.layers[0]).toMatchObject({ style: { fill: "#010203ff" } });
+    const unsupported = compileHtmlCss(createHtmlCssSource({ html: `<div id="color"></div>`, css: `#color { width: 10px; height: 10px; background: oklch(0.7 0.15 30); }` }));
     expect(unsupported.diagnostics[0]?.code).toBe("css-color-unsupported");
   });
 

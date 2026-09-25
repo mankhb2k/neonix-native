@@ -1,5 +1,5 @@
 import { fail } from "./errors";
-import { calcExpression, isPaintToken } from "./values";
+import { calcExpression, isPaintToken, NAMED_COLORS } from "./values";
 import { splitTopLevel } from "./utils";
 import type { Style } from "./model";
 
@@ -8,22 +8,102 @@ export type GradientSpreadMethod = "pad" | "repeat";
 export type Paint = string | { type: "linear-gradient"; angle?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "radial-gradient"; cx?: number; cy?: number; radius?: number; radiusX?: number; radiusY?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "conic-gradient"; from?: number; cx?: number; cy?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] };
 type GradientBox = { width: number; height: number };
 
+function toHexByte(value: number): string {
+  return Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0");
+}
+
+/** A single percentage-or-bare-number channel token, e.g. one of rgb()'s r/g/b or hsl()'s alpha. */
+function parsePercentOrNumber(token: string, max: number): number {
+  return token.endsWith("%") ? (Number(token.slice(0, -1)) / 100) * max : Number(token);
+}
+
+function parseAlphaToken(token: string | undefined): number {
+  if (token === undefined) return 1;
+  return token.endsWith("%") ? Number(token.slice(0, -1)) / 100 : Number(token);
+}
+
+/**
+ * Splits an rgb()/hsl() function body into its channel tokens plus an
+ * optional alpha, accepting both legacy comma syntax (`r, g, b[, a]`) and
+ * modern CSS Color 4 space syntax (`r g b[ / a]`) - real authors (and AI
+ * tools generating CSS) use both interchangeably.
+ */
+function splitColorFunctionBody(body: string): { channels: string[]; alpha: string | undefined } {
+  const slashIndex = body.indexOf("/");
+  const channelPart = (slashIndex === -1 ? body : body.slice(0, slashIndex)).trim();
+  const slashAlpha = slashIndex === -1 ? undefined : body.slice(slashIndex + 1).trim();
+  const tokens = (channelPart.includes(",") ? channelPart.split(",") : channelPart.split(/\s+/))
+    .map((token) => token.trim())
+    .filter(Boolean);
+  const commaAlpha = slashAlpha === undefined && tokens.length === 4 ? tokens.pop() : undefined;
+  return { channels: tokens, alpha: slashAlpha ?? commaAlpha };
+}
+
+function parseRgbFunction(body: string, property: string, original: string): string {
+  const { channels: channelTokens, alpha: alphaToken } = splitColorFunctionBody(body);
+  if (channelTokens.length !== 3 || channelTokens.some((token) => !/^-?(?:\d+\.?\d*|\.\d+)%?$/.test(token))) {
+    fail("css-color-invalid", `${property} contains an invalid rgb color: ${original}`);
+  }
+  const channels = channelTokens.map((token) => parsePercentOrNumber(token, 255));
+  const alpha = parseAlphaToken(alphaToken);
+  if (channels.some((channel) => !Number.isFinite(channel) || channel < 0 || channel > 255) || !Number.isFinite(alpha) || alpha < 0 || alpha > 1) {
+    fail("css-color-invalid", `${property} contains an invalid rgb color: ${original}`);
+  }
+  return `#${[...channels, alpha * 255].map(toHexByte).join("")}`;
+}
+
+/** Degrees-normalized hue → sRGB, via the standard CSS Color 3 hsl-to-rgb algorithm. */
+function hslToRgb(hueDegrees: number, saturation: number, lightness: number): [number, number, number] {
+  const h = ((hueDegrees % 360) + 360) % 360;
+  const s = Math.min(1, Math.max(0, saturation));
+  const l = Math.min(1, Math.max(0, lightness));
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+
+function hueToDegrees(token: string, property: string, original: string): number {
+  const match = token.match(/^(-?(?:\d+\.?\d*|\.\d+))(deg|grad|rad|turn)?$/i);
+  if (!match) return fail("css-color-invalid", `${property} contains an invalid hsl hue: ${original}`);
+  const value = Number(match[1]);
+  const unit = match[2]?.toLowerCase();
+  if (unit === "grad") return value * 0.9;
+  if (unit === "rad") return (value * 180) / Math.PI;
+  if (unit === "turn") return value * 360;
+  return value;
+}
+
+function parseHslFunction(body: string, property: string, original: string): string {
+  const { channels: channelTokens, alpha: alphaToken } = splitColorFunctionBody(body);
+  if (channelTokens.length !== 3) fail("css-color-invalid", `${property} contains an invalid hsl color: ${original}`);
+  const [hueToken, saturationToken, lightnessToken] = channelTokens as [string, string, string];
+  const hue = hueToDegrees(hueToken, property, original);
+  if (!/^-?(?:\d+\.?\d*|\.\d+)%$/.test(saturationToken) || !/^-?(?:\d+\.?\d*|\.\d+)%$/.test(lightnessToken)) {
+    fail("css-color-invalid", `${property} contains an invalid hsl saturation/lightness: ${original}`);
+  }
+  const saturation = Number(saturationToken.slice(0, -1)) / 100;
+  const lightness = Number(lightnessToken.slice(0, -1)) / 100;
+  const alpha = parseAlphaToken(alphaToken);
+  if (!Number.isFinite(alpha) || alpha < 0 || alpha > 1) fail("css-color-invalid", `${property} contains an invalid hsl alpha: ${original}`);
+  const [r, g, b] = hslToRgb(hue, saturation, lightness);
+  return `#${[r, g, b, alpha * 255].map(toHexByte).join("")}`;
+}
+
 export function parseColor(value: string, property: string, currentColor = "#000000"): string {
   const v = value.trim().toLowerCase();
   if (v === "transparent" || (v === "none" && ["background", "background-color"].includes(property))) return "#00000000";
   if (v === "currentcolor") return parseColor(currentColor, "currentColor");
   if (/^#[0-9a-f]{3}$/i.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
-  const rgba = v.match(/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|1|0?\.\d+|100%|\d{1,2}%)\s*\)$/i);
-  if (rgba) {
-    const channels = [rgba[1], rgba[2], rgba[3]].map((channel) => Number(channel));
-    const alphaToken = rgba[4]!;
-    const alpha = alphaToken.endsWith("%") ? Number(alphaToken.slice(0, -1)) / 100 : Number(alphaToken);
-    if (channels.some((channel) => channel < 0 || channel > 255) || !Number.isFinite(alpha) || alpha < 0 || alpha > 1) fail("css-color-invalid", `${property} contains an invalid rgba color: ${value}`);
-    const bytes = [...channels, Math.round(alpha * 255)].map((channel) => Math.round(channel).toString(16).padStart(2, "0"));
-    return `#${bytes.join("")}`;
-  }
-  if (!/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(v)) fail("css-color-unsupported", `${property} must resolve to a hex color: ${value}`);
-  return v;
+  if (/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(v)) return v;
+  const rgbMatch = v.match(/^rgba?\(([\s\S]+)\)$/i);
+  if (rgbMatch) return parseRgbFunction(rgbMatch[1]!, property, value);
+  const hslMatch = v.match(/^hsla?\(([\s\S]+)\)$/i);
+  if (hslMatch) return parseHslFunction(hslMatch[1]!, property, value);
+  const named = NAMED_COLORS[v];
+  if (named) return named;
+  return fail("css-color-unsupported", `${property} must resolve to a hex color: ${value}`);
 }
 
 function parseStopOffset(value: string | undefined, property: string, allowOutsideRange = false): number | undefined {
