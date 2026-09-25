@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .indent-box { position: absolute; top: 160px; width: 560px; margin: 0; color: #f8fafc; font-family: Inter; font-size: 28px; line-height: 40px; }
+      .indent-positive { left: 40px; text-indent: 40px; }
+      .indent-negative { left: 680px; text-indent: -2em; padding-left: 2em; }
+      #indent-parent { position: absolute; left: 1320px; top: 160px; width: 560px; text-indent: 32px; }
+      #indent-inherited { margin: 0; color: #f8fafc; font-family: Inter; font-size: 28px; line-height: 40px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">text-indent: 40px</div>
+    <div class="cell-label cell-label-2">text-indent: -2em (hanging)</div>
+    <div class="cell-label cell-label-3">inherited from parent</div>
+
+    <p id="indent-positive" class="indent-box indent-positive">The first line of this paragraph is indented; every wrapped line after it starts flush at the left edge as usual.</p>
+    <p id="indent-negative" class="indent-box indent-negative">A negative text-indent creates a hanging indent: the first line starts further left than the rest of the paragraph.</p>
+    <div id="indent-parent">
+      <p id="indent-inherited">text-indent is inherited, so this child paragraph's first line is indented even though the indent was only declared on its ancestor.</p>
+    </div>
+  </body>
+</html>

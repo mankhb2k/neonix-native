@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 800px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 60px; top: 560px; }
+      #row-reverse { position: absolute; left: 60px; top: 110px; width: 1800px; height: 360px; display: flex; flex-direction: row-reverse; gap: 24px; }
+      #row-reverse div { width: 220px; height: 220px; }
+      #rr-one { background: #22d3ee; }
+      #rr-two { background: #fb7185; }
+      #rr-three { background: #4ade80; }
+      #column-reverse { position: absolute; left: 60px; top: 610px; width: 420px; height: 380px; display: flex; flex-direction: column-reverse; gap: 24px; }
+      #column-reverse div { width: 420px; height: 100px; }
+      #cr-one { background: #38bdf8; }
+      #cr-two { background: #a78bfa; }
+      #cr-three { background: #facc15; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">flex-direction: row-reverse (DOM order a,b,c reads right-to-left)</div>
+    <div class="cell-label cell-label-2">flex-direction: column-reverse (DOM order a,b,c reads bottom-to-top)</div>
+
+    <div id="row-reverse">
+      <div id="rr-one"></div>
+      <div id="rr-two"></div>
+      <div id="rr-three"></div>
+    </div>
+
+    <div id="column-reverse">
+      <div id="cr-one"></div>
+      <div id="cr-two"></div>
+      <div id="cr-three"></div>
+    </div>
+  </body>
+</html>

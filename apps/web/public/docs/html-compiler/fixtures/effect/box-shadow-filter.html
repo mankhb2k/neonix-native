@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#000000","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000000; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .combo-box { position: absolute; top: 220px; width: 480px; height: 280px; background: #38bdf8; box-sizing: border-box; }
+      .combo-shadow-only { left: 100px; box-shadow: 0 0 24px #ffffff; }
+      .combo-shadow-filter { left: 760px; box-shadow: 0 0 24px #ffffff; filter: blur(4px); }
+      .combo-shadow-brightness { left: 1400px; box-shadow: 0 0 16px #f472b6, 8px 8px 0 #facc15; filter: brightness(1.4); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">box-shadow alone (reference)</div>
+    <div class="cell-label cell-label-2">box-shadow + filter: blur(4px)</div>
+    <div class="cell-label cell-label-3">2 box-shadows + filter: brightness(1.4)</div>
+
+    <div id="combo-shadow-only" class="combo-box combo-shadow-only"></div>
+    <div id="combo-shadow-filter" class="combo-box combo-shadow-filter"></div>
+    <div id="combo-shadow-brightness" class="combo-box combo-shadow-brightness"></div>
+  </body>
+</html>

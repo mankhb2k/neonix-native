@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#000000","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000000; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 28px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 60px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      #backdrop-scene-1, #backdrop-scene-2, #backdrop-scene-3 { position: absolute; top: 220px; width: 480px; height: 280px; background: linear-gradient(135deg, #7c3aed 0%, #22d3ee 52%, #f97316 100%); }
+      #backdrop-scene-1 { left: 100px; }
+      #backdrop-scene-2 { left: 760px; }
+      #backdrop-scene-3 { left: 1400px; }
+      .combo-card { position: absolute; left: 80px; top: 60px; width: 320px; height: 160px; background: #ffffff55; border: 3px solid #ffffffaa; box-sizing: border-box; }
+      #card-shadow-only { box-shadow: 0 0 24px #ffffff; }
+      #card-shadow-backdrop { box-shadow: 0 0 24px #ffffff; backdrop-filter: blur(16px); }
+      #card-shadow-backdrop-rounded { box-shadow: 0 0 24px #ffffff; backdrop-filter: blur(16px); border-radius: 32px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">box-shadow alone (reference)</div>
+    <div class="cell-label cell-label-2">box-shadow + backdrop-filter: blur(16px)</div>
+    <div class="cell-label cell-label-3">same, with border-radius</div>
+
+    <div id="backdrop-scene-1"><div id="card-shadow-only" class="combo-card"></div></div>
+    <div id="backdrop-scene-2"><div id="card-shadow-backdrop" class="combo-card"></div></div>
+    <div id="backdrop-scene-3"><div id="card-shadow-backdrop-rounded" class="combo-card"></div></div>
+  </body>
+</html>

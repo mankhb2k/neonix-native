@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .wrap-box { position: absolute; top: 160px; width: 320px; height: 280px; margin: 0; color: #f8fafc; font-family: Inter; font-size: 26px; line-height: 36px; border: 2px solid #334155; padding: 12px; box-sizing: border-box; }
+      .wrap-normal { left: 40px; }
+      .wrap-break-all { left: 680px; word-break: break-all; }
+      .wrap-break-word { left: 1320px; overflow-wrap: break-word; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">normal (long word overflows the box)</div>
+    <div class="cell-label cell-label-2">word-break: break-all</div>
+    <div class="cell-label cell-label-3">overflow-wrap: break-word</div>
+
+    <p id="wrap-normal" class="wrap-box wrap-normal">Hi there Supercalifragilisticexpialidocious end</p>
+    <p id="wrap-break-all" class="wrap-box wrap-break-all">Hi there Supercalifragilisticexpialidocious end</p>
+    <p id="wrap-break-word" class="wrap-box wrap-break-word">Hi there Supercalifragilisticexpialidocious end</p>
+  </body>
+</html>

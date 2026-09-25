@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .clamp-box { position: absolute; top: 160px; width: 560px; color: #f8fafc; font-family: Inter; font-size: 28px; line-height: 40px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; }
+      .clamp-2 { left: 40px; -webkit-line-clamp: 2; }
+      .clamp-3 { left: 680px; -webkit-line-clamp: 3; }
+      .clamp-horizontal { left: 1320px; -webkit-box-orient: horizontal; -webkit-line-clamp: 2; height: 200px; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">-webkit-line-clamp: 2</div>
+    <div class="cell-label cell-label-2">-webkit-line-clamp: 3</div>
+    <div class="cell-label cell-label-3">box-orient: horizontal (no clamp)</div>
+
+    <p id="clamp-two-lines" class="clamp-box clamp-2">This is a long paragraph of text that should wrap across several lines and then get clamped to exactly two lines with an ellipsis at the end instead of overflowing further down the composition.</p>
+    <p id="clamp-three-lines" class="clamp-box clamp-3">This is a long paragraph of text that should wrap across several lines and then get clamped to exactly three lines with an ellipsis at the end instead of overflowing further down the composition.</p>
+    <p id="clamp-no-effect" class="clamp-box clamp-horizontal">box-orient: horizontal means -webkit-line-clamp has no effect per spec, so this text wraps and overflows the fixed box normally without any clamping or ellipsis.</p>
+  </body>
+</html>

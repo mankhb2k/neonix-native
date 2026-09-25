@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 560px; font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 40px; top: 60px; }
+      .cell-label-2 { left: 680px; top: 60px; }
+      .cell-label-3 { left: 1320px; top: 60px; }
+      .align-box { position: absolute; top: 160px; width: 560px; margin: 0; color: #f8fafc; font-family: Inter; font-size: 32px; }
+      .align-sup { left: 40px; }
+      .align-sup .raise { vertical-align: super; font-size: 20px; color: #facc15; }
+      .align-sub { left: 680px; }
+      .align-sub .lower { vertical-align: sub; font-size: 20px; color: #f472b6; }
+      .align-length { left: 1320px; }
+      .align-length .shift { vertical-align: -8px; color: #38bdf8; }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">vertical-align: super</div>
+    <div class="cell-label cell-label-2">vertical-align: sub</div>
+    <div class="cell-label cell-label-3">vertical-align: -8px (length)</div>
+
+    <p id="align-superscript" class="align-box align-sup">E = mc<span class="raise">2</span> energy</p>
+    <p id="align-subscript" class="align-box align-sub">H<span class="lower">2</span>O molecule</p>
+    <p id="align-numeric" class="align-box align-length">baseline <span class="shift">lowered</span> text</p>
+  </body>
+</html>
