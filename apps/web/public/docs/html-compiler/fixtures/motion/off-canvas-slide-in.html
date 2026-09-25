@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1200,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #081018; }
+      .cell-label { position: absolute; width: 580px; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; color: #7c93a8; }
+      .cell-label-1 { left: 80px; top: 60px; }
+      .cell-label-2 { left: 700px; top: 60px; }
+      .cell-label-3 { left: 80px; top: 414px; }
+
+      /* A purely static negative left/top: the box is never animated, it just
+         rests partway off the composition edge. The renderer's own surface
+         clips the off-canvas half, same as a real browser - the compiler must
+         not reject the authored geometry itself. */
+      #static-negative-position { position: absolute; left: -110px; top: 170px; width: 220px; height: 180px; background: #22d3ee; }
+
+      /* The standard "slide in from off-canvas" motion-design technique: the
+         element's resting CSS position is fully on-canvas (left: 80px), and a
+         keyframe animates transform: translateX() from a large negative
+         offset (fully outside the frame) down to 0, sliding it into view. */
+      @keyframes slide-in-transform { 0% { transform: translateX(-520px); opacity: 0; } 100% { transform: translateX(0px); opacity: 1; } }
+      #slide-in-transform { position: absolute; left: 700px; top: 170px; width: 360px; height: 180px; background: #f97316; animation-name: slide-in-transform; animation-duration: 900ms; animation-fill-mode: both; animation-timing-function: ease-out; }
+
+      /* Combined case: the element's own authored left is already negative
+         (fully off-canvas at rest) and an animated transform slides it the
+         rest of the way onto screen - the two negative-geometry mechanisms
+         from the bug report used together, exactly as a real slide-in panel
+         is usually built. */
+      @keyframes slide-in-combined { 0% { transform: translateX(0px); } 100% { transform: translateX(420px); } }
+      #slide-in-combined { position: absolute; left: -360px; top: 458px; width: 320px; height: 180px; background: #a855f7; animation-name: slide-in-combined; animation-duration: 900ms; animation-fill-mode: both; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+    </style>
+  </head>
+  <body>
+    <div class="cell-label cell-label-1">static negative left/top: rests partway off the composition edge, no animation</div>
+    <div class="cell-label cell-label-2">transform: translateX() slide-in: on-canvas rest position, off-canvas animation start</div>
+    <div class="cell-label cell-label-3">combined: negative authored left (off-canvas at rest) plus an animated transform sliding it fully into frame</div>
+
+    <div id="static-negative-position"></div>
+    <div id="slide-in-transform"></div>
+    <div id="slide-in-combined"></div>
+  </body>
+</html>

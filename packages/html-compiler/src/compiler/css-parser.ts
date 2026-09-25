@@ -12,7 +12,18 @@ export function declarations(body: string, selector: string, sourceText?: string
     const location = sourceText ? sourceLocation(sourceText, sourceOffset + Math.max(0, declarationOffset), "css") : undefined;
     const index = part.indexOf(":");
     if (index <= 0) throw new CompileError("css-invalid-declaration", `Invalid declaration in ${selector}: ${part}`, location);
-    const property = part.slice(0, index).trim().toLowerCase();
+    const rawProperty = part.slice(0, index).trim().toLowerCase();
+    const vendorPrefix = /^-(?:webkit|moz|ms|o)-/.exec(rawProperty)?.[0];
+    const property = vendorPrefix ? rawProperty.slice(vendorPrefix.length) : rawProperty;
+    // A vendor-prefixed property with no supported unprefixed equivalent (e.g.
+    // -webkit-user-select, -moz-osx-font-smoothing) is a browser-engine
+    // extension Neonix never implements. Real browsers silently ignore a
+    // declaration they don't recognize instead of failing the whole
+    // stylesheet; match that instead of hard-failing the document, since
+    // authors commonly carry these over from devtools/frameworks without
+    // meaning to invoke anything Neonix-specific. An unprefixed unsupported
+    // property still hard-fails below - that gap is real, not vendor cruft.
+    if (vendorPrefix && !property.startsWith("--") && !SUPPORTED_PROPERTIES.has(property)) continue;
     const value = part.slice(index + 1).trim();
     if (!value) throw new CompileError("css-empty-value", `Empty value for ${property}`, location);
     const important = /\s!important\s*$/i.test(value);

@@ -255,6 +255,62 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     }
   });
 
+  it("aliases -webkit-background-clip to the supported background-clip text gradient", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="linear">Linear</div>`,
+      css: `body { margin: 0; } #linear { position: absolute; left: 40px; top: 40px; width: 640px; height: 100px; color: transparent; font-family: Inter; font-size: 72px; font-weight: 700; background-repeat: no-repeat; -webkit-background-clip: text; background: linear-gradient(90deg, #22d3ee, #c084fc); }`,
+    }), {
+      fontAssets: [{ id: "inter-bold", kind: "font", uri: "/fonts/inter-bold.ttf", mimeType: "font/ttf", family: "Inter", weight: 700, style: "normal", integrity: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }],
+    });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = result.protocol?.layers.find((candidate) => candidate.id === "linear");
+    expect(layer?.type).toBe("text");
+    if (layer?.type !== "text") return;
+    expect(layer.payload.chunks[0]?.spans[0]?.fill).toMatchObject({ type: "linear-gradient" });
+  });
+
+  it("silently drops a vendor-prefixed property with no supported unprefixed equivalent, instead of hard-failing the document", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="a"></div>`,
+      css: `body { margin: 0; } #a { position: absolute; left: 40px; top: 40px; width: 200px; height: 60px; -webkit-user-select: none; -moz-osx-font-smoothing: grayscale; background: #fff; }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("still hard-fails an unprefixed unsupported property (vendor-prefix leniency does not widen the general allowlist)", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="a">Hi</div>`,
+      css: `#a { user-select: none; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]).toMatchObject({ severity: "error", code: "css-property-unsupported" });
+  });
+
+  it("resolves an absolutely positioned element with a negative left/top instead of hard-failing (off-canvas slide-in start state)", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="panel"></div>`,
+      css: `body { margin: 0; } #panel { position: absolute; left: -200px; top: -100px; width: 300px; height: 150px; background: #14b8a6; }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.layers[0]).toMatchObject({ frame: { width: 300, height: 150 }, transform: { translate: { x: -200, y: -100 } } });
+  });
+
+  it("keeps transform: translateX() unrestricted in sign on an absolutely positioned element (slide-in-from-offscreen animation)", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="panel"></div>`,
+      css: `body { margin: 0; } #panel { position: absolute; left: 0px; top: 0px; width: 300px; height: 150px; background: #14b8a6; transform: translateX(-100px); }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    // An authored `transform` is always lowered into `transform.operations`
+    // (an ordered op list, so rotate/scale/translate apply in the CSS-authored
+    // order) rather than folded into `transform.translate`, which carries only
+    // the element's layout position.
+    expect(result.protocol?.layers[0]).toMatchObject({
+      transform: { translate: { x: 0, y: 0 }, operations: [{ type: "translate", x: -100, y: 0 }] },
+    });
+  });
+
   it("lowers all authored CSS text-align values into Protocol V2 JSON", () => {
     const alignments = [
       ["start", "start"],

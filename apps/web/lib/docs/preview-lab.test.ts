@@ -87,6 +87,27 @@ describe("Protocol V2 preview lab fixtures", () => {
     }
   });
 
+  it("compiles the off-canvas slide-in fixture instead of rejecting negative geometry", () => {
+    const fixture = HTML_COMPILER_PREVIEW_CASES.find((item) => item.id === "html-compiler.motion.off-canvas-slide-in")!;
+    const compiled = compileFixture(fixture, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+    expect(compiled.status, JSON.stringify(compiled.diagnostics)).toBe("success");
+    expect(compiled.diagnostics).toEqual([]);
+
+    // A purely static negative left/top must resolve to that same negative
+    // transform.translate, not get clamped or rejected - this is the exact
+    // regression the fix in html-compiler's assertLayoutBox addresses.
+    const staticPanel = compiled.protocol?.layers.find((layer) => layer.id === "static-negative-position");
+    expect(staticPanel).toMatchObject({ transform: { translate: { x: -110, y: 170 } } });
+
+    // Both animated panels (transform-only slide-in, and negative-left +
+    // animated transform combined) must still carry their keyframe track
+    // instead of silently losing it.
+    for (const id of ["slide-in-transform", "slide-in-combined"]) {
+      const layer = compiled.protocol?.layers.find((candidate) => candidate.id === id);
+      expect(layer?.tracks?.length ?? 0, id).toBeGreaterThan(0);
+    }
+  });
+
   it("organizes current fixtures by render concept", () => {
     const groups = previewLabGroups();
     expect(groups.length).toBeGreaterThan(0);

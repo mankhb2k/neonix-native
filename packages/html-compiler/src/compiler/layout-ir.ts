@@ -46,9 +46,14 @@ export function paddingBox(rect: LayoutRect, borderWidth: number | [number, numb
 }
 
 export function assertLayoutBox(box: LayoutBox): LayoutBox {
-  const values = [box.x, box.y, box.width, box.height, box.contentX, box.contentY, box.contentWidth, box.contentHeight];
-  if (!values.every(Number.isFinite) || values.some((value, index) => index >= 2 && value < 0)) {
-    throw new Error("LayoutBox must contain finite non-negative geometry");
-  }
+  const allValues = [box.x, box.y, box.width, box.height, box.contentX, box.contentY, box.contentWidth, box.contentHeight];
+  if (!allValues.every(Number.isFinite)) throw new Error("LayoutBox must contain finite geometry");
+  // Position (x/y, contentX/contentY) may legitimately go negative - an
+  // off-canvas element (e.g. the start of a slide-in animation, or a child
+  // offset that overflows its parent) keeps its authored CSS box intact per
+  // resolveGeometry's own contract; the composition surface clips it at paint
+  // time, same as a real browser. Only size fields must stay non-negative.
+  const sizeValues = [box.width, box.height, box.contentWidth, box.contentHeight];
+  if (sizeValues.some((value) => value < 0)) throw new Error("LayoutBox must contain non-negative size");
   return box;
 }

@@ -2129,6 +2129,21 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
     "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   },
   {
+    "id": "html-compiler.motion.off-canvas-slide-in",
+    "phase": "P3",
+    "topic": "Motion & animation",
+    "label": "Motion / off-canvas slide-in (negative geometry)",
+    "properties": [
+      "position: absolute + negative left/top",
+      "transform: translateX() with a negative value",
+      "off-canvas resting position",
+      "off-canvas animation start"
+    ],
+    "hint": "The standard slide-in-from-offscreen technique: a static negative left/top resting partway off the composition edge, a keyframe animating transform: translateX() from a large negative value into view, and both combined on one element - none of these are clamped or rejected, matching a real browser's own overflow behavior.",
+    "fixtureUrl": "/docs/html-compiler/fixtures/motion/off-canvas-slide-in.html",
+    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
+  },
+  {
     "id": "html-compiler.motion.combo-paint-interactions",
     "phase": "P3",
     "topic": "Motion & animation",
