@@ -142,6 +142,19 @@ runtime thật trong `motion-runtime/src/visual/text-layout.test.ts`):
   cascade CSS thật. `white-space: nowrap` vẫn tắt wrap hoàn toàn bất kể 2
   thuộc tính này.
 
+**Đã sửa** (commit `f583389f`, có test `test/vertical-align.test.ts` + test
+runtime thật trong `motion-runtime/src/visual/text-layout.test.ts`):
+- **`vertical-align`** (`baseline`/`sub`/`super`/length) — trường
+  `baselineShift` per-span đã có sẵn trong schema nhưng trước đó
+  motion-compiler chỉ đọc `firstSpan` (áp cho cả text, không phải riêng
+  từng span) và bỏ qua hẳn 2 keyword `subscript`/`superscript` (map cứng về
+  0). Giờ áp đúng cho TỪNG span riêng (`<sup>`/`<sub>` lồng trong câu chỉ
+  dịch đúng phần chữ đó). `top`/`bottom`/`middle`/`text-top`/`text-bottom`
+  báo lỗi rõ ràng thay vì render sai vị trí (các giá trị này cần biết
+  line-box metrics, trường SVG-style `baseline-shift` không diễn đạt
+  được). Đã verify chiều dấu (positive=xuống, negative=lên) bằng dữ liệu
+  thật trước khi chốt, không suy đoán từ đọc code.
+
 **Còn lại, chưa sửa** (Text, tần suất thấp hơn các mục đã sửa):
 - [ ] `vertical-align` — gap đã biết từ trước, chưa sửa
 - [ ] `text-decoration-style` khác `solid` (`wavy`/`dotted`/`dashed` underline)
@@ -154,9 +167,10 @@ không phải gap thật): `position: sticky` (không có khái niệm scroll),
 **Trạng thái**: 2/2 gap text tần suất cao nhất đã xong. Layout đã xong hết
 gap đã biết (`grid-template-areas`, `flex-direction` reverse,
 `grid-auto-flow`). `-webkit-line-clamp`, `text-indent`, `font-variant:
-small-caps`, `overflow-wrap`/`word-break` đã xong. Còn 2 gap text
-(`vertical-align`, `text-decoration-style`). Box model không cần làm gì
-thêm ở Cấp 1.
+small-caps`, `overflow-wrap`/`word-break`, `vertical-align` đã xong. Còn 1
+gap text (`text-decoration-style` khác `solid`) — mục lớn nhất trong 5 gap,
+đụng cả 2 renderer (canvaskit-preview + export-renderer). Box model không
+cần làm gì thêm ở Cấp 1.
 
 ### 1.1 Audit toàn bộ tổ hợp "box-shadow + hiệu ứng khác" cùng phần tử — XONG
 
@@ -319,8 +333,9 @@ còn thiếu.
 - Text: 6/15 → 8/15 (2/2 gap tần suất cao nhất: `font` shorthand,
   `text-transform`, đã xong, commit `fdcaa167`). `-webkit-line-clamp`
   (commit `3a0172c7`), `text-indent` + `font-variant: small-caps` (commit
-  `ee8255df`), `overflow-wrap`/`word-break` (commit `c64875fd`) cũng đã
-  xong. Còn 2 gap: `vertical-align`, `text-decoration-style` khác `solid`.
+  `ee8255df`), `overflow-wrap`/`word-break` (commit `c64875fd`),
+  `vertical-align` (commit `f583389f`) cũng đã xong. Còn 1 gap:
+  `text-decoration-style` khác `solid`.
 - Layout: `grid-template-areas` + `grid-area` (commit `adc9f4e2`),
   `flex-direction` reverse (commit `20357004`), `grid-auto-flow` (commit
   `0374fd4d`) đều đã xong. Hết gap layout đã biết ở 1.0.
@@ -340,8 +355,8 @@ mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
    1.0)~~ — XONG.
 2. ~~1.3 (khoá test cho hiệu ứng an toàn)~~ — XONG.
 3. ~~`-webkit-line-clamp`, `text-indent`, `font-variant: small-caps`,
-   `overflow-wrap`/`word-break`~~ — XONG. Còn `vertical-align`,
-   `text-decoration-style` (mục tiếp theo).
+   `overflow-wrap`/`word-break`, `vertical-align`~~ — XONG. Còn
+   `text-decoration-style` (mục cuối cùng, lớn nhất, đụng 2 renderer).
 4. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
