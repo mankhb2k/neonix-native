@@ -56,6 +56,58 @@ function expandAnimation(value: string): Array<[string, string]> {
   ];
 }
 
+const FONT_STRETCH_KEYWORDS = new Set([
+  "ultra-condensed", "extra-condensed", "condensed", "semi-condensed",
+  "semi-expanded", "expanded", "extra-expanded", "ultra-expanded",
+]);
+const FONT_SYSTEM_KEYWORDS = new Set(["caption", "icon", "menu", "message-box", "small-caption", "status-bar"]);
+
+/**
+ * `font: [style || variant || weight || stretch]? size[/line-height] family#`.
+ * The first three components are each optional and can appear in any order
+ * (CSS Fonts 4 §9), so this scans tokens until one doesn't match a known
+ * style/weight/stretch keyword - that token must be font-size, exactly as a
+ * browser's own shorthand parser resolves the ambiguity. `normal` resets
+ * whichever of style/variant/weight/stretch it would otherwise set, so it is
+ * simply skipped rather than assigned to one of them.
+ */
+function expandFont(value: string): Array<[string, string]> {
+  const trimmed = value.trim();
+  if (FONT_SYSTEM_KEYWORDS.has(trimmed.toLowerCase())) {
+    fail("css-font-shorthand-unsupported", `font: ${trimmed} (a system UI font keyword) is not supported - set font-family/font-size explicitly`);
+  }
+  const tokens = splitTopLevel(trimmed, " ");
+  let style: string | undefined;
+  let weight: string | undefined;
+  let stretch: string | undefined;
+  let index = 0;
+  while (index < tokens.length) {
+    const token = tokens[index]!;
+    const lower = token.toLowerCase();
+    if (lower === "normal") { index += 1; continue; }
+    if (lower === "italic" || lower === "oblique") { style = token; index += 1; continue; }
+    if (lower === "small-caps") fail("css-font-shorthand-unsupported", `font shorthand: font-variant is not supported: ${value}`);
+    if (lower === "bold" || lower === "bolder" || lower === "lighter" || /^[1-9]00$/.test(token)) { weight = token; index += 1; continue; }
+    if (FONT_STRETCH_KEYWORDS.has(lower)) { stretch = token; index += 1; continue; }
+    break;
+  }
+  const rest = tokens.slice(index).join(" ").replace(/\s*\/\s*/, "/");
+  const spaceIndex = rest.indexOf(" ");
+  if (!rest || spaceIndex === -1) fail("css-font-shorthand-invalid", `font shorthand needs a font-size and a font-family: ${value}`);
+  const [size, lineHeight] = rest.slice(0, spaceIndex).split("/");
+  const family = rest.slice(spaceIndex + 1).trim();
+  if (!size || !family) fail("css-font-shorthand-invalid", `font shorthand needs a font-size and a font-family: ${value}`);
+  return [
+    ["font", value],
+    ...(style ? [["font-style", style] as [string, string]] : []),
+    ...(weight ? [["font-weight", weight] as [string, string]] : []),
+    ...(stretch ? [["font-stretch", stretch] as [string, string]] : []),
+    ["font-size", size],
+    ...(lineHeight ? [["line-height", lineHeight] as [string, string]] : []),
+    ["font-family", family],
+  ];
+}
+
 const BACKGROUND_REPEATS = new Set(["repeat", "repeat-x", "repeat-y", "no-repeat"]);
 const BACKGROUND_BOXES = new Set(["border-box", "padding-box", "content-box"]);
 
@@ -175,6 +227,7 @@ function expandBackground(value: string): Array<[string, string]> {
 export function expandShorthand(property: string, value: string): Array<[string, string]> {
   if (property === "animation") return expandAnimation(value);
   if (property === "background") return expandBackground(value);
+  if (property === "font") return expandFont(value);
   if (property === "gap") {
     const values = splitTopLevel(value, " ");
     if (values.length < 1 || values.length > 2) fail("css-gap-shorthand-invalid", "gap expects one or two values");

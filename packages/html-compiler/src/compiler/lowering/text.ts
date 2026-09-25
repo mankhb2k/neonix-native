@@ -34,6 +34,24 @@ export type CollectedTextContentWithStyles = CollectedTextContent & {
   styleRuns: TextStyleRun[];
 };
 
+const TEXT_TRANSFORMS = new Set(["none", "uppercase", "lowercase", "capitalize"]);
+
+/**
+ * CSS `text-transform`, applied to the visible characters of one text run
+ * before it reaches shaping/layout - matching a browser, which transforms
+ * the rendered glyphs, not the underlying DOM text. `capitalize` uppercases
+ * the first code point of each whitespace-delimited word; CSS's full
+ * Unicode word-segmentation rules are not replicated here.
+ */
+function applyTextTransform(text: string, value: string | undefined): string {
+  const transform = (value ?? "none").trim().toLowerCase();
+  if (!TEXT_TRANSFORMS.has(transform)) fail("css-text-transform-unsupported", `Unsupported text-transform: ${transform}`);
+  if (transform === "uppercase") return text.toUpperCase();
+  if (transform === "lowercase") return text.toLowerCase();
+  if (transform === "capitalize") return text.replace(/\S+/gu, (word) => word.charAt(0).toUpperCase() + word.slice(1));
+  return text;
+}
+
 function sameStyle(left: Style, right: Style): boolean {
   if (left.size !== right.size) return false;
   for (const [property, value] of left) if (right.get(property) !== value) return false;
@@ -113,7 +131,7 @@ export function collectTextContentWithStyles(node: Node, styles: ReadonlyMap<Nod
     const style = styles.get(current) ?? inheritedStyle;
     for (const part of current.content) {
       if (typeof part === "string") {
-        const normalized = part.normalize("NFC");
+        const normalized = applyTextTransform(part.normalize("NFC"), style.get("text-transform"));
         const start = result.text.length;
         result.text += normalized;
         appendStyleRun(result.styleRuns, start, result.text.length, style);
