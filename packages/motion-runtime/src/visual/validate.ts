@@ -331,7 +331,7 @@ export function validateVisualRuntimeProject(
       if ([node.content.width, node.content.height, node.content.contentWidth, node.content.contentHeight, node.content.contentOffsetX, node.content.contentOffsetY].some((value) => value !== undefined && (!Number.isFinite(value) || value < 0))) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_content_box", message: "Runtime V2 text content-box metrics are invalid", nodeId: node.id });
       }
-      if (!["none", "word", "character"].includes(node.content.wrap) || !["visible", "clip"].includes(node.content.overflow) || !["ltr", "rtl"].includes(node.content.direction)) {
+      if (!["none", "word", "character", "word-break-long"].includes(node.content.wrap) || !["visible", "clip"].includes(node.content.overflow) || !["ltr", "rtl"].includes(node.content.direction)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_layout_contract", message: "Runtime V2 text layout contract is invalid", nodeId: node.id });
       }
       if (node.content.textOverflow && !["clip", "ellipsis"].includes(node.content.textOverflow)) {

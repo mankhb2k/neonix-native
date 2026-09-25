@@ -103,6 +103,71 @@ describe("runtime text shaping and materialization", () => {
     expect(content.layout?.glyphs.every((glyph) => glyph.x <= 150)).toBe(true);
   });
 
+  it("breaks at any grapheme cluster boundary under wrap: character (word-break: break-all)", async () => {
+    const bytes = await readFile(notoSansPath);
+    const longWord = "Supercalifragilisticexpialidocious";
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: longWord, width: 150, contentWidth: 150, wrap: "character" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout!.lines.length).toBeGreaterThan(1);
+    expect(content.layout!.lines.every((line) => line.advanceWidth <= 150)).toBe(true);
+  });
+
+  it("keeps plain wrap: word overflowing an unbreakable long word (the regression case break-word/break-all must not affect)", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hi there Supercalifragilisticexpialidocious end", width: 150, contentWidth: 150, wrap: "word" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout!.lines.some((line) => line.advanceWidth > 150)).toBe(true);
+  });
+
+  it("wraps normally but breaks only the one overlong word under wrap: word-break-long (overflow-wrap: break-word)", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hi there Supercalifragilisticexpialidocious end", width: 150, contentWidth: 150, wrap: "word-break-long" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout!.lines.length).toBeGreaterThan(1);
+    expect(content.layout!.lines.every((line) => line.advanceWidth <= 150)).toBe(true);
+  });
+
+  it("behaves exactly like normal word-wrap under wrap: word-break-long when no single word is overlong", async () => {
+    const bytes = await readFile(notoSansPath);
+    const text = "Hi there my friend how are you today";
+    const asWord = await prepareVisualRuntimeProjectText(
+      project(textContent({ text, width: 150, contentWidth: 150, wrap: "word" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const asBreakLong = await prepareVisualRuntimeProjectText(
+      project(textContent({ text, width: 150, contentWidth: 150, wrap: "word-break-long" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const wordContent = asWord.project.nodes[0]!.content;
+    const breakLongContent = asBreakLong.project.nodes[0]!.content;
+    expect(wordContent.kind).toBe("text");
+    expect(breakLongContent.kind).toBe("text");
+    if (wordContent.kind !== "text" || breakLongContent.kind !== "text") return;
+    expect(breakLongContent.layout!.lines.map((line) => Math.round(line.advanceWidth * 100))).toEqual(
+      wordContent.layout!.lines.map((line) => Math.round(line.advanceWidth * 100)),
+    );
+  });
+
   it("offsets only the first line's glyphs by text-indent, not later wrapped lines", async () => {
     const bytes = await readFile(notoSansPath);
     const baseline = await prepareVisualRuntimeProjectText(

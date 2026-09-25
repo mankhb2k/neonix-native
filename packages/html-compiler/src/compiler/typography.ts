@@ -85,6 +85,20 @@ export function wrapForWhiteSpace(value: HtmlCompilerWhiteSpace): "none" | "word
   return value === "nowrap" || value === "pre" ? "none" : "word";
 }
 
+/** CSS word-break: only `normal`/`break-all` are supported (`keep-all`, which only affects CJK line breaking, is not). */
+export function parseWordBreak(value: string | undefined): "normal" | "break-all" {
+  const normalized = (value ?? "normal").trim().toLowerCase();
+  if (normalized === "normal" || normalized === "break-all") return normalized;
+  return fail("css-word-break-unsupported", `word-break must be normal or break-all: ${value}`);
+}
+
+/** CSS overflow-wrap/word-wrap (word-wrap is the legacy alias, still very common in hand-written CSS): only `normal`/`break-word` are supported (`anywhere`, which also changes min-content sizing, is not). */
+export function parseOverflowWrap(value: string | undefined): "normal" | "break-word" {
+  const normalized = (value ?? "normal").trim().toLowerCase();
+  if (normalized === "normal" || normalized === "break-word") return normalized;
+  return fail("css-overflow-wrap-unsupported", `overflow-wrap must be normal or break-word: ${value}`);
+}
+
 /**
  * `-webkit-line-clamp: N` only takes effect paired with `-webkit-box-orient:
  * vertical` (the legacy flexbox-based clamp syntax this authoring surface

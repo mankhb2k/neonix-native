@@ -115,7 +115,7 @@ export type PaintCommand =
       verticalAlign?: "top" | "middle" | "bottom";
       direction?: "ltr" | "rtl";
       language?: string;
-      wrap?: "none" | "word" | "character";
+      wrap?: "none" | "word" | "character" | "word-break-long";
       lineHeight?: number;
       letterSpacing?: number;
       maxLines?: number;

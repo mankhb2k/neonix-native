@@ -208,6 +208,91 @@ function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: 
   return advance;
 }
 
+/** CSS word-break: break-all - wraps at any grapheme cluster boundary, ignoring word/space boundaries entirely. */
+function wrapLineByClusters(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], line: SourceLine, paragraphIndex: number, wrapWidthFor: (paragraphIndex: number, subLineIndex: number) => number): SourceLine[] {
+  const clusters = segmentClusters(line.text);
+  const wrapped: SourceLine[] = [];
+  let current = "";
+  let currentStart = line.start;
+  for (const cluster of clusters) {
+    const candidate = current + cluster.text;
+    if (current && measureSourceLine(hb, text, fonts, candidate) > wrapWidthFor(paragraphIndex, wrapped.length)) {
+      wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
+      current = cluster.text;
+      currentStart = line.start + cluster.start;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) wrapped.push({ text: current, start: currentStart, isLastInParagraph: line.isLastInParagraph });
+  return wrapped.length
+    ? wrapped.map((wrappedLine, index) => ({ ...wrappedLine, isLastInParagraph: index === wrapped.length - 1 && line.isLastInParagraph }))
+    : [line];
+}
+
+/** Breaks one overlong word at grapheme cluster boundaries so each chunk fits `width`; used only when the word alone doesn't fit an empty line. */
+function breakLongWordByClusters(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], word: string, wordStart: number, width: number): SourceLine[] {
+  const clusters = segmentClusters(word);
+  const chunks: SourceLine[] = [];
+  let current = "";
+  let currentStart = wordStart;
+  for (const cluster of clusters) {
+    const candidate = current + cluster.text;
+    if (current && measureSourceLine(hb, text, fonts, candidate) > width) {
+      chunks.push({ text: current, start: currentStart, isLastInParagraph: false });
+      current = cluster.text;
+      currentStart = wordStart + cluster.start;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) chunks.push({ text: current, start: currentStart, isLastInParagraph: false });
+  return chunks;
+}
+
+/**
+ * CSS overflow-wrap/word-wrap: break-word - wraps at word boundaries like
+ * normal word-wrap, but a single word that still doesn't fit alone on an
+ * empty line gets broken at grapheme cluster boundaries instead of
+ * overflowing. Only handles the white-space: normal case (not the
+ * pre-wrap/break-spaces token-preserving path) - the common pairing in
+ * practice, and the one CSS itself calls out as needing this fallback.
+ */
+function wrapLineByWordsBreakingLong(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], line: SourceLine, paragraphIndex: number, wrapWidthFor: (paragraphIndex: number, subLineIndex: number) => number): SourceLine[] {
+  const words = [...line.text.matchAll(/\S+(?:\s+|$)/g)];
+  const wrapped: SourceLine[] = [];
+  let current = "";
+  let currentStart = line.start;
+  for (const match of words) {
+    const word = match[0]!.trim();
+    if (!word) continue;
+    const wordStart = line.start + (match.index ?? 0);
+    const candidate = current ? `${current} ${word}` : word;
+    if (current && measureSourceLine(hb, text, fonts, candidate) > wrapWidthFor(paragraphIndex, wrapped.length)) {
+      wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
+      current = "";
+      currentStart = wordStart;
+    }
+    const freshWidth = wrapWidthFor(paragraphIndex, wrapped.length);
+    if (!current && measureSourceLine(hb, text, fonts, word) > freshWidth) {
+      const chunks = breakLongWordByClusters(hb, text, fonts, word, wordStart, freshWidth);
+      if (chunks.length > 1) {
+        wrapped.push(...chunks.slice(0, -1));
+        const last = chunks[chunks.length - 1]!;
+        current = last.text;
+        currentStart = last.start;
+        continue;
+      }
+    }
+    if (!current) currentStart = wordStart;
+    current = current ? `${current} ${word}` : word;
+  }
+  if (current) wrapped.push({ text: current, start: currentStart, isLastInParagraph: line.isLastInParagraph });
+  return wrapped.length
+    ? wrapped.map((wrappedLine, index) => ({ ...wrappedLine, isLastInParagraph: index === wrapped.length - 1 && line.isLastInParagraph }))
+    : [line];
+}
+
 function ellipsizeSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], line: SourceLine, contentWidth: number): SourceLine {
   const ellipsis = "…";
   if (measureSourceLine(hb, text, fonts, line.text, line.start) <= contentWidth) return line;
@@ -238,8 +323,11 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
   // wrapped sub-line, never a later hard-break paragraph's first line.
   const textIndent = text.textIndent ?? 0;
   const wrapWidthFor = (paragraphIndex: number, subLineIndex: number) => paragraphIndex === 0 && subLineIndex === 0 ? Math.max(0, contentWidth - textIndent) : contentWidth;
-  let lines = text.wrap !== "word" || contentWidth <= 0 ? explicitLines : explicitLines.flatMap((line, paragraphIndex) => {
+  const wrapsAtAll = text.wrap === "word" || text.wrap === "character" || text.wrap === "word-break-long";
+  let lines = !wrapsAtAll || contentWidth <= 0 ? explicitLines : explicitLines.flatMap((line, paragraphIndex) => {
     if (!line.text.trim()) return [line];
+    if (text.wrap === "character") return wrapLineByClusters(hb, text, fonts, line, paragraphIndex, wrapWidthFor);
+    if (text.wrap === "word-break-long") return wrapLineByWordsBreakingLong(hb, text, fonts, line, paragraphIndex, wrapWidthFor);
     if (text.whiteSpace === "pre-wrap" || text.whiteSpace === "break-spaces") {
       const tokens = [...line.text.matchAll(/\S+|\s+/g)];
       const wrapped: SourceLine[] = [];
@@ -736,7 +824,7 @@ export async function measureVisualRuntimeTextIntrinsicWidths(
   };
 
   const maxContent = widthAtContentWidth(Number.POSITIVE_INFINITY);
-  const minContent = text.wrap === "word" ? widthAtContentWidth(Number.MIN_VALUE) : maxContent;
+  const minContent = (text.wrap === "word" || text.wrap === "character" || text.wrap === "word-break-long") ? widthAtContentWidth(Number.MIN_VALUE) : maxContent;
   return { minContent, maxContent };
 }
 

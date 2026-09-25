@@ -93,8 +93,14 @@ export const V2TextLayoutSchema = z
     hardBreaks: z.array(V2NonNegativeNumberSchema.int()).min(1).optional(),
     textAlign: z.enum(["left", "right", "center", "start", "end", "justify", "match-parent", "justify-all"]),
     whiteSpace: z.enum(["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"]),
-    /** Normalized line breaking policy after white-space resolution. */
-    wrap: z.enum(["none", "word", "character"]),
+    /**
+     * Normalized line breaking policy after white-space resolution.
+     * `word-break-long` is CSS overflow-wrap/word-wrap: break-word - wraps at
+     * word boundaries like `word`, but also breaks a single word that still
+     * doesn't fit alone on an empty line. `character` is CSS word-break:
+     * break-all - breaks anywhere, ignoring word boundaries entirely.
+     */
+    wrap: z.enum(["none", "word", "character", "word-break-long"]),
     textOverflow: z.enum(["clip", "ellipsis"]),
     maxLines: V2NonNegativeNumberSchema.int().positive().optional(),
     /** CSS text-indent: offsets the first line only (negative allowed, for hanging-indent authoring). */

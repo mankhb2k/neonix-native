@@ -254,7 +254,8 @@ export type VisualRuntimeText = {
   /** UTF-16 offsets at which authored hard line breaks begin. */
   hardBreaks?: number[];
   verticalAlign: "top" | "middle" | "bottom";
-  wrap: "none" | "word" | "character";
+  /** `word-break-long` is overflow-wrap/word-wrap: break-word; `character` is word-break: break-all. */
+  wrap: "none" | "word" | "character" | "word-break-long";
   overflow: "visible" | "clip";
   textOverflow?: "clip" | "ellipsis";
   maxLines?: number;

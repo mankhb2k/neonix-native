@@ -29,7 +29,7 @@ export type PaintTextResource = {
   fontWeight?: number;
   align?: "left" | "center" | "right";
   fontAssetId?: string;
-  wrap?: "none" | "word" | "character";
+  wrap?: "none" | "word" | "character" | "word-break-long";
   lineHeight?: number;
   letterSpacing?: number;
   maxLines?: number;

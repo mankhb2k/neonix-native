@@ -21,6 +21,7 @@ import { svgPrimitivePath } from "../lowering/svg";
 import {
   parseLineClamp,
   parseLineHeight,
+  parseOverflowWrap,
   parseSmallCaps,
   parseTextAlign,
   parseTextDecoration,
@@ -30,6 +31,7 @@ import {
   parseTextRendering,
   parseTextSpacing,
   parseWhiteSpace,
+  parseWordBreak,
   parseWritingMode,
   resolveFontAssets,
   wrapForWhiteSpace,
@@ -161,11 +163,21 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
     const writingMode = parseWritingMode(style.get("writing-mode"));
     const whiteSpace = parseWhiteSpace(style.get("white-space"));
     const lineClamp = parseLineClamp(style);
+    const wordBreak = parseWordBreak(style.get("word-break"));
+    const overflowWrap = parseOverflowWrap(style.get("overflow-wrap") ?? style.get("word-wrap"));
     // -webkit-line-clamp always wraps (it clips *wrapped* lines past N),
     // regardless of what white-space says, and always truncates with an
     // ellipsis - real stylesheets rarely repeat text-overflow: ellipsis
     // alongside it since browsers apply it implicitly for the clamp.
-    const wrap = lineClamp !== undefined ? "word" as const : wrapForWhiteSpace(whiteSpace);
+    const baseWrap = lineClamp !== undefined ? "word" as const : wrapForWhiteSpace(whiteSpace);
+    // word-break/overflow-wrap only matter once something is already
+    // wrapping (white-space: nowrap/pre disables wrapping outright, and
+    // that takes priority); word-break: break-all wins over overflow-wrap:
+    // break-word when both are set, matching real CSS's cascade order.
+    const wrap = baseWrap !== "word" ? baseWrap
+      : wordBreak === "break-all" ? "character" as const
+      : overflowWrap === "break-word" ? "word-break-long" as const
+      : "word" as const;
     const textOverflow = lineClamp !== undefined ? "ellipsis" as const : parseTextOverflow(style.get("text-overflow"));
     const hasWidth = style.get("width") !== undefined && style.get("width")!.trim().toLowerCase() !== "auto";
     const hasHeight = style.get("height") !== undefined && style.get("height")!.trim().toLowerCase() !== "auto";
