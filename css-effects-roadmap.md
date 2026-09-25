@@ -110,14 +110,31 @@ xác nhận paint/gradient/box sạch trước khi sang grid, có test trong
 **Layout ở Cấp 1 → 1.0 đã hết gap đã biết** — không còn mục nào trong danh
 sách "chưa sửa" của Layout.
 
-**Còn lại, chưa sửa** (Text, tần suất thấp hơn 2 mục đã sửa):
+**Đã sửa** (commit `3a0172c7`, có test `test/line-clamp.test.ts`):
+- **`-webkit-line-clamp`** — cắt text N dòng kèm ellipsis, hay dùng cho
+  caption/mô tả trong lower-third. Đa số hạ tầng runtime đã có sẵn
+  (`maxLines`, ellipsize dòng cuối) — chỉ cần html-compiler route đúng vào
+  path đó. `display: -webkit-box` được chuẩn hoá về `block`;
+  `-webkit-box-orient: vertical` mới thật sự kích hoạt clamp.
+
+**Đã sửa** (commit `ee8255df`, có test `test/text-indent-variant.test.ts` +
+test runtime thật trong `motion-runtime/src/visual/text-layout.test.ts`):
+- **`text-indent`** — trường mới xuyên suốt cả chain (schema Protocol V2 →
+  motion-compiler → motion-runtime), chỉ dịch dòng đầu tiên của khối
+  (kể cả giá trị âm/hanging-indent), không đụng các dòng wrap sau.
+- **`font-variant: small-caps`** — trường `smallCaps` đã có sẵn trong schema
+  Protocol nhưng chưa ai set/đọc. Runtime yêu cầu OpenType feature `smcp`
+  qua HarfBuzz — an toàn no-op nếu font không hỗ trợ (xác nhận trực tiếp
+  với Inter-400.ttf: glyph id/vị trí giống hệt có/không có request), không
+  làm synthetic fallback (cần shape 2 lần, ngoài phạm vi). `font` shorthand
+  trước đó từ chối `small-caps`, giờ mở rộng đúng thành longhand.
+
+**Còn lại, chưa sửa** (Text, tần suất thấp hơn các mục đã sửa):
 - [ ] `overflow-wrap: break-word` / `word-break: break-all` — cần cho text
       box co giãn với từ dài
 - [ ] `vertical-align` — gap đã biết từ trước, chưa sửa
-- [ ] `-webkit-line-clamp` — cắt text N dòng, hay dùng cho caption/mô tả
 - [ ] `text-decoration-style` khác `solid` (`wavy`/`dotted`/`dashed` underline)
       — chỉ nhận `solid`
-- [ ] `text-indent`, `font-variant` — tần suất thấp hơn, có thể để Cấp 2
 
 **Không cần làm** (đã xác nhận không phù hợp với sản phẩm video/motion,
 không phải gap thật): `position: sticky` (không có khái niệm scroll),
@@ -125,8 +142,10 @@ không phải gap thật): `position: sticky` (không có khái niệm scroll),
 
 **Trạng thái**: 2/2 gap text tần suất cao nhất đã xong. Layout đã xong hết
 gap đã biết (`grid-template-areas`, `flex-direction` reverse,
-`grid-auto-flow`). Còn 5 gap text tần suất thấp hơn. Box model không cần
-làm gì thêm ở Cấp 1.
+`grid-auto-flow`). `-webkit-line-clamp`, `text-indent`, `font-variant:
+small-caps` đã xong. Còn 3 gap text (`overflow-wrap`/`word-break`,
+`vertical-align`, `text-decoration-style`). Box model không cần làm gì
+thêm ở Cấp 1.
 
 ### 1.1 Audit toàn bộ tổ hợp "box-shadow + hiệu ứng khác" cùng phần tử — XONG
 
@@ -287,10 +306,10 @@ còn thiếu.
   từ chối) — cả 2 đã sửa, commit `e1fa6d0a`/`50f36562`.
 - Paint/gradient: sạch, xác nhận lại qua cùng đợt sweep.
 - Text: 6/15 → 8/15 (2/2 gap tần suất cao nhất: `font` shorthand,
-  `text-transform`, đã xong, commit `fdcaa167`). Còn 5 gap tần suất thấp
-  hơn chưa sửa (`overflow-wrap`/`word-break`, `vertical-align`,
-  `-webkit-line-clamp`, `text-decoration-style` khác `solid`,
-  `text-indent`/`font-variant`).
+  `text-transform`, đã xong, commit `fdcaa167`). `-webkit-line-clamp`
+  (commit `3a0172c7`), `text-indent` + `font-variant: small-caps` (commit
+  `ee8255df`) cũng đã xong. Còn 3 gap: `overflow-wrap`/`word-break`,
+  `vertical-align`, `text-decoration-style` khác `solid`.
 - Layout: `grid-template-areas` + `grid-area` (commit `adc9f4e2`),
   `flex-direction` reverse (commit `20357004`), `grid-auto-flow` (commit
   `0374fd4d`) đều đã xong. Hết gap layout đã biết ở 1.0.
@@ -309,9 +328,9 @@ mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
 1. ~~`flex-direction` reverse + `grid-auto-flow` (layout, còn lại của
    1.0)~~ — XONG.
 2. ~~1.3 (khoá test cho hiệu ứng an toàn)~~ — XONG.
-3. `overflow-wrap`/`word-break`, `vertical-align`, `-webkit-line-clamp`,
-   `text-decoration-style`, `text-indent`/`font-variant` (5 gap text còn
-   lại — mục tiếp theo)
+3. ~~`-webkit-line-clamp`, `text-indent`, `font-variant: small-caps`~~ —
+   XONG. Còn `overflow-wrap`/`word-break`, `vertical-align`,
+   `text-decoration-style` (mục tiếp theo).
 4. Quay lại 1.2 + 1.2b (case mix box-shadow) sau khi 1.0 xong hoàn toàn.
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
