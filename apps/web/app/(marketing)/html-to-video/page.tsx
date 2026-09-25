@@ -69,10 +69,24 @@ const REMOTION_COMPARISON_ROWS: readonly ComparisonRow[] = [
       "A native CPU/GPU pipeline with an explicit color space — the same document renders identically on every platform",
   },
   {
+    aspect: "Rendering speed",
+    remotion:
+      "Community benchmarks report full renders taking 2–4x the video's own length even on 8 vCPU, with CPU utilization that doesn't scale reliably as more cores are added",
+    neonix:
+      "A 1920×1080, 60-second video exports in 14 seconds on 4 vCPU / 16GB RAM in Neonix's own benchmark",
+  },
+  {
     aspect: "Authoring",
     remotion: "React components — requires writing code",
     neonix:
       "Plain HTML/CSS, compiled into an editable Neonix JSON V2 document, with a visual editor for people who don't write code",
+  },
+  {
+    aspect: "AI agent integration",
+    remotion:
+      "Remotion's own MCP server is deprecated; the community MCP app still has the AI write React/JSX code and compile it, not plain markup",
+    neonix:
+      "MCP tools accept HTML and CSS directly — the AI agent never writes React, JSX, or rendering code",
   },
   {
     aspect: "Export",
@@ -80,6 +94,21 @@ const REMOTION_COMPARISON_ROWS: readonly ComparisonRow[] = [
       "No built-in rendering service — you deploy and manage your own AWS Lambda or GCP Cloud Run",
     neonix:
       "Renders through Neonix's own hosted cloud API from inside the same editor, billed per second of video — no separate deployment to manage",
+  },
+];
+
+const REMOTION_SOURCES: readonly { label: string; href: string }[] = [
+  {
+    label: "Remotion is too slow to use in production — GitHub issue #4783",
+    href: "https://github.com/remotion-dev/remotion/issues/4783",
+  },
+  {
+    label: "Renderer not utilizing CPU cores even with concurrency 100% — GitHub issue #4300",
+    href: "https://github.com/remotion-dev/remotion/issues/4300",
+  },
+  {
+    label: "Remotion's Model Context Protocol (deprecated) — Remotion docs",
+    href: "https://www.remotion.dev/docs/ai/mcp",
   },
 ];
 
@@ -140,7 +169,12 @@ const FAQ_ITEMS: readonly FaqItem[] = [
   {
     question: "How is Neonix different from Remotion?",
     answer:
-      "Remotion renders video by taking headless Chrome screenshots frame-by-frame and stitching them with ffmpeg, which means writing React components and managing your own AWS Lambda or Cloud Run deployment to render at scale. Neonix compiles plain HTML/CSS into an editable Neonix JSON V2 document and renders it through a native CPU/GPU pipeline with an explicit color space, then exports through a hosted cloud pipeline in one click — no code and no infrastructure required.",
+      "Remotion renders video by taking headless Chrome screenshots frame-by-frame and stitching them with ffmpeg, which means writing React components and managing your own AWS Lambda or Cloud Run deployment to render at scale — and community benchmarks report full renders taking 2-4x the video's own length even on 8 vCPU. Neonix compiles plain HTML/CSS into an editable Neonix JSON V2 document and renders it through a native CPU/GPU pipeline with an explicit color space, exporting a 1920x1080, 60-second video in 14 seconds on 4 vCPU / 16GB RAM in Neonix's own benchmark — through a hosted cloud pipeline in one click, no code and no infrastructure required.",
+  },
+  {
+    question: "Does Remotion work with AI agents the same way Neonix does?",
+    answer:
+      "Not the same way. Remotion's own MCP server is deprecated, and even the community MCP app for Remotion still has the AI agent write React/JSX code and compile it. Neonix's MCP tools — create_project_html and update_project_html — accept plain HTML and CSS directly, so an AI agent like Claude never writes React, JSX, or rendering code.",
   },
 ];
 
@@ -329,7 +363,9 @@ export default function HtmlToVideoPage() {
           <p className="mt-4 max-w-2xl text-[var(--fg-secondary)]">
             Remotion is a code-first framework for rendering video with React.
             Neonix compiles HTML/CSS directly into an editable document and
-            exports it through a native, hosted render pipeline.
+            exports it through a native, hosted render pipeline — a
+            1920×1080, 60-second video exports in 14 seconds on 4 vCPU / 16GB
+            RAM in Neonix's own benchmark.
           </p>
           <div className="mt-10 overflow-hidden rounded-xl border border-[var(--border-strong)]">
             <table className="w-full border-collapse text-left text-sm">
@@ -370,6 +406,20 @@ export default function HtmlToVideoPage() {
               </tbody>
             </table>
           </div>
+          <ul className="mt-4 space-y-1 text-xs text-[var(--fg-muted)]">
+            {REMOTION_SOURCES.map((source) => (
+              <li key={source.href}>
+                <a
+                  href={source.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-[var(--fg-secondary)]"
+                >
+                  {source.label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
