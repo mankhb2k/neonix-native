@@ -1,4 +1,4 @@
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import type { MotionProtocolV2, V2Render3D } from "@motionvideo/motion-protocol/v2";
 import { fail } from "./errors";
 import { calcExpression } from "./values";
 import type { Style } from "./model";
@@ -43,6 +43,71 @@ export function parsePerspectiveContext(style: Style, width: number, height: num
   if (distance <= 0) fail("css-perspective-invalid", "perspective requires a positive length");
   const origin = parseTransformOrigin(style.get("perspective-origin"), width, height, fontSize, viewport);
   return { distance, origin: { x: origin.x, y: origin.y } };
+}
+
+export type NodeTransformState = {
+  parsedTransform: ParsedTransform;
+  perspective: { distance: number; origin: { x: number; y: number } } | undefined;
+  render3d: V2Render3D | undefined;
+  backfaceVisibility: "visible" | "hidden";
+  /**
+   * Folds a given local translate into the parsed CSS transform. A CSS
+   * motion path uses the element's static position as the path's
+   * offset-position, so `includeCssTransform` also controls whether the
+   * static transform.translate is folded in (an ordered `operations` list
+   * instead carries translation itself, so it must not be double-counted).
+   * A paint sub-layer that must not repeat the parent's CSS transform calls
+   * this with `includeCssTransform: false`.
+   */
+  transformFor: (translateX: number, translateY: number, includeCssTransform: boolean) => MotionProtocolV2["layers"][number]["transform"];
+};
+
+/**
+ * Resolves everything transform/3D-rendering-related for one element in a
+ * single call: the parsed `transform` list, whether it establishes or
+ * flattens a preserve-3d context, backface-visibility, and the `transformFor`
+ * closure every emitted layer for this element uses to build its own
+ * `transform` field.
+ */
+export function resolveNodeTransformState(style: Style, width: number, height: number, fontSize: number, viewport: { width: number; height: number }, hasChildren: boolean): NodeTransformState {
+  const parsedTransform = parseTransform(style, width, height, fontSize, viewport);
+  const perspective = parsePerspectiveContext(style, width, height, fontSize, viewport);
+  const transformStyleValue = (style.get("transform-style") ?? "flat").trim().toLowerCase();
+  if (transformStyleValue !== "flat" && transformStyleValue !== "preserve-3d") fail("css-transform-style-unsupported", `Unsupported transform-style value: ${transformStyleValue}`);
+  // CSS grouping properties flatten a 3D rendering context even when the
+  // authored transform-style says preserve-3d. In particular, overflow:hidden
+  // establishes a local clipping/flattening boundary: the element's own
+  // perspective still applies to its direct child, but an ancestor
+  // perspective must not be chained through the flattened subtree. Store the
+  // effective value in Protocol V2 so Runtime/Skia can preserve the browser's
+  // paint order and clip scope.
+  const overflowValue = (style.get("overflow") ?? "visible").trim().toLowerCase();
+  const effectiveTransformStyleValue = overflowValue !== "visible" && overflowValue !== "clip" ? "flat" : transformStyleValue;
+  const render3d = hasChildren && (perspective !== undefined || transformStyleValue === "preserve-3d")
+    ? { transformStyle: effectiveTransformStyleValue as "flat" | "preserve-3d", ...(perspective ? { perspective } : {}) }
+    : undefined;
+  const backfaceVisibilityValue = (style.get("backface-visibility") ?? "visible").trim().toLowerCase();
+  if (backfaceVisibilityValue !== "visible" && backfaceVisibilityValue !== "hidden") fail("css-backface-visibility-unsupported", `Unsupported backface-visibility value: ${backfaceVisibilityValue}`);
+  const backfaceVisibility = backfaceVisibilityValue as "visible" | "hidden";
+  const transformFor = (translateX: number, translateY: number, includeCssTransform: boolean) => {
+    const cssOperations = includeCssTransform ? parsedTransform.operations ?? [] : [];
+    const operations = cssOperations.length ? cssOperations : undefined;
+    const hasOrderedTransform = cssOperations.length > 0;
+    return {
+      // CSS motion paths use the element's static position as the path's
+      // offset-position. Keep left/top in the transform so a path authored
+      // from (0, 0) is translated from that position, matching the browser's
+      // absolute-positioned layout.
+      translate: { x: translateX + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.x : 0), y: translateY + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.y : 0), z: includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.z : 0 },
+      scale: includeCssTransform ? parsedTransform.scale : { x: 1, y: 1, z: 1 },
+      rotate: includeCssTransform ? parsedTransform.rotate : { x: 0, y: 0, z: 0 },
+      skew: includeCssTransform ? parsedTransform.skew : { x: 0, y: 0 },
+      anchor: includeCssTransform ? parsedTransform.anchor : { x: 0, y: 0, z: 0 },
+      ...(operations ? { operations } : {}),
+      ...(includeCssTransform && parsedTransform.extensions ? { extensions: parsedTransform.extensions } : {}),
+    };
+  };
+  return { parsedTransform, perspective, render3d, backfaceVisibility, transformFor };
 }
 
 export function parseTransform(style: Style, width: number, height: number, fontSize: number, viewport: { width: number; height: number }): ParsedTransform {

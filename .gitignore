@@ -18,6 +18,7 @@ coverage
 .vercel
 supabase/.temp
 tmp
+apps/web/scripts/.html-compiler-golden/
 *.exe
 *.mp4
 *.webm
