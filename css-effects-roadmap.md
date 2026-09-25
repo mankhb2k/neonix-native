@@ -210,57 +210,68 @@ canvas + chụp ảnh so sánh có/không có tổ hợp. Không suy đoán từ
 `mix-blend-mode`, transform 3D và `text-shadow` **không** nằm trong class
 bug này — không cần sửa, chỉ cần test khoá lại (chuyển sang mục 1.3).
 
-### 1.2 Box-shadow + filter trên cùng 1 phần tử (Bug A)
-- **Xác nhận qua diagnostic thật**: `replay.ts:903` —
-  `if (command.effectProgram && !effectFilter.supported) addDiagnostic('skia_effect_unsupported:...')`.
-  Diagnostic này bắn ra thật (`renderer_effect_unsupported`) cho mọi biến
-  thể shadow+filter đã test — nghĩa là điểm gãy đầu tiên là
-  `effectFilterFor()` (`effects.ts:384-403`) trả `supported: false` cho
-  chương trình gộp, KHÔNG phải chỉ ở `boxShadowOverlayBranches`
-  (`replay.ts:113-163`) như suy đoán ban đầu. `boxShadowOverlayBranches`
-  vẫn có cùng lỗi cấu trúc (loop giả định toàn bộ ops là chuỗi shadow) và
-  là điểm gãy thứ hai bên trong `drawBoxEffect`, nhưng `effectFilterFor`
-  gãy trước nên request còn chưa tới đó theo đường `sourceOnly` bình
-  thường.
-- **Hiện tại**: cả hai hàm đều được viết theo kiểu "toàn bộ effect-program
-  phải khớp đúng pattern shadow (hoặc pattern filter thuần) từ đầu đến
-  cuối". CSS hợp lệ ghép [chuỗi ops shadow] + [1 op filter đứng sau, input
-  = output của shadow cuối — đúng theo spec: filter áp lên toàn bộ kết quả
-  đã có shadow] không khớp bất kỳ pattern nào cả hai hàm biết, nên cả hai
-  đều kết luận "không hỗ trợ" / `return null`. Owner render không shadow,
-  không filter.
-- **Cần làm**: cả `effectFilterFor` (effects.ts) và `boxShadowOverlayBranches`
-  (replay.ts) cần nhận diện được "N nhánh shadow ở đầu + phần ops còn lại
-  là 1 filter chain hợp lệ ở cuối", thay vì yêu cầu khớp toàn bộ. Vẽ owner +
-  mọi nhánh box-shadow vào 1 surface offscreen trước, rồi áp phần ops còn
-  lại (blur/color-adjust/...) như 1 ImageFilter cuối khi composite surface
-  đó vào canvas chính.
-- **Test cần có** (thêm vào `effects.test.ts`, theo đúng style
-  `"supports ordered box-shadow lists containing inner and outer branches"`
-  đã có): 1 box-shadow + blur() cho ra đúng cấu trúc composite+filter; xác
-  nhận `boxShadowOverlayBranches`/hàm thay thế nó parse được phần shadow
-  ngay cả khi có op filter theo sau.
-- **Trạng thái**: root-cause xong, chưa sửa.
+### 1.2 Box-shadow + filter trên cùng 1 phần tử (Bug A) — ĐÃ SỬA
+- **Root cause xác nhận**: `effectFilterFor()` (effects.ts) và
+  `boxShadowOverlayBranches()` (replay.ts) đều yêu cầu TOÀN BỘ
+  effect-program phải khớp đúng pattern shadow thuần hoặc pattern filter
+  thuần "từ đầu đến cuối". `box-shadow: ...; filter: blur(...);` lower
+  thành `[shadow block(s)][filter ops nối tiếp vào output composite cuối
+  của shadow]` — hình dạng không khớp pattern nào, rơi vào default
+  `{supported: false}`, bắn `skia_effect_unsupported`, cả 2 hiệu ứng biến
+  mất im lặng.
+- **Đã sửa**: `splitLeadingBoxShadowThenFilter()` (effects.ts) parse phần
+  shadow đầu (tái dùng đúng shape block mà `boxShadowBranches` đã nhận
+  diện), phần còn lại phải là 1 chuỗi linear filter hợp lệ nối từ output
+  cuối của shadow. `EffectFilterResult` thêm field `tailFilter` — `filter`
+  vẫn là activation token sourceOnly như box-shadow thường (pixel thật vẽ
+  qua `drawBoxEffect`), `tailFilter` là filter CSS thật áp lên toàn bộ
+  layer (owner + mọi halo) khi saveLayer restore.
+  `boxShadowOverlayBranches` (replay.ts) đổi từ "gặp op lạ thì null hết"
+  sang "dừng lại, trả về phần đã parse được" — nó chỉ cần phần shadow đầu
+  để vẽ halo, op filter theo sau giờ là điều bình thường chứ không phải lỗi.
+- **Verify bằng dữ liệu thật**: chạy qua pipeline html-compiler →
+  motion-compiler → replay thật, xác nhận 0 diagnostic, halo THẬT SỰ được
+  vẽ (không chỉ "được nhận diện là hỗ trợ"), filter áp đúng lên cả layer.
+  Test non-vacuous được xác nhận bằng cách tạm revert fix và thấy test fail
+  đúng như kỳ vọng. Commit `b75dce8f`.
+- **Còn thiếu (ghi nhận, chưa làm)**: `export-renderer`'s native C++ CPU
+  backend (`skia_command_cpu_backend.cpp`) có pattern matcher song song
+  cùng giới hạn — fix này chỉ áp dụng cho đường browser preview
+  (canvaskit-preview), chưa đụng tới native export.
 
-### 1.2b Box-shadow + backdrop-filter trên cùng 1 phần tử (Bug B — im lặng, không có diagnostic)
-- **Xác nhận qua ảnh chụp thật**: cùng 1 phần tử, `box-shadow` một mình
-  glow hiển thị rõ (ảnh `bd-a-shadow-only-opaque`); thêm
-  `backdrop-filter: blur(12px)` vào (`bd-c-shadow+backdrop-opaque-bg`) →
-  glow biến mất hoàn toàn, cạnh sắc — **và không có bất kỳ diagnostic nào
-  được bắn ra** (`data-diagnostics` chỉ có `renderer_backend_selected`).
-  Nguy hiểm hơn Bug A vì không có tín hiệu nào để biết đang render sai.
-- **Nghi vấn root-cause** (chưa đọc code xác nhận, chỉ là giả thuyết từ
-  hành vi quan sát được): `backdropEffectProgram` và `effectProgram` là 2
-  field tách biệt trên `beginLayer`, nhưng đường `shouldSaveLayer`/
-  `saveBounds` (`replay.ts:908-974`) tính bounds cho saveLayer dựa trên
-  `backdropEffectFilter`/`contentBounds` — có khả năng bounds đó được tính
-  hẹp theo backdrop-filter (chỉ đủ cho nội dung + padding blur backdrop)
-  và cắt mất phần mở rộng mà box-shadow's halo cần, hoặc box-shadow bị bỏ
-  qua hoàn toàn khi nhánh backdrop chiếm quyền merge boxEffect. Cần đọc kỹ
-  `replay.ts:908-980` trước khi sửa 1.2 để xác nhận, vì cùng khu vực code.
-- **Trạng thái**: quan sát được bằng ảnh, CHƯA root-cause bằng code. Nên
-  root-cause + sửa cùng đợt với 1.2 (khu vực code chung `beginLayer`/
-  `drawBoxEffect`), không tách rời để tránh sửa 2 lần vào cùng 1 hàm.
+### 1.2b Box-shadow + backdrop-filter trên cùng 1 phần tử (Bug B — im lặng, không có diagnostic) — ĐÃ SỬA
+- **Root cause xác nhận bằng code** (trước đó chỉ quan sát bằng ảnh):
+  clip (`canvas.clipRect`/`clipPath`) mà backdrop-filter cài TRƯỚC
+  `saveLayer` vẫn còn hiệu lực cho TOÀN BỘ scope saveLayer đó, chỉ pop SAU
+  khi layer restore. Halo box-shadow — dù vẽ theo cách nào (filter
+  DropShadow áp thẳng lên paint của saveLayer, hay qua
+  `drawBoxEffect`'s isolated-mask compositor ở endLayer) — composite
+  trong lúc clip vẫn đang active, bị cắt sát mép owner, không bắn
+  diagnostic nào cả. Skia clip chỉ có thể THU HẸP trong 1 scope
+  save/restore, không có cách "bỏ clip" giữa chừng.
+- **Đã sửa**: vẽ halo box-shadow TRƯỚC KHI clip của backdrop tồn tại,
+  thay vì đúng lúc endLayer như bình thường. Vị trí halo chỉ phụ thuộc
+  `effectBox.matrix4` riêng (áp qua `canvas.concat` tường minh, không dựa
+  transform ambient), nên gọi sớm hơn (ngay sau khi tạo `layer` object ở
+  `beginLayer`) cho hình học giống hệt — chỉ khác trạng thái clip xung
+  quanh, đúng là điều cần khác. `endLayer` bỏ qua vẽ lại nhờ flag mới
+  `boxEffectDrawnEarly`.
+  Fix áp dụng cho CẢ 2 đường: `boxEffectActive` giờ cũng đúng cho 1
+  box-shadow ĐƠN (không phải list/inset) khi có backdrop-filter cùng layer
+  — trước đó chỉ box-shadow list/inset (sourceOnly) mới đi qua
+  `drawBoxEffect`; box-shadow đơn áp filter DropShadow thẳng lên paint của
+  saveLayer, dính đúng lỗi clip y hệt nhưng cần phát hiện riêng (không có
+  cờ `sourceOnly`). Phát hiện qua `boxShadowOverlayBranches` (cùng parser
+  `drawBoxEffect` dùng, đã được nới lỏng ở fix 1.2).
+- **Verify bằng dữ liệu thật**: chạy qua pipeline thật, xác nhận halo vẽ
+  TRƯỚC cả `clipRect` lẫn `clipPath` (rounded corner), cho cả box-shadow
+  đơn lẫn list. box-shadow riêng / backdrop-filter riêng không bị ảnh
+  hưởng. Cả 2 test mới verify non-vacuous bằng cách tạm tắt từng phần fix
+  và xác nhận test fail đúng như kỳ vọng. Commit `1801fafd`.
+- **Gap còn lại (ghi nhận)**: box-shadow + backdrop-filter + filter CÙNG
+  lúc trên 1 phần tử — filter sẽ áp đúng lên owner+backdrop nhưng KHÔNG áp
+  lên halo đã vẽ sớm (nằm ngoài saveLayer sau đó filter được cài vào). Tổ
+  hợp 3 hiệu ứng cùng lúc hiếm gặp, chưa xử lý.
 
 ### 1.3 Khoá lại các hiệu ứng ĐƠN/tổ hợp AN TOÀN bằng test, việc nào chưa có test bền vững thì bổ sung
 Các hiệu ứng sau đã xác nhận render đúng (qua battery 58 case hôm trước +
@@ -359,21 +370,27 @@ sạch, không còn gap nào đã biết).
 shadow+filter, có diagnostic; 1.2b: shadow+backdrop-filter, im lặng không
 diagnostic) và 3 tổ hợp an toàn (blend-mode, transform 3D, text-shadow).
 
+**1.2 + 1.2b xong** — cả 2 bug đã root-cause bằng code thật (không phải
+suy đoán) và sửa, xem chi tiết ở mục 1.2/1.2b phía trên. Commit
+`b75dce8f` (1.2), `1801fafd` (1.2b).
+
 **1.3 (khoá lại hiệu ứng an toàn bằng test) xong** — cả 6 mục đều có test
 draw-call thật, commit `f1680805`/`522b29e7`. Trong lúc làm phát hiện 2
 dòng "đã có, đủ" ghi trước đó (saturate(), opacity animation) thực ra SAI —
 đã sửa lại trong doc lẫn viết test bù, xem chi tiết ở mục 1.3 phía trên.
 
-**Thứ tự tiếp theo** (đúng nguyên tắc "case cơ bản đủ điều kiện trước case
-mix" — 1.2/1.2b tạm giữ nguyên, chưa động vào):
+**Thứ tự tiếp theo**:
 1. ~~`flex-direction` reverse + `grid-auto-flow` (layout, còn lại của
    1.0)~~ — XONG.
 2. ~~1.3 (khoá test cho hiệu ứng an toàn)~~ — XONG.
 3. ~~`-webkit-line-clamp`, `text-indent`, `font-variant: small-caps`,
    `overflow-wrap`/`word-break`, `vertical-align`,
    `text-decoration-style`~~ — XONG. **1.0 đã xong hoàn toàn.**
-4. Quay lại 1.2 + 1.2b (case mix box-shadow — root-cause đã xác định ở mục
-   1.2 phía trên nhưng chưa sửa) — mục tiếp theo, đúng thứ tự đã định từ
-   đầu ("case cơ bản đủ điều kiện trước case mix").
+4. ~~Quay lại 1.2 + 1.2b (case mix box-shadow)~~ — XONG.
+5. **Chưa có mục tiếp theo được chỉ định** — toàn bộ Cấp 1 (1.0, 1.1, 1.2,
+   1.2b, 1.3) giờ đã xong. Việc còn lại đã biết: fixture thực tế cho các
+   mục đã fix trong playground `/playground/native-stage` (đang làm, xem
+   yêu cầu gần nhất), Cấp 2/3 (xem phần tương ứng phía trên, chưa ưu tiên),
+   native export parity cho fix 1.2 (ghi ở mục 1.2 phía trên).
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
