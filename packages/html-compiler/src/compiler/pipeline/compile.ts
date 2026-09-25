@@ -25,8 +25,7 @@ import { resolveGridLayout } from "../grid";
 import { mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "../lowering/media";
 import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages, type BackgroundBox, type BackgroundImage } from "../background";
 import { parseFilter } from "../filter";
-import { resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
-import { parseClipPath, type ClipReferenceBoxes } from "../clip";
+import { resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
 import { parseLineHeight, parseWhiteSpace } from "../css/typography";
 import { splitTopLevel } from "../utils";
 import { animationTimelineDuration, resolveNodeAnimationTracks } from "../css/animation";
@@ -39,7 +38,7 @@ import { createAssetRegistry } from "../lowering/assets";
 import { parseNeonixDocument, isCompileError } from "../document";
 import { borderBand, borderRegion, circlePolygon, clipConvexPolygon, fitBorderDashRuns, shadeBorderColor } from "./border/geometry";
 import { buildRoundedDashRuns, buildRoundedDotRuns } from "./border/rounded-dash";
-import { rectangleContour, roundedRectContour, roundedRectContourAtInset, type HtmlPathContour } from "./shape-contours";
+import { rectangleContour, roundedRectContour } from "./shape-contours";
 
 /**
  * Preserve CSS background-image's two coordinate systems for the common
@@ -148,30 +147,6 @@ function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: numbe
   const normalizedLines = text.replace(/[ \t]+/g, " ").split(/\r?\n/);
   const lineCount = normalizedLines.reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0);
   return Math.max(1, lineCount) * lineHeight;
-}
-
-function outlineContours(width: number, height: number, radius: CornerRadius | undefined, outline: Outline, id: string): HtmlPathContour[] {
-  // Lower a solid outline to a filled ring instead of a centered stroke.
-  // This makes the CSS contract explicit: outline-offset is the gap from the
-  // border edge to the outline's inner edge, while outline-width is the ring
-  // thickness. It also avoids backend-dependent half-stroke rasterization.
-  const outerInset = -(outline.offset + outline.width);
-  const innerInset = -outline.offset;
-  if (radius === undefined) return [
-    rectangleContour(width, height, outerInset, `${id}:outer`),
-    rectangleContour(width, height, innerInset, `${id}:inner`),
-  ];
-  const base = typeof radius === "number"
-    ? { topLeft: { rx: radius, ry: radius }, topRight: { rx: radius, ry: radius }, bottomRight: { rx: radius, ry: radius }, bottomLeft: { rx: radius, ry: radius } }
-    : radius;
-  const contourFor = (inset: number, delta: number, suffix: string) => {
-    const adjusted = Object.fromEntries(Object.entries(base).map(([corner, value]) => [corner, { rx: Math.max(0, value.rx + delta), ry: Math.max(0, value.ry + delta) }])) as Exclude<CornerRadius, number>;
-    return roundedRectContourAtInset(width, height, inset, adjusted, `${id}:${suffix}`);
-  };
-  return [
-    contourFor(outerInset, outline.offset + outline.width, "outer"),
-    contourFor(innerInset, outline.offset, "inner"),
-  ];
 }
 
 /**
@@ -517,50 +492,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
         const currentColor = style.get("color") ?? parentStyle.get("color") ?? "#000000";
         const backdropFilterEffects = parseFilter(style.get("backdrop-filter"), containingWidth, font, viewport, currentColor);
         const backdropState = backdropFilterEffects.length ? { backdropEffects: backdropFilterEffects } : {};
-        const roundedBorderBoxClip = (): V2SvgDefinitionNode => {
-          if (cornerRadius === undefined) return { type: "rect", x: 0, y: 0, width: w, height: h };
-          if (typeof cornerRadius === "number") return { type: "rect", x: 0, y: 0, width: w, height: h, rx: cornerRadius, ry: cornerRadius };
-          return { type: "path", contours: [roundedRectContour(w, h, cornerRadius)], fillRule: "nonzero" };
-        };
-        const clipBoxes: ClipReferenceBoxes = {
-          borderBox: { x: 0, y: 0, width: w, height: h, viewport },
-          paddingBox: { x: geometry.borderEdges[3], y: geometry.borderEdges[0], width: Math.max(0, w - geometry.borderEdges[1] - geometry.borderEdges[3]), height: Math.max(0, h - geometry.borderEdges[0] - geometry.borderEdges[2]), viewport },
-          contentBox: { x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight, viewport },
-        };
-        const clipShape = parseClipPath(style.get("clip-path"), clipBoxes);
-        // CSS overflow clipping uses the element's rounded border box. This
-        // also keeps the emitted semantic clip precise enough for children
-        // of a rounded `overflow: hidden` container.
-        const overflowClipChildren: V2SvgDefinitionNode[] = hasChildren && style.get("overflow") === "hidden" ? [roundedBorderBoxClip()] : [];
-        // Backdrop-filter itself is clipped by the rounded border box. For a
-        // leaf element, attach that clip to the isolation group so Skia can
-        // install it before capturing the backdrop. Do not apply it to an
-        // arbitrary descendant subtree: border-radius alone does not make
-        // `overflow` clip child content in CSS.
-        const backdropClipChildren: V2SvgDefinitionNode[] = !hasChildren && backdropFilterEffects.length > 0 && cornerRadius !== undefined ? [roundedBorderBoxClip()] : [];
-        const baseClipChildren: V2SvgDefinitionNode[] = [
-          ...(clipShape ? [clipShape] : []),
-          ...overflowClipChildren,
-          ...backdropClipChildren,
-        ];
-        const registerClipPath = (additional: V2SvgDefinitionNode[] = [], legacyPrefix?: string): string | undefined => {
-          const children = [...baseClipChildren, ...additional];
-          if (children.length === 0) return undefined;
-          const id = legacyPrefix && clipShape === undefined ? `${legacyPrefix}-${clipPaths.length}` : `html-clip-path-${clipPaths.length}`;
-          clipPaths.push({ id, clipPathUnits: "userSpaceOnUse", children });
-          return id;
-        };
-        let elementClipPathId: string | undefined;
-        const elementClipPath = (): string | undefined => {
-          if (elementClipPathId !== undefined) return elementClipPathId;
-          const legacyPrefix = overflowClipChildren.length > 0
-            ? "html-overflow-clip"
-            : backdropClipChildren.length > 0
-              ? "html-backdrop-clip"
-              : undefined;
-          elementClipPathId = registerClipPath([], clipShape ? undefined : legacyPrefix);
-          return elementClipPathId;
-        };
+        const { registerClipPath, elementClipPath } = resolveNodeClipPath({ style, width: w, height: h, viewport, geometry, cornerRadius, hasChildren, hasBackdropFilter: backdropFilterEffects.length > 0, clipPaths });
          const motion = parseMotionPath(style, w, h, font, viewport);
          const { perspective, render3d, backfaceVisibility, transformFor } = resolveNodeTransformState(style, w, h, font, viewport, hasChildren);
          const outline = parseOutline(style, containingWidth, font, viewport);
@@ -581,61 +513,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
          });
          const { paintAnimationTracks, borderAnimationTracks } = animationTracks;
          const { textShadows, paintEffects, compositeState, compositeNeedsGroup } = resolveNodePaintEffects(style, containingWidth, font, viewport, currentColor);
-         const hasOutline = outline.style !== "none" && outline.width > 0;
-         const emitOutline = (insideGroup: boolean) => {
-           if (!hasOutline) return;
-           const parentLayerId = insideGroup ? groupId : parentId;
-           const transform = insideGroup ? transformFor(0, 0, false) : transformFor(localX, localY, true);
-           // Border orders reserve a later paint band (including z-index
-           // offsets), so outline must explicitly be emitted above that band.
-           const outlineOrder = Number.isFinite(zIndex)
-             ? Math.max(0, 100000 + (zIndex as number)) + 2000000
-             : layers.length + 2000000;
-           if (cornerRadius === undefined || cornerRadius === 0) {
-             // A rectangular outline is a filled paint band. Four side
-             // polygons avoid the inner contour antialias seam that Skia can
-             // expose when a negative-offset even-odd ring overlaps a border.
-             const outer = -(outline.offset + outline.width);
-             const inner = -outline.offset;
-             const right = w - outer;
-             const bottom = h - outer;
-             const innerRight = w - inner;
-             const innerBottom = h - inner;
-             const sides: Array<{ name: string; points: Array<{ x: number; y: number }> }> = [
-               { name: "top", points: [{ x: outer, y: outer }, { x: right, y: outer }, { x: innerRight, y: inner }, { x: inner, y: inner }] },
-               { name: "right", points: [{ x: right, y: outer }, { x: right, y: bottom }, { x: innerRight, y: innerBottom }, { x: innerRight, y: inner }] },
-               { name: "bottom", points: [{ x: outer, y: bottom }, { x: right, y: bottom }, { x: innerRight, y: innerBottom }, { x: inner, y: innerBottom }] },
-               { name: "left", points: [{ x: outer, y: outer }, { x: inner, y: inner }, { x: inner, y: innerBottom }, { x: outer, y: bottom }] },
-             ];
-             sides.forEach((side, index) => layers.push({
-               id: `${groupId}::outline${index === 0 ? "" : `:${side.name}`}`,
-               type: "shape",
-               parentLayerId,
-               order: outlineOrder + index,
-               frame: { width: w, height: h },
-               transform,
-               opacity: insideGroup ? 1 : opacity,
-               ...state,
-               timing: { start: 0, duration },
-               payload: { shape: "polygon", points: side.points },
-               style: { fill: outline.color },
-             } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>));
-             return;
-           }
-           layers.push({
-             id: `${groupId}::outline`,
-             type: "path",
-             parentLayerId,
-             order: outlineOrder,
-             frame: { width: w, height: h },
-             transform,
-             opacity: insideGroup ? 1 : opacity,
-             ...state,
-             timing: { start: 0, duration },
-             payload: { contours: outlineContours(w, h, cornerRadius, outline, `${groupId}::outline-contour`), fillRule: "evenodd" },
-             style: { fill: outline.color },
-           } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
-         };
+         const { hasOutline, emitOutline } = resolveNodeOutline({ outline, cornerRadius, width: w, height: h, groupId, parentId, localX, localY, zIndex, opacity, state, duration, transformFor, layers });
          const maskLayerRefs = lowerMaskImages(node, style, style.get("color") ?? parentStyle.get("color") ?? "#000000", w, h);
         if (loweringKind === "image") {
            const source = mediaSource(node);

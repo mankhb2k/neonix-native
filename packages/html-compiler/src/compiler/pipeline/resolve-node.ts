@@ -33,6 +33,11 @@ import {
 } from "../css/typography";
 import { number } from "../css/values";
 import { fail } from "../errors";
+import type { CornerRadius, Outline } from "../paint";
+import type { CompileClipPaths, CompileLayers } from "../compile-context";
+import type { NodeTransformState } from "../transform";
+import { rectangleContour, roundedRectContour, roundedRectContourAtInset, type HtmlPathContour } from "./shape-contours";
+import { parseClipPath, type ClipReferenceBoxes } from "../clip";
 
 type HtmlTextLayer = Extract<MotionProtocolV2["layers"][number], { type: "text" }>;
 
@@ -207,4 +212,184 @@ export function resolveNodeTextPayload(input: NodeTextPayloadInput): NodeTextPay
     };
   }
   return { textPayload, textClipId, authoredTextGradient };
+}
+
+function outlineContours(width: number, height: number, radius: CornerRadius | undefined, outline: Outline, id: string): HtmlPathContour[] {
+  // Lower a solid outline to a filled ring instead of a centered stroke.
+  // This makes the CSS contract explicit: outline-offset is the gap from the
+  // border edge to the outline's inner edge, while outline-width is the ring
+  // thickness. It also avoids backend-dependent half-stroke rasterization.
+  const outerInset = -(outline.offset + outline.width);
+  const innerInset = -outline.offset;
+  if (radius === undefined) return [
+    rectangleContour(width, height, outerInset, `${id}:outer`),
+    rectangleContour(width, height, innerInset, `${id}:inner`),
+  ];
+  const base = typeof radius === "number"
+    ? { topLeft: { rx: radius, ry: radius }, topRight: { rx: radius, ry: radius }, bottomRight: { rx: radius, ry: radius }, bottomLeft: { rx: radius, ry: radius } }
+    : radius;
+  const contourFor = (inset: number, delta: number, suffix: string) => {
+    const adjusted = Object.fromEntries(Object.entries(base).map(([corner, value]) => [corner, { rx: Math.max(0, value.rx + delta), ry: Math.max(0, value.ry + delta) }])) as Exclude<CornerRadius, number>;
+    return roundedRectContourAtInset(width, height, inset, adjusted, `${id}:${suffix}`);
+  };
+  return [
+    contourFor(outerInset, outline.offset + outline.width, "outer"),
+    contourFor(innerInset, outline.offset, "inner"),
+  ];
+}
+
+export type NodeOutlineInput = {
+  outline: Outline;
+  cornerRadius: CornerRadius | undefined;
+  width: number;
+  height: number;
+  groupId: string;
+  parentId: string | null;
+  localX: number;
+  localY: number;
+  zIndex: number | undefined;
+  opacity: number;
+  /** `{ enabled: false }` when visibility:hidden, else `{}` - spread directly onto every emitted layer. */
+  state: Partial<{ enabled: boolean }>;
+  duration: number;
+  transformFor: NodeTransformState["transformFor"];
+  /** The shared, mutable layer list this node's layout() call is building - outline layers are pushed directly onto it, same as every other layer this element emits. */
+  layers: CompileLayers;
+};
+
+export type NodeOutlineResolution = {
+  hasOutline: boolean;
+  /** Pushes this element's outline layer(s) onto `layers` - a no-op if there is no outline. `insideGroup` mirrors every other per-layer emit in layout(): true when this element already has its own paint-group wrapper (so the outline is parented to that group, at its local origin), false when it must carry the element's own world transform directly. */
+  emitOutline: (insideGroup: boolean) => void;
+};
+
+/** Resolves whether this element has a visible CSS outline and returns the closure that emits it - a filled ring (four polygons for a square corner, a rounded evenodd contour pair otherwise) rather than a centered stroke, so rasterization never depends on the backend's stroke-join behavior. */
+export function resolveNodeOutline(input: NodeOutlineInput): NodeOutlineResolution {
+  const { outline, cornerRadius, width: w, height: h, groupId, parentId, localX, localY, zIndex, opacity, state, duration, transformFor, layers } = input;
+  const hasOutline = outline.style !== "none" && outline.width > 0;
+  const emitOutline = (insideGroup: boolean) => {
+    if (!hasOutline) return;
+    const parentLayerId = insideGroup ? groupId : parentId;
+    const transform = insideGroup ? transformFor(0, 0, false) : transformFor(localX, localY, true);
+    // Border orders reserve a later paint band (including z-index offsets),
+    // so outline must explicitly be emitted above that band.
+    const outlineOrder = Number.isFinite(zIndex)
+      ? Math.max(0, 100000 + (zIndex as number)) + 2000000
+      : layers.length + 2000000;
+    if (cornerRadius === undefined || cornerRadius === 0) {
+      // A rectangular outline is a filled paint band. Four side polygons
+      // avoid the inner contour antialias seam that Skia can expose when a
+      // negative-offset even-odd ring overlaps a border.
+      const outer = -(outline.offset + outline.width);
+      const inner = -outline.offset;
+      const right = w - outer;
+      const bottom = h - outer;
+      const innerRight = w - inner;
+      const innerBottom = h - inner;
+      const sides: Array<{ name: string; points: Array<{ x: number; y: number }> }> = [
+        { name: "top", points: [{ x: outer, y: outer }, { x: right, y: outer }, { x: innerRight, y: inner }, { x: inner, y: inner }] },
+        { name: "right", points: [{ x: right, y: outer }, { x: right, y: bottom }, { x: innerRight, y: innerBottom }, { x: innerRight, y: inner }] },
+        { name: "bottom", points: [{ x: outer, y: bottom }, { x: right, y: bottom }, { x: innerRight, y: innerBottom }, { x: inner, y: innerBottom }] },
+        { name: "left", points: [{ x: outer, y: outer }, { x: inner, y: inner }, { x: inner, y: innerBottom }, { x: outer, y: bottom }] },
+      ];
+      sides.forEach((side, index) => layers.push({
+        id: `${groupId}::outline${index === 0 ? "" : `:${side.name}`}`,
+        type: "shape",
+        parentLayerId,
+        order: outlineOrder + index,
+        frame: { width: w, height: h },
+        transform,
+        opacity: insideGroup ? 1 : opacity,
+        ...state,
+        timing: { start: 0, duration },
+        payload: { shape: "polygon", points: side.points },
+        style: { fill: outline.color },
+      } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>));
+      return;
+    }
+    layers.push({
+      id: `${groupId}::outline`,
+      type: "path",
+      parentLayerId,
+      order: outlineOrder,
+      frame: { width: w, height: h },
+      transform,
+      opacity: insideGroup ? 1 : opacity,
+      ...state,
+      timing: { start: 0, duration },
+      payload: { contours: outlineContours(w, h, cornerRadius, outline, `${groupId}::outline-contour`), fillRule: "evenodd" },
+      style: { fill: outline.color },
+    } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
+  };
+  return { hasOutline, emitOutline };
+}
+
+export type NodeClipPathInput = {
+  style: Style;
+  width: number;
+  height: number;
+  viewport: { width: number; height: number };
+  geometry: ResolvedGeometry;
+  cornerRadius: CornerRadius | undefined;
+  hasChildren: boolean;
+  hasBackdropFilter: boolean;
+  /** The shared, mutable clip-path definition list this whole document is building - every `<clipPath>` this node's overflow/clip-path/backdrop-filter needs registers itself onto it. */
+  clipPaths: CompileClipPaths;
+};
+
+export type NodeClipPathResolution = {
+  /** Registers one `<clipPath>` combining this element's own clip-path/overflow/backdrop-filter children plus any `additional` shapes the caller supplies (e.g. a text content-box clip for overflow:hidden text), returning its id - or undefined if there is nothing to clip. Each call registers a NEW clipPath (a second call with different `additional` shapes is not the same clip as `elementClipPath()`'s cached one). */
+  registerClipPath: (additional?: V2SvgDefinitionNode[], legacyPrefix?: string) => string | undefined;
+  /** The element's own clip (no additional shapes), memoized - every layer this element emits shares the same clipPath id. */
+  elementClipPath: () => string | undefined;
+};
+
+/** Resolves the one clip-path registry this element's layer(s) share: CSS clip-path, overflow:hidden's rounded border-box clip (for its children), and backdrop-filter's rounded border-box clip (for a leaf element's own isolation group) all combine into the same registered `<clipPath>` definition. */
+export function resolveNodeClipPath(input: NodeClipPathInput): NodeClipPathResolution {
+  const { style, width: w, height: h, viewport, geometry, cornerRadius, hasChildren, hasBackdropFilter, clipPaths } = input;
+  const roundedBorderBoxClip = (): V2SvgDefinitionNode => {
+    if (cornerRadius === undefined) return { type: "rect", x: 0, y: 0, width: w, height: h };
+    if (typeof cornerRadius === "number") return { type: "rect", x: 0, y: 0, width: w, height: h, rx: cornerRadius, ry: cornerRadius };
+    return { type: "path", contours: [roundedRectContour(w, h, cornerRadius)], fillRule: "nonzero" };
+  };
+  const clipBoxes: ClipReferenceBoxes = {
+    borderBox: { x: 0, y: 0, width: w, height: h, viewport },
+    paddingBox: { x: geometry.borderEdges[3], y: geometry.borderEdges[0], width: Math.max(0, w - geometry.borderEdges[1] - geometry.borderEdges[3]), height: Math.max(0, h - geometry.borderEdges[0] - geometry.borderEdges[2]), viewport },
+    contentBox: { x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight, viewport },
+  };
+  const clipShape = parseClipPath(style.get("clip-path"), clipBoxes);
+  // CSS overflow clipping uses the element's rounded border box. This also
+  // keeps the emitted semantic clip precise enough for children of a
+  // rounded `overflow: hidden` container.
+  const overflowClipChildren: V2SvgDefinitionNode[] = hasChildren && style.get("overflow") === "hidden" ? [roundedBorderBoxClip()] : [];
+  // Backdrop-filter itself is clipped by the rounded border box. For a leaf
+  // element, attach that clip to the isolation group so Skia can install it
+  // before capturing the backdrop. Do not apply it to an arbitrary
+  // descendant subtree: border-radius alone does not make `overflow` clip
+  // child content in CSS.
+  const backdropClipChildren: V2SvgDefinitionNode[] = !hasChildren && hasBackdropFilter && cornerRadius !== undefined ? [roundedBorderBoxClip()] : [];
+  const baseClipChildren: V2SvgDefinitionNode[] = [
+    ...(clipShape ? [clipShape] : []),
+    ...overflowClipChildren,
+    ...backdropClipChildren,
+  ];
+  const registerClipPath = (additional: V2SvgDefinitionNode[] = [], legacyPrefix?: string): string | undefined => {
+    const children = [...baseClipChildren, ...additional];
+    if (children.length === 0) return undefined;
+    const id = legacyPrefix && clipShape === undefined ? `${legacyPrefix}-${clipPaths.length}` : `html-clip-path-${clipPaths.length}`;
+    clipPaths.push({ id, clipPathUnits: "userSpaceOnUse", children });
+    return id;
+  };
+  let elementClipPathId: string | undefined;
+  const elementClipPath = (): string | undefined => {
+    if (elementClipPathId !== undefined) return elementClipPathId;
+    const legacyPrefix = overflowClipChildren.length > 0
+      ? "html-overflow-clip"
+      : backdropClipChildren.length > 0
+        ? "html-backdrop-clip"
+        : undefined;
+    elementClipPathId = registerClipPath([], clipShape ? undefined : legacyPrefix);
+    return elementClipPathId;
+  };
+  return { registerClipPath, elementClipPath };
 }

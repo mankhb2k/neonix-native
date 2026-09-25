@@ -63,6 +63,7 @@ export function createCompileContext(input: CompileContextInput): CompileContext
   };
 }
 
+export type CompileLayers = MotionProtocolV2["layers"];
 export type CompileClipPaths = NonNullable<MotionProtocolV2["clipPaths"]>;
 export type CompileMasks = NonNullable<MotionProtocolV2["masks"]>;
 export type CompileSvgDefinitionNode = V2SvgDefinitionNode;
