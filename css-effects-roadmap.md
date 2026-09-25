@@ -387,10 +387,17 @@ dòng "đã có, đủ" ghi trước đó (saturate(), opacity animation) thực
    `overflow-wrap`/`word-break`, `vertical-align`,
    `text-decoration-style`~~ — XONG. **1.0 đã xong hoàn toàn.**
 4. ~~Quay lại 1.2 + 1.2b (case mix box-shadow)~~ — XONG.
-5. **Chưa có mục tiếp theo được chỉ định** — toàn bộ Cấp 1 (1.0, 1.1, 1.2,
-   1.2b, 1.3) giờ đã xong. Việc còn lại đã biết: fixture thực tế cho các
-   mục đã fix trong playground `/playground/native-stage` (đang làm, xem
-   yêu cầu gần nhất), Cấp 2/3 (xem phần tương ứng phía trên, chưa ưu tiên),
-   native export parity cho fix 1.2 (ghi ở mục 1.2 phía trên).
+5. ~~Fixture thực tế cho các mục đã fix trong playground
+   `/playground/native-stage`~~ — XONG, commit `1bd73c80`. 11 fixture mới:
+   5 text gap + `grid-template-areas`/`flex-direction-reverse`/
+   `grid-auto-flow` (layout) + `box-shadow-filter`/
+   `box-shadow-backdrop-filter` (1.2/1.2b). Mỗi fixture đã verify qua
+   `compileDocument()` thật trước khi đăng ký; phát hiện và sửa 1 bug lúc
+   verify (`grid-auto-flow.html` chọn sai selector `div` thay vì `p` cho
+   các grid item, gây `css-font-asset-missing`).
+6. **Chưa có mục tiếp theo được chỉ định** — toàn bộ Cấp 1 (1.0, 1.1, 1.2,
+   1.2b, 1.3) giờ đã xong VÀ đã có fixture QA thực tế trong playground.
+   Việc còn lại đã biết: Cấp 2/3 (xem phần tương ứng phía trên, chưa ưu
+   tiên), native export parity cho fix 1.2 (ghi ở mục 1.2 phía trên).
 
 Không mở nhiều mục cùng lúc trong danh sách trên.
