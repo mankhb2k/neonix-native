@@ -26,6 +26,23 @@ describe("HTML/CSS compiler P1.3 explicit grid", () => {
     expect(layer(protocol, "four")).toMatchObject({ frame: { width: 200, height: 140 }, transform: { translate: { x: 0, y: 160, z: 0 } } });
   });
 
+  it("stretches a text item to its grid cell just like a shape item in the neighboring cell", () => {
+    // grid layout tests elsewhere only ever use empty colored divs as
+    // items - this confirms a text leaf gets the same default stretch
+    // sizing from its track as a shape sibling, instead of collapsing to
+    // its own intrinsic size inside the cell.
+    const fontAssets = [{ id: "inter-regular", kind: "font" as const, uri: "/fonts/inter.ttf", weight: 400, style: "normal" as const, integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", family: "Inter" }];
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<body><div id="grid"><div id="shape"></div><div id="label">Hi</div></div></body>`,
+      css: `#grid { position: absolute; left: 0px; top: 0px; width: 400px; height: 140px; display: grid; grid-template-columns: 200px 200px; grid-template-rows: 140px; }
+            #shape { background: #38bdf8; }
+            #label { font-family: Inter; font-size: 20px; }`,
+    }), { fontAssets });
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((item) => item.id === "shape")).toMatchObject({ frame: { width: 200, height: 140 }, transform: { translate: { x: 0, y: 0 } } });
+    expect(result.protocol?.layers.find((item) => item.id === "label")).toMatchObject({ type: "text", frame: { width: 200, height: 140 }, transform: { translate: { x: 200, y: 0 } } });
+  });
+
   it("places items on explicit grid lines", () => {
     const protocol = compile(
       `<div id="grid"><div id="hero"></div><div id="side"></div><div id="footer"></div></div>`,

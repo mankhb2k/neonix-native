@@ -26,6 +26,22 @@ describe("HTML/CSS compiler P1.1 flex layout", () => {
     expect(layer(protocol, "c")).toMatchObject({ transform: { translate: { x: 400, y: 0, z: 0 } } });
   });
 
+  it("positions a text item next to a shape item in the same row, using the same box model", () => {
+    // flex/grid layout tests elsewhere only ever use empty colored divs as
+    // items - this confirms a text leaf isn't special-cased or skipped by
+    // the flex algorithm itself when it sits next to a shape sibling.
+    const fontAssets = [{ id: "inter-regular", kind: "font" as const, uri: "/fonts/inter.ttf", weight: 400, style: "normal" as const, integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", family: "Inter" }];
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<body><div id="row"><div id="shape"></div><div id="label">Hi</div></div></body>`,
+      css: `#row { position: absolute; left: 0px; top: 0px; width: 500px; height: 100px; display: flex; }
+            #shape { width: 200px; height: 80px; background: #38bdf8; }
+            #label { width: 200px; height: 80px; font-family: Inter; font-size: 20px; }`,
+    }), { fontAssets });
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((item) => item.id === "shape")).toMatchObject({ frame: { width: 200, height: 80 }, transform: { translate: { x: 0, y: 0 } } });
+    expect(result.protocol?.layers.find((item) => item.id === "label")).toMatchObject({ type: "text", frame: { width: 200, height: 80 }, transform: { translate: { x: 200, y: 0 } } });
+  });
+
   it("uses the main-axis gap for a column", () => {
     const protocol = compile(
       `<div id="column"><div id="a"></div><div id="b"></div><div id="c"></div></div>`,

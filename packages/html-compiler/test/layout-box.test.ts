@@ -34,6 +34,32 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
     expect(b?.transform.translate.y).toBe(60);
   });
 
+  it("shifts a static sibling further down when a preceding auto-height text box wraps to more lines", () => {
+    // #para has no declared height, so its border-box height comes from
+    // estimateTextIntrinsicHeight()'s wrap estimate. If that estimate isn't
+    // actually threaded through into flow positioning, #after would stay
+    // glued to a stale/fixed offset regardless of how many lines #para
+    // wraps to - exactly the "layout lệch" (misaligned layout) failure mode
+    // this covers: wrap-driven height must move a later sibling, not just
+    // exist as a number nobody consumes.
+    const html = `<div id="wrap"><div id="para">{{TEXT}}</div><div id="after"></div></div>`;
+    const css = `#wrap { width: 100px; height: 300px; } #para { font-family: Inter; font-size: 20px; line-height: 24px; margin: 0; } #after { width: 50px; height: 30px; margin: 0; background: #ffffff; }`;
+    const fontAssets = [{ id: "inter-regular", kind: "font" as const, uri: "/fonts/inter.ttf", weight: 400, style: "normal" as const, integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", family: "Inter" }];
+
+    // "Hi" is one word - it never wraps, so #para is exactly one 24px line.
+    const oneLine = compileHtmlCss(createHtmlCssSource({ html: html.replace("{{TEXT}}", "Hi"), css }), { fontAssets });
+    expect(oneLine.status).toBe("success");
+    expect(oneLine.protocol?.layers.find((layer) => layer.id === "para")).toMatchObject({ frame: { height: 24 } });
+    expect(oneLine.protocol?.layers.find((layer) => layer.id === "after")).toMatchObject({ transform: { translate: { y: 24 } } });
+
+    // "Hello World Hi" doesn't fit #para's 100px width on one line, so it
+    // wraps to a second 24px line, doubling #para's height.
+    const twoLines = compileHtmlCss(createHtmlCssSource({ html: html.replace("{{TEXT}}", "Hello World Hi"), css }), { fontAssets });
+    expect(twoLines.status).toBe("success");
+    expect(twoLines.protocol?.layers.find((layer) => layer.id === "para")).toMatchObject({ frame: { height: 48 } });
+    expect(twoLines.protocol?.layers.find((layer) => layer.id === "after")).toMatchObject({ transform: { translate: { y: 48 } } });
+  });
+
   it("keeps relative parent and absolute child geometry", () => {
     const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="parent"><div id="child"></div></div>`, css: `#parent { position: relative; left: 100px; top: 80px; width: 300px; height: 200px; } #child { position: absolute; left: 20px; top: 30px; width: 50px; height: 40px; background: #ffffff; }` }));
     expect(result.status).toBe("success");
