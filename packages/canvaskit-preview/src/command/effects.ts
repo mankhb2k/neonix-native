@@ -177,7 +177,7 @@ function makeOffsetFilter(
 }
 
 /** CSS box-shadow spread: dilate the silhouette outward (positive) or erode it inward (negative). */
-function makeMorphologyFilter(
+export function makeMorphologyFilter(
   kit: SkiaCanvasKit,
   op: Extract<RuntimeEffectOp, { kind: "morphology" }>,
   input: SkiaImageFilter | null = null,
@@ -253,6 +253,8 @@ type BoxShadowBranch = {
   blur: Extract<RuntimeEffectOp, { kind: "blur" }>;
   tint: Extract<RuntimeEffectOp, { kind: "tint" }>;
   offset?: Extract<RuntimeEffectOp, { kind: "offset" }>;
+  /** CSS box-shadow spread on an outer (non-inset) branch only - mirrors the standalone spread-only pattern in effectFilterFor. Never set for "inner". */
+  spread?: Extract<RuntimeEffectOp, { kind: "morphology" }>;
 };
 
 /**
@@ -267,6 +269,33 @@ function boxShadowBranches(program: NonNullable<EffectProgram>): BoxShadowBranch
   while (index < program.ops.length) {
     const alpha = program.ops[index];
     if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") return null;
+
+    // Mirrors the identical leading-spread shape boxShadowOverlayBranches
+    // (replay.ts) and splitLeadingBoxShadowThenFilter (below) already
+    // recognize per-branch: box-shadow spread inserts one morphology op
+    // between the silhouette and the blur, outer (non-inset) only. Without
+    // this, a comma-separated shadow list where any shadow has a spread
+    // falls through every sourceOnly recognizer and renders nothing at all
+    // (`renderer_effect_unsupported`) instead of routing to replay's
+    // isolated-mask compositor, which already handles it correctly.
+    const maybeSpread = program.ops[index + 1];
+    if (maybeSpread?.kind === "morphology") {
+      const spreadBlur = program.ops[index + 2];
+      const spreadTint = program.ops[index + 3];
+      const spreadOffset = program.ops[index + 4];
+      const spreadComposite = program.ops[index + 5];
+      if (
+        spreadBlur?.kind !== "blur" ||
+        spreadTint?.kind !== "tint" ||
+        spreadOffset?.kind !== "offset" ||
+        spreadComposite?.kind !== "composite" ||
+        spreadComposite.backdrop !== spreadOffset.output ||
+        spreadComposite.mode !== "source-over"
+      ) return null;
+      branches.push({ kind: "outer", blur: spreadBlur, tint: spreadTint, offset: spreadOffset, spread: maybeSpread });
+      index += 6;
+      continue;
+    }
 
     const maybeOffset = program.ops[index + 1];
     const hasInnerOffset = maybeOffset?.kind === "offset";
@@ -350,16 +379,22 @@ function makeMixedBoxShadowFilter(
   // compositor. Do not build a backend ImageFilter blend here: CanvasKit
   // versions differ in support for blending DropShadow filters, and a failed
   // activation filter would prevent the explicit compositor from running.
-  return first.kind === "inner"
-    ? makeInnerShadowFilter(kit, first)
-    : makeShadowFilter(
-        kit,
-        first.offset ?? { x: 0, y: 0 },
-        first.blur.radius,
-        first.tint.color,
-        first.tint.opacity,
-        false,
-      );
+  if (first.kind === "inner") return makeInnerShadowFilter(kit, first);
+  // A spread branch needs the DropShadow to read from the dilated/eroded
+  // silhouette (not the raw one) and to stay shadow-only - see the identical
+  // "only" reasoning in the standalone spread-only pattern in effectFilterFor.
+  const morphed = first.spread ? makeMorphologyFilter(kit, first.spread) : null;
+  const filter = makeShadowFilter(
+    kit,
+    first.offset ?? { x: 0, y: 0 },
+    first.blur.radius,
+    first.tint.color,
+    first.tint.opacity,
+    Boolean(first.spread),
+    morphed,
+  );
+  morphed?.delete();
+  return filter;
 }
 
 type BoxShadowThenFilter = { branches: BoxShadowBranch[]; tailOps: LinearColorSpatialOp[] };
@@ -381,6 +416,33 @@ function splitLeadingBoxShadowThenFilter(program: NonNullable<EffectProgram>): B
   while (index < program.ops.length) {
     const alpha = program.ops[index];
     if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") break;
+
+    // Box-shadow spread inserts one morphology op between the silhouette and
+    // the blur, same shape as the standalone spread-only pattern below - but
+    // here a trailing CSS filter still needs to be split off, so recognize it
+    // as its own leading-branch shape before falling into the ordinary
+    // (no-spread) parsing. Outer (non-inset) only, matching that pattern's
+    // own scope; spread combined with an inset offset falls through to break
+    // below (fails closed, same as the no-filter case already does).
+    const maybeSpread = program.ops[index + 1];
+    if (maybeSpread?.kind === "morphology") {
+      const spreadBlur = program.ops[index + 2];
+      const spreadTint = program.ops[index + 3];
+      const spreadOffset = program.ops[index + 4];
+      const spreadComposite = program.ops[index + 5];
+      if (
+        spreadBlur?.kind !== "blur" ||
+        spreadTint?.kind !== "tint" ||
+        spreadOffset?.kind !== "offset" ||
+        spreadComposite?.kind !== "composite" ||
+        spreadComposite.backdrop !== spreadOffset.output ||
+        spreadComposite.mode !== "source-over"
+      ) break;
+      branches.push({ kind: "outer", blur: spreadBlur, tint: spreadTint, offset: spreadOffset, spread: maybeSpread });
+      lastOutput = spreadComposite.output;
+      index += 6;
+      continue;
+    }
 
     const maybeOffset = program.ops[index + 1];
     const hasInnerOffset = maybeOffset?.kind === "offset";
@@ -525,21 +587,28 @@ export function effectFilterFor(kit: SkiaCanvasKit, fullProgram: EffectProgram):
   // inset shadow's own offset falls through to the existing block/branch
   // parsers below, which already fail closed (return null/[]) on an
   // unexpected "morphology" op instead of misreading the sequence.
-  if (matchEffectGraph(program, ["alpha-mask", "morphology", "blur", "tint", "offset", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && morphology?.kind === "morphology" && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeDilate && kit.ImageFilter.MakeErode) {
-    // MakeDropShadow with a non-null `input` both computes the shadow from
-    // `input` AND redraws `input` as the foreground. Feeding it the
-    // dilated/eroded silhouette directly would visibly enlarge or shrink the
-    // box itself, not just its shadow (CSS spread only ever affects the
-    // shadow). Use DropShadowOnly to keep just the halo, then blend it
-    // behind the UNMODIFIED original content.
-    const morphed = makeMorphologyFilter(kit, morphology);
-    const shadowOnly = makeShadowFilter(kit, offset, blur.radius, tint.color, tint.opacity, true, morphed, cssShadowBlurRadiusToSkiaSigma);
-    const filter = shadowOnly ? kit.ImageFilter.MakeBlend(kit.BlendMode.SrcOver, shadowOnly, null) : null;
-    shadowOnly?.delete();
-    morphed?.delete();
-    return { filter, supported: Boolean(filter) };
+  //
+  // CSS box-shadow spread is a geometry change - grow/shrink the rect and
+  // corner radius before a single blur-fill pass (Blink's
+  // ApplySpreadToShadowShape/OutsetWithCornerCorrection; see
+  // ARCHITECHTURE.md/debt-technical.md) - never an image-space dilate/erode
+  // filter. A rectangular MakeDilate/MakeErode kernel distorts rounded/
+  // circular corners into a "squircle" instead of growing them correctly,
+  // which replay.ts's isolated-mask compositor
+  // (boxShadowOverlayBranches/drawBoxEffect) already fixes with analytic
+  // geometry expansion. Route through the same sourceOnly mechanism as the
+  // multi-shadow-list and shadow+filter cases above/below instead of
+  // building a real dilate-based filter here.
+  if (matchEffectGraph(program, ["alpha-mask", "morphology", "blur", "tint", "offset", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && morphology?.kind === "morphology" && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset") {
+    const filter = makeMixedBoxShadowFilter(kit, [{ kind: "outer", blur, tint, offset, spread: morphology }]);
+    return { filter, supported: true, sourceOnly: true };
   }
   if (matchEffectGraph(program, ["alpha-mask", "blur", "tint", "offset", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadow) {
+    // This graph shape is only ever emitted for a non-inset `shadow` effect
+    // (CSS text-shadow or box-shadow; see buildRuntimeEffectProgram) - never
+    // for outer-glow/inner-glow, which take a different op shape entirely.
+    // Blink's own ShadowData::BlurAsSigma() is shared verbatim between
+    // box-shadow and text-shadow, so both use the same calibrated sigma here.
     const filter = makeShadowFilter(
       kit,
       offset,
@@ -548,7 +617,7 @@ export function effectFilterFor(kit: SkiaCanvasKit, fullProgram: EffectProgram):
       tint.opacity,
       false,
       null,
-      alpha?.kind === "alpha-mask" && alpha.source === "alpha" ? cssOuterGlowRadiusToSkiaSigma : cssShadowBlurRadiusToSkiaSigma,
+      cssShadowBlurRadiusToSkiaSigma,
     );
     return { filter, supported: Boolean(filter) };
   }

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1400px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        Same rationale as box-shadow-offset-x-sweep.html, transposed to the
+        other axis: offset-y only translates the shadow vertically, spread:0
+        keeps this on effects.ts's simplest recognizer (no morphology op),
+        fully isolated from the known spread/dilate bug.
+        Three offset-y examples, stacked top to bottom with room sized for
+        each tile's own halo reach so none clip against the composition
+        edge or overlap a neighbor: negative (shadow above the box), a
+        small positive, and a larger positive. offset-x stays 0 throughout.
+      */
+      .tile { position: absolute; width: 200px; height: 200px; left: 860px; border-radius: 24px; background: #f472b6; }
+      .caption { position: absolute; width: 200px; left: 1180px; color: #94a3b8; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+
+      .offset-neg60 { top: 150px; box-shadow: 0 -60px 24px 0 #f472b6; }
+      .offset-pos20 { top: 420px; box-shadow: 0 20px 24px 0 #f472b6; }
+      .offset-pos120 { top: 720px; box-shadow: 0 120px 24px 0 #f472b6; }
+
+      .caption-neg60 { top: 240px; }
+      .caption-pos20 { top: 510px; }
+      .caption-pos120 { top: 810px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow offset-y sweep debug - offset-x=0, spread=0, blur=24 fixed - -60px / +20px / +120px, isolated from the spread/dilate bug</div>
+    <div class="tile offset-neg60"></div>
+    <div class="tile offset-pos20"></div>
+    <div class="tile offset-pos120"></div>
+    <div class="caption caption-neg60">offset-y: -60px</div>
+    <div class="caption caption-pos20">offset-y: +20px</div>
+    <div class="caption caption-pos120">offset-y: +120px</div>
+  </body>
+</html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="neonix-document"
+      content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#05060a","colorSpace":"srgb","durationMs":10000}}'
+    />
+    <style data-neonix-bundle>
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+
+      body {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #05060a;
+        background-image: radial-gradient(circle at 30% 20%, #101c33 0%, #05060a 55%, #030308 100%);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        font-family: 'Inter', sans-serif;
+      }
+
+      /* ---------- floating glow orbs ---------- */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(70px);
+        opacity: 0.55;
+      }
+      .orb-a {
+        width: 520px;
+        height: 520px;
+        top: 120px;
+        left: 180px;
+        background-color: #22d3ee;
+        box-shadow: 0 0 200px 80px rgba(34, 211, 238, 0.4);
+        animation: orbFloatA 7s ease-in-out infinite alternate;
+      }
+      .orb-b {
+        width: 600px;
+        height: 600px;
+        bottom: 60px;
+        right: 160px;
+        background-color: #a855f7;
+        box-shadow: 0 0 220px 90px rgba(168, 85, 247, 0.35);
+        animation: orbFloatB 9s ease-in-out infinite alternate;
+      }
+      @keyframes orbFloatA {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(60px, -40px); }
+      }
+      @keyframes orbFloatB {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(-50px, 30px); }
+      }
+
+      /* ---------- rotating glow ring ---------- */
+      .ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 760px;
+        height: 760px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 2px solid rgba(168, 85, 247, 0.35);
+        box-shadow: 0 0 60px rgba(168, 85, 247, 0.25) inset, 0 0 40px rgba(34, 211, 238, 0.2);
+        animation: ringSpin 16s linear infinite, ringHue 8s ease-in-out infinite;
+      }
+      @keyframes ringSpin {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      @keyframes ringHue {
+        0%, 100% { filter: blur(2px) hue-rotate(0deg); }
+        50% { filter: blur(2px) hue-rotate(50deg); }
+      }
+
+      /* ---------- main stage ---------- */
+      .stage {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+      }
+
+      .badge {
+        opacity: 0;
+        padding: 10px 26px;
+        border-radius: 999px;
+        background-color: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(12px);
+        color: #9be8fa;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        box-shadow: 0 0 30px rgba(34, 211, 238, 0.25);
+        animation: badgeIn 0.8s ease-out 0.1s forwards;
+      }
+      @keyframes badgeIn {
+        0% { opacity: 0; filter: blur(14px); transform: translateY(-10px); }
+        100% { opacity: 1; filter: blur(0px); transform: translateY(0); }
+      }
+
+      .title {
+        opacity: 0;
+        margin: 0;
+        font-size: 150px;
+        font-weight: 700;
+        letter-spacing: 14px;
+        color: #f8fbff;
+        animation: titleIn 1s ease-out 0.45s forwards, glowPulse 2.4s ease-in-out 0.45s infinite alternate;
+      }
+      @keyframes titleIn {
+        0% { opacity: 0; transform: scale(0.82) translateY(24px); }
+        65% { opacity: 1; transform: scale(1.04) translateY(-4px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes glowPulse {
+        0%, 100% {
+          text-shadow: 0 0 18px rgba(34, 211, 238, 0.85), 0 0 46px rgba(168, 85, 247, 0.55), 0 0 90px rgba(168, 85, 247, 0.35);
+        }
+        50% {
+          text-shadow: 0 0 30px rgba(34, 211, 238, 1), 0 0 70px rgba(168, 85, 247, 0.85), 0 0 130px rgba(244, 114, 182, 0.5);
+        }
+      }
+
+      .subtitle {
+        opacity: 0;
+        margin: 0;
+        font-size: 30px;
+        font-weight: 400;
+        letter-spacing: 6px;
+        color: rgba(210, 225, 255, 0.75);
+        animation: subtitleIn 0.8s ease-out 1.15s forwards;
+      }
+      @keyframes subtitleIn {
+        0% { opacity: 0; transform: translateY(16px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      /* ---------- feature cards (flex row) ---------- */
+      .cards {
+        display: flex;
+        flex-direction: row;
+        gap: 32px;
+        margin-top: 36px;
+      }
+      .card {
+        opacity: 0;
+        width: 230px;
+        height: 230px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        border-radius: 28px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(18px);
+        animation: cardLife 6.5s ease-in-out infinite;
+      }
+      @keyframes cardLife {
+        0% { opacity: 0; transform: translateY(46px) scale(0.9); }
+        10% { opacity: 1; transform: translateY(0) scale(1); }
+        30% { transform: translateY(-10px) scale(1); }
+        50% { transform: translateY(0) scale(1); }
+        70% { transform: translateY(-10px) scale(1); }
+        90% { transform: translateY(0) scale(1); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .card-a { box-shadow: 0 0 50px rgba(34, 211, 238, 0.35), 0 20px 40px rgba(0, 0, 0, 0.4); animation-delay: 1.5s; }
+      .card-b { box-shadow: 0 0 50px rgba(168, 85, 247, 0.35), 0 20px 40px rgba(0, 0, 0, 0.4); animation-delay: 1.68s; }
+      .card-c { box-shadow: 0 0 50px rgba(244, 114, 182, 0.35), 0 20px 40px rgba(0, 0, 0, 0.4); animation-delay: 1.86s; }
+
+      .icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        animation: iconSpin 5s linear infinite;
+      }
+      @keyframes iconSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .icon-a { background-image: linear-gradient(135deg, #22d3ee, #0ea5e9); box-shadow: 0 0 30px rgba(34, 211, 238, 0.7); }
+      .icon-b { background-image: linear-gradient(135deg, #a855f7, #7c3aed); box-shadow: 0 0 30px rgba(168, 85, 247, 0.7); }
+      .icon-c { background-image: linear-gradient(135deg, #f472b6, #ec4899); box-shadow: 0 0 30px rgba(244, 114, 182, 0.7); }
+
+      .label {
+        color: #eaf2ff;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 5px;
+      }
+
+      /* ---------- light sweep ---------- */
+      .scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(100deg, #ffffff00 42%, #ffffff1a 50%, #ffffff00 58%);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        mix-blend-mode: screen;
+        animation: scanSweep 3.6s linear infinite;
+      }
+      @keyframes scanSweep {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(120%); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="ring"></div>
+
+    <div class="stage">
+      <div class="badge">MOTION TEST · NEONIX</div>
+      <h1 class="title">NEONIX</h1>
+      <p class="subtitle">TEXT · BOX · FILTER · GLOW · SHADOW · BLUR · FLEX</p>
+      <div class="cards">
+        <div class="card card-a">
+          <div class="icon icon-a"></div>
+          <span class="label">GLOW</span>
+        </div>
+        <div class="card card-b">
+          <div class="icon icon-b"></div>
+          <span class="label">BLUR</span>
+        </div>
+        <div class="card card-c">
+          <div class="icon icon-c"></div>
+          <span class="label">FLEX</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scanline"></div>
+  </body>
+</html>

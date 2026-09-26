@@ -77,6 +77,10 @@ export {
 } from "./visual/validate";
 export { measureVisualRuntimeText, measureVisualRuntimeTextIntrinsicWidths, prepareVisualRuntimeProjectText } from "./visual/text-layout";
 export type { TextIntrinsicWidths } from "./visual/text-layout";
+export { lineBreakTokens } from "./visual/line-break";
+export type { LineBreakToken } from "./visual/line-break";
+export { bidiRunsInRange, hasBidiContent, reorderRunsForDisplay, resolveBidi } from "./visual/bidi-resolve";
+export type { BidiDirection, BidiParagraph, BidiRun, ResolvedBidi } from "./visual/bidi-resolve";
 export type {
   VisualRuntimeComposition,
   VisualRuntimeFrame,

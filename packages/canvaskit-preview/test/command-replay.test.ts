@@ -952,6 +952,152 @@ describe("box-shadow + filter composes instead of both effects disappearing", ()
   });
 });
 
+// Same 1.2 bug shape, but with a CSS spread on the box-shadow too (a
+// morphology op between the silhouette and the blur) - the exact shape
+// `box-shadow: 0 0 200px 80px ...; filter: blur(70px);` compiles to (a
+// "glow orb", verified against fixtures/debug/neonix-motion-test-10s.html's
+// `.orb-a`/`.orb-b` through the real compiler before writing this test).
+// splitLeadingBoxShadowThenFilter's leading-branch parser never accounted for
+// the extra morphology op, so this exact combination still fell through to
+// skia_effect_unsupported after the 1.2 fix above, dropping both the shadow
+// and the filter silently.
+describe("box-shadow with spread + filter composes instead of both effects disappearing", () => {
+  it("expands the silhouette geometry (not a dilate filter) before drawing the halo, and still installs the trailing filter", () => {
+    const filters: Array<{ kind: string; delete(): void }> = [];
+    const makeFilter = (kind: string) => { const f = { kind, delete() {} }; filters.push(f); return f; };
+    let sequence = 0;
+    let firstMakeSurfaceSequence: number | undefined;
+    const setImageFilterCalls: Array<{ value: unknown; sequence: number }> = [];
+    const drawImageRectCalls: unknown[] = [];
+    const blurCalls: Array<{ args: unknown[]; sequence: number }> = [];
+    const dropShadowOnlyCalls: Array<{ args: unknown[]; sequence: number }> = [];
+    const drawRRectCalls: unknown[][] = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setPathEffect() {}
+      setImageFilter(value: unknown) { setImageFilterCalls.push({ value, sequence: sequence++ }); }
+    }
+    const snapshotImage = { delete() {}, makeShaderOptions: () => ({ delete() {} }) };
+    const localCanvas = {
+      clear() {}, save() {}, restore() {}, concat() {},
+      drawRect() {},
+      drawRRect(...args: unknown[]) { drawRRectCalls.push(args); },
+      drawOval() {},
+      drawImageRect() {},
+    };
+    const fakeSurface = { getCanvas: () => localCanvas, flush() {}, dispose() {}, makeImageSnapshot: () => snapshotImage };
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      clipRect() {},
+      saveLayer() { return 1; },
+      drawImageRect(...args: unknown[]) { drawImageRectCalls.push(args); },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      TRANSPARENT: 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      FilterMode: { Linear: 1 },
+      MipmapMode: { Linear: 1, None: 0 },
+      MakeVertices: () => ({ delete() {} }),
+      MakeSurface: () => { firstMakeSurfaceSequence ??= sequence++; return fakeSurface; },
+      ColorFilter: {
+        MakeMatrix() { return { matrix: [], delete() {} }; },
+        MakeBlend() { return { delete() {} }; },
+      },
+      ImageFilter: {
+        MakeBlur: (...args: unknown[]) => { blurCalls.push({ args, sequence: sequence++ }); return makeFilter("blur"); },
+        MakeDropShadowOnly: (...args: unknown[]) => { dropShadowOnlyCalls.push({ args, sequence: sequence++ }); return makeFilter("drop-shadow-only"); },
+        MakeDropShadow: () => makeFilter("drop-shadow"),
+        MakeBlend: () => makeFilter("blend"),
+        MakeColorFilter: () => makeFilter("color-filter"),
+        MakeDilate: () => makeFilter("dilate"),
+        MakeErode: () => makeFilter("erode"),
+      },
+    } as unknown as SkiaCanvasKit;
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const effectProgram = {
+      input: "source",
+      ops: [
+        { id: "box-shadow:0:alpha", kind: "alpha-mask", input: "source", output: "effect:box-shadow:0:alpha", source: "box" },
+        { id: "box-shadow:0:spread", kind: "morphology", input: "effect:box-shadow:0:alpha", output: "effect:box-shadow:0:spread", operator: "dilate", radius: 80 },
+        { id: "box-shadow:0:blur", kind: "blur", input: "effect:box-shadow:0:spread", output: "effect:box-shadow:0:blur", radius: 200 },
+        { id: "box-shadow:0:tint", kind: "tint", input: "effect:box-shadow:0:blur", output: "effect:box-shadow:0:tint", color: "#22d3ee", opacity: 0.4 },
+        { id: "box-shadow:0:offset", kind: "offset", input: "effect:box-shadow:0:tint", output: "effect:box-shadow:0:offset", x: 0, y: 0 },
+        { id: "box-shadow:0:composite", kind: "composite", backdrop: "effect:box-shadow:0:offset", source: "source", output: "effect:box-shadow:0", mode: "source-over" },
+        { id: "filter:0", kind: "blur", input: "effect:box-shadow:0", output: "effect:filter:0", radius: 70 },
+      ],
+      output: "effect:filter:0",
+      requiresOffscreen: true,
+    };
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 400, height: 300, background: "#000000", graphId: "box-shadow-spread-filter", frame: 0, time: 0 },
+        { op: "beginLayer", key: "orb", isolation: true, offscreen: true, effectProgram, effectBox: { width: 100, height: 100, cornerRadius: 50, matrix4: identity } },
+        { op: "setTransform", key: "orb", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "orb", layerId: "orb", fill: "#22d3ee", width: 100, height: 100 },
+        { op: "endLayer", key: "orb" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    const stats = replaySkiaCommands(kit, canvas, buffer);
+
+    expect(stats.diagnostics).toEqual([]);
+    expect(drawImageRectCalls.length).toBeGreaterThan(0);
+    expect(firstMakeSurfaceSequence).toBeDefined();
+    expect(setImageFilterCalls.length).toBeGreaterThan(0);
+    expect(setImageFilterCalls[0]!.value).toMatchObject({ kind: "blur" });
+    expect(setImageFilterCalls[0]!.sequence).toBeLessThan(firstMakeSurfaceSequence!);
+
+    // Chrome grows the shadow rect and corner radius by `spread` before a
+    // single blur-fill pass (Blink's ApplySpreadToShadowShape) instead of
+    // rasterizing the owner-size silhouette and running an image-space
+    // dilate filter over it - that dilate is what made a real 80px spread
+    // take ~18s under software rendering. So the 100x100/radius:50 orb with
+    // spread:80 must draw an *expanded* rRect (radius clamped to half of
+    // 100 + 2*80 = 260, i.e. 130), not just an unexpanded one.
+    const radii = drawRRectCalls.map((call) => (call[0] as number[])[4]);
+    expect(radii).toContain(130);
+    // The original, unexpanded silhouette (radius 50) must still be drawn
+    // too - it backs the owner-coverage DstOut subtraction, since CSS spread
+    // never changes the owner's own rendered shape, only its shadow.
+    expect(radii).toContain(50);
+
+    // Morphology filters must never reach the real drawing path. The gate
+    // computed at beginLayer time (effectFilterFor, never rasterized) is
+    // allowed to chain a dilate filter as an `input` - it happens before any
+    // surface exists. But once drawBoxEffect starts (after the first
+    // MakeSurface call), its own MakeBlur/MakeDropShadowOnly calls must pass
+    // a null/undefined `input`, never a dilate/erode filter object.
+    const realDrawFilterCalls = [...blurCalls, ...dropShadowOnlyCalls].filter(
+      (call) => call.sequence > firstMakeSurfaceSequence!,
+    );
+    expect(realDrawFilterCalls.length).toBeGreaterThan(0);
+    for (const call of realDrawFilterCalls) {
+      const input = call.args[call.args.length - 1] as { kind?: string } | null | undefined;
+      const kind = input && typeof input === "object" ? input.kind : undefined;
+      expect(kind).not.toBe("dilate");
+      expect(kind).not.toBe("erode");
+    }
+  });
+});
+
 // css-effects-roadmap.md 1.2b: box-shadow + backdrop-filter used to make the
 // shadow's halo disappear silently (no diagnostic at all), confirmed via a
 // real html-compiler -> motion-compiler -> replay run before this fix. Root

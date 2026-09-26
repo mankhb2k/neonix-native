@@ -387,6 +387,72 @@ describe("Skia CSS effect lowering", () => {
     expect(filters.some((filter) => filter.kind === "erode" && filter.meta?.radiusX === 5)).toBe(true);
   });
 
+  // Regression: `box-shadow: ... <spread>; filter: blur(...);` on the same
+  // element (e.g. a blurred "glow orb": a big spread + a CSS filter on top)
+  // fell through every pattern - splitLeadingBoxShadowThenFilter's leading
+  // shadow branch never accounted for the morphology op a spread inserts, so
+  // the whole program (shadow AND filter) was reported unsupported and
+  // silently dropped, with no error. This is the exact shape
+  // fixtures/debug/neonix-motion-test-10s.html's `.orb-a`/`.orb-b` compile to.
+  it("recognizes a leading box-shadow with spread followed by a trailing CSS filter", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "shadow:alpha", kind: "alpha-mask", input: "source", output: "effect:shadow:alpha", source: "box" },
+        { id: "shadow:spread", kind: "morphology", input: "effect:shadow:alpha", output: "effect:shadow:spread", operator: "dilate", radius: 80 },
+        { id: "shadow:blur", kind: "blur", input: "effect:shadow:spread", output: "effect:shadow:blur", radius: 200 },
+        { id: "shadow:tint", kind: "tint", input: "effect:shadow:blur", output: "effect:shadow:tint", color: "#22d3ee", opacity: 0.4 },
+        { id: "shadow:offset", kind: "offset", input: "effect:shadow:tint", output: "effect:shadow:offset", x: 0, y: 0 },
+        { id: "shadow:composite", kind: "composite", backdrop: "effect:shadow:offset", source: "source", output: "effect:shadow", mode: "source-over" },
+        { id: "filter:0", kind: "blur", input: "effect:shadow", output: "effect:filter:0", radius: 70 },
+      ],
+      output: "effect:filter:0",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    expect(result.sourceOnly).toBe(true);
+    expect(result.tailFilter).toBeTruthy();
+    // The spread must reach the shadow's own filter chain (the halo), not
+    // just be silently ignored while the program is merely accepted.
+    expect(filters.some((filter) => filter.kind === "dilate" && filter.meta?.radiusX === 80)).toBe(true);
+  });
+
+  // Regression: a text-shadow's alpha-mask (source: "alpha") used to pick
+  // cssOuterGlowRadiusToSkiaSigma (sigma === radius) here, while the
+  // identical graph shape for a box-shadow (source: "box") already used
+  // cssShadowBlurRadiusToSkiaSigma. Blink's ShadowData::BlurAsSigma() is
+  // shared verbatim between box-shadow and text-shadow, so both must land on
+  // the same calibrated sigma.
+  it("uses the same calibrated sigma for text-shadow as for box-shadow", () => {
+    const buildProgram = (source: "alpha" | "box"): RuntimeEffectProgram => ({
+      input: "source",
+      ops: [
+        { id: "shadow:alpha", kind: "alpha-mask", input: "source", output: "effect:shadow:alpha", source },
+        { id: "shadow:blur", kind: "blur", input: "effect:shadow:alpha", output: "effect:shadow:blur", radius: 24 },
+        { id: "shadow:tint", kind: "tint", input: "effect:shadow:blur", output: "effect:shadow:tint", color: "#ffffff", opacity: 1 },
+        { id: "shadow:offset", kind: "offset", input: "effect:shadow:tint", output: "effect:shadow:offset", x: 0, y: 0 },
+        { id: "shadow:composite", kind: "composite", backdrop: "effect:shadow:offset", source: "source", output: "effect:shadow", mode: "source-over" },
+      ],
+      output: "effect:shadow",
+      requiresOffscreen: true,
+    });
+
+    const text = createKit();
+    expect(effectFilterFor(text.kit, buildProgram("alpha")).supported).toBe(true);
+    const textSigma = text.filters.find((filter) => filter.kind === "drop-shadow")?.meta?.sigmaX;
+
+    const box = createKit();
+    expect(effectFilterFor(box.kit, buildProgram("box")).supported).toBe(true);
+    const boxSigma = box.filters.find((filter) => filter.kind === "drop-shadow")?.meta?.sigmaX;
+
+    expect(textSigma).toBeCloseTo(cssShadowBlurRadiusToSkiaSigma(24), 6);
+    expect(textSigma).toEqual(boxSigma);
+    expect(textSigma).not.toBeCloseTo(cssOuterGlowRadiusToSkiaSigma(24), 6);
+  });
+
   // css-effects-roadmap.md 1.2 (Bug A): box-shadow followed by a CSS filter
   // lowers to [shadow block(s)][trailing linear filter ops off the last
   // shadow's composite output] - a shape none of the whole-program patterns

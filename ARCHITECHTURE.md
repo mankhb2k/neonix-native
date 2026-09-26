@@ -158,6 +158,116 @@ For persistence, `project_revisions.document_json` is canonical. HTML source
 is stored only as an authoring source and links to the JSON revision through
 `project_html_revisions.protocol_revision_id`.
 
+## Công nghệ nền cho HTML Compiler và text runtime
+
+HTML Compiler và `@motionvideo/motion-runtime` (text shaping/layout) không tự
+viết lại mọi thứ. Đây là quyết định kiến trúc có chủ đích, không phải tiện gì
+dùng nấy — mỗi lựa chọn dưới đây đã được đối chiếu bằng số liệu thật (pixel
+diff với Chrome thật, dung lượng bundle đo trực tiếp), không suy đoán.
+
+### Đã mượn từ hệ sinh thái browser engine (Skia, HarfBuzz)
+
+| Công nghệ | Dùng ở đâu | Lý do mượn thay vì tự viết |
+| --- | --- | --- |
+| **Skia** | `canvaskit-preview` (CanvasKit/WASM) và Export Renderer (native Skia) | Rasterization (path fill, gradient, blur, mask, filter) là bài toán tốn công tự viết lại nhất và ít giá trị khác biệt nhất để tự làm. Dùng đúng thư viện Blink dùng nghĩa là parity với Chrome đạt được bằng cách calibrate hệ số (đã làm với `cssShadowBlurRadiusToSkiaSigma`), không phải đoán mò thuật toán blur/shadow từ đầu. |
+| **HarfBuzz** | `motion-runtime/visual/text-layout.ts` (`harfbuzzjs`) | Text shaping (ligature, kerning, joining chữ Ả Rập, GSUB/GPOS) là thuật toán phức tạp nhất trong toàn bộ pipeline chữ; đây cũng chính là thư viện Blink dùng trên mọi platform. |
+
+### Cố tình KHÔNG mượn ICU — tự viết lại thuật toán, chấp nhận thiếu
+
+Blink dùng ICU cho line-break (UAX #14) và bidi (UAX #9). Neonix **không**
+dùng ICU (qua binding `icu4x`/ICU4X) mà tự thay bằng 2 thư viện độc lập, nhẹ
+hơn nhiều lần:
+
+| | ICU4X (không dùng) | Đã chọn thay thế | Đánh đổi |
+| --- | --- | --- | --- |
+| Line-break (UAX #14) | `icu` npm — đã đo thật: **20.5MB** wasm monolithic (gộp cả Calendar/Collator không cần) | `linebreak` (pure JS, ~228KB) — `motion-runtime/visual/line-break.ts` | Đúng cho Latin/Việt/CJK (đã verify bằng test thật); **chưa** đúng cho Thái/Lào/Khmer/Miến Điện (cần dữ liệu dictionary/LSTM ICU4X mới có) — ghi nhận ở `debt-technical.md`, không giấu |
+| Bidi (UAX #9) | cùng gói `icu`, cùng chi phí 20.5MB | `bidi-js` (pure JS, ~206KB) — `motion-runtime/visual/bidi-resolve.ts` | Đúng cho Ả Rập/Hebrew (đã verify bằng pixel-diff Chrome thật + test hồi quy); rule L1 (whitespace cuối dòng) và vertical writing-mode chưa cài |
+
+Lý do chọn nhẹ hơn thay vì đầy đủ hơn: đối tượng dùng thực tế hiện tại là
+tiếng Anh/Việt (không cần cả hai thư viện) và CJK/Ả Rập/Hebrew (đã phủ đúng);
+20MB cho một tính năng phần lớn người dùng không chạm tới là chi phí không
+xứng đáng tại thời điểm này. Quyết định này có thể đảo ngược sau nếu nhu cầu
+Thái/Lào/Khmer/Miến Điện xuất hiện thật.
+
+### Layout (flex/grid/cascade) — tự viết, không mượn, không định mượn thêm
+
+`packages/html-compiler/src/compiler/layout/` (flex.ts, grid.ts, geometry.ts)
+và `css/cascade.ts` **không dựa trên** Blink LayoutNG, và **không dự định**
+chuyển sang một layout engine ngoài (đã đánh giá và loại bỏ Taffy — xem
+`sandbox/taffy-spike/README.md`). Lý do, theo thứ tự quan trọng:
+
+1. **Kiểm soát được debug loop.** Mọi lỗi flex/grid tìm được phiên này (bug
+   text-shadow sigma, line-break CJK, bidi reversal) đều sửa được bằng cách
+   đọc đúng file, đúng dòng, rồi verify lại bằng Chrome thật — không phải chờ
+   một binding bên thứ ba vá lỗi tầng dịch của chính nó.
+2. **Giữ compile đồng bộ.** `compileDocument`/`compileHtmlCss` hiện chạy hoàn
+   toàn đồng bộ, không có wasm nào trong đường compile chính (HarfBuzz chỉ
+   async ở một pre-pass đo text-sizing TÙY CHỌN, tách biệt khỏi compile
+   chính). Một layout engine dạng WASM sẽ ép toàn bộ compile phải học sống
+   chung với async wasm-init — thay đổi kiến trúc thật, không đáng đánh đổi
+   chỉ để có sẵn vài keyword CSS.
+3. **Root-cause lớn nhất (intrinsic min/max-content sizing) không được giải
+   quyết miễn phí dù dùng engine ngoài** — engine ngoài nào cũng cần tự nối
+   vào hệ đo text thật (`measureVisualRuntimeTextIntrinsicWidths`, đã có sẵn
+   trong `motion-runtime` nhưng chưa được `flex.ts`/`grid.ts` gọi tới) —
+   nghĩa là phần việc khó nhất phải tự làm bất kể chọn hướng nào.
+
+Vẫn **không dùng một layout engine ngoài** (đã loại Taffy, không đổi). Nhưng
+có một ngoại lệ hẹp, khác bản chất với việc "thay engine": xem mục ngay dưới.
+
+### Ngoại lệ hẹp: layoutSnapshot — Chrome đo geometry cuối, không thay thuật toán
+
+Đây **không phải** đổi sang layout engine ngoài (`flex.ts`/`grid.ts`/
+`cascade.ts` vẫn là thuật toán chạy mặc định, không xoá). Đây là một
+đường tùy chọn: `compileDocument(doc, { layoutSnapshot })` cho phép
+`resolveNodeBox()` (`compiler/layout/node-box.ts`) dùng border-box/padding/
+border **đã đo từ Chrome thật** cho một node, thay vì tự chạy
+`resolveGeometry`/margin-collapse/intrinsic-height cho đúng node đó.
+
+Lý do được chấp nhận, dựa trên số liệu, không suy đoán: spike đo 107 fixture
+trong catalog docs/playground qua Chrome thật (script:
+`apps/web/scripts/html-compiler-layout-snapshot-{bake,diff}.mts`) cho thấy
+79/107 đã khớp native tuyệt đối (≤1px) — tự viết đã đúng phần lớn. 24 fixture
+lệch thật đều rơi vào đúng loại bài toán tốn công nhất để tự làm hoàn hảo:
+margin-collapse cạnh sâu (collapse xuyên phần tử rỗng, margin âm) và
+`height:auto` cho text (heuristic đếm ký tự lệch heuristic thật của Chrome
+vài chục px). Chrome giải đúng hai loại này gần như miễn phí.
+
+Hợp đồng bắt buộc, không có ngoại lệ:
+- **Mặc định tắt** (`LAYOUT_SNAPSHOT_ENABLED=false`).
+- **Một node thiếu số đo (service lỗi/timeout/không phủ) luôn fallback về
+  native, không bao giờ là lỗi cứng** — cùng hợp đồng với `textSizing`.
+- **Loại trừ vĩnh viễn khỏi phạm vi này**, luôn tính native bất kể snapshot
+  có hay không: phần tử nằm dưới CSS `transform` (toạ độ đo được đã là
+  sau-transform, dùng thẳng sẽ áp transform hai lần) và phần tử SVG (hệ
+  toạ độ user-space riêng, không khớp `getBoundingClientRect`). Xem
+  `layout-probe.ts`'s `runLayoutProbe()`.
+- **Không mở rộng ra ngoài geometry.** Paint (màu, gradient, shadow, filter),
+  cascade (chọn selector thắng), HTML/SVG parsing, và cấu trúc `@keyframes`
+  vẫn tự viết 100%, đã thử và loại bỏ việc dùng Chrome cho các phần này
+  (ví dụ: `getComputedStyle` không chuẩn hoá `oklch()`/`color-mix()` về
+  `rgb()` như kỳ vọng, cũng không lộ ra font nào thực sự được chọn sau
+  fallback — đã verify bằng Chrome thật, không phải giả định).
+
+### Chromium/trình duyệt thật: oracle ở dev-time, và một ngoại lệ hẹp có kiểm soát ở runtime
+
+Không có Puppeteer/Playwright/Chromium nào trong `export-renderer` (khác với
+Remotion, vốn bật headless Chrome thật cho từng frame lúc export). Chrome
+thật xuất hiện ở 3 nơi:
+
+1. Live preview trong Editor chạy trong tab trình duyệt của chính người dùng
+   — bản chất của một web app, không phải server-side render bằng Chrome.
+2. Playwright mở Chrome thật làm ground-truth để pixel-diff khi debug (cách
+   đã dùng để tìm và verify toàn bộ các fix trong phiên này) — công cụ
+   dev-time/test-time, không đóng gói vào sản phẩm, không chạy lúc export
+   thật.
+3. **`infra/cloud-run/layout-probe`** — service Cloud Run chạy Chromium
+   thật, được `apps/web/lib/server/layout-snapshot.ts` gọi tuỳ chọn ở bước
+   compile HTML lúc lưu project (`layoutSnapshot`, xem mục ngay trên). Đây
+   là ngoại lệ DUY NHẤT: một dependency runtime thật vào tiến trình
+   Chromium, nhưng luôn tuỳ chọn, mặc định tắt, và fallback native khi thiếu
+   — không phải một oracle dev-time, cũng không phải một dependency cứng.
+
 ## Luồng Media Ingest và Audio
 
 Media Ingest là luồng chuẩn bị asset nằm trước authoring và chạy xuyên qua
@@ -816,6 +926,16 @@ trong [`export-renderer README`](packages/export-renderer/README.md).
 10. Playback chỉ phục vụ Editor và không phải là nguồn frame/audio cho export.
 11. `/docs/preview/skia` phải kiểm tra trực tiếp Runtime và Skia Renderer bằng
     frame/time xác định, không phụ thuộc clock realtime của Playback.
+12. Không package nào trong đường sản phẩm (compile, runtime, preview, export)
+    được phụ thuộc **cứng** vào một tiến trình Chromium/trình duyệt đang chạy
+    để tạo ra kết quả cuối — **trừ một ngoại lệ hẹp, có kiểm soát**: layout
+    geometry (border-box/padding/border) ở bước compile HTML, tuỳ chọn qua
+    `layoutSnapshot`/`LAYOUT_SNAPSHOT_ENABLED` (mặc định tắt, luôn fallback
+    native khi thiếu/lỗi, không áp dụng cho phần tử dưới transform hoặc SVG).
+    Ngoài phạm vi này, Chrome thật chỉ được dùng làm oracle kiểm chứng ở
+    dev-time (xem "Công nghệ nền cho HTML Compiler và text runtime"). Paint,
+    cascade, HTML/SVG parsing và cấu trúc animation không nằm trong ngoại lệ
+    này và vẫn cấm tuyệt đối.
 
 ## Luồng dữ liệu chuẩn
 

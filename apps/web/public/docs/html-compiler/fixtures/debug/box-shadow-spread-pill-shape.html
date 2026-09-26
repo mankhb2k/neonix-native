@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1100px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        A pill/stadium shape (cornerRadius == height/2, so the two short
+        ends are true semicircles while the long top/bottom edges are
+        straight) - a very common real UI shape (buttons, badges, tags).
+        This isolates WHICH PART of a shape the squircle bug hits: the
+        straight edges are already axis-aligned, so a rectangular dilate
+        kernel cannot distort them (same reasoning as the plain-rect sweep);
+        only the two semicircular end-caps should show the same flattening
+        seen on the full circle case. If true, the practical bug is
+        "rounded corners get flatter", not "the whole shape gets squished".
+      */
+      .pill {
+        position: absolute;
+        left: 810px;
+        top: 480px;
+        width: 300px;
+        height: 120px;
+        border-radius: 60px;
+        background: #34d399;
+        box-shadow: 0 0 40px 50px #34d399;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow spread debug - pill/stadium shape (300x120, cornerRadius=60=half-height, spread=50, blur=40) - checks whether only the rounded end-caps distort while the straight sides stay correct</div>
+    <div id="spread-pill" class="pill"></div>
+  </body>
+</html>

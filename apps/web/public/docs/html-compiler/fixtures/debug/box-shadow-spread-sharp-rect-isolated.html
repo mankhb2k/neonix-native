@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1300px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        The exact "spread:+90px" tile from box-shadow-spread-radius-sweep.html
+        (radius=0, blur=40, spread=90), alone and centered at full size - the
+        3-tile sweep crowded this case next to two much smaller ones, making
+        it hard to visually compare corner curvature/extent precisely
+        against the browser reference. This isolates it for a clean 1:1
+        crop comparison.
+      */
+      .tile {
+        position: absolute;
+        left: 860px;
+        top: 440px;
+        width: 220px;
+        height: 140px;
+        background: #fbbf24;
+        box-shadow: 0 0 40px 90px #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow spread debug - isolated sharp rect (220x140, cornerRadius:0), spread=90px, blur=40px - same params as the sweep's rightmost tile, alone for a clean crop comparison</div>
+    <div id="spread-sharp-isolated" class="tile"></div>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1500px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        Pushes spread even further than the sweep that first showed a
+        mismatch (90px): 100/150/200px, radius:0, blur=40 fixed. If the
+        visible error at 90px GROWS with these larger values, that points to
+        a scaling/formula problem (or surface padding running out, clipping
+        the halo). If the absolute error stays roughly the same regardless
+        of magnitude, that points to a fixed rounding/AA/edge-treatment
+        difference instead. The rightmost tile's halo intentionally runs
+        past the composition's right edge - both browser and native clip
+        identically there (both are 1920px wide, overflow:hidden), so that
+        does not affect the comparison.
+      */
+      .tile { position: absolute; width: 220px; height: 140px; top: 460px; border-radius: 0; background: #f87171; }
+      .caption { position: absolute; width: 240px; top: 900px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+
+      .spread-100 { left: 182px; box-shadow: 0 0 40px 100px #f87171; }
+      .spread-150 { left: 796px; box-shadow: 0 0 40px 150px #f87171; }
+      .spread-200 { left: 1510px; box-shadow: 0 0 40px 200px #f87171; }
+
+      .caption-100 { left: 162px; }
+      .caption-150 { left: 776px; }
+      .caption-200 { left: 1490px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow spread debug - extreme spread stress test, radius:0, blur=40 fixed - spread 100/150/200px - checks whether the radius:0 mismatch grows with magnitude (formula/padding) or stays fixed (rounding/AA)</div>
+    <div class="tile spread-100"></div>
+    <div class="tile spread-150"></div>
+    <div class="tile spread-200"></div>
+    <div class="caption caption-100">spread: 100px</div>
+    <div class="caption caption-150">spread: 150px</div>
+    <div class="caption caption-200">spread: 200px</div>
+  </body>
+</html>

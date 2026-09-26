@@ -3263,6 +3263,16 @@ export const HTML_COMPILER_PREVIEW_FONT_ASSETS_GENERATED: HtmlCompilerFontAsset[
     "integrity": "sha256:824cc0f118f2498903babb31703ba35cfbf93300ab79c475fb5db45998dd6ba4"
   },
   {
+    "id": "preview-font-noto-sans-hebrew-notosanshebrew-regular",
+    "kind": "font",
+    "uri": "/preview/font/Noto_Sans_Hebrew/NotoSansHebrew-Regular.ttf",
+    "mimeType": "font/ttf",
+    "family": "Noto Sans Hebrew",
+    "weight": 400,
+    "style": "normal",
+    "integrity": "sha256:7ef36a2c3593758cdb622e1bdef4f84523e92fbc3ccc667438dd80ff54c2de88"
+  },
+  {
     "id": "preview-font-open-sans-opensans-300",
     "kind": "font",
     "uri": "/preview/font/Open_Sans/OpenSans-300.ttf",

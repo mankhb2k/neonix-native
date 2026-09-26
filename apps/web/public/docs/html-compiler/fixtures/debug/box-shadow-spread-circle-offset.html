@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1000px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        Same circle/spread/blur as box-shadow-spread-circle.html, but the
+        shadow is also offset (40px, 40px). Offset happens *after* the
+        morphology op in the effect-program op order (alpha-mask -> morphology
+        -> blur -> tint -> offset -> composite), so it should be a pure
+        translation of whatever shape the (buggy) rectangular dilate already
+        produced - this checks whether offset+dilate compose cleanly
+        (translated squircle) or whether the interaction introduces further,
+        direction-dependent distortion beyond the base squircle bug.
+      */
+      .orb {
+        position: absolute;
+        left: 860px;
+        top: 440px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: #22d3ee;
+        box-shadow: 40px 40px 60px 70px #22d3ee;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow spread debug - case 1d: circle with non-zero offset (40,40) + spread - checks offset+dilate interaction</div>
+    <div id="spread-circle-offset" class="orb"></div>
+  </body>
+</html>

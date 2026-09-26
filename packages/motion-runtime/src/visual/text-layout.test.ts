@@ -103,6 +103,27 @@ describe("runtime text shaping and materialization", () => {
     expect(content.layout?.glyphs.every((glyph) => glyph.x <= 150)).toBe(true);
   });
 
+  // Regression: CJK text has no ASCII spaces, so the old `\S+\s+` word
+  // tokenizer saw the whole string as one unbreakable "word" under plain
+  // wrap: word and let it overflow the frame width, exactly like the
+  // unbreakable-Latin-word case below. Real UAX #14 break data allows a
+  // break between ideographs, so this must now wrap into multiple lines
+  // that each fit, without needing wrap: character/word-break-long.
+  it("wraps a CJK string under plain wrap: word even though it has no spaces", async () => {
+    const bytes = await readFile(notoSansPath);
+    const cjk = "你好世界这是一段用来测试自动换行的中文文字";
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: cjk, width: 150, contentWidth: 150, wrap: "word" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout!.lines.length).toBeGreaterThan(1);
+    expect(content.layout!.lines.every((line) => line.advanceWidth <= 150)).toBe(true);
+  });
+
   it("breaks at any grapheme cluster boundary under wrap: character (word-break: break-all)", async () => {
     const bytes = await readFile(notoSansPath);
     const longWord = "Supercalifragilisticexpialidocious";
@@ -561,6 +582,74 @@ describe("runtime text shaping and materialization", () => {
     expect(run?.glyphs.every((glyph) => glyph.fontAssetId === "noto-arabic")).toBe(true);
     expect(run?.glyphs.every((glyph) => Number.isFinite(glyph.advanceX) && Number.isFinite(glyph.advanceY))).toBe(true);
     expect(content.layout?.glyphs.every((glyph) => glyph.renderMode === "vector")).toBe(true);
+  });
+
+  // Regression: before bidi integration, a line was always shaped as one
+  // HarfBuzz buffer in the text's single overall `direction`. An RTL word
+  // embedded in an LTR sentence got its own glyphs laid out in increasing
+  // (mirrored) order instead of the correct RTL order, while still landing
+  // in the right position relative to the surrounding Latin words.
+  it("keeps an embedded Arabic word in correct RTL glyph order inside an LTR sentence", async () => {
+    const [inter, arabic] = await Promise.all([readFile(interRegularPath), readFile(notoArabicPath)]);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "Hello مرحبا World", // "Hello مرحبا World"
+        fontAssetId: "inter",
+        fontUri: "/preview/font/Inter/Inter-400.ttf",
+        fontIntegrity: "sha256:inter",
+        fontFallbacks: [{ assetId: "noto-arabic", uri: "/preview/font/Noto_Sans_Arabic/NotoSansArabic-400.ttf", integrity: "sha256:noto-arabic" }],
+        direction: "ltr",
+        fontSize: 48,
+        width: 800,
+      })),
+      async (font) => (font.assetId === "noto-arabic" ? arabic : inter),
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    const glyphs = content.layout!.glyphs;
+    const arabicGlyphs = glyphs.filter((glyph) => glyph.cluster >= 6 && glyph.cluster < 11);
+    expect(arabicGlyphs.length).toBeGreaterThan(0);
+    // Reading order م(6) ر(7) ح(8) ب(9) ا(10) must appear right-to-left:
+    // the first-typed character (lowest cluster) sits at the largest x.
+    const byCluster = new Map(arabicGlyphs.map((glyph) => [glyph.cluster, glyph.x]));
+    expect(byCluster.get(6)!).toBeGreaterThan(byCluster.get(10)!);
+    // The embedded word still sits between "Hello" and "World", in that order.
+    const helloMaxX = Math.max(...glyphs.filter((glyph) => glyph.cluster < 5).map((glyph) => glyph.x));
+    const worldMinX = Math.min(...glyphs.filter((glyph) => glyph.cluster >= 12).map((glyph) => glyph.x));
+    const arabicMinX = Math.min(...arabicGlyphs.map((glyph) => glyph.x));
+    const arabicMaxX = Math.max(...arabicGlyphs.map((glyph) => glyph.x));
+    expect(helloMaxX).toBeLessThan(arabicMinX);
+    expect(arabicMaxX).toBeLessThan(worldMinX);
+  });
+
+  // Regression: shaping a whole RTL paragraph as one buffer also reverses
+  // any embedded LTR run (like a number) that has no business flipping -
+  // "100" was rendering as "001". The number's own digits must stay in
+  // increasing logical order even though the paragraph around it is RTL.
+  it("keeps an embedded number left-to-right inside an RTL paragraph", async () => {
+    const arabic = await readFile(notoArabicPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "السعر 100 دولار", // "السعر 100 دولار"
+        fontAssetId: "noto-arabic",
+        fontUri: "/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf",
+        fontIntegrity: "sha256:noto-arabic",
+        direction: "rtl",
+        fontSize: 48,
+        width: 800,
+      })),
+      async () => arabic,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    const glyphs = content.layout!.glyphs;
+    const digitX = (cluster: number) => glyphs.find((glyph) => glyph.cluster === cluster)!.x;
+    expect(digitX(6)).toBeLessThan(digitX(7));
+    expect(digitX(7)).toBeLessThan(digitX(8));
   });
 });
 

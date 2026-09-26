@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+      .label { position: absolute; left: 60px; width: 1800px; color: #64748b; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; }
+      .row { position: absolute; left: 60px; width: 1800px; color: #f8fafc; font-family: "Noto Sans Arabic", Inter, sans-serif; font-size: 44px; }
+
+      .label-1 { top: 60px; }
+      .row-1 { top: 110px; direction: ltr; }
+
+      .label-2 { top: 220px; }
+      .row-2 { top: 270px; direction: rtl; }
+
+      .label-3 { top: 380px; }
+      .row-3 { top: 430px; direction: rtl; }
+    </style>
+  </head>
+  <body>
+    <div class="label label-1">LTR paragraph, embedded Arabic word (bidi should keep "Hello" / "World" order, reverse only the Arabic run)</div>
+    <div class="row row-1" id="bidi-arabic-1">Hello &#1605;&#1585;&#1581;&#1576;&#1575; World</div>
+
+    <div class="label label-2">RTL paragraph (direction: rtl), pure Arabic sentence</div>
+    <div class="row row-2" id="bidi-arabic-2">&#1605;&#1585;&#1581;&#1576;&#1575; &#1576;&#1575;&#1604;&#1593;&#1575;&#1604;&#1605;</div>
+
+    <div class="label label-3">RTL paragraph with an embedded LTR number ("100" must stay left-to-right in place, only the Arabic words swap sides)</div>
+    <div class="row row-3" id="bidi-arabic-3">&#1575;&#1604;&#1587;&#1593;&#1585; 100 &#1583;&#1608;&#1604;&#1575;&#1585;</div>
+  </body>
+</html>

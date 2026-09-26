@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+      .label { position: absolute; left: 60px; width: 1800px; color: #64748b; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700; }
+      .row { position: absolute; left: 60px; width: 1800px; color: #f8fafc; font-family: "Noto Sans Hebrew", Inter, sans-serif; font-size: 44px; }
+
+      .label-1 { top: 60px; }
+      .row-1 { top: 110px; direction: ltr; }
+
+      .label-2 { top: 220px; }
+      .row-2 { top: 270px; direction: rtl; }
+
+      .label-3 { top: 380px; }
+      .row-3 { top: 430px; direction: rtl; }
+    </style>
+  </head>
+  <body>
+    <div class="label label-1">LTR paragraph, embedded Hebrew word (bidi should keep "Hello" / "World" order, reverse only the Hebrew run)</div>
+    <div class="row row-1" id="bidi-hebrew-1">Hello &#1513;&#1500;&#1493;&#1501; World</div>
+
+    <div class="label label-2">RTL paragraph (direction: rtl), pure Hebrew sentence ("shalom olam" - hello world)</div>
+    <div class="row row-2" id="bidi-hebrew-2">&#1513;&#1500;&#1493;&#1501; &#1506;&#1493;&#1500;&#1501;</div>
+
+    <div class="label label-3">RTL paragraph with an embedded LTR number ("100" must stay left-to-right in place, only the Hebrew words swap sides)</div>
+    <div class="row row-3" id="bidi-hebrew-3">&#1492;&#1502;&#1495;&#1497;&#1512; 100 &#1491;&#1493;&#1500;&#1512;</div>
+  </body>
+</html>

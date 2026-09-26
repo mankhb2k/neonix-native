@@ -108,6 +108,8 @@ type BoxShadowOverlayBranch = {
   blur: Extract<RuntimeEffectOp, { kind: "blur" }>;
   tint: Extract<RuntimeEffectOp, { kind: "tint" }>;
   offset?: Extract<RuntimeEffectOp, { kind: "offset" }>;
+  /** CSS box-shadow spread on an outer (non-inset) branch only - see the identical field on effects.ts's BoxShadowBranch. */
+  spread?: Extract<RuntimeEffectOp, { kind: "morphology" }>;
 };
 
 /**
@@ -129,6 +131,27 @@ function boxShadowOverlayBranches(
   while (index < program.ops.length) {
     const alpha = program.ops[index];
     if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") break;
+
+    // Mirrors the identical leading-spread shape effectFilterFor's
+    // splitLeadingBoxShadowThenFilter recognizes (see its comment) - outer
+    // (non-inset) only.
+    const maybeSpread = program.ops[index + 1];
+    if (maybeSpread?.kind === "morphology") {
+      const spreadBlur = program.ops[index + 2];
+      const spreadTint = program.ops[index + 3];
+      const spreadOffset = program.ops[index + 4];
+      const spreadComposite = program.ops[index + 5];
+      if (
+        spreadBlur?.kind !== "blur" ||
+        spreadTint?.kind !== "tint" ||
+        spreadOffset?.kind !== "offset" ||
+        spreadComposite?.kind !== "composite" ||
+        spreadComposite.mode !== "source-over"
+      ) break;
+      branches.push({ kind: "outer", blur: spreadBlur, tint: spreadTint, offset: spreadOffset, spread: maybeSpread });
+      index += 6;
+      continue;
+    }
 
     const maybeOffset = program.ops[index + 1];
     const hasOffset = maybeOffset?.kind === "offset";
@@ -425,6 +448,44 @@ export function replaySkiaCommands(
     if (resources && value) resources.surfacePool.release(surfaceWidth, surfaceHeight, value);
     else value?.dispose();
   };
+  // CSS box-shadow spread is a geometry change, not an image filter: a real
+  // browser grows the shadow rect (and its corner radius) before the single
+  // blur-fill pass (Blink's ApplySpreadToShadowShape/OutsetWithCornerCorrection
+  // in box_painter_base.cc). Rasterizing the owner-size mask first and then
+  // running a per-pixel dilate/erode filter on it - this file's previous
+  // approach - is dramatically more expensive at large radii (measured
+  // ~18s for a single MakeDilate(80) frame under software rendering, and it
+  // can crash the tab outright once combined with a large blur) and isn't
+  // how any real box-shadow spread has ever actually rendered.
+  //
+  // The corner radius does NOT simply grow by `spread` - pixel-diffing
+  // against real Chrome disproved that (a cornerRadius:0 rect stayed sharp
+  // at every spread up to 200px, and small radii grew far less than
+  // radius+spread would predict). Ported verbatim from Blink's real
+  // formula (ComputeOutsetAdjustedBorderRadius /
+  // FloatRoundedRect::Radii::OutsetWithCornerCorrection in
+  // float_rounded_rect.cc): a zero radius is never rounded by spread at
+  // all, and a radius smaller than spread grows by a cubic ease-in instead
+  // of a straight sum - only once radius exceeds spread (or the box is
+  // "mostly round" already, `coverage > 1`) does it become a plain sum.
+  const computeOutsetAdjustedRadius = (radius: number, outset: number, coverage: number): number => {
+    if (radius > outset || coverage > 1) return radius + outset;
+    const ratio = radius / outset;
+    return radius + outset * (1 - (1 - ratio) ** 3 * (1 - coverage ** 3));
+  };
+  const outsetSilhouette = (width: number, height: number, cornerRadius: number, spread: number) => {
+    const outWidth = Math.max(0, width + spread * 2);
+    const outHeight = Math.max(0, height + spread * 2);
+    if (cornerRadius === 0 || spread === 0) {
+      return { width: outWidth, height: outHeight, cornerRadius };
+    }
+    // Coverage and the adjusted radius are measured against the ORIGINAL
+    // (pre-outset) box size, matching Blink's `edge`/`box_size` argument.
+    const coverage = 2 * Math.min(cornerRadius / width, cornerRadius / height);
+    const adjusted = computeOutsetAdjustedRadius(cornerRadius, spread, coverage);
+    const outRadius = Math.max(0, Math.min(adjusted, Math.min(outWidth, outHeight) / 2));
+    return { width: outWidth, height: outHeight, cornerRadius: outRadius };
+  };
   const drawBoxEffect = (layer: ReplayLayer): void => {
     const filter = layer.boxEffectFilter;
     const source = layer.boxEffectSource;
@@ -486,6 +547,33 @@ export function replaySkiaCommands(
             return;
           }
 
+          // CSS spread grows (or, negative, shrinks) the silhouette's rect and
+          // corner radius before it is blurred - only ever set on an "outer"
+          // branch (see BoxShadowOverlayBranch). Rasterize that expanded
+          // shape into its own image up front; the *unexpanded* maskImage is
+          // still used below for the owner-silhouette DstOut subtraction,
+          // since spread never affects the owner's own rendered coverage.
+          let spreadSurface: ReturnType<typeof kit.MakeSurface> | null = null;
+          let spreadImage: SkiaImage | null = null;
+          if (branch.spread) {
+            const spreadAmount = branch.spread.operator === "dilate" ? branch.spread.radius : -branch.spread.radius;
+            const outset = outsetSilhouette(source.width, source.height, radius, spreadAmount);
+            spreadSurface = kit.MakeSurface(surfaceWidth, surfaceHeight);
+            if (spreadSurface?.makeImageSnapshot) {
+              const spreadCanvas = spreadSurface.getCanvas();
+              spreadCanvas.clear(kit.TRANSPARENT);
+              if (deviceScale !== 1) spreadCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+              const spreadPaint = createSkiaPaint(kit, "#ffffff", 1, kit.PaintStyle.Fill, undefined, outset.width, outset.height, true);
+              const left = pad - spreadAmount;
+              const top = pad - spreadAmount;
+              if (outset.cornerRadius > 0) spreadCanvas.drawRRect(rRectArgs(left, top, left + outset.width, top + outset.height, outset.cornerRadius), spreadPaint);
+              else spreadCanvas.drawRect([left, top, left + outset.width, top + outset.height], spreadPaint);
+              spreadPaint.delete();
+              spreadSurface.flush();
+              spreadImage = spreadSurface.makeImageSnapshot();
+            }
+          }
+          const shadowSourceImage = spreadImage ?? maskImage;
           const blurCanvas = blurSurface.getCanvas();
           blurCanvas.clear(kit.TRANSPARENT);
           if (deviceScale !== 1) blurCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
@@ -510,7 +598,7 @@ export function replaySkiaCommands(
           if (offset && (offset.x !== 0 || offset.y !== 0)) {
             blurCanvas.concat([1, 0, offset.x, 0, 1, offset.y, 0, 0, 1]);
           }
-          blurCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], blurPaint, false);
+          blurCanvas.drawImageRect(shadowSourceImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], blurPaint, false);
           blurCanvas.restore();
           blurPaint.delete();
           blurFilter.delete();
@@ -544,7 +632,7 @@ export function replaySkiaCommands(
             ) ?? null;
             if (outerFilter) {
               branchPaint.setImageFilter?.(outerFilter);
-              branchCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+              branchCanvas.drawImageRect(shadowSourceImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
               branchPaint.setImageFilter?.(null);
               // DropShadowOnly follows the backend shadow profile but can
               // retain coverage on the owner edge/interior. CSS outer shadow
@@ -562,6 +650,8 @@ export function replaySkiaCommands(
             branchPaint.setBlendMode(kit.BlendMode.DstOut);
             branchCanvas.drawImageRect(blurImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
           }
+          spreadImage?.delete();
+          spreadSurface?.dispose();
           branchPaint.delete();
           branchSurface.flush();
           const branchImage = branchSurface.makeImageSnapshot();

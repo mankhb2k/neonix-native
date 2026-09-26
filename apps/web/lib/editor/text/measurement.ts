@@ -1,5 +1,6 @@
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
+  lineBreakTokens,
   measureVisualRuntimeText,
   type TextLayoutMeasurement,
   type VisualRuntimeText,
@@ -105,7 +106,7 @@ export async function measureEditorTextMinimumWidth(
   const layer = document.layers.find((candidate) => candidate.id === layerId);
   if (!layer || layer.type !== "text") return null;
   const sourceText = layer.payload.source.text;
-  const words = sourceText.match(/\S+/gu) ?? [];
+  const words = lineBreakTokens(sourceText).map((token) => token.text.trim()).filter(Boolean);
   if (words.length === 0) return 8;
   const compiled = compileProtocol(document);
   const node = compiled.visual.nodes.find((candidate) => candidate.id === layerId);

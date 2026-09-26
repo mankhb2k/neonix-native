@@ -1,6 +1,8 @@
 import type * as HarfBuzz from "harfbuzzjs";
 import type { PaintFill, PaintTextDecoration, PaintTextGlyph } from "../paint/paint-types";
 import { flattenPathContourAny, glyphPathToMesh, glyphPathToStrokeMesh, measureContour, sampleContourAtDistance, transformPathMesh } from "../geometry/path";
+import { lineBreakTokens } from "./line-break";
+import { bidiRunsInRange, hasBidiContent, reorderRunsForDisplay, resolveBidi, type BidiRun, type ResolvedBidi } from "./bidi-resolve";
 import type { GlyphRun, GlyphRunGlyph, VisualRuntimeDiagnostic, VisualRuntimeProject, VisualRuntimeTextLayout, VisualRuntimeText, VisualRuntimeTextSpan } from "./types";
 
 export type VisualRuntimeTextFontSource = { assetId: string; uri: string; integrity: string };
@@ -259,14 +261,14 @@ function breakLongWordByClusters(hb: typeof HarfBuzz, text: VisualRuntimeText, f
  * practice, and the one CSS itself calls out as needing this fallback.
  */
 function wrapLineByWordsBreakingLong(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], line: SourceLine, paragraphIndex: number, wrapWidthFor: (paragraphIndex: number, subLineIndex: number) => number): SourceLine[] {
-  const words = [...line.text.matchAll(/\S+(?:\s+|$)/g)];
+  const words = lineBreakTokens(line.text);
   const wrapped: SourceLine[] = [];
   let current = "";
   let currentStart = line.start;
-  for (const match of words) {
-    const word = match[0]!.trim();
+  for (const token of words) {
+    const word = token.text.trim();
     if (!word) continue;
-    const wordStart = line.start + (match.index ?? 0);
+    const wordStart = line.start + token.index;
     const candidate = current ? `${current} ${word}` : word;
     if (current && measureSourceLine(hb, text, fonts, candidate) > wrapWidthFor(paragraphIndex, wrapped.length)) {
       wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
@@ -351,14 +353,14 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
         ? wrapped.map((wrappedLine, index) => ({ ...wrappedLine, isLastInParagraph: index === wrapped.length - 1 && line.isLastInParagraph }))
         : [line];
     }
-    const words = [...line.text.matchAll(/\S+(?:\s+|$)/g)];
+    const words = lineBreakTokens(line.text);
     const wrapped: SourceLine[] = [];
     let current = "";
     let currentStart = line.start;
-    for (const match of words) {
-      const word = match[0]!.trim();
+    for (const token of words) {
+      const word = token.text.trim();
       if (!word) continue;
-      const wordStart = line.start + (match.index ?? 0);
+      const wordStart = line.start + token.index;
       const candidate = current ? `${current} ${word}` : word;
       if (current && measureSourceLine(hb, text, fonts, candidate) > wrapWidthFor(paragraphIndex, wrapped.length)) {
         wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
@@ -455,10 +457,38 @@ function shouldUseMask(text: VisualRuntimeText): boolean {
   return maskEligible && (text.textRendering === "optimizeSpeed" || text.fontSize <= 48);
 }
 
+/**
+ * Resolves UAX #9 embedding levels for the full logical paragraph (the same
+ * normalized text `sourceLinesForText` wraps into lines), using the CSS
+ * `direction` property as the paragraph's base direction - CSS already
+ * resolves `direction` to a definite "ltr"/"rtl" before this runs, so there
+ * is no first-strong-character auto-detection to do here.
+ */
+function resolveTextBidi(text: VisualRuntimeText): ResolvedBidi {
+  const normalized = normalizeWhiteSpace(text.text, text.whiteSpace ?? "normal", text.hardBreaks);
+  return resolveBidi(normalized, text.direction === "rtl" ? "rtl" : "ltr");
+}
+
+/**
+ * The direction runs a line must be shaped and laid out in, in left-to-right
+ * VISUAL order. Pure single-direction text (the overwhelming common case)
+ * short-circuits to one run spanning the whole line in `text.direction`,
+ * identical to the pre-bidi behavior; only a line that actually mixes
+ * directions pays for `bidiRunsInRange`/`reorderRunsForDisplay`.
+ */
+function lineBidiRuns(resolvedBidi: ResolvedBidi, sourceOffset: number, lineLength: number, baseDirection: "ltr" | "rtl"): BidiRun[] {
+  const end = sourceOffset + lineLength;
+  if (!hasBidiContent(resolvedBidi, sourceOffset, end)) {
+    return [{ start: sourceOffset, end, level: baseDirection === "rtl" ? 1 : 0, direction: baseDirection }];
+  }
+  return reorderRunsForDisplay(bidiRunsInRange(resolvedBidi, sourceOffset, end));
+}
+
 function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[]): UnmaterializedTextLayout {
   const primary = fonts[0]!;
   const glyphHeight = (primary.metrics.ascender - primary.metrics.descender) * primary.fontScale;
   const sourceLines = sourceLinesForText(hb, text, fonts);
+  const resolvedBidi = resolveTextBidi(text);
   const contentWidth = text.contentWidth ?? text.width;
   const contentHeight = text.contentHeight ?? text.height;
   const contentOffsetX = text.contentOffsetX ?? 0;
@@ -478,7 +508,18 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
     let penX = 0;
     let penY = 0;
     let runIndex = 0;
-    for (const slice of styleSlices(text, lineText, sourceOffset)) {
+    const allStyleSlices = styleSlices(text, lineText, sourceOffset);
+    const bidiRuns = vertical
+      ? [{ start: sourceOffset, end: sourceOffset + lineText.length, level: text.direction === "rtl" ? 1 : 0, direction: text.direction } as BidiRun]
+      : lineBidiRuns(resolvedBidi, sourceOffset, lineText.length, text.direction === "rtl" ? "rtl" : "ltr");
+    for (const bidiRun of bidiRuns) {
+      const bidiLocalStart = bidiRun.start - sourceOffset;
+      const bidiLocalEnd = bidiRun.end - sourceOffset;
+      for (const rawSlice of allStyleSlices) {
+      const sliceStart = Math.max(rawSlice.start, bidiLocalStart);
+      const sliceEnd = Math.min(rawSlice.end, bidiLocalEnd);
+      if (sliceEnd <= sliceStart) continue;
+      const slice = { start: sliceStart, end: sliceEnd, span: rawSlice.span };
       const sliceText = lineText.slice(slice.start, slice.end);
       const sliceFonts = styledFonts(hb, text, fonts, slice.span, styleCache);
       const letterSpacing = slice.span?.letterSpacing ?? text.letterSpacing;
@@ -490,7 +531,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
       const buffer = new hb.Buffer();
       buffer.addText(runText);
       buffer.setLanguage(text.language);
-      buffer.setDirection(text.direction === "rtl" && !vertical ? 5 : 4);
+      buffer.setDirection(bidiRun.direction === "rtl" && !vertical ? 5 : 4);
       buffer.guessSegmentProperties();
       hb.shape(resolved.font, buffer, shapeFeatures(hb, text));
       const infos = buffer.getGlyphInfos();
@@ -502,7 +543,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         fontAssetId: resolved.source.assetId,
         fontIntegrity: resolved.source.integrity,
         fontSize: resolved.fontSize,
-        direction: vertical ? "ttb" : text.direction,
+        direction: vertical ? "ttb" : bidiRun.direction,
         language: text.language,
         glyphs: [],
       };
@@ -549,6 +590,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
       }
       if (glyphRun.glyphs.length) runs.push(glyphRun);
       runIndex += 1;
+      }
       }
     }
     const naturalAdvance = vertical ? penY : penX;

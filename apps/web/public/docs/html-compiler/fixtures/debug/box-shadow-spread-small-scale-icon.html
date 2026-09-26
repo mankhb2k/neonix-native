@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1100px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        Every other spread+circle fixture so far uses "hero glow" scale
+        (150-200px box, 50-120px spread). Real UI more often uses spread at
+        icon/badge scale (a small notification dot, a status pill) where
+        spread is only a few px. This checks whether the rectangular-dilate
+        squircle bug is still visible at that much smaller absolute pixel
+        scale, or whether it becomes negligible/sub-pixel once
+        antialiasing and the small kernel size dominate - i.e. how much
+        this bug actually matters for common small UI elements versus the
+        large decorative orbs used elsewhere in this debug set.
+      */
+      .icon {
+        position: absolute;
+        left: 930px;
+        top: 510px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #fb7185;
+        box-shadow: 0 0 8px 12px #fb7185;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow spread debug - small icon-scale circle (60x60, radius=30, spread=12, blur=8) - checks whether the squircle bug still matters at common small-UI scale</div>
+    <div id="spread-small-icon" class="icon"></div>
+  </body>
+</html>

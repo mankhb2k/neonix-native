@@ -1,7 +1,7 @@
 "use client";
 
 import { Pause, Play, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
 import { fetchPlaygroundFixture } from "@/lib/api/playground";
@@ -72,9 +72,11 @@ export function ComparePreviewLab({
   defaultLayout = "stacked",
 }: { defaultMode?: InputMode; defaultLayout?: LayoutMode } = {}) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const nativePanelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const requestRef = useRef(0);
   const sideBySideRef = useRef<HTMLDivElement>(null);
+  const [nativeStats, setNativeStats] = useState<Record<string, string | undefined>>({});
   const [inputMode, setInputMode] = useState<InputMode>(defaultMode);
   const [layout, setLayout] = useState<LayoutMode>(defaultLayout);
   const [sideBySideScale, setSideBySideScale] = useState(1);
@@ -152,6 +154,18 @@ export function ComparePreviewLab({
     observer.observe(el);
     return () => observer.disconnect();
   }, [layout]);
+
+  // The native canvas exposes every debug metric as `dataset.*` attributes,
+  // written directly by PreviewStage on each paint (not React state - a
+  // per-frame setState would defeat the point of a 30fps-friendly renderer).
+  // Poll the DOM instead of re-rendering the canvas subtree on every frame.
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      const canvas = nativePanelRef.current?.querySelector("canvas");
+      setNativeStats(canvas ? { ...canvas.dataset } : {});
+    }, 200);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const compilation = useMemo(
     () =>
@@ -400,6 +414,7 @@ export function ComparePreviewLab({
           </NativePanel>
 
           <NativePanel
+            ref={nativePanelRef}
             className={layout === "side-by-side" ? "min-w-0" : "w-[1920px] shrink-0"}
             title="Native renderer output"
             badge="Neonix JSON V2 · Runtime V3 · Native · 1920×1080"
@@ -466,6 +481,13 @@ export function ComparePreviewLab({
         </span>
       </section>
 
+      <DiagnosticsCard
+        className={`mt-6 ${wideClass}`}
+        stats={nativeStats}
+        fps={protocol?.composition.fps}
+        duration={duration}
+      />
+
       <p className={`mt-3 px-6 pb-6 text-xs text-[#737373] ${wideClass}`}>
         {layout === "stacked"
           ? "The gray margin is outside the composition. Compare only the inner 1920×1080 surfaces; scrolling does not change their coordinate system."
@@ -506,19 +528,18 @@ function PreviewFrame({
   );
 }
 
-function NativePanel({
-  title,
-  badge,
-  children,
-  className = "",
-}: {
-  title: string;
-  badge: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+const NativePanel = forwardRef<
+  HTMLDivElement,
+  {
+    title: string;
+    badge: string;
+    children: React.ReactNode;
+    className?: string;
+  }
+>(function NativePanel({ title, badge, children, className = "" }, ref) {
   return (
     <section
+      ref={ref}
       className={`min-w-0 overflow-hidden rounded-lg border border-[#d4d4d4] bg-white shadow-sm ${className}`}
     >
       <div className="flex items-center justify-between border-b border-[#e5e5e5] px-4 py-3">
@@ -528,6 +549,149 @@ function NativePanel({
         </span>
       </div>
       {children}
+    </section>
+  );
+});
+
+type StatRow = { label: string; value: string; warn?: boolean };
+
+function StatGroup({ title, rows }: { title: string; rows: StatRow[] }) {
+  return (
+    <div>
+      <h3 className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.1em] text-[#0f766e]">
+        {title}
+      </h3>
+      <dl className="space-y-0.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-baseline justify-between gap-3 text-[11px]">
+            <dt className="text-[#737373]">{row.label}</dt>
+            <dd
+              className={`font-mono ${row.warn ? "font-semibold text-rose-600" : "text-[#171717]"}`}
+            >
+              {row.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function parseResourceCounts(raw: string | undefined): Record<string, number> | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Record<string, number>;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Every field here is read straight from the native canvas's own
+ * `dataset.*` contract (PreviewStage) - no separate measurement code, so
+ * this can never drift from what the renderer itself reports. Useful for
+ * exactly the kind of debugging this playground exists for: is the fixture
+ * dropping frames, is a filter/effect combo falling back to unsupported, is
+ * the canvas backing size actually matching the fixture's composition.
+ */
+function DiagnosticsCard({
+  stats,
+  fps,
+  duration,
+  className = "",
+}: {
+  stats: Record<string, string | undefined>;
+  fps: number | undefined;
+  duration: number;
+  className?: string;
+}) {
+  const hasStats = Object.keys(stats).length > 0;
+  const frameBudgetMs = fps ? 1000 / fps : undefined;
+  const gpuFrameTimeMs = Number(stats.gpuFrameTimeMs);
+  const overBudget = frameBudgetMs !== undefined && Number.isFinite(gpuFrameTimeMs) && gpuFrameTimeMs > frameBudgetMs;
+  const droppedFrames = Number(stats.estimatedDroppedFrames) || 0;
+  const diagnostics = (stats.diagnostics ?? "")
+    .split(",")
+    .map((code) => code.trim())
+    .filter(Boolean);
+  const resourceCounts = parseResourceCounts(stats.previewResourceCounts);
+
+  return (
+    <section
+      className={`rounded-lg border border-[#d4d4d4] bg-white px-4 py-3 ${className}`}
+      data-testid="radial-native-diagnostics-card"
+    >
+      <h2 className="mb-2 text-xs font-semibold text-[#171717]">
+        Native renderer diagnostics
+      </h2>
+      {!hasStats ? (
+        <p className="text-[11px] text-[#737373]">No native canvas rendered yet.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+          <StatGroup
+            title="Timing"
+            rows={[
+              { label: "fps (composition)", value: fps ? fps.toFixed(0) : "—" },
+              { label: "duration", value: `${duration.toFixed(2)}s` },
+              { label: "frame / time", value: `${stats.runtimeFrame ?? "—"} / ${Number(stats.runtimeTime ?? 0).toFixed(3)}s` },
+              { label: "preview state", value: stats.previewState ?? "—" },
+            ]}
+          />
+          <StatGroup
+            title="Performance"
+            rows={[
+              {
+                label: "gpu frame time",
+                value: `${stats.gpuFrameTimeMs ?? "—"}ms${frameBudgetMs ? ` / budget ${frameBudgetMs.toFixed(1)}ms` : ""}`,
+                warn: overBudget,
+              },
+              { label: "paint time", value: `${stats.previewPaintTimeMs ?? "—"}ms` },
+              { label: "paint interval", value: `${stats.paintIntervalMs ?? "—"}ms` },
+              { label: "est. dropped frames", value: String(droppedFrames), warn: droppedFrames > 0 },
+            ]}
+          />
+          <StatGroup
+            title="Scene"
+            rows={[
+              { label: "layers", value: stats.runtimeLayerCount ?? "—" },
+              { label: "commands", value: stats.runtimeCommandCount ?? "—" },
+              { label: "draw calls", value: stats.drawCalls ?? "—" },
+              { label: "skipped commands", value: stats.skippedCommands ?? "0", warn: Number(stats.skippedCommands) > 0 },
+              { label: "text commands / glyphs", value: `${stats.runtimeTextCommands ?? "—"} / ${stats.runtimeGlyphs ?? "—"}` },
+            ]}
+          />
+          <StatGroup
+            title="Canvas"
+            rows={[
+              { label: "logical size", value: `${stats.logicalWidth ?? "—"}×${stats.logicalHeight ?? "—"}` },
+              { label: "backing size", value: `${stats.backingWidth ?? "—"}×${stats.backingHeight ?? "—"}` },
+              { label: "device pixel ratio", value: stats.devicePixelRatio ?? "—" },
+              { label: "css scale", value: stats.cssScale ?? "—" },
+              { label: "backend", value: `${stats.backend ?? "—"} · ${stats.rendererTextRasterizer ?? "—"}` },
+            ]}
+          />
+          <StatGroup
+            title="Skia cache"
+            rows={[
+              { label: "image / filter / mask hits", value: `${stats.skiaImageCacheHits ?? "0"} / ${stats.skiaFilterCacheHits ?? "0"} / ${stats.skiaMaskCacheHits ?? "0"}` },
+              { label: "offscreen surfaces created/reused", value: `${stats.skiaOffscreenSurfaceCreates ?? "0"} / ${stats.skiaOffscreenSurfaceReuses ?? "0"}` },
+              { label: "estimated cache bytes", value: stats.skiaEstimatedCacheBytes ?? "0" },
+              { label: "presentation mode", value: stats.skiaPresentationMode ?? "—" },
+              resourceCounts
+                ? { label: "resources active/entries", value: `${resourceCounts.activeEntries ?? 0} / ${resourceCounts.entries ?? 0}` }
+                : { label: "resources active/entries", value: "—" },
+            ]}
+          />
+        </div>
+      )}
+      {diagnostics.length > 0 ? (
+        <div className="mt-3 rounded border border-rose-200 bg-rose-50 px-3 py-2">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[.1em] text-rose-700">
+            Diagnostics ({diagnostics.length})
+          </p>
+          <p className="font-mono text-[11px] text-rose-700">{diagnostics.join(", ")}</p>
+        </div>
+      ) : null}
     </section>
   );
 }

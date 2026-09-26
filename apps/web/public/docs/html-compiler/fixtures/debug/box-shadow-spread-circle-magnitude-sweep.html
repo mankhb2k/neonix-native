@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1400px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        Same 200x200 circle and 60px blur as box-shadow-spread-circle.html,
+        swept across four spread magnitudes (15/30/50/70px). Each is a
+        single (non-list) box-shadow, so all four take the current
+        "ordinary" DropShadow-ImageFilter path (rectangular MakeDilate on
+        the rasterized mask) - this sweep measures how visibly the
+        rectangular-kernel squircle artifact scales with spread magnitude,
+        from barely noticeable to pronounced. Tile spacing grows with each
+        tile's own halo reach so adjacent halos do not visually merge.
+      */
+      .tile { position: absolute; width: 200px; height: 200px; top: 460px; border-radius: 50%; background: #22d3ee; }
+      .caption { position: absolute; width: 240px; top: 900px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+
+      .spread-15 { left: 180px; box-shadow: 0 0 60px 15px #22d3ee; }
+      .spread-30 { left: 660px; box-shadow: 0 0 60px 30px #22d3ee; }
+      .spread-50 { left: 1160px; box-shadow: 0 0 60px 50px #22d3ee; }
+      .spread-70 { left: 1680px; box-shadow: 0 0 60px 70px #22d3ee; }
+
+      .caption-15 { left: 160px; }
+      .caption-30 { left: 640px; }
+      .caption-50 { left: 1140px; }
+      .caption-70 { left: 1660px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">box-shadow spread debug - case 1c: circle, spread magnitude sweep (15/30/50/70px, blur fixed at 60px) - measures how the squircle artifact scales</div>
+    <div class="tile spread-15"></div>
+    <div class="tile spread-30"></div>
+    <div class="tile spread-50"></div>
+    <div class="tile spread-70"></div>
+    <div class="caption caption-15">spread: 15px</div>
+    <div class="caption caption-30">spread: 30px</div>
+    <div class="caption caption-50">spread: 50px</div>
+    <div class="caption caption-70">spread: 70px</div>
+  </body>
+</html>

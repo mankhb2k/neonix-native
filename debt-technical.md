@@ -136,6 +136,142 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
   set đúng trong Vercel project settings (biến môi trường không tự động
   đồng bộ từ file `.env.deploy` lên Vercel).
 
+## Text layout (line-break / bidi)
+
+### Line-break UAX #14 chưa hỗ trợ Thái/Lào/Khmer/Miến Điện
+- Vị trí: `packages/motion-runtime/src/visual/line-break.ts` (`lineBreakTokens`),
+  dùng package `linebreak` (pure JS, ~228KB, không wasm).
+- Hiện tại: đã thay được regex `\S+(?:\s+|$)` bằng bảng UAX #14 thật, sửa đúng
+  case CJK (Trung/Nhật/Hàn ngắt được từng ký tự dù không có dấu cách) — đã
+  verify bằng test hồi quy thật (`line-break.test.ts`,
+  `text-layout.test.ts` case "wraps a CJK string"). Nhưng Thái/Lào/Khmer/Miến
+  Điện cũng không dùng dấu cách để tách từ, mà package này chỉ có bảng
+  rule-based, không có dữ liệu dictionary/LSTM các script đó cần — nên vẫn bị
+  coi là một "từ" không ngắt được duy nhất, y hệt lỗi cũ.
+- Giải pháp đúng: đổi sang `icu4x`/ICU4X WASM binding (`icu` trên npm,
+  `LineSegmenter.createAuto()` có kèm dữ liệu LSTM cho 4 script này) — đánh
+  đổi ~20MB wasm monolithic (đã đo thật, xem lịch sử trò chuyện) so với 228KB
+  hiện tại. Cần đo lại xem cắt được data xuống bao nhiêu nếu build riêng
+  component, trước khi quyết định đổi.
+- Tokenizer `pre-wrap`/`break-spaces` (`text-layout.ts:334`,
+  `matchAll(/\S+|\s+/g)`) **chưa** đổi sang `lineBreakTokens` — cố tình bỏ
+  qua vì CSS pre-wrap cần mỗi khoảng trắng là một điểm ngắt độc lập (giữ
+  nguyên số khoảng trắng khi wrap), khác với ngữ nghĩa "attach trailing
+  whitespace vào từ trước" mà `lineBreakTokens` cung cấp cho `wrap: word`.
+
+### Bidi (UAX #9) mới sửa phần layout thật, đo độ rộng để wrap vẫn theo hướng cũ
+- Vị trí: `packages/motion-runtime/src/visual/text-layout.ts` — `layoutText()`
+  (sinh glyph thật) đã tách theo bidi-run và sắp lại thứ tự hiển thị đúng
+  (`bidi-resolve.ts`); `measureSourceLine()` (đo bề rộng để quyết định ngắt
+  dòng, dùng trong `sourceLinesForText`'s greedy-fit) thì **chưa** — vẫn shape
+  cả đoạn text đưa vào làm một buffer HarfBuzz theo một direction duy nhất.
+- Hiện tại: với dòng có trộn hướng (Ả Rập/Hebrew chen trong câu Latin), số đo
+  bề rộng dùng để quyết định điểm ngắt dòng có thể lệch vài pixel so với độ
+  rộng glyph thật sẽ render ra (vì shape theo 1 buổi/1 direction cho ra
+  kerning/mark-positioning hơi khác so với shape tách run rồi cộng lại) — chỉ
+  ảnh hưởng tới việc CHỌN điểm ngắt dòng, không phải vị trí glyph cuối cùng
+  (đã verify layoutText đúng qua ảnh chụp Chrome thật).
+- UAX #9 rule L1 (reset level của whitespace cuối dòng về base direction khi
+  bị ngắt dòng) chưa cài — ảnh hưởng vị trí khoảng trắng cuối dòng RTL khi
+  đoạn RTL bị wrap thành nhiều dòng.
+- Bidi bị bỏ qua hoàn toàn cho `writing-mode: vertical-rl/vertical-lr`
+  (`layoutText`, biến `vertical`) — fallback về hành vi cũ (1 direction cho cả
+  dòng), chưa có test/fixture nào cho tổ hợp RTL + vertical.
+
+## Render pipeline
+
+### Công thức sigma của text-shadow/box-shadow chưa port sang export-renderer
+- Vị trí: `packages/canvaskit-preview/src/command/effects.ts`
+  (`cssShadowBlurRadiusToSkiaSigma`, dùng chung cho text-shadow và box-shadow
+  không inset từ bản sửa gần đây) — mới sửa ở `canvaskit-preview` (browser
+  preview), theo đúng quy ước "sửa canvaskit-preview trước, port native sau".
+  `export-renderer` (Skia native dùng khi export MP4 thật) vẫn ở trạng thái
+  cũ (nếu có logic sigma riêng, cần đối chiếu).
+- Đã đo pixel thật (ground-truth Chrome vs canvaskit-preview) trên hình chữ
+  nhật sạch: lệch <3% ở blur 24px/40px, lệch nhiều hơn (~16%) ở 4px nhưng nghi
+  là nhiễu đo lường ở quy mô quá nhỏ (đã tự validate method qua synthetic
+  test), không phải bug công thức.
+- Cần làm: kiểm tra `export-renderer` có đang dùng đúng
+  `cssShadowBlurRadiusToSkiaSigma` tương đương không, port nếu chưa, để export
+  MP4 khớp với preview.
+
+### [ĐÃ SỬA] box-shadow spread từng dùng dilate hình chữ nhật cho case đơn/list — giờ mọi branch có spread đều route qua drawBoxEffect (geometry expansion)
+- Vị trí: `packages/canvaskit-preview/src/command/effects.ts`
+  (`effectFilterFor`'s nhánh đơn-shadow-có-spread, và `boxShadowBranches()`),
+  `packages/canvaskit-preview/src/command/replay.ts` (`drawBoxEffect`, đã
+  sửa trước đó dùng geometry expansion).
+- Root cause (đã sửa): `effectFilterFor` trước đây chỉ set `sourceOnly: true`
+  (route qua `drawBoxEffect` đã sửa đúng) khi có ≥2 box-shadow trong list,
+  hoặc kèm CSS `filter`. Box-shadow ĐƠN + spread — kiểu "glow orb" phổ biến
+  nhất — vẫn dùng nhánh "ordinary" (dilate/erode hình chữ nhật cài thẳng vào
+  paint). Đồng thời `boxShadowBranches()` (gate cho multi-shadow-list) thiếu
+  logic bỏ qua op `morphology` mà `boxShadowOverlayBranches()` (replay.ts)
+  đã có, nên list ≥2 shadow có spread bị rơi hẳn ra
+  `renderer_effect_unsupported` (không render gì).
+- Fix: (1) nhánh đơn-shadow-có-spread trong `effectFilterFor` giờ gọi
+  `makeMixedBoxShadowFilter` với 1 branch và trả `sourceOnly: true`, tái
+  dùng đúng route `drawBoxEffect` đã sửa thay vì tự dựng filter dilate; (2)
+  thêm logic bỏ qua `morphology` per-branch vào `boxShadowBranches()`, y hệt
+  bản đã có ở `boxShadowOverlayBranches()`/`splitLeadingBoxShadowThenFilter`.
+- Đo pixel-diff thật trước/sau fix (`apps/web/e2e/box-shadow-spread-comparison.spec.ts`,
+  12 fixture ở `apps/web/public/docs/html-compiler/fixtures/debug/box-shadow-spread-*.html`):
+  circle 5.40%→0.42%, magnitude-sweep 12.52%→0.83%, circle-offset
+  5.22%→0.45%, corner-radius-sweep 11.30%→2.64%, pill-shape 2.86%→0.79%.
+  2shadow-list: từ unsupported hoàn toàn → render đúng, khớp gần với
+  baseline single-shadow (0.64%).
+- [ĐÃ SỬA TIẾP] Phát hiện phụ khi đo lại: `spread-radius-sweep` (rect
+  thường, cornerRadius:0) tăng từ 0.85%→2.85% ở tile spread lớn (+90px).
+  Giả thuyết ban đầu ("browser cũng bo tròn góc nhọn ở spread lớn, hành vi
+  mới đúng hơn") SAI — kiểm tra lại bằng 3 fixture đào sâu
+  (`box-shadow-spread-sharp-rect-isolated.html`,
+  `-radius-vs-spread-relationship.html` [spread=90 cố định, quét radius
+  0/20/40/60], `-extreme-large-spread.html` [radius:0, quét spread
+  100/150/200]) cho thấy **browser thật giữ góc SẮC NÉT ở mọi mức spread
+  khi cornerRadius:0**, kể cả spread=200px — công thức `radius + spread`
+  của tôi sai hoàn toàn cho radius nhỏ, không chỉ riêng biên radius:0.
+- Root cause thật (đã lấy từ source Chromium
+  `third_party/blink/renderer/platform/geometry/float_rounded_rect.cc` qua
+  chromium.googlesource.com, vì bản checkout local không có file này):
+  `ComputeOutsetAdjustedBorderRadius` — nếu radius gốc = 0 thì **giữ
+  nguyên 0** bất kể spread (early return, không cộng gì cả); nếu radius >
+  0 thì dùng công thức phi tuyến bậc 3 (KHÔNG phải cộng thẳng):
+  `coverage = 2*min(radius/boxWidth, radius/boxHeight)`; nếu
+  `radius > spread` hoặc `coverage > 1` thì mới là `radius + spread`
+  (đúng bằng công thức cũ của tôi — giải thích vì sao case hình tròn,
+  radius=100 > spread=70, luôn đúng ngay từ đầu); còn lại thì
+  `ratio = radius/spread`, kết quả =
+  `radius + spread * (1 - (1-ratio)³ * (1-coverage³))`.
+- Fix: `outsetSilhouette()` (`packages/canvaskit-preview/src/command/replay.ts`)
+  port lại chính xác công thức trên (branch `cornerRadius===0 || spread===0`
+  giữ nguyên radius; còn lại tính `coverage`/`ratio`/cubic đúng thứ tự
+  Chromium) thay vì `cornerRadius + spread` đơn giản.
+- Đo lại pixel-diff sau fix công thức: `extreme-large-spread` 11.78%→0.99%,
+  `radius-vs-spread-relationship` 6.43%→0.99%, `sharp-rect-isolated`
+  2.65%→0.67%, `corner-radius-sweep` 2.64%→1.03%. Toàn bộ 14 fixture giờ
+  nằm trong khoảng 0.3%-1.0%, đồng đều với baseline offset-only (~0.7%) —
+  không còn case nào lệch bất thường.
+- Việc còn lại: port fix này (cả routing lẫn công thức corner-radius) sang
+  `export-renderer` (native backend) — xem mục sigma text-shadow/box-shadow
+  phía trên, cùng một nợ "chưa port sang export-renderer".
+
+## Playground tooling
+
+### `ComparePreviewLab.tsx` hard-code composition 1920×1080 cho panel "Browser CSS reference"
+- Vị trí: `apps/web/components/playground/ComparePreviewLab.tsx` (hằng số
+  `WIDTH = 1920, HEIGHT = 1080` dùng cho kích thước iframe, class
+  `w-[1920px] h-[1080px]`, badge "1920×1080" cố định).
+- Hiện tại: panel "Native renderer output" đọc đúng composition thật từ
+  protocol đã compile (`logicalWidth`/`logicalHeight` trong canvas dataset),
+  nhưng panel browser-reference luôn cố định khung 1920×1080 bất kể fixture
+  đang chọn khai báo composition gì trong `<meta name="neonix-document">`.
+  Với fixture composition khác 1920×1080 (vd 3 fixture debug text-shadow-halo,
+  2 fixture debug bidi), nội dung 2 panel bị lệch tỉ lệ hiển thị dù layout
+  logic cả hai đều đúng — đã workaround bằng cách đổi các fixture debug đó
+  sang composition 1920×1080 cho khớp quy ước số đông, chưa sửa tận gốc tool.
+- Cần làm: đọc composition thật từ fixture (giống cách panel native đang làm)
+  thay vì hard-code, để hỗ trợ đúng mọi kích thước composition trong tương
+  lai.
+
 ## Playground fixtures
 
 ### 15 file debug orphan trong `fixtures/paint/` chưa được đưa vào registry
