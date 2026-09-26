@@ -12,7 +12,7 @@ export default function NativeStagePage() {
   return (
     <>
       <SiteHeader active="playground" />
-      <ComparePreviewLab defaultMode="fixture" />
+      <ComparePreviewLab defaultMode="fixture" defaultLayout="side-by-side" />
     </>
   );
 }

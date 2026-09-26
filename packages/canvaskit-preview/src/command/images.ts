@@ -206,7 +206,13 @@ export function drawAsset(
       kit.TileMode.Clamp,
       kit.TileMode.Clamp,
       fastSample ? kit.FilterMode?.Nearest ?? 0 : kit.FilterMode?.Linear ?? 1,
-      kit.MipmapMode?.None ?? 0,
+      // A perspective/projective quad routinely minifies large parts of the
+      // source image (the far edge of a 45deg-tilted photo can compress to a
+      // sliver of pixels). Without mip levels, Skia can only sample a 2x2
+      // texel neighborhood there regardless of how much smaller the
+      // destination footprint is, which aliases badly - exactly what a real
+      // browser's rasterizer avoids by mip-sampling minified regions.
+      fastSample ? kit.MipmapMode?.None ?? 0 : kit.MipmapMode?.Linear ?? kit.MipmapMode?.None ?? 0,
       projectiveShaderMatrix ?? [1, 0, 0, 0, 1, 0, 0, 0, 1],
     );
     const vertices = shader

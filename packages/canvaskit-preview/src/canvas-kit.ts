@@ -23,7 +23,7 @@ export type SkiaCanvasKit = {
   /** CanvasKit 0.42 exposes textured triangle vertices for projective planes. */
   VertexMode?: { Triangles: unknown };
   FilterMode?: { Nearest: unknown; Linear: unknown };
-  MipmapMode?: { None: unknown };
+  MipmapMode?: { None: unknown; Nearest: unknown; Linear: unknown };
   MakeVertices?(mode: unknown, positions: Float32Array, texCoords?: Float32Array, colors?: Uint32Array, indices?: Uint16Array, isVolatile?: boolean): SkiaVertices | null;
   ColorFilter?: {
     MakeMatrix(matrix: number[]): SkiaColorFilter | null;

@@ -340,7 +340,7 @@ function createPatternShader(kit: SkiaCanvasKit, pattern: PaintFillPattern): Ski
       kit.TileMode.Repeat,
       kit.TileMode.Repeat,
       kit.FilterMode?.Linear ?? 1,
-      kit.MipmapMode?.None ?? 0,
+      kit.MipmapMode?.Linear ?? kit.MipmapMode?.None ?? 0,
       patternShaderMatrix(pattern),
     );
     image.delete();
