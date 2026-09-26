@@ -1,6 +1,6 @@
-import { fail } from "./errors";
-import { edges, number } from "./values";
-import type { Node, Style } from "./model";
+import { fail } from "../errors";
+import { edges, number } from "../css/values";
+import type { Node, Style } from "../model";
 import type { ResolvedGeometry } from "./geometry";
 import type { LayoutBox } from "./layout-ir";
 

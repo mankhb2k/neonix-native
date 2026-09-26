@@ -1,8 +1,8 @@
 import type { V2MotionPath, V2PathSegment, V2PathPoint } from "@motionvideo/motion-protocol/v2";
-import { fail } from "./errors";
-import { parseSvgPathData } from "./path";
-import { calcExpression } from "./values";
-import type { Style } from "./model";
+import { fail } from "../errors";
+import { parseSvgPathData } from "../paint/path";
+import { calcExpression } from "../css/values";
+import type { Style } from "../model";
 
 type Viewport = { width: number; height: number };
 

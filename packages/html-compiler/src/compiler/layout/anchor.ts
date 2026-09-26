@@ -1,5 +1,5 @@
-import { fail } from "./errors";
-import type { Style } from "./model";
+import { fail } from "../errors";
+import type { Style } from "../model";
 import type { LayoutRect } from "./layout-ir";
 
 export type CssAnchorBox = LayoutRect;

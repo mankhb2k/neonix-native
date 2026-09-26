@@ -8,14 +8,14 @@
 import type { MotionProtocolV2, V2SvgDefinitionNode } from "@motionvideo/motion-protocol/v2";
 import type { Node, Style } from "../model";
 import type { HtmlCompilerFontAsset } from "../../source";
-import type { ResolvedGeometry } from "../geometry";
+import type { ResolvedGeometry } from "../layout/geometry";
 import type { AssetRegistry } from "../lowering/assets";
-import { parseBorderEdges, parseColor, parsePaintLayers, parseShadows, type CornerRadius, type Outline, type Paint, type ShadowEffect } from "../paint";
-import { parseBackgroundBox, parseBackgroundImages, type BackgroundBox, type BackgroundImage } from "../background";
-import type { LayoutRect } from "../layout-ir";
-import { parseFilter, type HtmlFilterEffect } from "../filter";
+import { parseBorderEdges, parseColor, parsePaintLayers, parseShadows, type CornerRadius, type Outline, type Paint, type ShadowEffect } from "../paint/paint";
+import { parseBackgroundBox, parseBackgroundImages, type BackgroundBox, type BackgroundImage } from "../paint/background";
+import type { LayoutRect } from "../layout/layout-ir";
+import { parseFilter, type HtmlFilterEffect } from "../paint/filter";
 import { parseComposite, type HtmlComposite } from "../composite";
-import { parsePathStyle, parseSvgPathData } from "../path";
+import { parsePathStyle, parseSvgPathData } from "../paint/path";
 import { isSvgNode, isTextFlowNode, collectTextContentWithStyles, normalizeTextContentWithStyles } from "../lowering/dispatcher";
 import { svgPrimitivePath } from "../lowering/svg";
 import {
@@ -42,9 +42,9 @@ import {
 import { number } from "../css/values";
 import { fail } from "../errors";
 import type { CompileClipPaths, CompileLayers } from "../compile-context";
-import type { NodeTransformState } from "../transform";
+import type { NodeTransformState } from "../transform/transform";
 import { rectangleContour, roundedRectContour, roundedRectContourAtInset, type HtmlPathContour } from "./shape-contours";
-import { parseClipPath, type ClipReferenceBoxes } from "../clip";
+import { parseClipPath, type ClipReferenceBoxes } from "../paint/clip";
 
 type HtmlTextLayer = Extract<MotionProtocolV2["layers"][number], { type: "text" }>;
 

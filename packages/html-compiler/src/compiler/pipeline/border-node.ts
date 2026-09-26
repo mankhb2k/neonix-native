@@ -8,11 +8,11 @@
  * to not risk that parity while moving it.
  */
 import type { MotionProtocolV2, V2Track } from "@motionvideo/motion-protocol/v2";
-import type { LayoutRect } from "../layout-ir";
-import type { CornerRadius } from "../paint";
-import type { parseBorderEdges } from "../paint";
+import type { LayoutRect } from "../layout/layout-ir";
+import type { CornerRadius } from "../paint/paint";
+import type { parseBorderEdges } from "../paint/paint";
 import type { CompileLayers } from "../compile-context";
-import type { NodeTransformState } from "../transform";
+import type { NodeTransformState } from "../transform/transform";
 import { borderBand, borderRegion, circlePolygon, clipConvexPolygon, fitBorderDashRuns, shadeBorderColor } from "./border/geometry";
 import { buildRoundedDashRuns, buildRoundedDotRuns } from "./border/rounded-dash";
 import { rectangleContour, roundedRectContour } from "./shape-contours";

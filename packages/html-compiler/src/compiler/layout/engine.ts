@@ -1,6 +1,6 @@
-import { collapseVerticalMargins } from "../layout";
+import { collapseVerticalMargins } from "./layout";
 import type { Node, Style } from "../model";
-import type { LayoutBox, LayoutRect } from "../layout-ir";
+import type { LayoutBox, LayoutRect } from "./layout-ir";
 import type { LayoutState } from "../compile-context";
 
 export type FlowState = {

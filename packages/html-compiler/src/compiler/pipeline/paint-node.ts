@@ -10,12 +10,12 @@
  */
 import type { V2Paint, V2Track } from "@motionvideo/motion-protocol/v2";
 import type { Node, Style } from "../model";
-import type { Paint, CornerRadius } from "../paint";
-import type { LayoutRect } from "../layout-ir";
-import type { BackgroundImage, BackgroundSize } from "../background";
+import type { Paint, CornerRadius } from "../paint/paint";
+import type { LayoutRect } from "../layout/layout-ir";
+import type { BackgroundImage, BackgroundSize } from "../paint/background";
 import type { CompileClipPaths, CompileLayers } from "../compile-context";
-import type { NodeTransformState } from "../transform";
-import { parseBackgroundBox, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize } from "../background";
+import type { NodeTransformState } from "../transform/transform";
+import { parseBackgroundBox, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize } from "../paint/background";
 import { roundedRectContour } from "./shape-contours";
 import { fail } from "../errors";
 

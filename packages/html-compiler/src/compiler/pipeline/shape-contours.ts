@@ -6,7 +6,7 @@
  */
 
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
-import type { CornerRadius } from "../paint";
+import type { CornerRadius } from "../paint/paint";
 
 export type HtmlPathContour = Extract<MotionProtocolV2["layers"][number], { type: "path" }>["payload"]["contours"][number];
 

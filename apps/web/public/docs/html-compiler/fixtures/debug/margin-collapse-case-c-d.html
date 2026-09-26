@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1000,"height":700,"fps":30,"durationMs":1000,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1000px; height: 700px; margin: 0; overflow: hidden; background: #081018; }
+
+      .case { position: absolute; width: 400px; }
+      .case-c { left: 40px; top: 40px; }
+      .case-d { left: 520px; top: 40px; }
+
+      .label { margin: 0 0 8px; color: #94a3b8; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+      .anchor { height: 4px; background: #475569; }
+      .parent { background: #164e63; }
+      .child { height: 60px; background: #f97316; }
+
+      .parent-c { margin-top: 0; padding: 0; border: 0; overflow: hidden; }
+      .child-c { margin-top: 40px; }
+
+      .parent-d { margin-top: 0; padding: 0; border: 0; display: flex; flex-direction: column; }
+      .child-d { margin-top: 40px; }
+    </style>
+  </head>
+  <body>
+    <div class="case case-c">
+      <div class="label">overflow: hidden - expect teal 0..40, orange 40..100 (no gap)</div>
+      <div class="anchor"></div>
+      <div id="margin-case-c" class="parent parent-c">
+        <div class="child child-c"></div>
+      </div>
+    </div>
+
+    <div class="case case-d">
+      <div class="label">display: flex column - expect teal 0..40, orange 40..100 (no gap)</div>
+      <div class="anchor"></div>
+      <div id="margin-case-d" class="parent parent-d">
+        <div class="child child-d"></div>
+      </div>
+    </div>
+  </body>
+</html>

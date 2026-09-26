@@ -1,8 +1,8 @@
-import { fail } from "./errors";
-import { calcExpression, isPaintToken } from "./values";
-import { splitTopLevel } from "./utils";
+import { fail } from "../errors";
+import { calcExpression, isPaintToken } from "../css/values";
+import { splitTopLevel } from "../utils";
 import { parseColor, parsePaintLayers, type Paint } from "./paint";
-import type { Style } from "./model";
+import type { Style } from "../model";
 
 export type BackgroundPosition = { x: 0 | 0.5 | 1; y: 0 | 0.5 | 1 };
 export type BackgroundSize =

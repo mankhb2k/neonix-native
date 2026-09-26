@@ -1,6 +1,6 @@
-import { fail } from "./errors";
-import { calcExpression, isPaintToken } from "./values";
-import { splitTopLevel } from "./utils";
+import { fail } from "../errors";
+import { calcExpression, isPaintToken } from "../css/values";
+import { splitTopLevel } from "../utils";
 import { parseColor } from "./paint";
 
 export type HtmlFilterEffect =

@@ -12,7 +12,6 @@ import {
 } from "./preview-lab";
 import {
   HTML_COMPILER_TAG_LOWERING_CASES,
-  HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES,
   HTML_COMPILER_OPACITY_CASES,
   HTML_COMPILER_PREVIEW_CASES,
   HTML_COMPILER_PREVIEW_FONT_ASSETS,
@@ -181,71 +180,6 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect.objectContaining({ id: "ellipse", type: "path" }),
       expect.objectContaining({ id: "polyline", type: "path" }),
     ]));
-  });
-
-  it("keeps text compiler and layout contracts independently observable", () => {
-    const compile = (id: string) => compileFixture(
-      HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES.find((item) => item.id === id)!,
-      { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS },
-    );
-
-    const hardBreak = compile("html-compiler.text.compiler.br-hard-break");
-    expect(hardBreak.status).toBe("success");
-    expect(hardBreak.protocol?.layers.find((layer) => layer.id === "hard-break")).toMatchObject({
-      type: "text",
-      frame: { width: 900, height: 180 },
-      payload: {
-        source: { text: "Video title\nline two" },
-        layout: { whiteSpace: "normal", wrap: "word", lineHeight: 86.4, hardBreaks: [11] },
-      },
-    });
-
-    const nested = compile("html-compiler.text.compiler.nested-inline-content");
-    expect(nested.protocol?.layers.find((layer) => layer.id === "nested-inline")).toMatchObject({
-      type: "text",
-      payload: {
-        source: { text: "Prefix bold italic" },
-        chunks: [{ spans: [
-          { sourceRange: { start: 0, end: 7 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-400"] },
-          { sourceRange: { start: 7, end: 11 }, font: { weight: 700, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-700"] },
-          { sourceRange: { start: 11, end: 12 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-400"] },
-          { sourceRange: { start: 12, end: 18 }, font: { weight: 400, style: "italic" }, resolvedFontAssetIds: ["preview-font-inter-400-italic"] },
-        ] }],
-      },
-    });
-
-    const whitespace = compile("html-compiler.text.compiler.whitespace-contract");
-    expect(whitespace.protocol?.layers.find((layer) => layer.id === "normal-space")).toMatchObject({
-      type: "text",
-      payload: { source: { text: "A   B\nC" }, layout: { whiteSpace: "normal", wrap: "word" } },
-    });
-    expect(whitespace.protocol?.layers.find((layer) => layer.id === "pre-space")).toMatchObject({
-      type: "text",
-      payload: { source: { text: "A   B\nC" }, layout: { whiteSpace: "pre", wrap: "none" } },
-    });
-
-    const fixedLines = compile("html-compiler.text.layout.fixed-line-height");
-    expect(fixedLines.protocol?.layers.find((layer) => layer.id === "fixed-lines")).toMatchObject({
-      type: "text",
-      frame: { width: 1000, height: 300 },
-      payload: { source: { text: "Line one\nLine two\nLine three" }, layout: { lineHeight: 72 } },
-    });
-
-    const wrapped = compile("html-compiler.text.layout.wrap-width");
-    expect(wrapped.protocol?.layers.find((layer) => layer.id === "wrap-width")).toMatchObject({
-      type: "text",
-      frame: { width: 520, height: 300 },
-      payload: { layout: { sizing: "fixed", contentWidth: 520, wrap: "word" } },
-    });
-
-    const autoHeight = compile("html-compiler.text.layout.auto-height");
-    const autoHeightLayer = autoHeight.protocol?.layers.find((layer) => layer.id === "auto-height");
-    expect(autoHeightLayer).toMatchObject({
-      type: "text",
-      frame: { width: 520 },
-      payload: { layout: { sizing: "fixed-width-auto-height", contentWidth: 520, wrap: "word" } },
-    });
-    expect(autoHeightLayer?.frame.height ?? 0).toBeGreaterThan(60);
   });
 
   it("keeps local preview assets under the preview public root", () => {

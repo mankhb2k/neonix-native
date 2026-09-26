@@ -1,7 +1,7 @@
 import type { V2SvgDefinitionNode, V2PathContour } from "@motionvideo/motion-protocol/v2";
-import { fail } from "./errors";
-import { calcExpression } from "./values";
-import { splitTopLevel } from "./utils";
+import { fail } from "../errors";
+import { calcExpression } from "../css/values";
+import { splitTopLevel } from "../utils";
 import { parseSvgPathData } from "./path";
 
 export type ClipReferenceBox = {

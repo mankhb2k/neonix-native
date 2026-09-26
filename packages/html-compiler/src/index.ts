@@ -12,8 +12,8 @@ export {
   TEXT_TAGS,
 } from "./compiler/model";
 
-export { ANIMATION_CAPABILITY_NOTES, SUPPORTED_ANIMATION_TIMING_FUNCTIONS } from "./compiler/animation";
-export { PAINT_CAPABILITY_NOTES, SUPPORTED_COLOR_FORMATS, UNSUPPORTED_COLOR_FORMATS } from "./compiler/paint";
+export { ANIMATION_CAPABILITY_NOTES, SUPPORTED_ANIMATION_TIMING_FUNCTIONS } from "./compiler/css/animation";
+export { PAINT_CAPABILITY_NOTES, SUPPORTED_COLOR_FORMATS, UNSUPPORTED_COLOR_FORMATS } from "./compiler/paint/paint";
 
 export {
   DEFAULT_HTML_CSS_COMPOSITION,

@@ -1,8 +1,8 @@
-import { fail } from "./errors";
-import { edges, number, type CssViewport } from "./values";
-import { parseAspectRatio, parseBorderEdges } from "./paint";
+import { fail } from "../errors";
+import { edges, number, type CssViewport } from "../css/values";
+import { parseAspectRatio, parseBorderEdges } from "../paint/paint";
 import { makeLayoutBox, type LayoutBox } from "./layout-ir";
-import type { Style } from "./model";
+import type { Style } from "../model";
 
 export type GeometryEdges = [top: number, right: number, bottom: number, left: number];
 

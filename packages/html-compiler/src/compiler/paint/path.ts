@@ -1,7 +1,7 @@
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
-import { fail } from "./errors";
+import { fail } from "../errors";
 import { parseColor } from "./paint";
-import type { Node, Style } from "./model";
+import type { Node, Style } from "../model";
 
 type CompiledPathContour = Extract<MotionProtocolV2["layers"][number], { type: "path" }>["payload"]["contours"][number];
 type CompiledPathSegment = CompiledPathContour["segments"][number];

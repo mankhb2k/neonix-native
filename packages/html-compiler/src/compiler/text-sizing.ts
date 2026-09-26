@@ -30,7 +30,7 @@ import { collectStyles } from "./document";
 import { parseAnimationStyles, parseRules } from "./css/parser";
 import { computed } from "./css/cascade";
 import { edges, number, resolveVar } from "./css/values";
-import { parseBorderEdges } from "./paint";
+import { parseBorderEdges } from "./paint/paint";
 import { parseLineHeight, parseWhiteSpace, resolveFontAssets, wrapForWhiteSpace } from "./css/typography";
 import { isTextFlowNode, collectTextContentWithBreaks, normalizeTextContent } from "./lowering/dispatcher";
 import {

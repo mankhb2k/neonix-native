@@ -1,7 +1,7 @@
 import type { MotionProtocolV2, V2Render3D } from "@motionvideo/motion-protocol/v2";
-import { fail } from "./errors";
-import { calcExpression } from "./values";
-import type { Style } from "./model";
+import { fail } from "../errors";
+import { calcExpression } from "../css/values";
+import type { Style } from "../model";
 
 export type ParsedTransform = {
   translate: { x: number; y: number; z: number };

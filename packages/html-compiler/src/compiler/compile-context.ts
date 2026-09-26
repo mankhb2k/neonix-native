@@ -1,7 +1,7 @@
 import type { MotionProtocolV2, V2SvgDefinitionNode } from "@motionvideo/motion-protocol/v2";
 import type { HtmlCompilerOptions, HtmlCssComposition, HtmlCssSource } from "../source";
 import type { KeyframeDefinition, Node, Rule, Style } from "./model";
-import type { LayoutBox, LayoutRect } from "./layout-ir";
+import type { LayoutBox, LayoutRect } from "./layout/layout-ir";
 
 export type LayoutOverride = {
   x: number;

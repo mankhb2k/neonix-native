@@ -1,7 +1,7 @@
-import { fail } from "./errors";
-import { calcExpression, isPaintToken, NAMED_COLORS } from "./values";
-import { splitTopLevel } from "./utils";
-import type { Style } from "./model";
+import { fail } from "../errors";
+import { calcExpression, isPaintToken, NAMED_COLORS } from "../css/values";
+import { splitTopLevel } from "../utils";
+import type { Style } from "../model";
 
 export type GradientStop = { offset: number; color: string };
 export type GradientSpreadMethod = "pad" | "repeat";

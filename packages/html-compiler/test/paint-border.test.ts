@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "..";
-import { parseBorderEdges, parseCornerRadii } from "../src/compiler/paint";
+import { parseBorderEdges, parseCornerRadii } from "../src/compiler/paint/paint";
 
 const viewport = { width: 1920, height: 1080 };
 

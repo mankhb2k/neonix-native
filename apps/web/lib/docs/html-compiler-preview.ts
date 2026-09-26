@@ -1406,165 +1406,6 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
   }
 ];
 
-export const HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES: HtmlCompilerPreviewCase[] = [
-  {
-    "id": "html-compiler.text.compiler.br-hard-break",
-    "category": "Text compiler & layout",
-    "topic": "Typography",
-    "label": "Text compiler / br hard break",
-    "properties": [
-      "br",
-      "source newline",
-      "normal whitespace",
-      "text layer"
-    ],
-    "hint": "The compiler must preserve a <br> as a semantic hard break while keeping normal whitespace collapsing available to the runtime.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/compiler-br-hard-break.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.text.compiler.nested-inline-content",
-    "category": "Text compiler & layout",
-    "topic": "Typography",
-    "label": "Text compiler / nested inline content",
-    "properties": [
-      "p",
-      "strong",
-      "em",
-      "style spans",
-      "text layer"
-    ],
-    "hint": "Nested inline tags contribute text content to one semantic text layer while preserving source order, character ranges and per-span font semantics.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/compiler-nested-inline-content.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.text.compiler.whitespace-contract",
-    "category": "Text compiler & layout",
-    "topic": "Typography",
-    "label": "Text compiler / whitespace contract",
-    "properties": [
-      "normal",
-      "pre",
-      "source whitespace",
-      "wrap policy"
-    ],
-    "hint": "The compiler emits the source text and computed whitespace mode separately so normal and pre layout can be evaluated without conflating source newlines with hard breaks.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/compiler-whitespace-contract.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.text.layout.fixed-line-height",
-    "category": "Text compiler & layout",
-    "topic": "Layout",
-    "label": "Text layout / fixed line-height",
-    "properties": [
-      "br",
-      "fixed frame",
-      "line-height",
-      "baseline"
-    ],
-    "hint": "Explicit line-height and hard breaks produce deterministic line boxes inside a fixed text frame.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/layout-fixed-line-height.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.text.layout.wrap-width",
-    "category": "Text compiler & layout",
-    "topic": "Layout",
-    "label": "Text layout / fixed width wrapping",
-    "properties": [
-      "fixed width",
-      "word wrapping",
-      "content width",
-      "line count"
-    ],
-    "hint": "A constrained width creates multiple runtime line boxes while the Protocol frame remains the authored fixed width.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/layout-wrap-width.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  },
-  {
-    "id": "html-compiler.text.layout.auto-height",
-    "category": "Text compiler & layout",
-    "topic": "Layout",
-    "label": "Text layout / auto-height wrapping",
-    "properties": [
-      "height:auto",
-      "fixed-width-auto-height",
-      "intrinsic height",
-      "wrapping"
-    ],
-    "hint": "When width is authored but height is auto, compiler layout estimates the wrapped text height and emits a usable frame for runtime shaping.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/layout-auto-height.html",
-    "composition": {
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "background": "#081018",
-      "colorSpace": "srgb"
-    }
-  }
-];
-
-const debugTextGradient = (
-  slug: string,
-  label: string,
-  properties: string[],
-): HtmlCompilerPreviewCase => ({
-  id: `html-compiler.debug.${slug}`,
-  category: "Text compiler & layout",
-  topic: "Typography",
-  label: `Debug text gradient / ${label}`,
-  properties: ["background-clip: text", ...properties],
-  hint: `Isolated ${label} probe for browser-to-CanvasKit analysis.`,
-  fixtureUrl: `/docs/html-compiler/fixtures/debug/${slug}.html`,
-  composition: { width: 1920, height: 1080, fps: 30, background: "#081018", colorSpace: "srgb" },
-});
-
-/** Each fixture varies one CSS gradient semantic for native-stage analysis. */
-export const HTML_COMPILER_TEXT_GRADIENT_DEBUG_CASES: HtmlCompilerPreviewCase[] = [
-  debugTextGradient("text-gradient-linear-angle", "linear angle + stops", ["linear-gradient", "angle", "explicit stops"]),
-  debugTextGradient("text-gradient-linear-alpha", "linear alpha stops", ["linear-gradient", "rgba stops", "alpha interpolation"]),
-  debugTextGradient("text-gradient-linear-hard-stop", "linear hard stop", ["linear-gradient", "multi-position stop", "discontinuity"]),
-  debugTextGradient("text-gradient-radial-off-center", "radial off-center", ["radial-gradient", "off-center", "circle radius"]),
-  debugTextGradient("text-gradient-radial-ellipse", "radial ellipse", ["radial-gradient", "ellipse", "explicit radii"]),
-  debugTextGradient("text-gradient-conic-angle-center", "conic angle + center", ["conic-gradient", "start angle", "off-center"]),
-  debugTextGradient("text-gradient-conic-seam", "conic seam", ["conic-gradient", "seam", "hard stops"]),
-  debugTextGradient("text-gradient-multiline", "multiline box geometry", ["linear-gradient", "wrapping", "element coordinates"]),
-  debugTextGradient("text-gradient-background-origin", "background origin", ["linear-gradient", "background-origin", "padding box"]),
-  debugTextGradient("text-gradient-repeating-linear", "repeating linear", ["repeating-linear-gradient", "tile mode", "period"]),
-];
-
 /** Full local font-catalog probes for browser/CanvasKit typography comparison. */
 export const HTML_COMPILER_FONT_CATALOG_CASES: HtmlCompilerPreviewCase[] = [
   {
@@ -2161,34 +2002,6 @@ export const HTML_COMPILER_MOTION_CASES: HtmlCompilerPreviewCase[] = [
     ],
     "hint": "A closed rectangular loop that wraps seamlessly every cycle, a three-segment polyline, a track whose offset-distance moves forward then backward along the same path, and an element scaling with transform while it travels the path.",
     "fixtureUrl": "/docs/html-compiler/fixtures/motion/motion-path-advanced.html",
-    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
-  },
-  {
-    "id": "html-compiler.motion.keyframes-unknown-name",
-    "category": "Animation & keyframe primitives",
-    "topic": "Motion & animation",
-    "label": "Motion / unknown animation diagnostic",
-    "properties": [
-      "animation-name",
-      "diagnostic",
-      "unsupported reference"
-    ],
-    "hint": "An animation-name without a matching @keyframes rule is a compiler diagnostic, never a silent no-op.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/keyframes-unknown-name.html",
-    "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
-  },
-  {
-    "id": "html-compiler.motion.easing-invalid",
-    "category": "Animation & keyframe primitives",
-    "topic": "Motion & animation",
-    "label": "Motion / invalid easing diagnostic",
-    "properties": [
-      "steps(0)",
-      "diagnostic",
-      "no silent fallback"
-    ],
-    "hint": "Invalid step counts and cubic-bezier control points fail compilation with a specific diagnostic.",
-    "fixtureUrl": "/docs/html-compiler/fixtures/debug/easing-invalid.html",
     "composition": { "width": 1920, "height": 1080, "fps": 30, "background": "#081018", "colorSpace": "srgb" }
   }
 ];
@@ -2953,9 +2766,7 @@ export const HTML_COMPILER_DEFAULT_CASE_ID = HTML_COMPILER_FOUNDATION_CASES[0].i
 const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_FOUNDATION_CASES,
   ...HTML_COMPILER_TAG_LOWERING_CASES,
-  ...HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES,
   ...HTML_COMPILER_FONT_CATALOG_CASES,
-  ...HTML_COMPILER_TEXT_GRADIENT_DEBUG_CASES,
   ...HTML_COMPILER_ANCHOR_CASES,
   ...HTML_COMPILER_FLEX_CONTAINER_CASES,
   ...HTML_COMPILER_FLEX_WRAPPING_CASES,

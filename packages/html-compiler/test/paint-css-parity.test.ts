@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "../src/index";
-import { parseColor, parsePaintLayers } from "../src/compiler/paint";
-import { parseFilter } from "../src/compiler/filter";
+import { parseColor, parsePaintLayers } from "../src/compiler/paint/paint";
+import { parseFilter } from "../src/compiler/paint/filter";
 
 // Everyday CSS paint that the compiler either rejected outright or accepted
 // while silently dropping part of it. Gradient color-stop resolution follows

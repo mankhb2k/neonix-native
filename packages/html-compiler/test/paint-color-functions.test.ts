@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "..";
-import { parseBorderEdges, parseColor, parseOutline, parseShadows } from "../src/compiler/paint";
-import { parseFilter } from "../src/compiler/filter";
+import { parseBorderEdges, parseColor, parseOutline, parseShadows } from "../src/compiler/paint/paint";
+import { parseFilter } from "../src/compiler/paint/filter";
 
 const viewport = { width: 1920, height: 1080 };
 

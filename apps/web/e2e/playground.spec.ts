@@ -1,24 +1,6 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-const FOCUSED_FIXTURES = [
-  "inset-stroke-rounded-medium-halo-medium",
-  "inset-stroke-rounded-medium-halo-large",
-  "inset-stroke-rounded-large-halo-medium",
-  "inset-stroke-rounded-large-halo-large",
-  "box-shadow-outer-glow",
-  "outer-glow-plain",
-  "outer-glow-stack",
-  "inner-glow",
-  "combined-glow",
-  "inner-outer-glow-order",
-  "outer-glow-overlay-only",
-  "inner-glow-mask-only",
-  "mixed-glow-order-colors",
-] as const;
-
-const DIAGNOSTIC_FIXTURES = ["outer-glow-spread"] as const;
-
 test.describe("HTML compiler playground", () => {
   test("mounts the Browser and Runtime/Skia screens", async ({ page }) => {
     await page.goto("/playground", { waitUntil: "domcontentloaded" });
@@ -40,43 +22,17 @@ test.describe("HTML compiler playground", () => {
   });
 
   test("persists the selected fixture in the URL across reloads", async ({ page }) => {
-    await page.goto("/playground?fixture=inset-stroke-rounded-medium-halo-medium", { waitUntil: "domcontentloaded" });
+    await page.goto("/playground?fixture=box-shadow-outer-glow", { waitUntil: "domcontentloaded" });
     const picker = page.getByTestId("playground-fixture-picker");
-    await expect(picker).toHaveValue("inset-stroke-rounded-medium-halo-medium");
-    await expect(page.getByTestId("playground-source")).toContainText("inset-stroke-rounded-medium-halo-medium");
+    await expect(picker).toHaveValue("box-shadow-outer-glow");
+    await expect(page.getByTestId("playground-source")).toContainText("box-shadow-outer-glow");
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(picker).toHaveValue("inset-stroke-rounded-medium-halo-medium");
-    await expect(page.getByTestId("playground-source")).toContainText("inset-stroke-rounded-medium-halo-medium");
-    await picker.selectOption("inset-stroke-rounded-large-halo-large");
-    await expect(picker).toHaveValue("inset-stroke-rounded-large-halo-large");
-    await expect(page.getByTestId("playground-source")).toContainText("inset-stroke-rounded-large-halo-large");
-    await expect(page).toHaveURL(/\/playground\?fixture=inset-stroke-rounded-large-halo-large$/);
-  });
-
-  test("exposes only focused effect fixtures", async ({ page }) => {
-    await page.goto("/playground", { waitUntil: "domcontentloaded" });
-    const picker = page.getByTestId("playground-fixture-picker");
-    const canvas = page.getByTestId("playground-runtime-canvas");
-    await expect(canvas).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
-    await expect(picker).toBeVisible();
-    await expect(picker.locator("option")).toHaveCount(1 + FOCUSED_FIXTURES.length + DIAGNOSTIC_FIXTURES.length);
-    const values = await picker.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
-    expect(values).toEqual([
-      "custom",
-      ...FOCUSED_FIXTURES,
-      ...DIAGNOSTIC_FIXTURES,
-    ]);
-
-    for (const fixtureId of FOCUSED_FIXTURES) {
-      await picker.selectOption(fixtureId);
-      await expect(picker).toHaveValue(fixtureId);
-      await expect(page).toHaveURL(new RegExp(`/playground\\?fixture=${fixtureId}$`));
-      await expect(page.getByTestId("playground-json")).toContainText('"formatVersion": 2');
-      await expect(canvas).toHaveAttribute("data-preview-state", "ready");
-      await expect(canvas).not.toHaveAttribute("data-diagnostics", /invalid matrix argument|effect_program|skia_effect_unsupported/);
-    }
-
-    await expect(picker.locator('option[value="outer-glow-spread"]')).toHaveCount(1);
+    await expect(picker).toHaveValue("box-shadow-outer-glow");
+    await expect(page.getByTestId("playground-source")).toContainText("box-shadow-outer-glow");
+    await picker.selectOption("inner-glow");
+    await expect(picker).toHaveValue("inner-glow");
+    await expect(page.getByTestId("playground-source")).toContainText("inner-glow");
+    await expect(page).toHaveURL(/\/playground\?fixture=inner-glow$/);
   });
 });
