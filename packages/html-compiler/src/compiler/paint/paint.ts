@@ -657,7 +657,10 @@ function parseShadow(value: string, property: "text-shadow" | "box-shadow", inde
   const spread = lengths[3] === undefined ? 0 : shadowLength(lengths[3], `${property}.spread`, relative, fontSize, viewport);
   if (blur < 0) fail("css-shadow-blur-invalid", `${property} blur must be non-negative`);
   const base: ShadowEffectBase = {
-    id: `${property}:${index}`,
+    // A text-shadow effect can be the target of an `effects.<id>.<field>`
+    // animation track (css/animation.ts), and V2 property paths only allow
+    // [A-Za-z0-9_-] per segment - so it can't carry the ":" separator.
+    id: property === "text-shadow" ? `text-shadow-${index}` : `${property}:${index}`,
     type: "shadow",
     offset: { x: shadowLength(lengths[0]!, `${property}.offset-x`, relative, fontSize, viewport), y: shadowLength(lengths[1]!, `${property}.offset-y`, relative, fontSize, viewport) },
     blur,

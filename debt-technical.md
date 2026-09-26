@@ -180,6 +180,52 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
 
 ## Render pipeline
 
+### CanvasKit-preview: filter/backdrop-filter không cache qua các frame, gây frame time hàng giây trên scene nặng effect
+- Vị trí: `packages/canvaskit-preview/src/command/replay.ts` — `beginLayer`
+  (dòng ~962-1134, dựng `paint.setImageFilter()` rồi `canvas.saveLayer()`) và
+  `endLayer` (dòng ~1135-1268, `canvas.restore()` — nơi Skia thật sự áp
+  filter/backdrop-filter khi composite layer trở lại canvas cha).
+- Đo thật bằng Playwright trên fixture debug `neonix-motion-test-10s`
+  (2× `filter: blur(70px)` trên orb 520-600px, backdrop-filter blur trên
+  badge + 3 card, `filter: hue-rotate` animate trên ring) tại t=2s: tổng
+  `gpuFrameTimeMs` **4063ms** (budget 30fps = 33.3ms, quá **~122 lần**).
+  Breakdown theo giai đoạn (thêm tạm field debug vào `PreviewStage.tsx`,
+  đã revert sau khi đo xong):
+  - `layerTimeMs` (mở layer, dựng filter object): 710ms
+  - **`endLayerTimeMs` (đóng layer — `canvas.restore()`): 3223ms, chiếm ~79%
+    tổng chi phí**
+  - `textTimeMs`/`pathTimeMs`/`shapeTimeMs`: gần như 0 (2-3ms)
+- Nguyên nhân: browser thật (Chrome) thăng cấp phần tử có
+  `filter`/`backdrop-filter` thành 1 GPU compositor layer riêng — chỉ tính
+  blur/filter **1 lần**, những frame sau nếu phần tử chỉ đổi vị trí
+  (translate) thì chỉ di chuyển texture đã tính sẵn, không tính lại.
+  CanvasKit-preview hiện **không có cơ chế tương đương** — `filterCache`
+  hiện có (`replay.ts:911-929`, key = `JSON.stringify(effectProgram)`) chỉ
+  cache **object filter** (rẻ), không cache **kết quả đã rasterize** (đắt) —
+  nên mỗi frame, mọi layer có filter/backdrop-filter đều bị tính lại từ đầu
+  toàn bộ phép blur/backdrop, bất kể nội dung có đổi hay không.
+- Đã thử scope hẹp "chỉ cache filter:blur() trước" theo yêu cầu, nhưng phát
+  hiện việc cache đúng **khó hơn ước lượng ban đầu**: `beginLayer`/`endLayer`
+  hiện vẽ nội dung VÀ áp transform vị trí trong CÙNG một bước
+  (`canvas.saveLayer()` → vẽ commands với transform hiện hành →
+  `canvas.restore()` áp filter). Muốn cache đúng (bất biến với vị trí, chỉ
+  invalidate khi nội dung thật sự đổi) cần **tách rời "vẽ nội dung" ra khỏi
+  "áp transform"**: vẽ nội dung vào 1 surface riêng (không transform) → chụp
+  ảnh (`makeImageSnapshot`) → cache theo signature nội dung (không bao gồm
+  vị trí) → những frame sau chỉ "dán" ảnh cache vào đúng vị trí mới
+  (`canvas.drawImage`) thay vì vẽ lại + filter lại. Việc tách này đụng vào
+  cách `setTransform`/`layerTransforms`/`pendingTransform` đang lồng với nội
+  dung vẽ trong `replay.ts` — rủi ro cao hơn nếu invalidation logic sai (gây
+  hiển thị frame cũ/sai hình, không chỉ sai vị trí), nên dừng lại ở bước
+  phân tích/đo đạc, chưa implement.
+- Cần làm: thiết kế lại luồng `beginLayer`/`endLayer` cho nhánh
+  filter-thường (không backdrop, không box-effect, không projective, không
+  mask — trường hợp đơn giản nhất) để render nội dung vào offscreen surface
+  độc lập với transform, cache theo content signature, chỉ composite lại vị
+  trí mới khi cache hit. Không tự ý mở rộng sang backdrop-filter (phức tạp
+  hơn nhiều vì phải đọc lại canvas phía sau) cho tới khi nhánh filter-thường
+  đã chứng minh đúng/an toàn.
+
 ### Công thức sigma của text-shadow/box-shadow chưa port sang export-renderer
 - Vị trí: `packages/canvaskit-preview/src/command/effects.ts`
   (`cssShadowBlurRadiusToSkiaSigma`, dùng chung cho text-shadow và box-shadow

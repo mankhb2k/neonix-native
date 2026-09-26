@@ -1,5 +1,5 @@
 import type { V2AnimatableValue, V2Easing, V2Track } from "@motionvideo/motion-protocol/v2";
-import { parseColor } from "../paint/paint";
+import { parseColor, parseShadows, type ShadowEffect } from "../paint/paint";
 import { parseTransform } from "../transform/transform";
 import { splitTopLevel } from "../utils";
 import { calcExpression } from "./values";
@@ -204,7 +204,7 @@ function perspectiveOrigin(value: string, options: LowerAnimationOptions): { typ
   return { type: "vec2", value: [x, y] };
 }
 
-function buildTrack(property: string, definition: KeyframeDefinition, durationMs: number, animation: NonNullable<V2Track["animation"]>, base: unknown, options: LowerAnimationOptions, defaultTiming: string): V2Track[] {
+function knownKeyframeEntries(definition: KeyframeDefinition, property: string): Array<{ at: number; value: string }> {
   const entries = definition.steps.flatMap((step) => step.selectors.map((selector) => ({
     at: offset(selector),
     // Declarations in one keyframe block still follow the normal CSS cascade:
@@ -216,7 +216,13 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
   // CSS keyframe blocks at the same offset cascade by source order. Keep the
   // winning block per property instead of emitting duplicate-time keyframes,
   // which would make the runtime's interpolation result backend-dependent.
-  const known = ordered.filter((entry, index) => ordered[index + 1]?.at !== entry.at);
+  return ordered
+    .filter((entry, index) => ordered[index + 1]?.at !== entry.at)
+    .map((entry) => ({ at: entry.at, value: entry.declaration!.value }));
+}
+
+function buildTrack(property: string, definition: KeyframeDefinition, durationMs: number, animation: NonNullable<V2Track["animation"]>, base: unknown, options: LowerAnimationOptions, defaultTiming: string): V2Track[] {
+  const known = knownKeyframeEntries(definition, property).map((entry) => ({ at: entry.at, declaration: { value: entry.value } }));
   if (!known.length) return [];
   const transform = property === "transform";
   const paths = transform
@@ -253,6 +259,87 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
     if (keyframes.at(-1)!.time < durationMs) keyframes.push({ time: durationMs, value: keyframes.at(-1)!.value, easing: { type: "linear" } });
     return { id: `animation:${definition.name}:${path}`, path, keyframes, animation } as V2Track;
   });
+}
+
+/**
+ * text-shadow is a list, so unlike opacity it can't be one flat track path.
+ * CSS interpolates shadow lists pairwise by index, padding the shorter list
+ * with `0 0 0 transparent` shadows. Each index therefore becomes its own V2
+ * `shadow` effect - id `text-shadow-<i>`, the same id `parseShadows()` already
+ * gives a static text-shadow - animated through one `effects.<id>.<field>`
+ * track per field (a path the protocol and the compiler's sampler already
+ * support for layer effects).
+ */
+const TEXT_SHADOW_FIELDS = ["offset.x", "offset.y", "blur", "color"] as const;
+type TextShadowField = typeof TEXT_SHADOW_FIELDS[number];
+
+function parseTextShadowList(raw: string | undefined, options: LowerAnimationOptions): ShadowEffect[] {
+  return parseShadows(new Map([["text-shadow", raw ?? "none"]]), "text-shadow", options.containingWidth, options.fontSize, options.viewport, options.currentColor);
+}
+
+/** The padding shadow reuses the paired shadow's own color at alpha 0, so a fade in/out only changes alpha instead of dipping through black the way straight interpolation toward rgba(0,0,0,0) would. */
+function padTextShadowList(list: readonly ShadowEffect[], count: number, pairedColors: readonly (string | undefined)[]): ShadowEffect[] {
+  return Array.from({ length: count }, (_, index): ShadowEffect => list[index] ?? {
+    id: `text-shadow-${index}`,
+    type: "shadow",
+    offset: { x: 0, y: 0 },
+    blur: 0,
+    color: `${(pairedColors[index] ?? "#000000").slice(0, 7)}00`,
+    source: "alpha",
+    spread: 0,
+    inset: false,
+  });
+}
+
+function textShadowFieldValue(shadow: ShadowEffect, field: TextShadowField, currentColor: string): V2AnimatableValue {
+  if (field === "offset.x") return { type: "number", value: shadow.offset.x };
+  if (field === "offset.y") return { type: "number", value: shadow.offset.y };
+  if (field === "blur") return { type: "number", value: shadow.blur };
+  return color(shadow.color, currentColor);
+}
+
+type TextShadowAnimationSource = {
+  definition: KeyframeDefinition;
+  durationMs: number;
+  animation: NonNullable<V2Track["animation"]>;
+  defaultTiming: string;
+  entries: Array<{ at: number; list: ShadowEffect[] }>;
+};
+
+function lowerTextShadowAnimations(sources: readonly TextShadowAnimationSource[], staticList: readonly ShadowEffect[], options: LowerAnimationOptions): { base: ShadowEffect[]; tracks: V2Track[] } | undefined {
+  if (!sources.length) return undefined;
+  const allLists = [staticList, ...sources.flatMap((source) => source.entries.map((entry) => entry.list))];
+  const count = Math.max(0, ...allLists.map((list) => list.length));
+  if (count === 0) return undefined;
+  const pairedColors = Array.from({ length: count }, (_, index) => allLists.find((list) => list[index])?.[index]!.color);
+  const base = padTextShadowList(staticList, count, pairedColors);
+  const tracks: V2Track[] = [];
+  for (const source of sources) {
+    const padded = source.entries.map((entry) => ({ at: entry.at, list: padTextShadowList(entry.list, count, pairedColors) }));
+    for (let index = 0; index < count; index += 1) {
+      for (const field of TEXT_SHADOW_FIELDS) {
+        const baseValue = textShadowFieldValue(base[index]!, field, options.currentColor);
+        const keyframes = padded.map((entry) => ({
+          time: Math.round(entry.at * source.durationMs),
+          value: textShadowFieldValue(entry.list[index]!, field, options.currentColor),
+          easing: easing(styleTiming(source.definition, entry.at) ?? source.defaultTiming),
+        }));
+        // A missing from/to keyframe is constructed from the underlying
+        // (non-animated) value at BOTH ends, per CSS Animations - not a hold
+        // of the nearest authored keyframe.
+        if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseValue, easing: easing(source.defaultTiming) });
+        if (keyframes.at(-1)!.time < source.durationMs) keyframes.push({ time: source.durationMs, value: baseValue, easing: { type: "linear" } });
+        // A field that never moves off its base value (e.g. a glow's 0 offset)
+        // is a no-op track at every instant - skip it rather than sampling it
+        // every frame.
+        const baseKey = JSON.stringify(baseValue);
+        if (keyframes.every((keyframe) => JSON.stringify(keyframe.value) === baseKey)) continue;
+        const path = `effects.text-shadow-${index}.${field}`;
+        tracks.push({ id: `animation:${source.definition.name}:${path}`, path, keyframes, animation: source.animation } as V2Track);
+      }
+    }
+  }
+  return { base, tracks };
 }
 
 /** The CSS-identity value of a transform sub-path: the value it holds when the
@@ -452,7 +539,7 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): V
   return { type: "number", value: 0 };
 }
 
-export function lowerAnimationTracks(style: Style, keyframes: Map<string, KeyframeDefinition>, options: LowerAnimationOptions): { group: V2Track[]; paint: V2Track[] } {
+export function lowerAnimationTracks(style: Style, keyframes: Map<string, KeyframeDefinition>, options: LowerAnimationOptions): { group: V2Track[]; paint: V2Track[]; textShadowBase?: ShadowEffect[] } {
   const names = list(style.get("animation-name"), "none");
   const durations = list(style.get("animation-duration"), "0s");
   const delays = list(style.get("animation-delay"), "0s");
@@ -463,6 +550,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
   // CSS animation-timing-function defaults to ease, not linear.
   const timings = list(style.get("animation-timing-function"), "ease");
   const allTracks: V2Track[] = [];
+  const textShadowSources: TextShadowAnimationSource[] = [];
   names.forEach((name, index) => {
     if (name === "none") return;
     const definition = keyframes.get(name) ?? fail("css-animation-name-unknown", `animation-name references unknown @keyframes: ${name}`);
@@ -519,12 +607,24 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
       const tracks = buildTrack(property, definition, durationMs, animation, baseValue, options, easingValue);
       allTracks.push(...tracks);
     }
+    const textShadowEntries = knownKeyframeEntries(definition, "text-shadow");
+    if (textShadowEntries.length) {
+      textShadowSources.push({
+        definition,
+        durationMs,
+        animation,
+        defaultTiming: easingValue,
+        entries: textShadowEntries.map((entry) => ({ at: entry.at, list: parseTextShadowList(entry.value, options) })),
+      });
+    }
   });
+  const textShadow = lowerTextShadowAnimations(textShadowSources, parseTextShadowList(style.get("text-shadow"), options), options);
+  if (textShadow) allTracks.push(...textShadow.tracks);
   const mergedTracks = mergeSequentialTracksOnSamePath(allTracks);
   const group: V2Track[] = [];
   const paint: V2Track[] = [];
   for (const track of mergedTracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
-  return { group: resolveTransformTrackConflicts(group, style, options), paint };
+  return { group: resolveTransformTrackConflicts(group, style, options), paint, ...(textShadow ? { textShadowBase: textShadow.base } : {}) };
 }
 
 /**
@@ -538,6 +638,8 @@ export function resolveNodeAnimationTracks(style: Style, keyframes: Map<string, 
   paint: V2Track[];
   paintAnimationTracks: V2Track[];
   borderAnimationTracks: V2Track[];
+  /** Padded base list for an animated text-shadow; replaces the static text-shadow effects so every `effects.text-shadow-<i>` track has an effect to write into. */
+  textShadowBase?: ShadowEffect[];
 } {
   const tracks = lowerAnimationTracks(style, keyframes, options);
   const paintAnimationTracks = [

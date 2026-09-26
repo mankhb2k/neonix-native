@@ -276,10 +276,10 @@ export function ComparePreviewLab({
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">
-              Browser vs native — 1920 × 1080
+              Browser vs CanvasKit — 1920 × 1080
             </h1>
             <p className="mt-2 text-sm text-[#525252]">
-              Browser CSS and the native renderer are rendered at the same composition
+              Browser CSS and the CanvasKit (WASM Skia, browser preview) renderer are rendered at the same composition
               size. {layout === "stacked" ? "No CSS scaling is applied." : "Both panels are scaled down equally to fit side by side."}
             </p>
           </div>
@@ -445,8 +445,8 @@ export function ComparePreviewLab({
           <NativePanel
             ref={nativePanelRef}
             className={layout === "side-by-side" ? "min-w-0" : "w-[1920px] shrink-0"}
-            title="Native renderer output"
-            badge={`Neonix JSON V2 · Runtime V3 · Native · ${layoutSnapshotEntry ? "CDP layout" : "native layout"} · 1920×1080`}
+            title="CanvasKit renderer output"
+            badge={`Neonix JSON V2 · Runtime V3 · CanvasKit · ${layoutSnapshotEntry ? "CDP layout" : "native layout"} · 1920×1080`}
           >
             <PreviewFrame layout={layout} scale={sideBySideScale}>
               {protocol && !loading ? (
@@ -651,10 +651,10 @@ function DiagnosticsCard({
       data-testid="radial-native-diagnostics-card"
     >
       <h2 className="mb-2 text-xs font-semibold text-[#171717]">
-        Native renderer diagnostics
+        CanvasKit renderer diagnostics
       </h2>
       {!hasStats ? (
-        <p className="text-[11px] text-[#737373]">No native canvas rendered yet.</p>
+        <p className="text-[11px] text-[#737373]">No CanvasKit canvas rendered yet.</p>
       ) : (
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatGroup

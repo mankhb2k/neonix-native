@@ -634,3 +634,64 @@ describe("sequential same-property animation merging", () => {
     expect(result.diagnostics[0]?.message).toContain("negative animation-delay");
   });
 });
+
+describe("text-shadow animation", () => {
+  const FONT_ASSET = { id: "inter-regular", kind: "font" as const, uri: "/fonts/inter.ttf", weight: 400, style: "normal" as const, integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", family: "Inter" };
+  const compileTitle = (css: string) => compileHtmlCss(createHtmlCssSource({
+    html: "<h1 id=\"title\">NEONIX</h1>",
+    css: `#title { position: absolute; left: 100px; top: 100px; margin: 0; font-family: Inter; font-weight: 400; color: #ffffff; } ${css}`,
+  }), { fontAssets: [FONT_ASSET] });
+  const textLayer = (result: ReturnType<typeof compileTitle>) => result.protocol?.layers.find((layer) => layer.type === "text");
+
+  it("animates a text-shadow that only exists inside @keyframes, starting from a transparent base", () => {
+    const result = compileTitle(`
+      @keyframes glow { from { text-shadow: 0 0 10px #22d3ee; } to { text-shadow: 0 0 30px #a855f7; } }
+      #title { animation: glow 2s linear infinite alternate; }
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = textLayer(result);
+    // No static text-shadow: the base is an invisible zero shadow the tracks
+    // write into, so fill-mode none still shows no glow outside the animation.
+    expect(layer && "effects" in layer ? layer.effects : undefined).toEqual([
+      { id: "text-shadow-0", type: "shadow", source: "alpha", offset: { x: 0, y: 0 }, blur: 0, spread: 0, color: "#22d3ee00", inset: false },
+    ]);
+    const blur = layer?.tracks?.find((track) => track.path === "effects.text-shadow-0.blur");
+    expect(blur?.keyframes.map((keyframe) => keyframe.value)).toEqual([{ type: "number", value: 10 }, { type: "number", value: 30 }]);
+    expect(blur?.animation).toMatchObject({ durationMs: 2000, iterations: "infinite", direction: "alternate" });
+    expect(layer?.tracks?.some((track) => track.path === "effects.text-shadow-0.color")).toBe(true);
+    // Offsets never move off 0, so they don't get no-op tracks.
+    expect(layer?.tracks?.some((track) => track.path.startsWith("effects.text-shadow-0.offset"))).toBe(false);
+  });
+
+  it("interpolates shadow lists of different lengths pairwise, padding the shorter one", () => {
+    const result = compileTitle(`
+      @keyframes grow { from { text-shadow: 0 0 10px #ff0000; } to { text-shadow: 0 0 10px #ff0000, 4px 4px 20px #0000ff; } }
+      #title { animation: grow 1s linear both; }
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = textLayer(result);
+    const effects = layer && "effects" in layer ? layer.effects ?? [] : [];
+    expect(effects.map((effect) => effect.id)).toEqual(["text-shadow-0", "text-shadow-1"]);
+    const secondBlur = layer?.tracks?.find((track) => track.path === "effects.text-shadow-1.blur");
+    expect(secondBlur?.keyframes.map((keyframe) => keyframe.value)).toEqual([{ type: "number", value: 0 }, { type: "number", value: 20 }]);
+    // The padded end fades from the paired shadow's own color at alpha 0, not black.
+    const secondColor = layer?.tracks?.find((track) => track.path === "effects.text-shadow-1.color");
+    expect(secondColor?.keyframes[0]?.value).toEqual({ type: "color", value: [0, 0, 1, 0] });
+  });
+
+  it("constructs missing from/to keyframes from the static text-shadow (CSS Animations), not a hold of the authored one", () => {
+    const result = compileTitle(`
+      @keyframes pulse { 50% { text-shadow: 0 0 40px #ffffff; } }
+      #title { text-shadow: 0 0 8px #ffffff; animation: pulse 1s linear infinite; }
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = textLayer(result);
+    expect(layer && "effects" in layer ? layer.effects?.[0]?.blur : undefined).toBe(8);
+    const blur = layer?.tracks?.find((track) => track.path === "effects.text-shadow-0.blur");
+    expect(blur?.keyframes.map((keyframe) => [keyframe.time, keyframe.value])).toEqual([
+      [0, { type: "number", value: 8 }],
+      [500, { type: "number", value: 40 }],
+      [1000, { type: "number", value: 8 }],
+    ]);
+  });
+});

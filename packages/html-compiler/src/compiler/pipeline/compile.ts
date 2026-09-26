@@ -337,7 +337,8 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
            perspective,
          });
          const { paintAnimationTracks, borderAnimationTracks } = animationTracks;
-         const { textShadows, paintEffects, compositeState, compositeNeedsGroup } = resolveNodePaintEffects(style, containingWidth, font, viewport, currentColor);
+         const { textShadows: staticTextShadows, paintEffects, compositeState, compositeNeedsGroup } = resolveNodePaintEffects(style, containingWidth, font, viewport, currentColor);
+         const textShadows = animationTracks.textShadowBase ?? staticTextShadows;
          const { hasOutline, emitOutline } = resolveNodeOutline({ outline, cornerRadius, width: w, height: h, groupId, parentId, localX, localY, zIndex, opacity, state, duration, transformFor, layers });
          const maskLayerRefs = lowerMaskImages(node, style, style.get("color") ?? parentStyle.get("color") ?? "#000000", w, h);
         if (loweringKind === "image") {
@@ -410,7 +411,12 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
                : { ...(pathStyle ?? {}), fill: "#000000" };
            if (styleForPath.fill && styleForPath.fill !== "none" && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
            const clipPathId = elementClipPath();
-           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(() => {
+             // text-shadow effects only ever land on a text layer; a path layer
+             // has no `text-shadow-<i>` effect for those tracks to write into.
+             const pathTracks = [...animationTracks.group, ...animationTracks.paint.filter((track) => !track.path.startsWith("effects.text-shadow-"))];
+             return pathTracks.length ? { tracks: pathTracks } : {};
+           })(), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
            // scope. A border is a separate pass so its centered stroke can be
