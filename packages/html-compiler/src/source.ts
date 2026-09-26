@@ -1,4 +1,5 @@
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import type { LayoutSnapshot } from "./layout-probe";
 
 export type HtmlCssComposition = Readonly<{
   width: number;
@@ -97,6 +98,17 @@ export type HtmlCompilerOptions = {
   mediaAssets?: readonly HtmlCompilerMediaAsset[];
   /** Real per-node text measurement from `prepareHtmlTextSizing()`. See `HtmlTextSizingLookup`. */
   textSizing?: HtmlTextSizingLookup;
+  /**
+   * Real per-node layout geometry measured from a real browser via
+   * `stampNodeIds()` + `runLayoutProbe()` (see layout-probe.ts). Keyed by
+   * `LAYOUT_PROBE_ID_ATTRIBUTE`; `resolveNodeBox()` consults it by that key
+   * per node instead of running its own flex/grid/geometry resolution for
+   * that node. Optional and purely additive, same contract as `textSizing`:
+   * a missing key (or omitting `layoutSnapshot` entirely, the default) is
+   * always safe - it just means "no improvement for this node," never a
+   * wrong compile.
+   */
+  layoutSnapshot?: LayoutSnapshot;
 };
 export type HtmlCompilerResult = { status: "success" | "error"; source: HtmlCssSource; protocol: MotionProtocolV2 | null; diagnostics: HtmlCompilerDiagnostic[] };
 

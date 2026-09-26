@@ -67,6 +67,14 @@ export type LayoutProbeBox = {
 export type LayoutProbeResult = Record<string, LayoutProbeBox>;
 
 /**
+ * A snapshot ready to feed into `compileDocument(doc, { layoutSnapshot })` -
+ * exactly the shape `runLayoutProbe()` returns. Keying is the only contract:
+ * `resolveNodeBox()` looks up a node by its own `LAYOUT_PROBE_ID_ATTRIBUTE`
+ * value, nothing else.
+ */
+export type LayoutSnapshot = LayoutProbeResult;
+
+/**
  * Plain DOM script - no Playwright/browser-automation import, and no
  * reference to anything else in this module (a runner passes this function
  * by reference into whatever re-evaluates it in a real page - e.g.
@@ -74,13 +82,32 @@ export type LayoutProbeResult = Record<string, LayoutProbeBox>;
  * which serializes it via `Function.prototype.toString()`, so it cannot
  * close over anything from this file's module scope). html-compiler itself
  * never executes it.
+ *
+ * Excludes any element with a non-`none` computed `transform` on itself OR
+ * any ancestor. This is deliberate, not an oversight: `getBoundingClientRect`
+ * always returns POST-transform (visually rotated/scaled/translated) page
+ * coordinates, while html-compiler's own layout resolves a node's box
+ * BEFORE its CSS transform is applied (the runtime composites `transform`
+ * as a separate track on top of layout position - see transform.ts/
+ * animation.ts). Feeding a post-transform measurement into a pre-transform
+ * field would apply the transform twice. There is no cheap way to undo an
+ * arbitrary ancestor transform chain from inside the measured rect alone,
+ * so elements under one are simply left out of the snapshot instead -
+ * `resolveNodeBox()` then falls back to native computation for them exactly
+ * as it does for any other id absent from the snapshot.
  */
 export function runLayoutProbe(idAttribute: string): LayoutProbeResult {
   const result: LayoutProbeResult = {};
   const toPx = (value: string): number => Number.parseFloat(value) || 0;
+  const underTransform = (element: Element): boolean => {
+    for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) {
+      if (getComputedStyle(ancestor).transform !== "none") return true;
+    }
+    return false;
+  };
   document.querySelectorAll(`[${idAttribute}]`).forEach((element) => {
     const id = element.getAttribute(idAttribute);
-    if (!id) return;
+    if (!id || underTransform(element)) return;
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     result[id] = {

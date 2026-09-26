@@ -1,5 +1,6 @@
 import type { LayoutOverride } from "../compile-context";
 import type { HtmlTextSizingLookup } from "../../source";
+import { LAYOUT_PROBE_ID_ATTRIBUTE, type LayoutSnapshot } from "../../layout-probe";
 import type { CssViewport } from "../css/values";
 import { edges, number } from "../css/values";
 import { computed } from "../css/cascade";
@@ -10,7 +11,7 @@ import { collectTextContentWithBreaks, isTextFlowNode, normalizeTextContent } fr
 import type { Node, Rule, Style } from "../model";
 import { resolveAnchorStyle } from "./anchor";
 import { resolveGeometry, resizeResolvedGeometry, type ResolvedGeometry } from "./geometry";
-import { assertLayoutBox, type LayoutBox, type LayoutRect } from "./layout-ir";
+import { assertLayoutBox, makeLayoutBox, type LayoutBox, type LayoutRect } from "./layout-ir";
 import { collapseVerticalMargins } from "./layout";
 
 /**
@@ -52,6 +53,7 @@ export type NodeBoxDeps = {
   textSizing: HtmlTextSizingLookup | undefined;
   anchorBoxes: Map<string, LayoutRect>;
   layoutOverrides: Map<Node, LayoutOverride>;
+  layoutSnapshot: LayoutSnapshot | undefined;
 };
 
 export type ResolvedNodeBox = {
@@ -78,7 +80,46 @@ export type ResolvedNodeBox = {
  * paint/border/text/animation layers or recurses into children.
  */
 export function createNodeBoxResolver(deps: NodeBoxDeps) {
-  const { styles, rules, viewport, textSizing, anchorBoxes, layoutOverrides } = deps;
+  const { styles, rules, viewport, textSizing, anchorBoxes, layoutOverrides, layoutSnapshot } = deps;
+
+  /**
+   * Snapshot mode: when a real-browser measurement exists for this node
+   * (keyed by the `LAYOUT_PROBE_ID_ATTRIBUTE` stamped onto its source tag -
+   * see layout-probe.ts), build its geometry directly from that instead of
+   * running resolveGeometry/margin-collapse/intrinsic-height for it at all.
+   * A missing key - no `layoutSnapshot` option, or one that just doesn't
+   * cover this node's id - returns undefined and the caller falls through to
+   * the native path, exactly like a `textSizing` cache miss: always safe,
+   * never a wrong compile.
+   *
+   * Takes the already-resolved `style` (cascade/font-size resolution is
+   * identical either way - only the box itself is being replaced) plus
+   * `font`/`parentFont` (returned unchanged - font size never comes from the
+   * snapshot). `firstChildMarginConsumed: 0` because a snapshot box already
+   * reflects wherever the browser actually placed this node's first child;
+   * native children (if any - a snapshot need not cover every node) then
+   * flow from this box's own content origin with no additional
+   * collapse-through.
+   */
+  const resolveFromSnapshot = (node: Node, style: Style, font: number, parentFont: number): ResolvedNodeBox | undefined => {
+    const probeId = node.attributes.get(LAYOUT_PROBE_ID_ATTRIBUTE);
+    const snapshotBox = probeId ? layoutSnapshot?.[probeId] : undefined;
+    if (!snapshotBox) return undefined;
+    const { x, y, width, height, padding, border } = snapshotBox;
+    const borderWidth = Math.max(...border);
+    const horizontalDecorations = padding[1] + padding[3] + border[1] + border[3];
+    const verticalDecorations = padding[0] + padding[2] + border[0] + border[2];
+    const contentWidth = Math.max(0, width - horizontalDecorations);
+    const contentHeight = Math.max(0, height - verticalDecorations);
+    const boxSizing = (style.get("box-sizing") ?? "content-box").trim().toLowerCase() === "border-box" ? "border-box" as const : "content-box" as const;
+    const geometry: ResolvedGeometry = {
+      x, y, normalX: x, normalY: y, width, height, contentWidth, contentHeight,
+      padding, borderEdges: border, borderWidth, boxSizing,
+      layoutBox: makeLayoutBox({ x, y, width, height }, { x: x + border[3] + padding[3], y: y + border[0] + padding[0], width: contentWidth, height: contentHeight }),
+    };
+    const layoutBox = assertLayoutBox(geometry.layoutBox);
+    return { style, font, parentFont, firstChildMarginConsumed: 0, geometry, layoutBox, x: layoutBox.x, y: layoutBox.y, width: layoutBox.width, height: layoutBox.height, normalX: x, normalY: y };
+  };
 
   // CSS collapses an adjoining top margin between a block container and its
   // first in-flow child onto the container itself, provided the container
@@ -184,6 +225,8 @@ export function createNodeBoxResolver(deps: NodeBoxDeps) {
     const style = resolveAnchorStyle(authoredStyle, positionedBlock, anchorBoxes);
     const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16;
     const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
+    const fromSnapshot = layoutSnapshot && resolveFromSnapshot(node, style, font, parentFont);
+    if (fromSnapshot) return fromSnapshot;
     // Adjoining-margin collapse between this box and its first in-flow
     // child (single level only — does not chase the collapse through a
     // grandchild when the first child itself has zero padding/border).

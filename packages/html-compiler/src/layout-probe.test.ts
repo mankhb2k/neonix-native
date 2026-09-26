@@ -71,3 +71,29 @@ describe("stampNodeIds", () => {
     expect(after.protocol?.layers).toEqual(before.protocol?.layers);
   });
 });
+
+describe("layoutSnapshot (Phase 3 snapshot mode)", () => {
+  const stamped = stampNodeIds(SAMPLE);
+  const innerProbeId = /<div id="inner"[^>]*data-neonix-probe-id="([^"]+)"/.exec(stamped)![1]!;
+
+  it("overrides a node's geometry with the snapshot box, converted to the same parent-relative transform native layers use", () => {
+    // #outer stays native (position:absolute; left:10px; top:10px; padding:8px
+    // -> content origin (18,18)); only #inner is snapshotted, to an absolute
+    // box far from where native flow would have put it, so a pass-through
+    // bug (snapshot ignored) and a coordinate-space bug (absolute used
+    // as-is, not converted to #outer-relative) would both fail this.
+    const snapshot = { [innerProbeId]: { x: 100, y: 200, width: 60, height: 30, padding: [0, 0, 0, 0] as const, border: [0, 0, 0, 0] as const } };
+    const result = compileDocument({ html: stamped }, { layoutSnapshot: snapshot });
+    expect(result.status).toBe("success");
+    const inner = result.protocol!.layers.find((layer) => layer.frame.width === 60 && layer.frame.height === 30);
+    expect(inner).toBeDefined();
+    // #outer's native absolute origin is (10,10) (unaffected - not snapshotted).
+    expect(inner!.transform.translate).toMatchObject({ x: 90, y: 190 });
+  });
+
+  it("falls back to native computation when the snapshot doesn't cover a node's id (a miss is always safe, never wrong)", () => {
+    const withoutSnapshot = compileDocument({ html: stamped });
+    const withUnrelatedSnapshot = compileDocument({ html: stamped }, { layoutSnapshot: { "not-a-real-id": { x: 1, y: 1, width: 1, height: 1, padding: [0, 0, 0, 0], border: [0, 0, 0, 0] } } });
+    expect(withUnrelatedSnapshot.protocol?.layers).toEqual(withoutSnapshot.protocol?.layers);
+  });
+});
