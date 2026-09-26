@@ -109,6 +109,14 @@ export type HtmlCompilerOptions = {
    * wrong compile.
    */
   layoutSnapshot?: LayoutSnapshot;
+  /**
+   * Test/dev-only. When true and `layoutSnapshot` is set, ANY node without a
+   * snapshot entry (a genuine miss, or a permanent CDP exclusion - under a
+   * CSS transform, or SVG) is a hard compile error instead of the normal
+   * native fallback. Never set this from a production caller - see
+   * node-box.ts's `NodeBoxDeps.layoutSnapshotStrict` for the full contract.
+   */
+  layoutSnapshotStrict?: boolean;
 };
 export type HtmlCompilerResult = { status: "success" | "error"; source: HtmlCssSource; protocol: MotionProtocolV2 | null; diagnostics: HtmlCompilerDiagnostic[] };
 

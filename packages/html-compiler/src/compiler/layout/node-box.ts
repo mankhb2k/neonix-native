@@ -1,6 +1,7 @@
 import type { LayoutOverride } from "../compile-context";
 import type { HtmlTextSizingLookup } from "../../source";
 import { LAYOUT_PROBE_ID_ATTRIBUTE, type LayoutSnapshot } from "../../layout-probe";
+import { fail } from "../errors";
 import type { CssViewport } from "../css/values";
 import { edges, number } from "../css/values";
 import { computed } from "../css/cascade";
@@ -54,6 +55,18 @@ export type NodeBoxDeps = {
   anchorBoxes: Map<string, LayoutRect>;
   layoutOverrides: Map<Node, LayoutOverride>;
   layoutSnapshot: LayoutSnapshot | undefined;
+  /**
+   * Test/dev-only. When true and a `layoutSnapshot` is provided, ANY node
+   * without a snapshot entry (a genuine miss, or one of the permanent
+   * exclusions - under a CSS transform, or SVG - see layout-probe.ts's
+   * `runLayoutProbe`) is a hard compile error instead of the normal native
+   * fallback. Never set this from a production caller: it exists to make
+   * every CDP coverage gap visible during a deliberate "layout must be 100%
+   * CDP, no fallback" test pass, not to change the default safety contract
+   * (a missing measurement is always safe, never wrong - see
+   * ARCHITECHTURE.md rule 12).
+   */
+  layoutSnapshotStrict: boolean | undefined;
 };
 
 export type ResolvedNodeBox = {
@@ -80,7 +93,7 @@ export type ResolvedNodeBox = {
  * paint/border/text/animation layers or recurses into children.
  */
 export function createNodeBoxResolver(deps: NodeBoxDeps) {
-  const { styles, rules, viewport, textSizing, anchorBoxes, layoutOverrides, layoutSnapshot } = deps;
+  const { styles, rules, viewport, textSizing, anchorBoxes, layoutOverrides, layoutSnapshot, layoutSnapshotStrict } = deps;
 
   /**
    * Snapshot mode: when a real-browser measurement exists for this node
@@ -227,6 +240,12 @@ export function createNodeBoxResolver(deps: NodeBoxDeps) {
     const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
     const fromSnapshot = layoutSnapshot && resolveFromSnapshot(node, style, font, parentFont);
     if (fromSnapshot) return fromSnapshot;
+    if (layoutSnapshot && layoutSnapshotStrict) {
+      fail(
+        "layout-snapshot-strict-miss",
+        `layoutSnapshotStrict is on but node <${node.tag}${node.id ? `#${node.id}` : ""}> (atomicId: ${node.atomicId}) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.`,
+      );
+    }
     // Adjoining-margin collapse between this box and its first in-flow
     // child (single level only — does not chase the collapse through a
     // grandchild when the first child itself has zero padding/border).

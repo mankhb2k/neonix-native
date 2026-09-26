@@ -116,7 +116,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
     const { layers, assets, audioTracks, clipPaths, masks } = context;
     const { origins, flowOrigins, sizes, anchorBoxes } = context.layout;
     const layoutEngine = createLayoutEngine(context.layout);
-    const { resolveNodeBox } = createNodeBoxResolver({ styles, rules, viewport, textSizing: options.textSizing, anchorBoxes, layoutOverrides: context.layout.layoutOverrides, layoutSnapshot: options.layoutSnapshot });
+    const { resolveNodeBox } = createNodeBoxResolver({ styles, rules, viewport, textSizing: options.textSizing, anchorBoxes, layoutOverrides: context.layout.layoutOverrides, layoutSnapshot: options.layoutSnapshot, layoutSnapshotStrict: options.layoutSnapshotStrict });
     const assetRegistry = createAssetRegistry(options, assets);
     const mediaAsset = (node: Node, kind: "image" | "video" | "audio", uri: string, suffix = "asset") => assetRegistry.registerMedia(node, kind, uri, suffix);
     const maskSourceStyle = (style: Style, index: number): Style => new Map([

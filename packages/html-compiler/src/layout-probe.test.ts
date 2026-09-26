@@ -96,4 +96,22 @@ describe("layoutSnapshot (Phase 3 snapshot mode)", () => {
     const withUnrelatedSnapshot = compileDocument({ html: stamped }, { layoutSnapshot: { "not-a-real-id": { x: 1, y: 1, width: 1, height: 1, padding: [0, 0, 0, 0], border: [0, 0, 0, 0] } } });
     expect(withUnrelatedSnapshot.protocol?.layers).toEqual(withoutSnapshot.protocol?.layers);
   });
+
+  it("layoutSnapshotStrict: a miss is a hard compile error instead of a silent native fallback", () => {
+    const unrelatedSnapshot = { "not-a-real-id": { x: 1, y: 1, width: 1, height: 1, padding: [0, 0, 0, 0] as const, border: [0, 0, 0, 0] as const } };
+    const result = compileDocument({ html: stamped }, { layoutSnapshot: unrelatedSnapshot, layoutSnapshotStrict: true });
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("layout-snapshot-strict-miss");
+  });
+
+  it("layoutSnapshotStrict: full coverage compiles cleanly with no error", () => {
+    // Every stamped id in this fixture must have a snapshot entry, or strict
+    // mode fails the compile - so this also proves stampNodeIds' ids are
+    // exactly what resolveNodeBox looks up, for every node the layout pass
+    // visits.
+    const allIds = [...stamped.matchAll(new RegExp(`${LAYOUT_PROBE_ID_ATTRIBUTE}="([^"]+)"`, "g"))].map((m) => m[1]!);
+    const fullSnapshot = Object.fromEntries(allIds.map((id) => [id, { x: 0, y: 0, width: 100, height: 100, padding: [0, 0, 0, 0] as const, border: [0, 0, 0, 0] as const }]));
+    const result = compileDocument({ html: stamped }, { layoutSnapshot: fullSnapshot, layoutSnapshotStrict: true });
+    expect(result.status).toBe("success");
+  });
 });
