@@ -83,6 +83,7 @@ const CORE_PACKAGES = new Set([
   "@motionvideo/motion-compiler",
   "@motionvideo/motion-runtime",
   "@motionvideo/editor-core",
+  "@motionvideo/html-compiler",
 ]);
 
 const RENDERER_PACKAGES = new Set([
@@ -95,6 +96,19 @@ const APP_PACKAGES = new Set([
   "@motionvideo/render-worker",
 ]);
 
+// A real browser/browser-automation runtime - core packages (html-compiler
+// in particular: its layout-probe.ts module exports plain DOM-facing script
+// source for an external runner to execute, but must never execute or
+// depend on a browser itself) must stay decoupled from these the same way
+// they must from renderer/app packages.
+const BROWSER_PACKAGES = new Set([
+  "@motionvideo/canvaskit-preview",
+  "playwright",
+  "@playwright/test",
+  "puppeteer",
+  "puppeteer-core",
+]);
+
 // ── Forbidden rule ────────────────────────────────────────────────────
 
 const FORBIDDEN_SOURCES = [
@@ -104,6 +118,7 @@ const FORBIDDEN_SOURCES = [
     label: "core → renderer",
   },
   { sources: CORE_PACKAGES, targets: APP_PACKAGES, label: "core → app" },
+  { sources: CORE_PACKAGES, targets: BROWSER_PACKAGES, label: "core → browser" },
 ];
 
 // ── Check package.json dependencies only ──────────────────────────────
