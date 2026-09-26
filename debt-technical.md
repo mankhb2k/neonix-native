@@ -254,6 +254,93 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
   `export-renderer` (native backend) — xem mục sigma text-shadow/box-shadow
   phía trên, cùng một nợ "chưa port sang export-renderer".
 
+## Layout (html-compiler)
+
+Cả 4 bug dưới đây đều được phát hiện qua so sánh trực tiếp native compile vs
+`layoutSnapshot` (CDP đo bằng Chrome thật qua `infra/cloud-run/layout-probe`
+— xem `apps/web/scripts/html-compiler-layout-snapshot-diff.mts` và
+`.html-compiler-layout-snapshots/report.md`), không phải suy đoán. `layoutSnapshot`
+đã che (mask) toàn bộ 4 bug này cho bất kỳ caller nào bật flag
+`LAYOUT_SNAPSHOT_ENABLED`, nên KHÔNG chặn việc dồn ưu tiên sang hoàn thiện
+paint — nhưng native tự thân (đường mặc định, không CDP) vẫn sai, cần quay
+lại patch khi có thời gian.
+
+### Anonymous flex text alignment — [ĐÃ SỬA]
+- Đã fix trong `packages/html-compiler/src/compiler/pipeline/compile.ts`
+  (hàm `flexAnonymousTextAlignment`) — giữ dòng này lại làm mốc tham chiếu,
+  xóa khi rà soát lần sau (theo quy ước đầu file, lịch sử đã có trong git log).
+
+### Implicit grid track auto-sizing tính gần như 0 thay vì auto-size theo content
+- Vị trí: `packages/html-compiler/src/compiler/layout/grid.ts` (thuật toán
+  auto-placement/sizing cho track ngầm định — chưa trace ra đúng dòng).
+- Hiện tại: khi item tràn ra ngoài `grid-template-columns`/`grid-template-rows`
+  tường minh và tự đặt vào track ngầm định (implicit row/column thứ 3 trở đi),
+  native tính kích thước track đó gần như 0 (không phải auto-size theo
+  content). Đo cụ thể trên fixture `grid-auto-flow`
+  (`apps/web/public/docs/html-compiler/fixtures/layout/grid-auto-flow.html`,
+  cũng đăng ký trong `html-playground-cases.ts`): item thứ 5 (`row-e`/`col-e`)
+  — CDP đo đúng height≈328px / width≈288px, native tính ra 1px.
+- Cần làm: sửa auto-placement trong `grid.ts` để track ngầm định tự tính kích
+  thước theo intrinsic size của item rơi vào nó, đúng CSS Grid's implicit
+  track sizing algorithm.
+
+### Margin-collapse sai trên diện rộng
+- Vị trí: chưa trace ra dòng cụ thể — nghi trong phần xử lý margin-collapse
+  của `compile.ts`/`geometry.ts` (`topMarginOverride`, block formatting
+  context).
+- Hiện tại: fixture `html-compiler.layout.block-flow-margin-collapsing`
+  (`apps/web/public/docs/html-compiler/fixtures/layout/block-flow-margin-collapsing.html`)
+  — MỌI case (a→f) đều lệch height 24-99px so với CDP. Đây là bug diện rộng
+  trong logic margin-collapse, không phải 1 case lẻ.
+- Cần làm: trace từng case a-f để xác định rule margin-collapse nào (sibling
+  margin, parent-child margin qua border/padding=0, margin âm...) đang bị
+  tính sai so với CSS spec.
+
+### `containing-block-edge-cases`: 1 layer sai width +300px
+- Vị trí: fixture
+  `apps/web/public/docs/html-compiler/fixtures/layout/containing-block-edge-cases.html`,
+  layer `edge-clip-wide` (mô tả trong fixture: "display: contents promotes
+  the wrapped child straight into the grid, wrapper itself generates no
+  box").
+- Hiện tại: CDP đo đúng, native lệch +300px width. Chưa trace root cause cụ
+  thể — nghi liên quan cách resolve containing block khi có `display:
+  contents` kết hợp grid.
+- Cần làm: trace containing-block resolution cho case cụ thể này trong
+  `compile.ts`'s xử lý `display: contents` (dòng ~244) kết hợp grid
+  placement.
+
+### Nested auto-size flex container bị tính thành full-parent-size thay vì shrink-to-fit (ưu tiên cao nhất)
+- Vị trí: `packages/html-compiler/src/compiler/layout/geometry.ts`,
+  `resolveGeometry()` (khoảng dòng 136-145 — nhánh `widthAuto`/`heightAuto`
+  hiện fallback thẳng về `availableContentWidth`/`availableContentHeight`,
+  tức "lấp đầy khoảng trống của parent", thay vì tự tính intrinsic
+  shrink-to-fit size khi bản thân node là `display:flex`/`display:grid` và
+  không có width/height khai báo).
+- Hiện tại: đo trực tiếp qua fixture debug `neonix-motion-test-10s`
+  (`apps/web/public/docs/html-compiler/fixtures/debug/neonix-motion-test-10s.html`,
+  group "debug", đã được thêm vào bake CDP one-off qua
+  `EXTRA_CURATED_IDS` trong `html-compiler-layout-snapshot-bake.mts`/`-diff.mts`):
+  `.stage` (`display:flex; flex-direction:column`, không khai width/height,
+  là con duy nhất của `<body>` cũng `display:flex`) — CDP đo đúng
+  ~1060×615px (khớp công thức center-trong-1920×1080), native tính ra
+  **1920×1080 (full canvas)**. `.cards` (`display:flex; flex-direction:row`,
+  không khai width, con của `.stage`) — CDP đo đúng ~760px
+  (=230px×3 card + 32px×2 gap), native tính ra **1920px**.
+- Đây là bug dễ tái hiện nhất trong nhóm layout: bất kỳ flex/grid container
+  nào không khai width/height VÀ tự nó cũng `display:flex`/`display:grid`,
+  lồng trong 1 flex/grid container khác, đều có nguy cơ dính bug này — mức
+  độ nghiêm trọng cao hơn 3 bug còn lại vì phạm vi tái hiện rộng hơn nhiều
+  (không giới hạn ở grid implicit-track hay margin-collapse, mà ở bất kỳ
+  flex-trong-flex/grid-trong-grid nào).
+- Cần làm: thêm bước tính intrinsic (shrink-to-fit) width/height cho
+  trường hợp node tự nó là flex/grid container và có `width:auto`/`height:auto`
+  — hiện `resolveGeometry()` không có khái niệm "intrinsic size của 1 flex/grid
+  container dựa trên children", chỉ có `intrinsicContentHeight` cho text
+  (truyền từ caller). Cần 1 pass đo trước (tương tự cách `intrinsicContentHeight`
+  đã làm cho text) chạy `resolveFlexLayout`/`resolveGridLayout` ở chế độ
+  "đo kích thước" trước khi biết `containingWidth/Height` thật của chính
+  node đó.
+
 ## Playground tooling
 
 ### `ComparePreviewLab.tsx` hard-code composition 1920×1080 cho panel "Browser CSS reference"

@@ -16,10 +16,10 @@ import { computed } from "../css/cascade";
 import { edges, number, resolveVar } from "../css/values";
 import { parseColor, parseCornerRadii, parseOutline, parsePaintLayers, type Paint } from "../paint/paint";
 import { resolveNodeTransformState } from "../transform/transform";
-import { resolveGeometry } from "../layout/geometry";
+import { resolveGeometry, type ResolvedGeometry } from "../layout/geometry";
 import { compositionRect, paddingBox, type LayoutRect } from "../layout/layout-ir";
 import { createLayoutEngine, layoutFlowChildren, type FlowState } from "../layout/engine";
-import { createNodeBoxResolver } from "../layout/node-box";
+import { createNodeBoxResolver, estimateTextIntrinsicHeight } from "../layout/node-box";
 import { resolveFlexLayout } from "../layout/flex";
 import { resolveGridLayout } from "../layout/grid";
 import { mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "../lowering/media";
@@ -261,6 +261,38 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
         }
       }
     };
+    /**
+     * `resolveFlexLayout`/`resolveGridLayout`'s sizing pass measures every
+     * child's own geometry to compute the flex-basis/track size BEFORE the
+     * real recursive `layout()` call ever runs for it. A text leaf with
+     * `height: auto` (the common case for a `<span>`/`<p>` sized only by its
+     * own text) has no declared height for `resolveGeometry` to use, and
+     * without an intrinsic height hint it fell back to "fill the whole
+     * containing box" - i.e. as if the text were as tall as its flex/grid
+     * container. In a flex column with `flex-shrink` at its default (1) on
+     * every item, that inflated measurement makes the algorithm think the
+     * line overflows the container's main axis and shrinks EVERY sibling
+     * (including fixed-size ones) to compensate - a fixed 64px icon getting
+     * crushed down to ~46px next to a wildly over-estimated label was
+     * exactly this bug (see debt-technical.md's now-fixed "Nested auto-size
+     * flex container" investigation on `neonix-motion-test-10s`).
+     * Mirrors exactly the same intrinsic-height branch `resolveNodeBox`
+     * itself uses for the real layout pass (this file's `estimateTextIntrinsicHeight`
+     * import) - a block-flow container child with no text but nested
+     * children of its own still falls back to "fill available height" here,
+     * same as before; only the text-leaf case (the one actually observed)
+     * is fixed.
+     */
+    const measureFlexOrGridItem = (child: Node, childContainingWidth: number, childContainingHeight: number, parentFont: number, parentStyle: Style): ResolvedGeometry => {
+      const childStyle = styles.get(child) ?? parentStyle;
+      const childFont = number(childStyle, "font-size", childContainingWidth, parentFont, 16, viewport) || parentFont;
+      const childText = isTextFlowNode(child) ? normalizeTextContent(collectTextContentWithBreaks(child), true).text : child.text.normalize("NFC").trim();
+      const heightIsAuto = !Number.isFinite(number(childStyle, "height", childContainingHeight, childFont, 16, viewport)) || childStyle.get("height")?.trim().toLowerCase() === "auto";
+      const intrinsicContentHeight = heightIsAuto && childText
+        ? estimateTextIntrinsicHeight(childText, childStyle, childFont, childContainingWidth, viewport, options.textSizing)
+        : undefined;
+      return resolveGeometry({ style: childStyle, parentX: 0, parentY: 0, containingWidth: childContainingWidth, containingHeight: childContainingHeight, fontSize: childFont, viewport, ...(intrinsicContentHeight === undefined ? {} : { intrinsicContentHeight }) });
+    };
     function layout(node: Node, parent: Node | null, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style, positionedBlock: ContainingBlock): void {
       // Inline text descendants are already collected by their nearest text
       // layer. They must not become independent layers or resolve their own
@@ -454,11 +486,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
           containerBox: layoutBox,
           fontSize: font,
           viewport,
-          measure: (child, childContainingWidth, childContainingHeight) => {
-            const childStyle = styles.get(child) ?? style;
-            const childFont = number(childStyle, "font-size", childContainingWidth, font, 16, viewport) || font;
-            return resolveGeometry({ style: childStyle, parentX: 0, parentY: 0, containingWidth: childContainingWidth, containingHeight: childContainingHeight, fontSize: childFont, viewport });
-          },
+          measure: (child, childContainingWidth, childContainingHeight) => measureFlexOrGridItem(child, childContainingWidth, childContainingHeight, font, style),
         });
         for (const placement of placements) {
           layoutEngine.setOverride(placement.node, placement);
@@ -477,11 +505,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
           containerBox: layoutBox,
           fontSize: font,
           viewport,
-          measure: (child, childContainingWidth, childContainingHeight) => {
-            const childStyle = styles.get(child) ?? style;
-            const childFont = number(childStyle, "font-size", childContainingWidth, font, 16, viewport) || font;
-            return resolveGeometry({ style: childStyle, parentX: 0, parentY: 0, containingWidth: childContainingWidth, containingHeight: childContainingHeight, fontSize: childFont, viewport });
-          },
+          measure: (child, childContainingWidth, childContainingHeight) => measureFlexOrGridItem(child, childContainingWidth, childContainingHeight, font, style),
         });
         for (const placement of placements) {
           layoutEngine.setOverride(placement.node, placement);

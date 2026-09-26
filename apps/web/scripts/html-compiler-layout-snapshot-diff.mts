@@ -12,9 +12,10 @@ import { HTML_PLAYGROUND_CASES } from "../lib/playground/html-playground-cases.t
 
 // Same curated-fixture addition as html-compiler-layout-snapshot-bake.mts -
 // see that file's comment for why these aren't already in HTML_COMPILER_PREVIEW_CASES.
+const EXTRA_CURATED_IDS = new Set(["neonix-motion-test-10s"]);
 const REGISTERED_IDS = new Set(HTML_COMPILER_PREVIEW_CASES.map((c) => c.id));
 const CURATED_LAYOUT_FIXTURES = HTML_PLAYGROUND_CASES.filter(
-  (c) => c.group === "layout" && !REGISTERED_IDS.has(c.id),
+  (c) => (c.group === "layout" || EXTRA_CURATED_IDS.has(c.id)) && !REGISTERED_IDS.has(c.id),
 ).map((c) => ({ id: c.id, fixtureUrl: c.url }));
 const FIXTURES = [...HTML_COMPILER_PREVIEW_CASES, ...CURATED_LAYOUT_FIXTURES];
 

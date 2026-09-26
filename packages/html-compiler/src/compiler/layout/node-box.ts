@@ -23,7 +23,7 @@ import { collapseVerticalMargins } from "./layout";
  * width) that only approximates real text shaping. See text-sizing.ts for
  * why a cache miss here is always safe, never wrong.
  */
-function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: CssViewport, textSizing: HtmlTextSizingLookup | undefined): number {
+export function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: CssViewport, textSizing: HtmlTextSizingLookup | undefined): number {
   const lineHeight = parseLineHeight(style, fontSize, viewport);
   const lineClamp = parseLineClamp(style);
   const cap = (lines: number) => lineClamp !== undefined ? Math.min(lines, lineClamp) : lines;

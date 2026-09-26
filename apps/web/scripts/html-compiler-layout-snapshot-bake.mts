@@ -31,10 +31,14 @@ mkdirSync(outDir, { recursive: true });
 // own HTML_COMPILER_PREVIEW_CASES registry - bake those too (fixed at
 // native-stage's 1920x1080 stage size, same as every fixture it renders) so
 // every "layout" group fixture the compare page can show has CDP coverage,
-// not just the auto-derived subset.
+// not just the auto-derived subset. "neonix-motion-test-10s" is a one-off
+// addition: a realistic composite scene (16 elements, blur/filter/
+// backdrop-filter/blend-mode) specifically called out for CDP verification,
+// not part of a whole-catalog expansion.
+const EXTRA_CURATED_IDS = new Set(["neonix-motion-test-10s"]);
 const REGISTERED_IDS = new Set(HTML_COMPILER_PREVIEW_CASES.map((c) => c.id));
 const CURATED_LAYOUT_FIXTURES = HTML_PLAYGROUND_CASES.filter(
-  (c) => c.group === "layout" && !REGISTERED_IDS.has(c.id),
+  (c) => (c.group === "layout" || EXTRA_CURATED_IDS.has(c.id)) && !REGISTERED_IDS.has(c.id),
 ).map((c) => ({ id: c.id, fixtureUrl: c.url, composition: { width: 1920, height: 1080 } }));
 
 const FIXTURES = [...HTML_COMPILER_PREVIEW_CASES, ...CURATED_LAYOUT_FIXTURES];

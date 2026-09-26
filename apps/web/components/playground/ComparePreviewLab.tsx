@@ -139,14 +139,15 @@ export function ComparePreviewLab({
     };
   }, [inputMode, selectedCase]);
 
-  // Layout catalog only (per the group check below): the CDP-measured
-  // geometry is already baked and verified for every "layout" fixture (see
-  // scripts/html-compiler-layout-snapshot-bake.mts and its diff report) - use
-  // it instead of native flex/grid/geometry so this panel shows what paint
-  // looks like once layout matches the browser exactly. Every other catalog
-  // keeps compiling with plain native layout, unchanged.
+  // CDP-measured geometry is only baked for a subset of fixtures (the whole
+  // "layout" group plus any one-off addition - see
+  // scripts/html-compiler-layout-snapshot-bake.mts), never all of them. No
+  // group check here: fetchBakedLayoutSnapshot returns null on a 404 (same
+  // safe-miss contract as layoutSnapshot itself), so trying it unconditionally
+  // and falling back to plain native compile on a miss is simpler than
+  // keeping this component's fixture-group allowlist in sync by hand.
   useEffect(() => {
-    if (inputMode !== "fixture" || activeCase.group !== "layout") {
+    if (inputMode !== "fixture") {
       setLayoutSnapshotEntry(null);
       return undefined;
     }

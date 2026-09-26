@@ -1,8 +1,8 @@
 # Layout snapshot vs native: fixture-wide diff (offline, baked snapshots)
 
-Fixtures checked: 110
-Clean (every layer within 1px): 81
-Fixtures with at least one layer diff: 25
+Fixtures checked: 111
+Clean (every layer within 1px): 80
+Fixtures with at least one layer diff: 27
 Compile/layer-count mismatches (not comparable): 4
 Missing baked snapshot: 0
 
@@ -89,10 +89,29 @@ Missing baked snapshot: 0
 | html-compiler.motion.delay-fill-mode | cell-label-5 | 0.0 | 0.0 | 0.0 | -24.0 |
 | html-compiler.motion.iteration-play-state | cell-label-4 | 0.0 | 0.0 | 0.0 | -26.8 |
 | html-compiler.motion.easing | cell-label-3 | 0.0 | 0.0 | 0.0 | -24.0 |
+| html-compiler.motion.animatable-properties | motion-frame | 0.0 | 0.0 | 9.2 | 5.9 |
+| html-compiler.motion.animatable-properties | motion-frame::paint | 0.0 | 0.0 | 9.2 | 5.9 |
 | html-compiler.motion.off-canvas-slide-in | cell-label-3 | 0.0 | 0.0 | 0.0 | -24.0 |
 | html-compiler.perspective.atomic-transform-style | cell-label-2 | 0.0 | 0.0 | 0.0 | -26.8 |
 | html-compiler.perspective.backface-visibility | cell-label-1 | 0.0 | 0.0 | 0.0 | -26.8 |
 | html-compiler.perspective.mask-filter-near-plane | cell-label-3 | 0.0 | 0.0 | 0.0 | -24.0 |
+| neonix-motion-test-10s | stage | 429.8 | 232.5 | -859.5 | -465.0 |
+| neonix-motion-test-10s | stage::paint | 0.0 | 0.0 | -859.5 | -465.0 |
+| neonix-motion-test-10s | badge | 346.2 | 0.0 | -1551.9 | -196.0 |
+| neonix-motion-test-10s | badge::paint | 0.0 | 0.0 | -1551.9 | -196.0 |
+| neonix-motion-test-10s | badge::border | 0.0 | 0.0 | -1551.9 | -196.0 |
+| neonix-motion-test-10s | badge::text | 0.0 | 0.0 | -1551.9 | -196.0 |
+| neonix-motion-test-10s | title | 194.1 | -196.0 | -1247.8 | -61.0 |
+| neonix-motion-test-10s | title::paint | 0.0 | 0.0 | -1247.8 | -61.0 |
+| neonix-motion-test-10s | title::text | 0.0 | 0.0 | -1247.8 | -61.0 |
+| neonix-motion-test-10s | subtitle | 0.0 | -257.0 | -859.5 | -206.0 |
+| neonix-motion-test-10s | subtitle::paint | 0.0 | 0.0 | -859.5 | -206.0 |
+| neonix-motion-test-10s | subtitle::text | 0.0 | 0.0 | -859.5 | -206.0 |
+| neonix-motion-test-10s | cards | 150.2 | -463.1 | -1160.0 | -1.9 |
+| neonix-motion-test-10s | cards::paint | 0.0 | 0.0 | -1160.0 | -1.9 |
+| neonix-motion-test-10s | label | 74.3 | 79.9 | -148.6 | -141.9 |
+| neonix-motion-test-10s | label-2 | 78.8 | 79.9 | -157.7 | -141.9 |
+| neonix-motion-test-10s | label-3 | 80.0 | 79.9 | -160.0 | -141.9 |
 | flex-direction-reverse | cell-label-1 | 0.0 | 0.0 | 0.0 | -28.6 |
 | grid-auto-flow | row-e | 0.0 | 0.0 | 0.0 | 327.0 |
 | grid-auto-flow | row-e::paint | 0.0 | 0.0 | 0.0 | 327.0 |
