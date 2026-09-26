@@ -13,7 +13,7 @@ export async function POST(request: Request, context: Context) {
   try {
     const project = await getHtmlProject(projectId);
     if (!project.html) return jsonApiError(request, 404, "DOCUMENT_NOT_FOUND", "Project has no HTML document");
-    const compiled = compileHtmlDocument(project.html);
+    const compiled = await compileHtmlDocument(project.html);
     const errors = compiled.diagnostics.filter((item) => item.severity === "error");
     if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
       return jsonApiError(request, 422, "COMPILATION_FAILED", "Project document could not be compiled", compiled.diagnostics);

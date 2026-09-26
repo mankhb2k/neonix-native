@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = compileHtmlDocument(html);
+    const result = await compileHtmlDocument(html);
     const errors = result.diagnostics.filter((item) => item.severity === "error");
     return jsonApi(request, {
       valid: result.status === "success" && errors.length === 0,

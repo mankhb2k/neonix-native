@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = compileHtmlDocument(html, { composition: { durationMs } });
+    const result = await compileHtmlDocument(html, { composition: { durationMs } });
     const errors = result.diagnostics.filter((item) => item.severity === "error");
     if (result.status !== "success" || !result.protocol || errors.length > 0) {
       return jsonApiError(request, 422, "COMPILATION_FAILED", "HTML document could not be compiled", result.diagnostics);

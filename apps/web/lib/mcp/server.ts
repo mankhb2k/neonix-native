@@ -91,27 +91,27 @@ export function createMcpServer(principal: McpPrincipal) {
                  .sort(),
              })),
            }),
-        validateDocument: ({ html }) => {
-          const result = compileHtmlDocument(html);
-          return Promise.resolve({
+        validateDocument: async ({ html }) => {
+          const result = await compileHtmlDocument(html);
+          return {
             valid: result.status === "success" && !result.diagnostics.some((item) => item.severity === "error"),
             composition: result.source.composition,
             diagnostics: result.diagnostics,
             stats: { layerCount: result.protocol?.layers.length ?? 0 },
-          });
+          };
         },
-        compileDocument: ({ html }) => {
-          const result = compileHtmlDocument(html);
+        compileDocument: async ({ html }) => {
+          const result = await compileHtmlDocument(html);
           if (result.status !== "success" || !result.protocol) {
-            return Promise.reject(new Error(result.diagnostics.find((item) => item.severity === "error")?.message ?? "HTML compilation failed"));
+            throw new Error(result.diagnostics.find((item) => item.severity === "error")?.message ?? "HTML compilation failed");
           }
-          return Promise.resolve({
+          return {
             status: "succeeded",
             protocolVersion: 2,
             composition: result.source.composition,
             protocol: result.protocol,
             diagnostics: result.diagnostics,
-          });
+          };
         },
       },
       getProjectJson: (input) => getProtocolProjectJson(principal, input),

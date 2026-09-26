@@ -202,6 +202,25 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
 
+  infra/cloud-run/layout-probe:
+    dependencies:
+      '@motionvideo/html-compiler':
+        specifier: workspace:*
+        version: link:../../../packages/html-compiler
+      playwright:
+        specifier: ^1.62.0
+        version: 1.62.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.20.1
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.12
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
   infra/cloud-run/media-preparer:
     devDependencies:
       '@types/node':

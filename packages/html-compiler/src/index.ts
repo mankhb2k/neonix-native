@@ -1,5 +1,6 @@
 export { compileDocument, compileHtmlCss, compileProject } from "./compiler/pipeline/compile";
 export { ensureBrowserPreviewBodyStyle } from "./browser-preview-style";
+export { parseNeonixDocument } from "./compiler/document";
 export { LAYOUT_PROBE_ID_ATTRIBUTE, stampNodeIds, runLayoutProbe } from "./layout-probe";
 export type { LayoutProbeBox, LayoutProbeResult, LayoutSnapshot } from "./layout-probe";
 export { prepareHtmlTextSizing, textSizingCacheKey } from "./compiler/text-sizing";

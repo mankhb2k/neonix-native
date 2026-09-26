@@ -2,10 +2,11 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { compileDocument, type HtmlCompilerDiagnostic, type HtmlCompilerOptions, type HtmlCompilerResult } from "@motionvideo/html-compiler";
+import { type HtmlCompilerDiagnostic, type HtmlCompilerOptions, type HtmlCompilerResult } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import { logCompileDiagnostics } from "./compile-diagnostics-log";
 import { HTML_COMPILER_FONT_ASSETS } from "./html-compiler-font-assets";
+import { compileHtmlWithLayoutSnapshot } from "./layout-snapshot";
 
 type JsonObject = Record<string, unknown>;
 
@@ -112,8 +113,8 @@ function isEditor(role: string): boolean {
   return role === "owner" || role === "editor";
 }
 
-function compileHtml(html: string, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
-  const result = compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS }, options);
+async function compileHtml(html: string, options: HtmlCompilerOptions = {}): Promise<HtmlCompilerResult> {
+  const result = await compileHtmlWithLayoutSnapshot({ html }, HTML_COMPILER_FONT_ASSETS, options);
   logCompileDiagnostics(result.diagnostics);
   return result;
 }
@@ -181,7 +182,7 @@ async function saveRevision(
   html: string,
   reason: "manual" | "mcp" = "manual",
 ) {
-  const result = compileHtml(html);
+  const result = await compileHtml(html);
   if (result.status !== "success" || !result.protocol) {
     throw new HtmlProjectError(parseError(result), "INVALID_DOCUMENT");
   }
@@ -320,7 +321,7 @@ export async function deleteHtmlProject(projectRef: string) {
   return { projectId: project.id, deleted: true };
 }
 
-export function compileHtmlDocument(html: string, options: HtmlCompilerOptions = {}) {
+export async function compileHtmlDocument(html: string, options: HtmlCompilerOptions = {}): Promise<HtmlCompilerResult> {
   return compileHtml(html, options);
 }
 

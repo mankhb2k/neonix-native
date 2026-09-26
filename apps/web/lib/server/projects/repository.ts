@@ -1,12 +1,13 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { compileDocument, ensureBrowserPreviewBodyStyle, NEONIX_HTML_DOCUMENT_TEMPLATE, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
-import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import { ensureBrowserPreviewBodyStyle, NEONIX_HTML_DOCUMENT_TEMPLATE, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
 import { applyMotionProtocolV2Patch } from "@motionvideo/motion-mcp";
+import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { logCompileDiagnostics } from "../compile-diagnostics-log";
 import { HTML_COMPILER_FONT_ASSETS } from "../html-compiler-font-assets";
+import { compileHtmlWithLayoutSnapshot } from "../layout-snapshot";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ProjectClient = SupabaseClient;
 
@@ -468,7 +469,7 @@ export async function createProjectHtml(
   const providedHtml = input.html?.trim() ? input.html : NEONIX_HTML_DOCUMENT_TEMPLATE;
   const html = input.ensureBrowserPreviewStyle ? ensureBrowserPreviewBodyStyle(providedHtml).html : providedHtml;
 
-  const compiled = compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS });
+  const compiled = await compileHtmlWithLayoutSnapshot({ html }, HTML_COMPILER_FONT_ASSETS);
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
     logCompileDiagnostics(compiled.diagnostics);
@@ -648,7 +649,7 @@ export async function updateProjectHtml(
   const discardedIndependentJsonEdits =
     previousHtml !== null && previousHtml.protocol_revision_id !== (latestProtocolBeforeCommit?.id ?? null);
 
-  const compiled = compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS });
+  const compiled = await compileHtmlWithLayoutSnapshot({ html }, HTML_COMPILER_FONT_ASSETS);
   const errors = compiled.diagnostics.filter((item) => item.severity === "error");
   if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
     logCompileDiagnostics(compiled.diagnostics);
