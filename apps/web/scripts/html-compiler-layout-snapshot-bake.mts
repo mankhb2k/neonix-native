@@ -15,7 +15,6 @@ import { join, resolve } from "node:path";
 import { chromium, type Page } from "@playwright/test";
 import {
   LAYOUT_PROBE_ID_ATTRIBUTE,
-  ensureBrowserPreviewBodyStyle,
   runLayoutProbe,
   stampNodeIds,
   type LayoutProbeResult,
@@ -47,7 +46,6 @@ let skipped = 0;
 for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
   const html = readFileSync(join(publicRoot, fixture.fixtureUrl.replace(/^\//, "")), "utf8");
   const stamped = stampNodeIds(html);
-  const staged = ensureBrowserPreviewBodyStyle(stamped).html;
   const page = await browser.newPage({ viewport: { width: fixture.composition.width, height: fixture.composition.height } });
   try {
     // Same font-loading discipline the real service uses - injects @font-face
@@ -58,9 +56,9 @@ for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
     const fontFaceCss = HTML_COMPILER_PREVIEW_FONT_ASSETS
       .map((asset) => `@font-face { font-family: "${asset.family}"; src: url("${fontOrigin}${asset.uri}") format("truetype"); font-style: ${asset.style}; font-weight: ${asset.weight}; }`)
       .join("\n");
-    const withFonts = /<\/head\s*>/i.test(staged)
-      ? staged.replace(/<\/head\s*>/i, `<style>${fontFaceCss}</style></head>`)
-      : `<head><style>${fontFaceCss}</style></head>${staged}`;
+    const withFonts = /<\/head\s*>/i.test(stamped)
+      ? stamped.replace(/<\/head\s*>/i, `<style>${fontFaceCss}</style></head>`)
+      : `<head><style>${fontFaceCss}</style></head>${stamped}`;
     await page.route(`${fontOrigin}/**`, async (route) => {
       const relativePath = new URL(route.request().url()).pathname;
       try {
@@ -70,6 +68,16 @@ for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
       }
     });
     await page.setContent(withFonts, { waitUntil: "domcontentloaded" });
+    // Native's root containing block is ALWAYS composition.width/height,
+    // regardless of whatever html/body CSS the fixture itself declares (see
+    // infra/cloud-run/layout-probe/src/probe-worker.ts's
+    // forceCompositionCanvas() for the full explanation of why this must be
+    // unconditional, injected last, with !important - ensureBrowserPreviewBodyStyle
+    // is the wrong tool here, it skips itself when the document already
+    // declares a partial reset).
+    await page.addStyleTag({
+      content: `html, body { width: ${fixture.composition.width}px !important; height: ${fixture.composition.height}px !important; margin: 0 !important; overflow: hidden !important; }`,
+    });
     await page.evaluate(() => document.fonts.ready).catch(() => {});
     const snapshot = await measure(page);
     snapshots[fixture.id] = { snapshot, stampedHtml: stamped };

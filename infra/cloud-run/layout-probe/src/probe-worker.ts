@@ -1,7 +1,6 @@
 import { chromium, type Browser, type Page } from "playwright";
 import {
   LAYOUT_PROBE_ID_ATTRIBUTE,
-  ensureBrowserPreviewBodyStyle,
   parseNeonixDocument,
   runLayoutProbe,
   type HtmlCompilerFontAsset,
@@ -70,6 +69,31 @@ export async function closeSharedBrowser(): Promise<void> {
  * under whatever transform apps/web's Playwright tests use); the shim
  * belongs here, next to the one runtime that actually needs it.
  */
+/**
+ * Native's root containing block is ALWAYS composition.width/height,
+ * completely independent of whatever html/body CSS the document itself
+ * declares (`compile.ts`'s `rootContainingBlock = compositionRect(width,
+ * height)` never reads html/body's own resolved box - see ARCHITECHTURE.md).
+ * The measurement environment must match that invariant exactly, or a real
+ * user document that happens to declare its own partial html/body reset
+ * (plausible, not an edge case - e.g. just `body { margin: 0 }` for their
+ * own convenience) would get measured against ITS OWN body size instead of
+ * composition size, silently corrupting every percentage-based value.
+ *
+ * This is injected via `addStyleTag` AFTER `setContent` (guaranteeing it is
+ * last in cascade/source order) with `!important` on every property, so it
+ * always wins regardless of what the document declares - unlike
+ * `ensureBrowserPreviewBodyStyle` (a preview-convenience helper that
+ * deliberately SKIPS itself once the document already declares its own
+ * reset, and documents itself as not load-bearing for correctness - it is
+ * the wrong tool for this measurement service specifically).
+ */
+async function forceCompositionCanvas(page: Page, width: number, height: number): Promise<void> {
+  await page.addStyleTag({
+    content: `html, body { width: ${width}px !important; height: ${height}px !important; margin: 0 !important; overflow: hidden !important; }`,
+  });
+}
+
 async function evaluateLayoutProbe(page: Page, idAttribute: string): Promise<LayoutProbeResult> {
   return page.evaluate(
     ({ source, idAttribute: attribute }) => {
@@ -86,13 +110,14 @@ export async function runLayoutProbeJob(request: LayoutProbeJobRequest): Promise
   const startedAt = performance.now();
   const { composition } = parseNeonixDocument({ html: request.html });
   const fontAssets = request.fontAssets ?? [];
-  const stagedHtml = injectFontFaces(ensureBrowserPreviewBodyStyle(request.html).html, fontAssets);
+  const stagedHtml = injectFontFaces(request.html, fontAssets);
 
   const browser = await getBrowser();
   const context = await browser.newContext({ viewport: { width: composition.width, height: composition.height } });
   try {
     const page = await context.newPage();
     await page.setContent(stagedHtml, { waitUntil: "domcontentloaded" });
+    await forceCompositionCanvas(page, composition.width, composition.height);
     await page.evaluate(() => document.fonts.ready);
     const snapshot = await evaluateLayoutProbe(page, LAYOUT_PROBE_ID_ATTRIBUTE);
     return { jobId: request.jobId, snapshot, elapsedMilliseconds: Math.round(performance.now() - startedAt) };
