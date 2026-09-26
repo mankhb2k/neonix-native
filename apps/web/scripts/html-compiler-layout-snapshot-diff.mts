@@ -8,6 +8,15 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { compileDocument, type LayoutSnapshot, type MotionProtocolV2 } from "../../../packages/html-compiler/src/index.ts";
 import { HTML_COMPILER_PREVIEW_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS } from "../lib/docs/html-compiler-preview.ts";
+import { HTML_PLAYGROUND_CASES } from "../lib/playground/html-playground-cases.ts";
+
+// Same curated-fixture addition as html-compiler-layout-snapshot-bake.mts -
+// see that file's comment for why these aren't already in HTML_COMPILER_PREVIEW_CASES.
+const REGISTERED_IDS = new Set(HTML_COMPILER_PREVIEW_CASES.map((c) => c.id));
+const CURATED_LAYOUT_FIXTURES = HTML_PLAYGROUND_CASES.filter(
+  (c) => c.group === "layout" && !REGISTERED_IDS.has(c.id),
+).map((c) => ({ id: c.id, fixtureUrl: c.url }));
+const FIXTURES = [...HTML_COMPILER_PREVIEW_CASES, ...CURATED_LAYOUT_FIXTURES];
 
 const scriptDir = import.meta.dirname;
 const snapshotsPath = resolve(scriptDir, ".html-compiler-layout-snapshots/snapshots.json");
@@ -34,7 +43,7 @@ function layersById(protocol: MotionProtocolV2 | null): Map<string, MotionProtoc
   return map;
 }
 
-for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
+for (const fixture of FIXTURES) {
   const entry = baked[fixture.id];
   if (!entry) {
     missingSnapshot.push(fixture.id);
@@ -76,7 +85,7 @@ for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
 const lines: string[] = [
   "# Layout snapshot vs native: fixture-wide diff (offline, baked snapshots)",
   "",
-  `Fixtures checked: ${HTML_COMPILER_PREVIEW_CASES.length}`,
+  `Fixtures checked: ${FIXTURES.length}`,
   `Clean (every layer within ${TOLERANCE_PX}px): ${cleanFixtures}`,
   `Fixtures with at least one layer diff: ${new Set(diffs.map((d) => d.fixtureId)).size}`,
   `Compile/layer-count mismatches (not comparable): ${countMismatches.length}`,

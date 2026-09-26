@@ -1,0 +1,116 @@
+# Layout snapshot strict sweep: 100% CDP coverage per fixture
+
+Total: 107, 100% CDP coverage: 52, has a gap (native still needed): 55
+
+## Fixtures with a CDP gap (node/tag in the error message)
+
+- **html-compiler.transform.functions**: layoutSnapshotStrict is on but node <div#transform-translate> (atomicId: transform-translate) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.transform.rotate-single**: layoutSnapshotStrict is on but node <div#rotate-single> (atomicId: rotate-single) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.transform.matrix-functions**: layoutSnapshotStrict is on but node <div#matrix-2d> (atomicId: matrix-2d) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.opacity.shape**: layoutSnapshotStrict is on but node <div#opacity-shape-front> (atomicId: opacity-shape-front) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.motion.easing**: layoutSnapshotStrict is on but node <div#motion-easing-cubic> (atomicId: motion-easing-cubic) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.motion.animatable-properties**: layoutSnapshotStrict is on but node <div#motion-scale> (atomicId: motion-scale) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.motion.combo-transform-tracks**: layoutSnapshotStrict is on but node <div#motion-combo-transform-opacity> (atomicId: motion-combo-transform-opacity) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.motion.off-canvas-slide-in**: layoutSnapshotStrict is on but node <div#slide-in-transform> (atomicId: slide-in-transform) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.motion.combo-paint-interactions**: layoutSnapshotStrict is on but node <div#motion-combo-filter-opacity> (atomicId: motion-combo-filter-opacity) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.motion-path.advanced**: layoutSnapshotStrict is on but node <div#motion-path-scale> (atomicId: motion-path-scale) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.perspective-basics**: layoutSnapshotStrict is on but node <div#perspective-card> (atomicId: perspective-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.flat-preserve-3d**: layoutSnapshotStrict is on but node <div#flat-card> (atomicId: flat-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.atomic-transform-style**: layoutSnapshotStrict is on but node <div#atomic-flat-card> (atomicId: atomic-flat-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.backface-visibility**: layoutSnapshotStrict is on but node <div#atomic-backface-visible-card> (atomicId: atomic-backface-visible-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animated-3d**: layoutSnapshotStrict is on but node <div#animated-card> (atomicId: animated-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.parallax-three-depths**: layoutSnapshotStrict is on but node <div#parallax-world> (atomicId: parallax-world) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.near-far-clipping**: layoutSnapshotStrict is on but node <div#clip-visible> (atomicId: clip-visible) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-near-plane**: layoutSnapshotStrict is on but node <div#nested-near-visible> (atomicId: nested-near-visible) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-distance**: layoutSnapshotStrict is on but node <div#nested-distance-card> (atomicId: nested-distance-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-origins**: layoutSnapshotStrict is on but node <div#nested-origin-card> (atomicId: nested-origin-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-same-origin**: layoutSnapshotStrict is on but node <div#nested-same-card> (atomicId: nested-same-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-preserve-depth**: layoutSnapshotStrict is on but node <div#nested-depth-inner> (atomicId: nested-depth-inner) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-flat-boundary**: layoutSnapshotStrict is on but node <div#nested-flat-card> (atomicId: nested-flat-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-between-boundaries**: layoutSnapshotStrict is on but node <div#nested-between-direct> (atomicId: nested-between-direct) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-backface**: layoutSnapshotStrict is on but node <div#nested-backface-inner> (atomicId: nested-backface-inner) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-overflow-clip**: layoutSnapshotStrict is on but node <div#nested-overflow-card> (atomicId: nested-overflow-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.nested-clip-path**: layoutSnapshotStrict is on but node <div#nested-clip-card> (atomicId: nested-clip-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animation-distance-linear**: layoutSnapshotStrict is on but node <div> (atomicId: p7-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animation-origin-xy**: layoutSnapshotStrict is on but node <div> (atomicId: p7-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animation-origin-corner**: layoutSnapshotStrict is on but node <div> (atomicId: p7-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animation-rotate**: layoutSnapshotStrict is on but node <div> (atomicId: p7-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animation-sibling-tracks**: layoutSnapshotStrict is on but node <div> (atomicId: left) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.animation-nested-origin**: layoutSnapshotStrict is on but node <div> (atomicId: p7-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-contain-rotate-y**: layoutSnapshotStrict is on but node <img#texture-contain> (atomicId: texture-contain) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-cover-off-center**: layoutSnapshotStrict is on but node <img#texture-cover> (atomicId: texture-cover) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-alpha-tilt**: layoutSnapshotStrict is on but node <img#texture-alpha> (atomicId: texture-alpha) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.video-projective-quad**: layoutSnapshotStrict is on but node <video#texture-video> (atomicId: texture-video) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.media-object-position**: layoutSnapshotStrict is on but node <img#texture-position> (atomicId: texture-position) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-composition-edge**: layoutSnapshotStrict is on but node <img#texture-edge> (atomicId: texture-edge) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-clip-path**: layoutSnapshotStrict is on but node <img#texture-clip> (atomicId: texture-clip) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.video-opacity-blend**: layoutSnapshotStrict is on but node <video#texture-blend> (atomicId: texture-blend) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-animated-z**: layoutSnapshotStrict is on but node <img#texture-animated> (atomicId: texture-animated) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-near-plane**: layoutSnapshotStrict is on but node <img#texture-near> (atomicId: texture-near) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.nested-image-perspective**: layoutSnapshotStrict is on but node <div#texture-nested-inner> (atomicId: texture-nested-inner) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.texture.image-high-distortion**: layoutSnapshotStrict is on but node <img#texture-distortion> (atomicId: texture-distortion) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.mask-filter-near-plane**: layoutSnapshotStrict is on but node <div#p9-alpha-card> (atomicId: p9-alpha-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.mask-add-intersect-near-plane**: layoutSnapshotStrict is on but node <div#p9-add-intersect-card> (atomicId: p9-add-intersect-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.mask-subtract-composition-edge**: layoutSnapshotStrict is on but node <div#p9-subtract-card> (atomicId: p9-subtract-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.mask-exclude-inclined**: layoutSnapshotStrict is on but node <div#p9-exclude-card> (atomicId: p9-exclude-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.mask-one-corner-near-plane**: layoutSnapshotStrict is on but node <div#p9-corner-card> (atomicId: p9-corner-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.filter-drop-shadow-after-blur-near-plane**: layoutSnapshotStrict is on but node <div#p9-drop-shadow-card> (atomicId: p9-drop-shadow-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.filter-far-plane-bounds**: layoutSnapshotStrict is on but node <div#p9-far-card> (atomicId: p9-far-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.filter-mask-clip-path**: layoutSnapshotStrict is on but node <div#p9-mask-clip-card> (atomicId: p9-mask-clip-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.isolated-mask-filter-projective**: layoutSnapshotStrict is on but node <div#p9-isolated-group> (atomicId: p9-isolated-group) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+- **html-compiler.perspective.mask-different-perspective-boundary**: layoutSnapshotStrict is on but node <div#p9-boundary-card> (atomicId: p9-boundary-card) has no layoutSnapshot entry - either the probe id attribute didn't survive to this node, or it falls under a permanent CDP exclusion (transform ancestor, SVG). Turn layoutSnapshotStrict off to fall back to native for this node.
+
+## Fixtures with 100% CDP layout coverage (safe to trust layout as Chrome-exact for paint-fidelity work)
+
+- html-compiler.tags.div-shape
+- html-compiler.tags.div-group
+- html-compiler.tags.svg-path
+- html-compiler.geometry.sizing-constraints
+- html-compiler.geometry.box-model-spacing
+- html-compiler.geometry.positioning
+- html-compiler.geometry.display-visibility
+- html-compiler.geometry.opacity-z-index-overflow
+- html-compiler.paint.svg-fill
+- html-compiler.paint.svg-stroke
+- html-compiler.paint.svg-dash-order
+- html-compiler.media.object-fit-contain
+- html-compiler.media.object-fit-cover-position
+- html-compiler.media.object-fit-fill-rendering
+- html-compiler.media.object-fit-none-clipping
+- html-compiler.typography.text-align-values
+- html-compiler.typography.text-spacing-whitespace
+- html-compiler.typography.direction-writing-decoration
+- html-compiler.typography.style-stretch
+- html-compiler.paint.svg-stroke-dasharray-odd-count
+- html-compiler.tags.document-shell-container
+- html-compiler.tags.text-lowering
+- html-compiler.tags.media-lowering
+- html-compiler.tags.audio-lowering
+- html-compiler.tags.svg-lowering
+- html-compiler.tags.container-aliases
+- html-compiler.tags.text-tag-matrix
+- html-compiler.tags.svg-primitive-matrix
+- html-compiler.typography.font-catalog-ui-body
+- html-compiler.typography.font-catalog-display
+- html-compiler.typography.font-catalog-monospace
+- html-compiler.typography.font-catalog-editorial
+- html-compiler.layout.anchor-positioning
+- html-compiler.layout.flex-container
+- html-compiler.layout.flex-wrapping
+- html-compiler.layout.grid-explicit-columns
+- html-compiler.layout.grid-gap-alignment
+- html-compiler.layout.grid-placement-span
+- html-compiler.layout.item-ordering
+- html-compiler.layout.containing-block-edge-cases
+- html-compiler.layout.block-flow-margin-collapsing
+- html-compiler.layout.text-border-box-model
+- html-compiler.layout.text-line-metrics
+- html-compiler.paint.color-srgb-primaries
+- html-compiler.opacity.image
+- html-compiler.opacity.grid
+- html-compiler.motion.keyframes-basics
+- html-compiler.motion.delay-fill-mode
+- html-compiler.motion.iteration-play-state
+- html-compiler.motion.direction
+- html-compiler.motion.sequential-property-merge
+- html-compiler.motion-path.basics

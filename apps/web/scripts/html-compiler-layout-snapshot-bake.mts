@@ -20,10 +20,24 @@ import {
   type LayoutProbeResult,
 } from "../../../packages/html-compiler/src/index.ts";
 import { HTML_COMPILER_PREVIEW_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../lib/docs/html-compiler-preview.ts";
+import { HTML_PLAYGROUND_CASES } from "../lib/playground/html-playground-cases.ts";
 
 const publicRoot = resolve(import.meta.dirname, "../public");
 const outDir = resolve(import.meta.dirname, ".html-compiler-layout-snapshots");
 mkdirSync(outDir, { recursive: true });
+
+// native-stage's compare page (ComparePreviewLab) also shows hand-curated
+// fixtures that live only in HTML_PLAYGROUND_CASES, not in the compiler's
+// own HTML_COMPILER_PREVIEW_CASES registry - bake those too (fixed at
+// native-stage's 1920x1080 stage size, same as every fixture it renders) so
+// every "layout" group fixture the compare page can show has CDP coverage,
+// not just the auto-derived subset.
+const REGISTERED_IDS = new Set(HTML_COMPILER_PREVIEW_CASES.map((c) => c.id));
+const CURATED_LAYOUT_FIXTURES = HTML_PLAYGROUND_CASES.filter(
+  (c) => c.group === "layout" && !REGISTERED_IDS.has(c.id),
+).map((c) => ({ id: c.id, fixtureUrl: c.url, composition: { width: 1920, height: 1080 } }));
+
+const FIXTURES = [...HTML_COMPILER_PREVIEW_CASES, ...CURATED_LAYOUT_FIXTURES];
 
 // Same tsx/esbuild __name-helper workaround as infra/cloud-run/layout-probe's
 // probe-worker.ts - see that file's comment for why this is needed at all.
@@ -43,7 +57,7 @@ const snapshots: Record<string, { snapshot: LayoutProbeResult; stampedHtml: stri
 let measured = 0;
 let skipped = 0;
 
-for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
+for (const fixture of FIXTURES) {
   const html = readFileSync(join(publicRoot, fixture.fixtureUrl.replace(/^\//, "")), "utf8");
   const stamped = stampNodeIds(html);
   const page = await browser.newPage({ viewport: { width: fixture.composition.width, height: fixture.composition.height } });
@@ -92,4 +106,4 @@ for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
 await browser.close();
 
 writeFileSync(join(outDir, "snapshots.json"), JSON.stringify(snapshots));
-console.log(`measured ${measured}/${HTML_COMPILER_PREVIEW_CASES.length} fixtures, ${skipped} skipped`);
+console.log(`measured ${measured}/${FIXTURES.length} fixtures, ${skipped} skipped`);

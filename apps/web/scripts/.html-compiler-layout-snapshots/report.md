@@ -1,8 +1,8 @@
 # Layout snapshot vs native: fixture-wide diff (offline, baked snapshots)
 
-Fixtures checked: 107
-Clean (every layer within 1px): 79
-Fixtures with at least one layer diff: 24
+Fixtures checked: 110
+Clean (every layer within 1px): 81
+Fixtures with at least one layer diff: 25
 Compile/layer-count mismatches (not comparable): 4
 Missing baked snapshot: 0
 
@@ -89,9 +89,14 @@ Missing baked snapshot: 0
 | html-compiler.motion.delay-fill-mode | cell-label-5 | 0.0 | 0.0 | 0.0 | -24.0 |
 | html-compiler.motion.iteration-play-state | cell-label-4 | 0.0 | 0.0 | 0.0 | -26.8 |
 | html-compiler.motion.easing | cell-label-3 | 0.0 | 0.0 | 0.0 | -24.0 |
-| html-compiler.motion.animatable-properties | motion-frame | 0.0 | 0.0 | 2.3 | 1.4 |
-| html-compiler.motion.animatable-properties | motion-frame::paint | 0.0 | 0.0 | 2.3 | 1.4 |
 | html-compiler.motion.off-canvas-slide-in | cell-label-3 | 0.0 | 0.0 | 0.0 | -24.0 |
 | html-compiler.perspective.atomic-transform-style | cell-label-2 | 0.0 | 0.0 | 0.0 | -26.8 |
 | html-compiler.perspective.backface-visibility | cell-label-1 | 0.0 | 0.0 | 0.0 | -26.8 |
 | html-compiler.perspective.mask-filter-near-plane | cell-label-3 | 0.0 | 0.0 | 0.0 | -24.0 |
+| flex-direction-reverse | cell-label-1 | 0.0 | 0.0 | 0.0 | -28.6 |
+| grid-auto-flow | row-e | 0.0 | 0.0 | 0.0 | 327.0 |
+| grid-auto-flow | row-e::paint | 0.0 | 0.0 | 0.0 | 327.0 |
+| grid-auto-flow | row-e::text | 0.0 | 0.0 | 0.0 | 327.0 |
+| grid-auto-flow | col-e | 0.0 | 0.0 | 287.0 | 0.0 |
+| grid-auto-flow | col-e::paint | 0.0 | 0.0 | 287.0 | 0.0 |
+| grid-auto-flow | col-e::text | 0.0 | 0.0 | 287.0 | 0.0 |

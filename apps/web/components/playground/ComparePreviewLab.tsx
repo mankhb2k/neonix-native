@@ -4,7 +4,7 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
-import { fetchPlaygroundFixture } from "@/lib/api/playground";
+import { fetchBakedLayoutSnapshot, fetchPlaygroundFixture, type BakedLayoutSnapshot } from "@/lib/api/playground";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS } from "@/lib/docs/html-compiler-preview";
 import {
   htmlPlaygroundCaseGroups,
@@ -81,6 +81,7 @@ export function ComparePreviewLab({
   const [layout, setLayout] = useState<LayoutMode>(defaultLayout);
   const [sideBySideScale, setSideBySideScale] = useState(1);
   const [fixtureHtml, setFixtureHtml] = useState<string | null>(null);
+  const [layoutSnapshotEntry, setLayoutSnapshotEntry] = useState<BakedLayoutSnapshot | null>(null);
   const [customHtml, setCustomHtml] = useState(DEFAULT_CUSTOM_HTML);
   const [selectedGroup, setSelectedGroup] = useState<GroupFilter>(
     REPEAT_CASES[0].group,
@@ -94,6 +95,8 @@ export function ComparePreviewLab({
 
   const html = inputMode === "custom" ? customHtml : fixtureHtml;
   const loading = inputMode === "fixture" && caseLoading;
+  const activeCase =
+    REPEAT_CASES.find((item) => item.id === selectedCase) ?? REPEAT_CASES[0];
 
   const visibleCases = useMemo(
     () =>
@@ -136,6 +139,26 @@ export function ComparePreviewLab({
     };
   }, [inputMode, selectedCase]);
 
+  // Layout catalog only (per the group check below): the CDP-measured
+  // geometry is already baked and verified for every "layout" fixture (see
+  // scripts/html-compiler-layout-snapshot-bake.mts and its diff report) - use
+  // it instead of native flex/grid/geometry so this panel shows what paint
+  // looks like once layout matches the browser exactly. Every other catalog
+  // keeps compiling with plain native layout, unchanged.
+  useEffect(() => {
+    if (inputMode !== "fixture" || activeCase.group !== "layout") {
+      setLayoutSnapshotEntry(null);
+      return undefined;
+    }
+    let cancelled = false;
+    void fetchBakedLayoutSnapshot(activeCase.id).then((entry) => {
+      if (!cancelled) setLayoutSnapshotEntry(entry);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [inputMode, activeCase]);
+
   useEffect(() => {
     setPlaying(false);
     setTime(0);
@@ -167,18 +190,23 @@ export function ComparePreviewLab({
     return () => window.clearInterval(interval);
   }, []);
 
-  const compilation = useMemo(
-    () =>
-      html
-        ? compileDocument(
-            { html },
-            { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS },
-          )
-        : null,
-    [html],
-  );
-  const activeCase =
-    REPEAT_CASES.find((item) => item.id === selectedCase) ?? REPEAT_CASES[0];
+  const compilation = useMemo(() => {
+    if (!html) return null;
+    if (layoutSnapshotEntry) {
+      return compileDocument(
+        { html: layoutSnapshotEntry.stampedHtml },
+        {
+          fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS,
+          mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS,
+          layoutSnapshot: layoutSnapshotEntry.snapshot,
+        },
+      );
+    }
+    return compileDocument(
+      { html },
+      { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS },
+    );
+  }, [html, layoutSnapshotEntry]);
   const protocol = compilation?.protocol ?? null;
   const duration = Math.max(
     0.1,
@@ -417,7 +445,7 @@ export function ComparePreviewLab({
             ref={nativePanelRef}
             className={layout === "side-by-side" ? "min-w-0" : "w-[1920px] shrink-0"}
             title="Native renderer output"
-            badge="Neonix JSON V2 · Runtime V3 · Native · 1920×1080"
+            badge={`Neonix JSON V2 · Runtime V3 · Native · ${layoutSnapshotEntry ? "CDP layout" : "native layout"} · 1920×1080`}
           >
             <PreviewFrame layout={layout} scale={sideBySideScale}>
               {protocol && !loading ? (

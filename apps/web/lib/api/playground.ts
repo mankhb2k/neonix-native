@@ -1,7 +1,28 @@
+import type { LayoutSnapshot } from "@motionvideo/html-compiler";
+
 export async function fetchPlaygroundFixture(url: string, signal?: AbortSignal): Promise<string> {
   const response = await fetch(url, signal ? { signal } : undefined);
   if (!response.ok) throw new Error(`Fixture request failed: ${response.status}`);
   return response.text();
+}
+
+export type BakedLayoutSnapshot = { snapshot: LayoutSnapshot; stampedHtml: string };
+
+/**
+ * Dev-only (see app/api/dev/layout-snapshot/route.ts, 404s in production).
+ * Returns `null` on any miss (no baked entry, 404, network error) - the
+ * native-stage compare page falls back to a plain native compile whenever
+ * this returns null, same "safe no-op on a miss" contract as `layoutSnapshot`
+ * itself.
+ */
+export async function fetchBakedLayoutSnapshot(fixtureId: string, signal?: AbortSignal): Promise<BakedLayoutSnapshot | null> {
+  try {
+    const response = await fetch(`/api/dev/layout-snapshot?id=${encodeURIComponent(fixtureId)}`, signal ? { signal } : undefined);
+    if (!response.ok) return null;
+    return (await response.json()) as BakedLayoutSnapshot;
+  } catch {
+    return null;
+  }
 }
 
 export type PlaygroundCompileDiagnostic = {

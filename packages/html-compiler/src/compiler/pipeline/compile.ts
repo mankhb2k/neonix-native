@@ -39,6 +39,41 @@ import { createAssetRegistry } from "../lowering/assets";
 import { parseNeonixDocument, isCompileError } from "../document";
 
 /**
+ * `align-items`/`justify-content` on a flex container only ever reach
+ * `resolveFlexLayout()`'s items, which come from `node.children` - real
+ * element nodes. A flex container whose only content is a bare text run
+ * (`<p style="display:flex;align-items:center">a</p>`) has no element
+ * child at all, so it never becomes a flex item and the alignment has no
+ * effect: the text stays pinned at its default top/start position instead
+ * of being treated as the single anonymous flex item real CSS wraps it in.
+ *
+ * This maps that alignment onto the two levers html-compiler's text layer
+ * already has instead of introducing a new one: `text-align` for whichever
+ * axis is horizontal (a correct, length-independent lever - real
+ * `text-align: center` already centers text of any width), and an additive
+ * `contentOffsetY`/`contentOffsetX` shift on the vertical axis, sized
+ * against `lineHeight` under a single-line assumption (multi-line wrapped
+ * text only gets its final line count from runtime shaping, so exact
+ * cross-axis centering for it isn't available at compile time - an
+ * accepted, narrower gap than doing nothing at all).
+ */
+function flexAnonymousTextAlignment(style: Style): { textAlignOverride?: "left" | "center" | "right"; verticalFactor: number } {
+  const direction = (style.get("flex-direction") ?? "row").trim().toLowerCase();
+  const isRow = direction === "row" || direction === "row-reverse";
+  const justify = (style.get("justify-content") ?? "flex-start").trim().toLowerCase();
+  const align = (style.get("align-items") ?? "stretch").trim().toLowerCase();
+  const horizontalSource = isRow ? justify : align;
+  const verticalSource = isRow ? align : justify;
+  const textAlignFor = (value: string): "left" | "center" | "right" | undefined =>
+    value === "center" ? "center" : value === "flex-end" ? "right" : value === "flex-start" ? "left" : undefined;
+  const verticalFactorFor = (value: string): number => (value === "center" ? 0.5 : value === "flex-end" ? 1 : 0);
+  return {
+    ...(style.has("text-align") ? {} : { textAlignOverride: textAlignFor(horizontalSource) }),
+    verticalFactor: verticalFactorFor(verticalSource),
+  };
+}
+
+/**
  * Compile the canonical file-oriented project contract. The caller owns file
  * I/O; this API deliberately receives the already loaded HTML, CSS and config.
  */
@@ -317,13 +352,22 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
             });
             return;
           }
+          const isFlexAnonymousTextLeaf = style.get("display") === "flex" && !hasChildren && node.text.trim() !== "";
+          const flexTextAlignment = isFlexAnonymousTextLeaf ? flexAnonymousTextAlignment(style) : undefined;
+          const textPayloadStyle = flexTextAlignment?.textAlignOverride
+            ? new Map(style).set("text-align", flexTextAlignment.textAlignOverride)
+            : style;
           const { textPayload, textClipId, authoredTextGradient } = resolveNodeTextPayload({
-            node, style, parentStyle, styles, hasChildren, groupId,
+            node, style: textPayloadStyle, parentStyle, styles, hasChildren, groupId,
             width: w, height: h, containingWidth, viewport,
             parentFontSize: parentFont, geometry,
             fontAssets: options.fontAssets ?? [],
             assetRegistry, registerClipPath, elementClipPath,
           });
+          if (flexTextAlignment && flexTextAlignment.verticalFactor > 0 && textPayload?.layout) {
+            const available = Math.max(0, geometry.contentHeight - textPayload.layout.lineHeight);
+            textPayload.layout.contentOffsetY = (textPayload.layout.contentOffsetY ?? 0) + available * flexTextAlignment.verticalFactor;
+          }
           const { backgroundValue, paints, border, backgroundImages, boxFor, paintBoxFor, borderBox, hasBorder, hasSizedGradientBackground } = resolveNodeBackground({ node, style, parentStyle, width: w, height: h, containingWidth, fontSize: font, viewport, geometry, hasChildren, authoredTextGradient });
          const { isPath, pathContours, pathStyle, fillRuleValue } = resolveNodeSvgPath(node, style, parentStyle);
          if (isPath) {
