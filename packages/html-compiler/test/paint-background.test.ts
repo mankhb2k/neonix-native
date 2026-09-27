@@ -21,6 +21,28 @@ describe("HTML/CSS compiler P2.0 background images", () => {
     expect(result.protocol?.layers.find((layer) => layer.id === "control")).toBeDefined();
   });
 
+  it("lowers a body gradient set via the LONGHAND background-image (with background-color set separately) to a full-frame root background layer", () => {
+    // Real-world authored CSS very often sets background-color and
+    // background-image as two separate declarations rather than the
+    // `background` shorthand this file's other test uses - the root
+    // background lowering must not silently drop the gradient in that case.
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<html><head></head><body><div id="control"></div></body></html>`,
+      css: `html, body { width: 1920px; height: 1080px; margin: 0; background-color: #05060a; background-image: radial-gradient(circle at 30% 20%, #101c33 0%, #05060a 55%, #030308 100%); background-size: 100% 100%; background-repeat: no-repeat; } #control { position: absolute; left: 360px; top: 320px; width: 1200px; height: 360px; background: #22d3ee; }`,
+    }));
+
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.layers[0]).toMatchObject({
+      id: "html-root-background:0",
+      type: "shape",
+      parentLayerId: null,
+      frame: { width: 1920, height: 1080 },
+      payload: { shape: "rectangle" },
+      style: { fill: { type: "radial-gradient" } },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "control")).toBeDefined();
+  });
+
   it("clips solid backgrounds to background-clip and keeps the border inside the border box", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="card"></div>`,

@@ -23,7 +23,7 @@ import { createNodeBoxResolver, estimateTextIntrinsicHeight } from "../layout/no
 import { resolveFlexLayout } from "../layout/flex";
 import { resolveGridLayout } from "../layout/grid";
 import { mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "../lowering/media";
-import { parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages } from "../paint/background";
+import { parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages } from "../paint/background";
 import { parseFilter } from "../paint/filter";
 import { resolveNodeBackground, resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
 import { emitNodePaint } from "./paint-node";
@@ -544,10 +544,26 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
     // This preserves the existing V2 composition schema while making the
     // browser canvas and Runtime/Skia see the same root background pixels.
     if (body) {
+      const rootCurrentColor = bodyStyle.get("color") ?? "#000000";
       const rootBackground = bodyStyle.get("background")?.trim();
-      const rootPaints = rootBackground && (/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(rootBackground) || rootBackground.includes(","))
-        ? parsePaintLayers(rootBackground, "background", bodyStyle.get("color") ?? "#000000", { width, height })
+      const rootShorthandPaints = rootBackground && (/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(rootBackground) || rootBackground.includes(","))
+        ? parsePaintLayers(rootBackground, "background", rootCurrentColor, { width, height })
         : [];
+      // The `background` shorthand check above misses an author who only
+      // ever sets the LONGHAND `background-image` (with `background-color`
+      // as a separate declaration, as real authored HTML commonly does) -
+      // resolveNodeBackground already handles this split for ordinary
+      // elements via parseBackgroundImages; mirror the gradient case here
+      // too so a body's own radial/linear/conic gradient isn't silently
+      // dropped. Same full-frame simplification as the shorthand path
+      // above: background-position/size/repeat on the root are not
+      // honored, matching that existing scope; a raster (url()) root
+      // background-image is not yet supported here either.
+      const rootImagePaints = rootShorthandPaints.length
+        ? []
+        : parseBackgroundImages(bodyStyle, rootCurrentColor, { width, height })
+          .flatMap((image) => image.type === "paint" ? [image.paint] : []);
+      const rootPaints = [...rootShorthandPaints, ...rootImagePaints];
       rootPaints
         .map((fill, index) => ({ fill, index }))
         .filter(({ fill }) => typeof fill !== "string" || fill !== "#00000000")

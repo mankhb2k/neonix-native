@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="neonix-document"
+      content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#05060a","colorSpace":"srgb","durationMs":16000}}'
+    />
+    <style data-neonix-bundle>
+      /*
+        neonix-motion-test-10s.html's `.ring`, isolated from everything else
+        (no orbs, no badge/title/subtitle/cards, no scanline) but otherwise
+        verbatim - same body background, same CSS/@keyframes, both
+        animations running together (ringSpin 16s rotate + ringHue 8s
+        blur+hue-rotate pulse). durationMs is stretched to 16000 (one full
+        ringSpin period) so a full rotation is scrubbable.
+
+        Consolidates a full ring-rendering investigation (2026-09-27) that
+        started from "the ring stays visibly sharp behind a backdrop-filter
+        card in CanvasKit while Chrome blurs it away" and used 8 narrower
+        diagnostic fixtures (now retired) to bisect it:
+          - A real bug WAS found and fixed this way: `filter: blur(2px)
+            hue-rotate()` declared only inside `@keyframes ringHue` (no
+            static `filter` on `.ring` itself) was silently dropped by
+            html-compiler entirely - the ring rendered with zero blur/hue
+            in CanvasKit. Fixed in compiler/css/animation.ts (filter-list
+            keyframe lowering, mirroring the existing text-shadow-in-
+            keyframes fix).
+          - A second real bug was found and fixed while stripping this
+            fixture down: `background-image: radial-gradient(...)` set as
+            a LONGHAND on `<body>` (with `background-color` as a separate
+            declaration - not the `background` shorthand) was silently
+            dropped by the root-background lowering in compile.ts, masked
+            in the full scene by the orbs' own glows sitting on top of the
+            same area. Fixed by reusing parseBackgroundImages() for the
+            root/body case, same as ordinary elements already did.
+          - Rotating a perfectly symmetric circle+shadow is a confirmed
+            no-op (checked at 0/45/90/171deg) - ruled out as a variable.
+          - Border-only and box-shadow-only bisections each matched Chrome
+            closely on their own.
+          - Adding the real `.scanline` mix-blend-mode:screen sweep on top
+            changed nothing about the residual gap's magnitude - ruled out
+            blend-mode compositing as the cause.
+          - The remaining ~17% "peak brightness" / "1px offset" reading
+            that motivated the border/shadow/scanline bisections turned out
+            to be a MEASUREMENT ARTIFACT, not a render difference: the
+            native-stage compare tool's two panels sit at different
+            fractional page Y offsets, and cropping with Math.floor()
+            (rather than Math.round()) rounds them down asymmetrically,
+            producing a spurious ~1px row shift. Re-cropping the same
+            screenshot with Math.round() showed both panels landing on the
+            exact same peak row with matching brightness. See CLAUDE.md's
+            "Debugging visual fidelity" section.
+        Net result: once both real bugs above were fixed, this ring matches
+        Chrome closely with no further discrepancy. See
+        ring-backdrop-filter-interaction.html for the companion case (the
+        ring passing behind a real backdrop-filter card).
+      */
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+
+      body {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #05060a;
+        background-image: radial-gradient(circle at 30% 20%, #101c33 0%, #05060a 55%, #030308 100%);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        font-family: 'Inter', sans-serif;
+      }
+
+      .ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 760px;
+        height: 760px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 2px solid rgba(168, 85, 247, 0.35);
+        box-shadow: 0 0 60px rgba(168, 85, 247, 0.25) inset, 0 0 40px rgba(34, 211, 238, 0.2);
+        animation: ringSpin 16s linear infinite, ringHue 8s ease-in-out infinite;
+      }
+      @keyframes ringSpin {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      @keyframes ringHue {
+        0%, 100% { filter: blur(2px) hue-rotate(0deg); }
+        50% { filter: blur(2px) hue-rotate(50deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ring"></div>
+  </body>
+</html>

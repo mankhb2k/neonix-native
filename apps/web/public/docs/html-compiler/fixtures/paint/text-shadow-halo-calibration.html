@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#000000","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000000; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+      .caption { position: absolute; top: 720px; width: 300px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+
+      /*
+        Consolidates 3 former debug/text-shadow-halo-* fixtures: a single
+        isolated glyph (extreme red-on-black/white contrast, deliberately
+        NOT a realistic color combo) at 3 blur radii, for pixel-level halo
+        measurement against real Chrome. This is a narrower, more precise
+        instrument than paint/text-shadow.html's semantic offset/blur/alpha
+        cases - it exists specifically to calibrate
+        cssShadowBlurRadiusToSkiaSigma() (canvaskit-preview/command/effects.ts)
+        against Chrome's real sigma, and should be re-measured here whenever
+        that formula changes rather than trusted from memory.
+      */
+      .glyph {
+        position: absolute;
+        top: 150px;
+        width: 300px;
+        color: #ff0000;
+        font-family: Inter, sans-serif;
+        font-size: 220px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .glyph-4 { left: 100px; text-shadow: 0 0 4px #ffffff; }
+      .glyph-24 { left: 780px; text-shadow: 0 0 24px #ffffff; }
+      .glyph-40 { left: 1460px; text-shadow: 0 0 40px #ffffff; }
+
+      .caption-4 { left: 100px; }
+      .caption-24 { left: 780px; }
+      .caption-40 { left: 1460px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">text-shadow halo calibration - white halo on black, red glyph, 3 blur radii - isolated for pixel-level sigma measurement against real Chrome.</div>
+    <div class="glyph glyph-4">H</div>
+    <div class="glyph glyph-24">H</div>
+    <div class="glyph glyph-40">H</div>
+    <div class="caption caption-4">blur: 4px</div>
+    <div class="caption caption-24">blur: 24px</div>
+    <div class="caption caption-40">blur: 40px</div>
+  </body>
+</html>

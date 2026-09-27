@@ -75,10 +75,14 @@ event handlers, forms, navigation, or web-only behavior.
 
 ### Capabilities
 
-Call `get_capabilities` when the supported HTML tags or CSS properties are
-unknown. Use only tags and CSS properties returned by that tool. Unsupported
-tags, properties, values, browser interaction, and layout features must not be
-silently approximated as if they were supported.
+Check the `neonix-html-compiler-contract` skill for the full tag/CSS/value
+allowlist before drafting HTML — it is a static reference distilled from the
+compiler's own contract, so it avoids a round trip for common cases. Call
+`get_capabilities` when something is still unclear or the two sources seem to
+disagree; the live tool result is always the tie-breaker. Use only tags and
+CSS properties confirmed supported. Unsupported tags, properties, values,
+browser interaction, and layout features must not be silently approximated as
+if they were supported.
 
 ## Text and layout rules
 

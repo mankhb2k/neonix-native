@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption { position: absolute; top: 600px; width: 400px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; }
+
+      /*
+        RESOLVED - consolidates 3 former debug fixtures for a real, confirmed
+        and fixed bug: neonix-motion-test-10s.html's `.card` (border-radius +
+        backdrop-filter + children: an icon + label) showed square
+        (unrounded) corners poking past its own rounded shape in CanvasKit,
+        because html-compiler's resolveNodeClipPath only registered the
+        rounded backdrop clip when `!hasChildren` (resolve-node.ts) - a
+        leaf-only guard that left any card WITH children unrounded. Fixed
+        without touching that guard (which would have reintroduced the
+        "must not clip an overflowing child" regression below): the runtime
+        now threads a `backdropBox` (evaluate.ts) through to CanvasKit's
+        `confineBackdropToBox()` (canvaskit-preview/command/layers.ts),
+        which clears the captured backdrop outside the rounded border box
+        AFTER capture, regardless of children.
+
+        A smooth radial gradient, not a hard-edged stripe pattern: blurring
+        a continuously-varying gradient visibly shifts/softens color across
+        the WHOLE sampled area (matching the real motion-test glow-orb
+        background); a flat-color stripe barely changes under blur except
+        right at a stripe boundary, which made the original bug nearly
+        invisible in a screenshot.
+
+        Three variants, same 400x220/40px-radius card with an icon+caption
+        child, side by side:
+      */
+      .glow {
+        position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+        background-image:
+          radial-gradient(circle at 30% 70%, #22d3ee 0%, transparent 45%),
+          radial-gradient(circle at 70% 30%, #a855f7 0%, transparent 45%),
+          radial-gradient(circle at 50% 90%, #facc15 0%, transparent 40%);
+      }
+
+      .card {
+        position: absolute; top: 340px; width: 400px; height: 220px;
+        border-radius: 40px;
+        background-color: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(20px);
+      }
+      .icon {
+        position: absolute; left: 32px; top: 32px; width: 56px; height: 56px;
+        border-radius: 14px; background: #22d3ee;
+      }
+      .card-caption {
+        position: absolute; left: 32px; top: 108px; width: 336px;
+        color: #ffffff; font-family: Inter, sans-serif; font-size: 22px; font-weight: 700;
+      }
+      .badge {
+        position: absolute; left: 340px; top: -20px; width: 80px; height: 80px;
+        border-radius: 16px; background: #facc15;
+      }
+
+      /* Variant 1: rounded clip baseline - no overflow:hidden, no escaping child - just verifies the corners stay rounded with children present. */
+      .card-baseline { left: 100px; }
+      /* Variant 2: overflow:hidden + a child intentionally poking past the top-right corner - real Chrome clips BOTH the backdrop-filter output and the overflowing badge to the same rounded shape. */
+      .card-overflow-hidden { left: 700px; overflow: hidden; }
+      /* Variant 3: identical to variant 2 minus overflow:hidden - border-radius alone never clips descendant content in CSS, so the badge must render FULLY intact, uncut. The critical case a naive fix (dropping the `!hasChildren` guard outright, applying the rounded clip to the whole layer scope) would have broken. */
+      .card-overflowing-child { left: 1300px; }
+
+      .caption-baseline { left: 100px; }
+      .caption-overflow-hidden { left: 700px; }
+      .caption-overflowing-child { left: 1300px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Backdrop-filter rounded clip with children - the corners must stay rounded (no square edges) whether or not the card has overflow:hidden or an overflowing child.</div>
+    <div class="glow"></div>
+
+    <div class="card card-baseline">
+      <div class="icon"></div>
+      <div class="card-caption">GLASS CARD</div>
+    </div>
+    <div class="card card-overflow-hidden">
+      <div class="icon"></div>
+      <div class="card-caption">GLASS CARD</div>
+      <div class="badge"></div>
+    </div>
+    <div class="card card-overflowing-child">
+      <div class="icon"></div>
+      <div class="card-caption">GLASS CARD</div>
+      <div class="badge"></div>
+    </div>
+
+    <div class="caption caption-baseline">rounded clip, no overflow, no escaping child</div>
+    <div class="caption caption-overflow-hidden">overflow:hidden - badge SHOULD be clipped</div>
+    <div class="caption caption-overflowing-child">no overflow:hidden - badge must NOT be clipped</div>
+  </body>
+</html>

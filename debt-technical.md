@@ -180,51 +180,85 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
 
 ## Render pipeline
 
-### CanvasKit-preview: filter/backdrop-filter không cache qua các frame, gây frame time hàng giây trên scene nặng effect
-- Vị trí: `packages/canvaskit-preview/src/command/replay.ts` — `beginLayer`
-  (dòng ~962-1134, dựng `paint.setImageFilter()` rồi `canvas.saveLayer()`) và
-  `endLayer` (dòng ~1135-1268, `canvas.restore()` — nơi Skia thật sự áp
-  filter/backdrop-filter khi composite layer trở lại canvas cha).
-- Đo thật bằng Playwright trên fixture debug `neonix-motion-test-10s`
-  (2× `filter: blur(70px)` trên orb 520-600px, backdrop-filter blur trên
-  badge + 3 card, `filter: hue-rotate` animate trên ring) tại t=2s: tổng
-  `gpuFrameTimeMs` **4063ms** (budget 30fps = 33.3ms, quá **~122 lần**).
-  Breakdown theo giai đoạn (thêm tạm field debug vào `PreviewStage.tsx`,
-  đã revert sau khi đo xong):
-  - `layerTimeMs` (mở layer, dựng filter object): 710ms
-  - **`endLayerTimeMs` (đóng layer — `canvas.restore()`): 3223ms, chiếm ~79%
-    tổng chi phí**
-  - `textTimeMs`/`pathTimeMs`/`shapeTimeMs`: gần như 0 (2-3ms)
-- Nguyên nhân: browser thật (Chrome) thăng cấp phần tử có
-  `filter`/`backdrop-filter` thành 1 GPU compositor layer riêng — chỉ tính
-  blur/filter **1 lần**, những frame sau nếu phần tử chỉ đổi vị trí
-  (translate) thì chỉ di chuyển texture đã tính sẵn, không tính lại.
-  CanvasKit-preview hiện **không có cơ chế tương đương** — `filterCache`
-  hiện có (`replay.ts:911-929`, key = `JSON.stringify(effectProgram)`) chỉ
-  cache **object filter** (rẻ), không cache **kết quả đã rasterize** (đắt) —
-  nên mỗi frame, mọi layer có filter/backdrop-filter đều bị tính lại từ đầu
-  toàn bộ phép blur/backdrop, bất kể nội dung có đổi hay không.
-- Đã thử scope hẹp "chỉ cache filter:blur() trước" theo yêu cầu, nhưng phát
-  hiện việc cache đúng **khó hơn ước lượng ban đầu**: `beginLayer`/`endLayer`
-  hiện vẽ nội dung VÀ áp transform vị trí trong CÙNG một bước
-  (`canvas.saveLayer()` → vẽ commands với transform hiện hành →
-  `canvas.restore()` áp filter). Muốn cache đúng (bất biến với vị trí, chỉ
-  invalidate khi nội dung thật sự đổi) cần **tách rời "vẽ nội dung" ra khỏi
-  "áp transform"**: vẽ nội dung vào 1 surface riêng (không transform) → chụp
-  ảnh (`makeImageSnapshot`) → cache theo signature nội dung (không bao gồm
-  vị trí) → những frame sau chỉ "dán" ảnh cache vào đúng vị trí mới
-  (`canvas.drawImage`) thay vì vẽ lại + filter lại. Việc tách này đụng vào
-  cách `setTransform`/`layerTransforms`/`pendingTransform` đang lồng với nội
-  dung vẽ trong `replay.ts` — rủi ro cao hơn nếu invalidation logic sai (gây
-  hiển thị frame cũ/sai hình, không chỉ sai vị trí), nên dừng lại ở bước
-  phân tích/đo đạc, chưa implement.
-- Cần làm: thiết kế lại luồng `beginLayer`/`endLayer` cho nhánh
-  filter-thường (không backdrop, không box-effect, không projective, không
-  mask — trường hợp đơn giản nhất) để render nội dung vào offscreen surface
-  độc lập với transform, cache theo content signature, chỉ composite lại vị
-  trí mới khi cache hit. Không tự ý mở rộng sang backdrop-filter (phức tạp
-  hơn nhiều vì phải đọc lại canvas phía sau) cho tới khi nhánh filter-thường
-  đã chứng minh đúng/an toàn.
+### [ĐÃ SỬA] CanvasKit-preview lag hàng giây/frame: nguyên nhân là box-shadow blur trên CPU raster, không phải thiếu cache filter
+- Triệu chứng: fixture `debug/neonix-motion-test-10s` có `gpuFrameTimeMs`
+  khoảng **3900-4100ms/frame** (budget 30fps = 33.3ms). Phần lớn chi phí nằm
+  trong `endLayerTimeMs`.
+- Giả thuyết cũ bị bác bỏ: trước đây cho rằng nguyên nhân là "Chrome cache kết
+  quả filter trên compositor layer, còn chúng ta tính lại `canvas.restore()`
+  mỗi frame". Benchmark CanvasKit thật trên GPU (GTX 1650, ANGLE/D3D11) cho
+  thấy `filter: blur(70px)` saveLayer của orb chỉ tốn khoảng 2.8ms, và
+  backdrop-filter blur card 300×300 chỉ khoảng 2.4ms. Vì vậy không cần cơ chế
+  cache raster/tách transform phức tạp mà mục cũ từng đề xuất.
+- Nguyên nhân thật: `drawBoxEffect`
+  (`packages/canvaskit-preview/src/command/box-effect.ts`) dựng halo
+  box-shadow như sau:
+  - mỗi branch, mỗi frame tạo 3-4 surface bằng `kit.MakeSurface()`. Trong
+    CanvasKit hàm này tạo **surface raster CPU**, kể cả khi canvas chính là
+    WebGL;
+  - blur trên CPU (orb 520px + spread 80 + blur 200 → ảnh 1282² px);
+  - `makeImageSnapshot`, rồi upload texture lại lên GPU.
+  Hàm này được gọi trong `endLayer`, nên chi phí bị tính vào
+  `endLayerTimeMs`. Riêng 1 orb đo được **~597ms/frame**.
+- Fix: port đúng cách Blink vẽ box-shadow. Theo
+  `BoxPainterBase::PaintNormalBoxShadow`/`PaintInsetBoxShadow` trong
+  `core/paint/box_painter_base.cc`, `cc::DrawLooper` chỉ gắn
+  `SkMaskFilter::MakeBlur(kNormal, sigma, respectCTM)` cùng màu `SrcIn` rồi
+  vẽ thẳng lên canvas đích. Cụ thể:
+  - Outer: clip-out owner rrect, fill rrect đã outset theo spread
+    (`outsetSilhouette`, công thức Blink) và dịch theo offset.
+  - Inset: clip-to owner, `drawDRRect(outer, owner)`, với outer theo
+    `AreaCastingShadowInHole`.
+  - Sigma lấy từ `ShadowData::BlurRadiusToStdDev` = `radius * 0.5` (đúng
+    spec).
+  Skia GPU vẽ blurred rrect giải tích nên không cần surface nào. Code nằm ở
+  `drawBoxShadowBranchesDirect()` trong `box-effect.ts`. Đường offscreen cũ
+  chỉ còn là fallback khi CanvasKit thiếu `MaskFilter`/`clipRRect`/
+  `drawDRRect` (test double) hoặc effect box có perspective.
+- Đo lại bằng Playwright cùng một harness, Chrome thật so với CanvasKit:
+  - Frame time của `neonix-motion-test-10s` quanh t=2s: **3927ms → 16.6ms**
+    (median 12 frame).
+  - Fidelity, meanΔ trước → sau: spread-shapes 1.77→1.60, spread-sweeps
+    1.23→0.97, spread-routing 1.51→1.30, inner-glow 0.53→0.38,
+    combined-glow 0.54→0.36, outer-glow 0.30→0.24, paint/box-shadow
+    0.32→0.30. Các fixture ring/backdrop bằng hoặc tốt hơn một chút; không
+    fixture nào kém đi.
+  - Test: `packages/canvaskit-preview/test/box-shadow-direct.test.ts`.
+- Còn lại:
+  - Các offscreen khác vẫn dùng `kit.MakeSurface` (CPU raster): CSS mask
+    trong `endLayer` (full-frame!), các nhánh projective ở `draw-ops.ts`, và
+    fallback box-effect. Nếu scene có mask hoặc perspective bị lag, hướng fix
+    là tạo offscreen từ surface chính bằng `surface.makeSurface(imageInfo)`
+    (GPU khi preview, CPU khi readback). Benchmark cho thấy cùng pipeline
+    nhanh hơn khoảng 100 lần.
+  - `effectBox` của box-shadow là **padding box**
+    (`motion-runtime` `effectBoxFor`, `box: "padding"`) cho cả outer lẫn
+    inset. Blink dùng border box cho outer shadow, nên phần tử có border bị
+    lệch đúng bằng độ dày border. Lỗi này có từ trước, chưa sửa.
+  - `export-renderer` (native) chưa port cách vẽ này (xem mục sigma ngay
+    dưới).
+
+### [ĐÃ SỬA] Khung chữ nhật quanh text-shadow khi phần tử cha đang animate opacity
+- Triệu chứng: ở `debug/neonix-motion-test-10s`, khoảng t=0.8-1.1s, chữ
+  "NEONIX" hiện một khung chữ nhật có mép cứng, bên trong sáng hơn bên ngoài.
+  Khung biến mất khi `titleIn` fade xong.
+- Nguyên nhân: khi opacity < 1, `.title` được replay thành `beginLayer` có
+  `compositeAlpha`, nên phải `saveLayer` với bounds = `layerContentBounds()`.
+  Hàm này bỏ qua hoàn toàn nội dung của layer lồng nhau (`if (depth > 0)
+  continue`). Vì vậy bounds chỉ bằng hộp `title::paint`
+  (`[-34,56,1954,193]`), trong khi layer con `title::text` có text-shadow blur
+  109px cần `[-363,-273,2283,522]`. Halo của con bị cắt theo bounds của cha.
+  Khi opacity = 1, cha thành `beginGroup`, không có saveLayer, nên hết lỗi.
+- Fix (`packages/canvaskit-preview/src/command/layers.ts`,
+  `scopeContentBounds`): bounds của một scope giờ là union đệ quy của mọi
+  scope con. Mỗi layer con được nới thêm `effectFilterExpansionPadding` của
+  chính nó, giống cách Blink tính bounds của effect node từ visual rect của
+  descendant sau khi map qua filter.
+- Đo bằng Playwright, Chrome so với CanvasKit: vùng title ở t=1.033s có
+  changed% 5.6 → 1.6 và meanΔ 3.17 → 2.41. Các fixture backdrop/box-shadow/
+  text-shadow không đổi pixel nào. Median frame time không đổi (fade
+  11.4 → 11.6ms, settled 15.7 → 15.6ms). Regression test nằm trong
+  `test/save-layer-bounds.test.ts`.
 
 ### Công thức sigma của text-shadow/box-shadow chưa port sang export-renderer
 - Vị trí: `packages/canvaskit-preview/src/command/effects.ts`

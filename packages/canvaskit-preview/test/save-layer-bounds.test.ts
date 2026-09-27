@@ -333,4 +333,36 @@ describe("Phase 5 — saveLayer bounds and filter lifecycle", () => {
     expect(trace.saveLayers).toHaveLength(2);
     expect(trace.restores).toBe(trace.saves + trace.saveLayers.length);
   });
+
+  // neonix-motion-test-10s at 1.033s: `.title` still fading in (opacity
+  // layer) wraps a nested `title::text` layer with a 109px text-shadow. The
+  // parent's bounds used to ignore nested layers entirely, so its saveLayer
+  // hard-clipped the child's halo to the title's own box - a visible
+  // rectangle around the text until the fade finished.
+  it("sizes an opacity layer to include a nested layer's filter outset", () => {
+    const { kit, trace } = makeTraceKit({ blurFilter: { kind: "blur", delete() {} } });
+    const at = (x: number, y: number) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, 0, 1];
+    replaySkiaCommands(kit, trace.canvas, {
+      commands: [
+        { op: "beginFrame", width: 1920, height: 1080, background: "#000", graphId: "nested-halo", frame: 0, time: 0 },
+        { op: "beginLayer", key: "title", isolation: true, offscreen: true, compositeAlpha: 0.9 },
+        { op: "setTransform", key: "title::paint", matrix4: at(400, 300), alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "title::paint", layerId: "title::paint", fill: "#00000000", width: 800, height: 130 },
+        { op: "beginLayer", key: "title::text", isolation: true, offscreen: true, effectProgram: blurProgram(40) },
+        { op: "setTransform", key: "title::text", matrix4: at(420, 310), alpha: 1, visible: true, order: 1 },
+        { op: "drawSolid", key: "title::text", layerId: "title::text", fill: "#fff", width: 700, height: 110 },
+        { op: "endLayer", key: "title::text" },
+        { op: "endLayer", key: "title" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer);
+
+    const pad = effectFilterExpansionPadding(blurProgram(40));
+    const childBounds = [420 - pad, 310 - pad, 1120 + pad, 420 + pad];
+    expect(trace.saveLayers.map((call) => call.bounds)).toEqual([
+      // parent: union(own box [400,300,1200,430], child content + child outset)
+      [Math.min(400, childBounds[0]!), Math.min(300, childBounds[1]!), Math.max(1200, childBounds[2]!), Math.max(430, childBounds[3]!)],
+      childBounds,
+    ]);
+  });
 });

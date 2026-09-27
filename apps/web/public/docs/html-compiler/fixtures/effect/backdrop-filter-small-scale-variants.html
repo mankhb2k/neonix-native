@@ -8,11 +8,16 @@
       .label { position: absolute; left: 24px; top: 24px; width: 1800px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
 
       /*
-        Static, small-scale replica of neonix-motion-test-10s.html's feature
-        card (230x230, 28px radius, 1px border, backdrop-filter blur(18px),
-        the same two box-shadows, an icon + label child) - the scale where
-        the CanvasKit corner artifact is visible - in four variants that
-        isolate one suspected cause each:
+        RESOLVED - static, small-scale replica of neonix-motion-test-10s.html's
+        feature card (230x230, 28px radius, 1px border, backdrop-filter
+        blur(18px), the same two box-shadows, an icon + label child) - the
+        scale where the CanvasKit square-corner clip artifact (see
+        backdrop-filter-rounded-clip-with-children.html) was originally
+        spotted. Four variants isolate one suspected contributing cause
+        each - box-shadow and children turned out to be independent
+        red herrings; the real cause (confirmed and fixed, see the other
+        fixture's header) was the rounded backdrop clip being skipped
+        whenever the element had children at all, at any scale:
           A  box-shadow + children   (exact replica)
           B  no box-shadow + children
           C  box-shadow, no children
@@ -60,7 +65,7 @@
     </style>
   </head>
   <body>
-    <div class="label">backdrop-filter debug - small card (230px, radius 28px) - A: shadow + children, B: children only, C: shadow only, D: neither - lines behind must blur inside every card</div>
+    <div class="label">Backdrop-filter small card (230px, radius 28px) - A: shadow + children, B: children only, C: shadow only, D: neither - lines behind must blur inside every card, corners must stay rounded in all four</div>
     <div class="glow"></div>
     <div class="line-a"></div>
     <div class="line-b"></div>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#05060a","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #05060a; }
+      .label { position: absolute; left: 24px; top: 24px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption { position: absolute; top: 970px; width: 260px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; }
+
+      /*
+        The scenario that started the ring investigation (2026-09-27): in
+        neonix-motion-test-10s.html, `.ring`'s arc appeared to stay visibly
+        sharp behind `.card`'s `backdrop-filter: blur(18px)` in CanvasKit
+        vs Chrome. Reproduced here at the exact real geometry: ring center
+        is the composition center (960, 540) at radius 380, and offset
+        (-375, +90) from that center - card-a's real top-left corner in the
+        real scene - lands at distance 385.7, only 5.7px outside the
+        border: a near-TANGENT grazing crossing, not a perpendicular one,
+        where anti-aliasing/blur differences would be far more visible
+        than where a card cuts straight through the ring's interior.
+
+        Also folds in the companion check ring-motion-fidelity.html's
+        header references (formerly a separate fixture,
+        card-own-shadow-in-backdrop.html): does a card's own box-shadow
+        leak into its own backdrop-filter capture? CSS backdrop-filter
+        should sample the backdrop as it stood BEFORE the element painted
+        anything of its own (background/border/box-shadow paint on top of
+        the already-filtered backdrop, never into the sample). The two
+        cards below differ only in whether the card has its own box-shadow
+        - if Chrome and CanvasKit agree, the ring should show through both
+        cards EQUALLY; extra brightness/glow specifically on the
+        box-shadow card points at `boxEffectDrawnEarly` (see
+        canvaskit-preview/command/layers.ts) drawing that shadow before the
+        backdrop capture, unlike Chrome.
+
+        Ring is held at a fixed angle (rotating a symmetric circle+shadow
+        is a confirmed no-op - see ring-motion-fidelity.html) and a fixed
+        mid-cycle filter value (blur(2px) hue-rotate(25deg)).
+      */
+      .ring {
+        position: absolute;
+        left: 580px;
+        top: 160px;
+        width: 760px;
+        height: 760px;
+        border-radius: 50%;
+        border: 2px solid rgba(168, 85, 247, 0.35);
+        box-shadow: 0 0 60px rgba(168, 85, 247, 0.25) inset, 0 0 40px rgba(34, 211, 238, 0.2);
+        filter: blur(2px) hue-rotate(25deg);
+      }
+      .card {
+        position: absolute;
+        top: 630px;
+        width: 230px;
+        height: 230px;
+        border-radius: 28px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(18px);
+      }
+      /* top-left corner at (585, 630) - offset(-375, +90) from ring center, distance 385.7 - grazes the border. */
+      .card-no-shadow { left: 585px; }
+      /* mirrored: top-right corner at (1335, 630) - offset(+375, +90) - grazes the border symmetrically. */
+      .card-with-shadow { left: 1105px; box-shadow: 0 0 50px rgba(34, 211, 238, 0.35), 0 20px 40px rgba(0, 0, 0, 0.4); }
+
+      .caption-no-shadow { left: 470px; width: 460px; }
+      .caption-with-shadow { left: 990px; width: 460px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Ring behind a backdrop-filter card, at the exact tangent-grazing offset from the real scene - compare how much of the ring's border line shows through each card's top corner (with vs without the card's own box-shadow), in browser vs CanvasKit.</div>
+    <div class="ring"></div>
+    <div class="card card-no-shadow"></div>
+    <div class="card card-with-shadow"></div>
+    <div class="caption caption-no-shadow">backdrop-filter only</div>
+    <div class="caption caption-with-shadow">backdrop-filter + card's own box-shadow</div>
+  </body>
+</html>

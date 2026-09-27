@@ -1,4 +1,4 @@
-import type { PaintCommand, RuntimeEffectOp } from "@motionvideo/motion-runtime";
+import { hasPerspectiveTerms, type PaintCommand, type RuntimeEffectOp } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "../color";
 import type { SkiaCanvasKit, SkiaImage } from "../canvas-kit";
 import { createSkiaPaint } from "../paint";
@@ -144,6 +144,90 @@ const outsetSilhouette = (width: number, height: number, cornerRadius: number, s
   return { width: outWidth, height: outHeight, cornerRadius: outRadius };
 };
 
+// Blink's ShadowData::BlurRadiusToStdDev: "Per spec, sigma is exactly half
+// the blur radius" (css-backgrounds-3 #shadow-blur). Only valid for the
+// mask-filter path below - the offscreen fallback keeps its own calibrated
+// cssShadowBlurRadiusToSkiaSigma, tuned against its image-filter blur.
+const blinkShadowSigma = (blurRadius: number): number => Math.max(0, blurRadius) * 0.5;
+
+/**
+ * Paints box-shadow branches exactly the way Blink does
+ * (BoxPainterBase::PaintNormalBoxShadow / PaintInsetBoxShadow in
+ * box_painter_base.cc): straight onto the destination canvas with a
+ * blurred-shadow draw looper - cc::DrawLooper installs
+ * SkMaskFilter::MakeBlur(kNormal, sigma, respectCTM) plus a SrcIn color -
+ * and a clip, with no offscreen surface at all.
+ *   outer: clip OUT the owner's box, fill the spread-outset rrect shifted by
+ *          the shadow offset.
+ *   inset: clip TO the owner's box, fill a rect-with-rrect-hole (the owner
+ *          shape) shifted by the shadow offset, so the hole's blurred edge
+ *          is what shows inside.
+ * Skia draws a blurred rrect analytically on the GPU, so this costs ~2ms
+ * for a 520px/200px-blur/80px-spread glow orb that the offscreen fallback
+ * below needed ~600ms for (four CPU raster surfaces blurred on the CPU and
+ * re-uploaded as textures every frame - measured with CanvasKit on a real
+ * GPU, see debt-technical.md).
+ */
+function drawBoxShadowBranchesDirect(
+  ctx: ReplayContext,
+  source: NonNullable<ReplayLayer["boxEffectSource"]>,
+  branches: readonly BoxShadowOverlayBranch[],
+): void {
+  const { kit, canvas } = ctx;
+  const maskFilter = kit.MaskFilter!;
+  const blurStyle = kit.BlurStyle!.Normal;
+  const radius = Math.max(0, Math.min(source.cornerRadius ?? 0, Math.min(source.width, source.height) / 2));
+  const ownerRRect = rRectArgs(0, 0, source.width, source.height, radius);
+  // CSS paints the first listed shadow on top; Blink iterates the list
+  // back to front for the same reason.
+  for (let index = branches.length - 1; index >= 0; index -= 1) {
+    const branch = branches[index]!;
+    const [red, green, blue, alpha] = cssColorToRgba(branch.tint.color);
+    const shadowAlpha = Math.max(0, Math.min(1, alpha * branch.tint.opacity));
+    if (shadowAlpha <= 0) continue;
+    const offsetX = branch.offset?.x ?? 0;
+    const offsetY = branch.offset?.y ?? 0;
+    const sigma = blinkShadowSigma(branch.blur.radius);
+    const blur = sigma > 0 ? maskFilter.MakeBlur(blurStyle, sigma, true) : null;
+    const paint = new kit.Paint();
+    paint.setAntiAlias(true);
+    paint.setStyle(kit.PaintStyle.Fill);
+    paint.setColor(kit.Color(red * 255, green * 255, blue * 255, shadowAlpha));
+    if (blur) paint.setMaskFilter?.(blur);
+    canvas.save();
+    canvas.concat(matrix4ToSkia3x3(source.matrix4));
+    if (branch.kind === "outer") {
+      const spread = branch.spread
+        ? (branch.spread.operator === "dilate" ? branch.spread.radius : -branch.spread.radius)
+        : 0;
+      const outset = outsetSilhouette(source.width, source.height, radius, spread);
+      if (outset.width > 0 && outset.height > 0) {
+        canvas.clipRRect!(ownerRRect, kit.ClipOp.Difference, true);
+        const left = offsetX - spread;
+        const top = offsetY - spread;
+        canvas.drawRRect(rRectArgs(left, top, left + outset.width, top + outset.height, outset.cornerRadius), paint);
+      }
+    } else {
+      canvas.clipRRect!(ownerRRect, kit.ClipOp.Intersect, true);
+      // Blink's AreaCastingShadowInHole: the hole outset by the blur
+      // radius, unioned with itself shifted back by the offset, so that
+      // after the looper's offset the filled area still covers the clip.
+      const outsetBy = Math.max(0, branch.blur.radius);
+      const outer = [
+        Math.min(-outsetBy, -outsetBy - offsetX),
+        Math.min(-outsetBy, -outsetBy - offsetY),
+        Math.max(source.width + outsetBy, source.width + outsetBy - offsetX),
+        Math.max(source.height + outsetBy, source.height + outsetBy - offsetY),
+      ] as const;
+      canvas.concat([1, 0, offsetX, 0, 1, offsetY, 0, 0, 1]);
+      canvas.drawDRRect!(rRectArgs(outer[0], outer[1], outer[2], outer[3], 0), ownerRRect, paint);
+    }
+    canvas.restore();
+    paint.delete();
+    blur?.delete();
+  }
+}
+
 /** Draws a layer's box-shadow halo(s) from its synthetic effect box - see beginLayer/endLayer for when it runs. */
 export function drawBoxEffect(ctx: ReplayContext, layer: ReplayLayer): void {
   const { kit, canvas, deviceScale, frameWidth, frameHeight, addDiagnostic, acquireSurface, releaseSurface } = ctx;
@@ -153,6 +237,19 @@ export function drawBoxEffect(ctx: ReplayContext, layer: ReplayLayer): void {
   const boxBranches = boxShadowOverlayBranches(program);
   if ((!filter && !boxBranches) || !source) {
     if (filter && !source) addDiagnostic(`skia_box_effect_source_missing:${layer.key}`);
+    return;
+  }
+  // A perspective effect box would need the mask filter to blur in a
+  // projected space Skia's blur mask filter does not model; keep those on
+  // the offscreen path, as well as any CanvasKit build/test double lacking
+  // the mask-filter or rrect clip/DRRect entry points.
+  if (
+    boxBranches &&
+    kit.MaskFilter && kit.BlurStyle && kit.ClipOp.Difference !== undefined &&
+    canvas.clipRRect && canvas.drawDRRect &&
+    !hasPerspectiveTerms(source.matrix4)
+  ) {
+    drawBoxShadowBranchesDirect(ctx, source, boxBranches);
     return;
   }
   if (boxBranches) {

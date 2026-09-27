@@ -30,6 +30,9 @@ export type SkiaCanvasKit = {
     MakeBlend?(color: unknown, mode: unknown): SkiaColorFilter | null;
   };
   ClipOp: { Intersect: unknown; Difference?: unknown };
+  /** CanvasKit mask filters; a Normal blur is what Blink's box-shadow DrawLooper installs. */
+  MaskFilter?: { MakeBlur(style: unknown, sigma: number, respectCTM: boolean): SkiaMaskFilter | null };
+  BlurStyle?: { Normal: unknown; Solid: unknown; Outer: unknown; Inner: unknown };
   ImageFilter: {
     MakeBlur(sigmaX: number, sigmaY: number, tileMode: unknown, input?: unknown): SkiaImageFilter | null;
     /** CanvasKit image-filter transform used for translated shadow masks. */
@@ -74,6 +77,8 @@ export type SkiaCanvas = {
   concat(matrix: number[]): void;
   drawRect(rect: unknown, paint: SkiaPaint): void;
   drawRRect(rect: unknown, paint: SkiaPaint): void;
+  /** Fills the region between two rrects (outer minus inner). */
+  drawDRRect?(outer: unknown, inner: unknown, paint: SkiaPaint): void;
   drawOval(rect: unknown, paint: SkiaPaint): void;
   drawPath(path: SkiaPath, paint: SkiaPaint): void;
   drawGlyphs(glyphs: Uint16Array, positions: Float32Array, x: number, y: number, font: SkiaFont, paint: SkiaPaint): void;
@@ -82,6 +87,7 @@ export type SkiaCanvas = {
   saveLayer(paint?: SkiaPaint | null, bounds?: unknown, backdrop?: SkiaImageFilter | null, flags?: number, tileMode?: unknown): number;
   clipRect(rect: unknown, op?: unknown, antialias?: boolean): void;
   clipPath?(path: SkiaPath, op?: unknown, antialias?: boolean): void;
+  clipRRect?(rrect: unknown, op: unknown, antialias: boolean): void;
   readPixels(x: number, y: number, info: unknown): Uint8Array | null;
 };
 
@@ -96,6 +102,7 @@ export type SkiaPaint = {
   setBlendMode(value: unknown): void;
   setPathEffect?(value: SkiaPathEffect | null): void;
   setImageFilter?(value: SkiaImageFilter | null): void;
+  setMaskFilter?(value: SkiaMaskFilter | null): void;
   setShader(value: unknown): void;
   delete(): void;
 };
@@ -112,6 +119,7 @@ export type SkiaPictureRecorder = {
 };
 export type SkiaColorFilter = { delete(): void };
 export type SkiaImageFilter = { delete(): void };
+export type SkiaMaskFilter = { delete(): void };
 export type SkiaPathEffect = { delete(): void };
 export type SkiaPath = { delete(): void; setFillType?(value: unknown): void };
 export type SkiaPathBuilder = { transform(...args: unknown[]): SkiaPathBuilder; snapshot(): SkiaPath; delete(): void };

@@ -55,36 +55,39 @@ function backdropFilterPadding(
   return padding;
 }
 
+type ContentBounds = { left: number; top: number; right: number; bottom: number };
+
 /**
- * Union the drawable content bounds inside a beginLayer..endLayer scope.
- * Backdrop filters must be clipped to this element region; using the full
- * frame lets the blurred backdrop bleed outside the owner.
+ * Union the drawable content bounds inside a beginLayer..endLayer (or
+ * beginGroup..endGroup) scope, including every nested scope. A nested
+ * layer contributes its own content expanded by its own filter/shadow
+ * outset - the same way Blink sizes an effect node from its descendants'
+ * visual rects mapped through their filters - because this union becomes
+ * the parent's saveLayer bounds: leaving nested layers out (as this used to)
+ * hard-clips a child's text-shadow/box-shadow halo to the parent's own box
+ * whenever the parent needs a layer, e.g. while an opacity animation runs.
+ * Backdrop filters must still be clipped to this element region; using the
+ * full frame lets the blurred backdrop bleed outside the owner.
  */
-function layerContentBounds(
+function scopeContentBounds(
   commands: readonly PaintCommand[],
   beginIndex: number,
-  layerKey: string,
   projectionContext: SkiaProjectionContext | undefined,
-): { left: number; top: number; right: number; bottom: number } | undefined {
-  let depth = 0;
+): { bounds: ContentBounds | undefined; endIndex: number } {
   let pending: Extract<PaintCommand, { op: "setTransform" }> | null = null;
-  let bounds: { left: number; top: number; right: number; bottom: number } | undefined;
-  for (let index = beginIndex + 1; index < commands.length; index += 1) {
+  let bounds: ContentBounds | undefined;
+  let index = beginIndex + 1;
+  for (; index < commands.length; index += 1) {
     const command = commands[index]!;
     if (command.op === "beginLayer" || command.op === "beginGroup") {
-      depth += 1;
-      continue;
-    }
-    if (command.op === "endLayer" || command.op === "endGroup") {
-      if (depth === 0) {
-        if (command.op === "endLayer" && command.key === layerKey) break;
-        break;
-      }
-      depth -= 1;
+      const nested = scopeContentBounds(commands, index, projectionContext);
+      const pad = command.op === "beginLayer" ? effectFilterExpansionPadding(command.effectProgram) : 0;
+      if (nested.bounds) bounds = unionBounds(bounds, pad > 0 ? expandBounds(nested.bounds, pad) : nested.bounds);
+      index = nested.endIndex;
       pending = null;
       continue;
     }
-    if (depth > 0) continue;
+    if (command.op === "endLayer" || command.op === "endGroup") break;
     if (command.op === "setTransform") {
       pending = projectionContext ? transformForSkiaCanvas(command, projectionContext) : command;
       continue;
@@ -94,7 +97,15 @@ function layerContentBounds(
     pending = null;
     if (next) bounds = unionBounds(bounds, next);
   }
-  return bounds;
+  return { bounds, endIndex: index };
+}
+
+function layerContentBounds(
+  commands: readonly PaintCommand[],
+  beginIndex: number,
+  projectionContext: SkiaProjectionContext | undefined,
+): ContentBounds | undefined {
+  return scopeContentBounds(commands, beginIndex, projectionContext).bounds;
 }
 
 function effectFilterForCached(ctx: ReplayContext, program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram']) {
@@ -264,7 +275,7 @@ export function beginLayer(ctx: ReplayContext, command: Extract<PaintCommand, { 
     }
     const contentBounds = (command.offscreen || command.isolation || command.compositeAlpha !== undefined
       || backdropEffectFilter.filter || layerFilter || boxEffectFilter || boxEffectActive)
-      ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
+      ? layerContentBounds(buffer.commands, commandIndex, projectionContext)
       : undefined;
     let saveBounds = boundsToRect(frameBounds);
     if (backdropEffectFilter.filter) {

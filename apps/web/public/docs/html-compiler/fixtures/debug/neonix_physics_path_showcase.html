@@ -1,0 +1,436 @@
+<meta
+  name="neonix-document"
+  content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#0b0e14","colorSpace":"srgb"}}'
+>
+<style>
+  #scene {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    background: radial-gradient(1200px 700px at 50% 20%, #121826 0%, #0b0e14 60%, #06080d 100%);
+    font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ---------- Title ---------- */
+  .title {
+    position: absolute; top: 40px; left: 0; width: 1920px;
+    text-align: center; font-size: 50px; font-weight: bold; letter-spacing: 3px;
+    color: #e5e7eb; opacity: 0;
+    animation: introFade 1s ease-out 0s 1 forwards;
+  }
+  .subtitle {
+    position: absolute; top: 108px; left: 0; width: 1920px;
+    text-align: center; font-size: 24px; color: #7dd3fc; opacity: 0;
+    animation: introFade 1s ease-out 0.2s 1 forwards;
+  }
+  @keyframes introFade {
+    0%   { opacity: 0; transform: translateY(-8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Shared act-visibility fade (used by elements whose own effect isn't opacity) ---------- */
+  @keyframes actFade {
+    0%   { opacity: 0; }
+    6%   { opacity: 1; }
+    94%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ---------- Shared caption row ---------- */
+  .caption {
+    position: absolute; top: 810px; left: 0; width: 1920px;
+    text-align: center; font-size: 30px; font-weight: bold; letter-spacing: 2px;
+    opacity: 0; animation-name: actFade; animation-duration: 5s; animation-timing-function: ease-in-out;
+    animation-iteration-count: 1; animation-fill-mode: both;
+  }
+  .cap-0  { color: #7dd3fc; animation-delay: 0s;  }
+  .cap-1  { color: #6ee7b7; animation-delay: 5s;  }
+  .cap-2  { color: #f9a8d4; animation-delay: 10s; }
+  .cap-3  { color: #fbbf24; animation-delay: 15s; }
+  .cap-4  { color: #93c5fd; animation-delay: 20s; }
+  .cap-5  { color: #6ee7b7; animation-delay: 25s; }
+  .cap-6  { color: #fca5a5; animation-delay: 30s; }
+  .cap-7  { color: #c4b5fd; animation-delay: 35s; }
+  .cap-8  { color: #7dd3fc; animation-delay: 40s; }
+  .cap-9  { color: #fde68a; animation-delay: 45s; }
+  .cap-10 { color: #6ee7b7; animation-delay: 50s; }
+  .cap-11 { color: #f9a8d4; animation-delay: 55s; }
+  .cap-12 { color: #93c5fd; animation-delay: 60s; }
+
+  /* ---------- Shared ball look ---------- */
+  .ball {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #7dd3fc, #0ea5e9 60%, #0369a1 100%);
+    box-shadow: 0 0 40px rgba(14, 165, 233, 0.55);
+  }
+  .ball-pink { background: radial-gradient(circle at 35% 30%, #fbcfe8, #f472b6 60%, #be185d 100%); box-shadow: 0 0 40px rgba(244,114,182,0.55); }
+  .ball-amber{ background: radial-gradient(circle at 35% 30%, #fde68a, #fbbf24 60%, #b45309 100%); box-shadow: 0 0 40px rgba(251,191,36,0.5); }
+  .ball-green{ background: radial-gradient(circle at 35% 30%, #bbf7d0, #34d399 60%, #047857 100%); box-shadow: 0 0 40px rgba(52,211,153,0.5); }
+  .ball-small{ width: 70px; height: 70px; }
+
+  /* =========================================================
+     ACT 0 (0s-5s): Arc path motion
+  ========================================================== */
+  .act0-ball {
+    position: absolute; top: 0; left: 0;
+    offset-path: path('M 660 470 A 350 350 0 0 1 1260 470');
+    offset-rotate: 0deg;
+    animation: act0Arc 5s ease-in-out 0s 1 both;
+  }
+  @keyframes act0Arc {
+    0%   { offset-distance: 0%;   opacity: 0; }
+    4%   { opacity: 1; }
+    96%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  /* ---------- Shared anchor visuals (dot + string + hung ball) ---------- */
+  .anchor-dot {
+    position: absolute; left: -7px; top: -7px; width: 14px; height: 14px;
+    border-radius: 50%; background: #e5e7eb; box-shadow: 0 0 12px rgba(229,231,235,0.7);
+  }
+  .anchor-string {
+    position: absolute; left: -1px; top: 0; width: 2px; height: 170px;
+    background: rgba(229,231,235,0.55);
+  }
+  .anchor-ball {
+    position: absolute; left: -60px; top: 170px;
+  }
+
+  /* =========================================================
+     ACT 1 (5s-10s): Steady pendulum (constant amplitude, no decay)
+  ========================================================== */
+  .act1-wrap {
+    position: absolute; left: 900px; top: 230px; width: 1px; height: 1px;
+    transform-origin: 50% 0%;
+    animation: act1Pendulum 5s ease-in-out 5s 1 both;
+  }
+  @keyframes act1Pendulum {
+    0%    { transform: rotate(0deg);   opacity: 0; }
+    4%    { opacity: 1; }
+    12.5% { transform: rotate(26deg); }
+    25%   { transform: rotate(0deg);  }
+    37.5% { transform: rotate(-26deg); }
+    50%   { transform: rotate(0deg);  }
+    62.5% { transform: rotate(26deg); }
+    75%   { transform: rotate(0deg);  }
+    87.5% { transform: rotate(-26deg); }
+    96%   { opacity: 1; }
+    100%  { transform: rotate(0deg);  opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 2 (10s-15s): Elastic wobble around an anchor (damped)
+  ========================================================== */
+  .act2-wrap {
+    position: absolute; left: 900px; top: 230px; width: 1px; height: 1px;
+    transform-origin: 50% 0%;
+    animation: act2Elastic 5s ease-out 10s 1 both;
+  }
+  @keyframes act2Elastic {
+    0%   { transform: rotate(0deg)   scale(1);    opacity: 0; }
+    4%   { opacity: 1; }
+    10%  { transform: rotate(28deg)  scale(1.05); }
+    20%  { transform: rotate(-18deg) scale(0.97); }
+    30%  { transform: rotate(12deg)  scale(1.03); }
+    40%  { transform: rotate(-7deg)  scale(0.99); }
+    50%  { transform: rotate(4deg)   scale(1.01); }
+    60%  { transform: rotate(-2deg)  scale(1);    }
+    70%  { transform: rotate(1deg); }
+    80%  { transform: rotate(0deg); }
+    96%  { opacity: 1; }
+    100% { transform: rotate(0deg)   scale(1);    opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 3 (15s-20s): Real bouncing ball (gravity decay + squash/stretch)
+  ========================================================== */
+  .act3-ground {
+    position: absolute; left: 560px; top: 740px; width: 800px; height: 2px;
+    background: rgba(255,255,255,0.18);
+    animation: actFade 5s ease-in-out 15s 1 both;
+  }
+  .act3-ball {
+    position: absolute; left: 900px; top: 150px;
+    transform-origin: 50% 100%;
+    animation: act3Bounce 5s 15s 1 both, act3BallFade 5s ease-in-out 15s 1 both;
+  }
+  @keyframes act3BallFade {
+    0% { opacity: 0; } 4% { opacity: 1; } 96% { opacity: 1; } 100% { opacity: 0; }
+  }
+  @keyframes act3Bounce {
+    0%   { transform: translateY(0px)   scale(1,1);       animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+    16%  { transform: translateY(480px) scale(1.3,0.65);  animation-timing-function: cubic-bezier(.22,.61,.36,1);  }
+    34%  { transform: translateY(160px) scale(1,1);       animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+    50%  { transform: translateY(480px) scale(1.22,0.75); animation-timing-function: cubic-bezier(.22,.61,.36,1);  }
+    62%  { transform: translateY(300px) scale(1,1);       animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+    72%  { transform: translateY(480px) scale(1.14,0.85); animation-timing-function: cubic-bezier(.22,.61,.36,1);  }
+    80%  { transform: translateY(430px) scale(1,1);       animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+    88%  { transform: translateY(480px) scale(1.05,0.95); }
+    100% { transform: translateY(480px) scale(1,1); }
+  }
+
+  /* =========================================================
+     ACT 4 (20s-25s): Projectile parabola (thrown object, with tumble)
+  ========================================================== */
+  .act4-ball {
+    position: absolute; left: 520px; top: 470px;
+    animation: act4Parabola 5s linear 20s 1 both;
+  }
+  @keyframes act4Parabola {
+    0%   { transform: translate(0px,0px)     rotate(0deg);   opacity: 0; }
+    4%   { opacity: 1; }
+    10%  { transform: translate(90px,-126px)  rotate(30deg); }
+    20%  { transform: translate(180px,-224px) rotate(60deg); }
+    30%  { transform: translate(270px,-294px) rotate(90deg); }
+    40%  { transform: translate(360px,-336px) rotate(120deg);}
+    50%  { transform: translate(450px,-350px) rotate(150deg);}
+    60%  { transform: translate(540px,-336px) rotate(180deg);}
+    70%  { transform: translate(630px,-294px) rotate(210deg);}
+    80%  { transform: translate(720px,-224px) rotate(240deg);}
+    90%  { transform: translate(810px,-126px) rotate(270deg);}
+    96%  { opacity: 1; }
+    100% { transform: translate(900px,0px)    rotate(300deg); opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 5 (25s-30s): Back-and-forth linear sway
+  ========================================================== */
+  .act5-ball {
+    position: absolute; left: 660px; top: 470px;
+    animation: act5Sway 5s ease-in-out 25s 1 both;
+  }
+  @keyframes act5Sway {
+    0%    { transform: translateX(0);      opacity: 0; }
+    4%    { opacity: 1; }
+    12.5% { transform: translateX(260px); }
+    25%   { transform: translateX(0);      }
+    37.5% { transform: translateX(260px); }
+    50%   { transform: translateX(0);      }
+    62.5% { transform: translateX(260px); }
+    75%   { transform: translateX(0);      }
+    87.5% { transform: translateX(260px); }
+    96%   { opacity: 1; }
+    100%  { transform: translateX(0);      opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 6 (30s-35s): Overshoot pop-in (spring-style UI entrance)
+  ========================================================== */
+  .act6-badge {
+    position: absolute; left: 860px; top: 410px; width: 200px; height: 200px;
+    border-radius: 32px;
+    background: radial-gradient(circle at 35% 30%, #ddd6fe, #8b5cf6 60%, #5b21b6 100%);
+    box-shadow: 0 0 50px rgba(139,92,246,0.55);
+    animation: act6Pop 5s cubic-bezier(.34,1.56,.64,1) 30s 1 both;
+  }
+  @keyframes act6Pop {
+    0%   { transform: scale(0);  opacity: 0; }
+    8%   { opacity: 1; }
+    40%  { transform: scale(1); }
+    92%  { opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 7 (35s-40s): Rubber-band snap-back
+  ========================================================== */
+  .act7-badge {
+    position: absolute; left: 860px; top: 410px; width: 200px; height: 200px;
+    border-radius: 32px;
+    background: radial-gradient(circle at 35% 30%, #fecaca, #f87171 60%, #991b1b 100%);
+    box-shadow: 0 0 50px rgba(248,113,113,0.5);
+    animation: act7Rubber 5s ease-out 35s 1 both, act7Fade 5s ease-in-out 35s 1 both;
+  }
+  @keyframes act7Fade { 0%{opacity:0;} 6%{opacity:1;} 94%{opacity:1;} 100%{opacity:0;} }
+  @keyframes act7Rubber {
+    0%   { transform: scale(1,1);       }
+    12%  { transform: scale(1.25,0.75); }
+    24%  { transform: scale(0.75,1.25); }
+    36%  { transform: scale(1.15,0.85); }
+    48%  { transform: scale(0.95,1.05); }
+    60%  { transform: scale(1.05,0.95); }
+    72%  { transform: scale(1,1);       }
+    100% { transform: scale(1,1);       }
+  }
+
+  /* =========================================================
+     ACT 8 (40s-45s): Orbit around a fixed anchor point
+  ========================================================== */
+  .act8-anchor {
+    position: absolute; left: 954px; top: 464px; width: 12px; height: 12px;
+    border-radius: 50%; background: #e5e7eb; box-shadow: 0 0 12px rgba(229,231,235,0.7);
+    animation: actFade 5s ease-in-out 40s 1 both;
+  }
+  .act8-ball {
+    position: absolute; top: 0; left: 0;
+    offset-path: path('M 740 470 A 220 220 0 1 1 1180 470 A 220 220 0 1 1 740 470');
+    offset-rotate: 0deg;
+    animation: act8Orbit 5s linear 40s 1 both;
+  }
+  @keyframes act8Orbit {
+    0%   { offset-distance: 0%;   opacity: 0; }
+    4%   { opacity: 1; }
+    96%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 9 (45s-50s): Traveling wave (staggered bobbing dots)
+  ========================================================== */
+  .act9-dot {
+    position: absolute; top: 470px; width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #a7f3d0, #10b981 60%, #065f46 100%);
+    box-shadow: 0 0 22px rgba(16,185,129,0.5);
+    animation: act9Bob 1.1s ease-in-out infinite, act9Fade 5s ease-in-out 45s 1 both;
+  }
+  @keyframes act9Bob  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-34px); } }
+  @keyframes act9Fade { 0%{opacity:0;} 6%{opacity:1;} 94%{opacity:1;} 100%{opacity:0;} }
+  .act9-d0 { left: 660px; animation-delay: 45.00s, 45s; }
+  .act9-d1 { left: 760px; animation-delay: 45.15s, 45s; }
+  .act9-d2 { left: 860px; animation-delay: 45.30s, 45s; }
+  .act9-d3 { left: 960px; animation-delay: 45.45s, 45s; }
+  .act9-d4 { left: 1060px; animation-delay: 45.60s, 45s; }
+  .act9-d5 { left: 1160px; animation-delay: 45.75s, 45s; }
+  .act9-d6 { left: 1260px; animation-delay: 45.90s, 45s; }
+
+  /* =========================================================
+     ACT 10 (50s-55s): Path motion - zigzag
+  ========================================================== */
+  .act10-ball {
+    position: absolute; top: 0; left: 0;
+    offset-path: path('M 560 470 L 700 350 L 840 590 L 980 350 L 1120 590 L 1260 470');
+    offset-rotate: 0deg;
+    animation: act10Zigzag 5s ease-in-out 50s 1 both;
+  }
+  @keyframes act10Zigzag {
+    0%   { offset-distance: 0%;   opacity: 0; }
+    4%   { opacity: 1; }
+    96%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  /* =========================================================
+     ACT 11 (55s-60s): Path motion - outward spiral
+  ========================================================== */
+  .act11-ball {
+    position: absolute; top: 0; left: 0;
+    animation: act11Spiral 5s linear 55s 1 both, act11Fade 5s ease-in-out 55s 1 both;
+  }
+  @keyframes act11Fade { 0%{opacity:0;} 4%{opacity:1;} 96%{opacity:1;} 100%{opacity:0;} }
+  @keyframes act11Spiral {
+    0%    { transform: translate(945px,435px);  }
+    8.3%  { transform: translate(943px,465px);  }
+    16.7% { transform: translate(900px,478px);  }
+    25%   { transform: translate(860px,435px);  }
+    33.3% { transform: translate(885px,366px);  }
+    41.7% { transform: translate(973px,353px);  }
+    50%   { transform: translate(1035px,435px); }
+    58.3% { transform: translate(988px,543px);  }
+    66.7% { transform: translate(855px,556px);  }
+    75%   { transform: translate(770px,435px);  }
+    83.3% { transform: translate(840px,288px);  }
+    91.7% { transform: translate(1018px,275px); }
+    100%  { transform: translate(1125px,435px); }
+  }
+
+  /* =========================================================
+     ACT 12 (60s-65s): Path motion - figure-8 / infinity loop
+  ========================================================== */
+  .act12-ball {
+    position: absolute; top: 0; left: 0;
+    animation: act12Fig8 5s linear 60s 1 both, act12Fade 5s ease-in-out 60s 1 both;
+  }
+  @keyframes act12Fade { 0%{opacity:0;} 4%{opacity:1;} 96%{opacity:1;} 100%{opacity:0;} }
+  @keyframes act12Fig8 {
+    0%    { transform: translate(925px,435px);  }
+    8.3%  { transform: translate(1055px,556px); }
+    16.7% { transform: translate(1150px,556px); }
+    25%   { transform: translate(1185px,435px); }
+    33.3% { transform: translate(1150px,314px); }
+    41.7% { transform: translate(1055px,314px); }
+    50%   { transform: translate(925px,435px);  }
+    58.3% { transform: translate(795px,556px);  }
+    66.7% { transform: translate(700px,556px);  }
+    75%   { transform: translate(665px,435px);  }
+    83.3% { transform: translate(700px,314px);  }
+    91.7% { transform: translate(795px,314px);  }
+    100%  { transform: translate(925px,435px);  }
+  }
+</style>
+<body>
+  <div id="scene">
+    <div class="title">NEONIX PHYSICS &amp; PATH MOTION SHOWCASE</div>
+    <div class="subtitle">13 kieu chuyen dong vat ly &amp; path motion &mdash; noi tiep tuan tu, moi canh 5s</div>
+
+    <!-- Act 0 -->
+    <div class="ball act0-ball"></div>
+    <div class="caption cap-0">0. ARC PATH MOTION</div>
+
+    <!-- Act 1 -->
+    <div class="act1-wrap">
+      <div class="anchor-dot"></div>
+      <div class="anchor-string"></div>
+      <div class="ball ball-green anchor-ball"></div>
+    </div>
+    <div class="caption cap-1">1. STEADY PENDULUM</div>
+
+    <!-- Act 2 -->
+    <div class="act2-wrap">
+      <div class="anchor-dot"></div>
+      <div class="anchor-string"></div>
+      <div class="ball ball-pink anchor-ball"></div>
+    </div>
+    <div class="caption cap-2">2. ELASTIC WOBBLE AROUND ANCHOR</div>
+
+    <!-- Act 3 -->
+    <div class="act3-ground"></div>
+    <div class="ball ball-amber act3-ball"></div>
+    <div class="caption cap-3">3. REAL BOUNCING BALL (GRAVITY + SQUASH/STRETCH)</div>
+
+    <!-- Act 4 -->
+    <div class="ball act4-ball"></div>
+    <div class="caption cap-4">4. PROJECTILE PARABOLA (TUMBLE)</div>
+
+    <!-- Act 5 -->
+    <div class="ball ball-green act5-ball"></div>
+    <div class="caption cap-5">5. BACK &amp; FORTH SWAY</div>
+
+    <!-- Act 6 -->
+    <div class="act6-badge"></div>
+    <div class="caption cap-6">6. OVERSHOOT POP-IN</div>
+
+    <!-- Act 7 -->
+    <div class="act7-badge"></div>
+    <div class="caption cap-7">7. RUBBER-BAND SNAP-BACK</div>
+
+    <!-- Act 8 -->
+    <div class="act8-anchor"></div>
+    <div class="ball ball-pink ball-small act8-ball"></div>
+    <div class="caption cap-8">8. ORBIT AROUND FIXED ANCHOR</div>
+
+    <!-- Act 9 -->
+    <div class="act9-dot act9-d0"></div>
+    <div class="act9-dot act9-d1"></div>
+    <div class="act9-dot act9-d2"></div>
+    <div class="act9-dot act9-d3"></div>
+    <div class="act9-dot act9-d4"></div>
+    <div class="act9-dot act9-d5"></div>
+    <div class="act9-dot act9-d6"></div>
+    <div class="caption cap-9">9. TRAVELING WAVE</div>
+
+    <!-- Act 10 -->
+    <div class="ball ball-amber ball-small act10-ball"></div>
+    <div class="caption cap-10">10. PATH MOTION: ZIGZAG</div>
+
+    <!-- Act 11 -->
+    <div class="ball ball-green ball-small act11-ball"></div>
+    <div class="caption cap-11">11. PATH MOTION: OUTWARD SPIRAL</div>
+
+    <!-- Act 12 -->
+    <div class="ball ball-pink ball-small act12-ball"></div>
+    <div class="caption cap-12">12. PATH MOTION: FIGURE-8</div>
+  </div>
+</body>
