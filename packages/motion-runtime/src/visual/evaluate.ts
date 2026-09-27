@@ -372,6 +372,10 @@ export function evaluatePreparedVisualRuntimeProject(
           return effectBox ? { effectBox } : {};
         })() : {}),
         ...(backdropEffectProgram ? { backdropEffectProgram } : {}),
+        ...(backdropEffectProgram ? (() => {
+          const backdropBox = effectBoxFor(node, [], "border");
+          return backdropBox ? { backdropBox } : {};
+        })() : {}),
       });
     }
     const nonScalingStrokeMesh = content.kind === "path" &&
@@ -607,7 +611,17 @@ export function evaluatePreparedVisualRuntimeProject(
     }
   };
 
-  const effectBoxFor = (node: VisualRuntimeNode, directChildren: readonly VisualRuntimeNode[] = []) => {
+  /**
+   * `box: "padding"` (box-shadow) insets by a uniform border because CSS
+   * inset box-shadow starts at the padding edge; `box: "border"` (backdrop-
+   * filter) keeps the outer border box, which is what CSS clips a filtered
+   * backdrop to.
+   */
+  const effectBoxFor = (
+    node: VisualRuntimeNode,
+    directChildren: readonly VisualRuntimeNode[] = [],
+    box: "padding" | "border" = "padding",
+  ) => {
     // Runtime V3 needs the owner's geometric box whenever the Skia backend
     // must replay an ordered box-shadow list from isolated masks. This is not
     // limited to inset shadows: a list containing multiple outer shadows may
@@ -616,7 +630,7 @@ export function evaluatePreparedVisualRuntimeProject(
     const hasBoxShadow = node.content.effects?.some(
       (effect) => effect.type === "shadow" && effect.source === "box",
     );
-    if (!hasBoxShadow || node.content.kind === "video") return undefined;
+    if ((box === "padding" && !hasBoxShadow) || node.content.kind === "video") return undefined;
     const cornerRadiusFor = (content: VisualRuntimeNode["content"]): number | undefined => {
       if (content.kind === "shape" && content.shape === "rectangle") return content.cornerRadius;
       // HTML border-radius is lowered to a path before Runtime V3. Recover
@@ -657,7 +671,7 @@ export function evaluatePreparedVisualRuntimeProject(
         Math.abs(node.content.height - child.content.height - strokeWidth) <= 1e-6
       );
     });
-    const borderInset = borderChild ? strokeWidthFor(borderChild.content) ?? 0 : strokeWidthFor(node.content) ?? 0;
+    const borderInset = box === "border" ? 0 : borderChild ? strokeWidthFor(borderChild.content) ?? 0 : strokeWidthFor(node.content) ?? 0;
     const effectWidth = Math.max(1, node.content.width - borderInset * 2);
     const effectHeight = Math.max(1, node.content.height - borderInset * 2);
     const effectRadius = cornerRadius === undefined ? undefined : Math.max(0, cornerRadius - borderInset);
@@ -813,6 +827,10 @@ export function evaluatePreparedVisualRuntimeProject(
           return effectBox ? { effectBox } : {};
         })() : {}),
         ...(backdropEffectProgram ? { backdropEffectProgram } : {}),
+        ...(backdropEffectProgram ? (() => {
+          const backdropBox = effectBoxFor(node, children, "border");
+          return backdropBox ? { backdropBox } : {};
+        })() : {}),
         ...(node.clipPath
           ? {
               clipPath: {

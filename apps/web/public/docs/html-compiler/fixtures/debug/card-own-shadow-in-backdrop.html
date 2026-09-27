@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#05060a","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #05060a; }
+      .label { position: absolute; left: 24px; top: 24px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption { position: absolute; top: 900px; width: 300px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; }
+
+      /*
+        CSS backdrop-filter samples the backdrop BEHIND an element as it
+        stood before that element painted anything of its own - the
+        element's own background/border/box-shadow are painted on top of
+        the already-filtered backdrop, never INTO the sample it captures.
+        canvaskit-preview's beginLayer sometimes draws a box-shadow early
+        (`boxEffectDrawnEarly`, see command/layers.ts) so the backdrop
+        saveLayer's clip stays active around it - a correctness fix for a
+        different bug (the halo getting cut off at the owner's edge) - but
+        as a side effect the shadow is drawn BEFORE the backdrop is
+        captured, so it becomes part of what backdrop-filter blurs, unlike
+        Chrome. Two identical cards over the same striped background,
+        differing only in whether the card has its own box-shadow: if
+        Chrome and CanvasKit agree, both cards' interiors must look
+        IDENTICAL (the box-shadow paints outside/on top, never inside the
+        backdrop sample) - any visible extra brightness/glow bleeding into
+        the right card's interior versus the left is this bug.
+      */
+      .stripes {
+        position: absolute;
+        left: 0;
+        top: 300px;
+        width: 1920px;
+        height: 500px;
+        background: repeating-linear-gradient(90deg, #f8fafc 0%, #f8fafc 4%, #0b1220 4%, #0b1220 8%);
+      }
+      .card {
+        position: absolute;
+        top: 420px;
+        width: 260px;
+        height: 260px;
+        border-radius: 28px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(18px);
+      }
+      .card-reference { left: 660px; }
+      .card-with-shadow { left: 1200px; box-shadow: 0 0 50px rgba(34, 211, 238, 0.35), 0 20px 40px rgba(0, 0, 0, 0.4); }
+
+      .caption-reference { left: 660px; }
+      .caption-with-shadow { left: 1200px; }
+    </style>
+  </head>
+  <body>
+    <div class="stripes"></div>
+    <div class="label">Card's own box-shadow must not leak into its own backdrop-filter sample - both cards sit over the identical striped backdrop; their INTERIORS must look identical regardless of the right card's box-shadow.</div>
+    <div class="card card-reference"></div>
+    <div class="card card-with-shadow"></div>
+    <div class="caption caption-reference">backdrop-filter only (reference)</div>
+    <div class="caption caption-with-shadow">backdrop-filter + own box-shadow</div>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#05060a","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #05060a; }
+      .label { position: absolute; left: 24px; top: 24px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption { position: absolute; top: 900px; width: 360px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; }
+
+      /*
+        Control fixture: `.ring`'s own `animation: ringSpin` only rotates a
+        PERFECTLY SYMMETRIC circle - a solid border + two radially-symmetric
+        (0 0 Npx, no offset) box-shadows around a circle look pixel-identical
+        at any rotation angle. If this fixture shows near-zero browser-vs-
+        native delta at every angle below, rotation/projection is NOT the
+        source of the ring mismatch seen in neonix-motion-test-10s.html, and
+        the investigation should focus on the filter/blur combo
+        (ring-filter-hue-blur-static.html) or the backdrop-filter card the
+        ring passes behind (ring-behind-backdrop-card.html) instead. No CSS
+        filter here at all - transform only.
+      */
+      .ring { position: absolute; top: 260px; width: 380px; height: 380px; border-radius: 50%; border: 2px solid rgba(168, 85, 247, 0.35); box-shadow: 0 0 30px rgba(168, 85, 247, 0.25) inset, 0 0 20px rgba(34, 211, 238, 0.2); }
+      .ring-0 { left: 60px; transform: rotate(0deg); }
+      .ring-45 { left: 540px; transform: rotate(45deg); }
+      .ring-90 { left: 1020px; transform: rotate(90deg); }
+      .ring-171 { left: 1500px; transform: rotate(171deg); }
+
+      .caption-0 { left: 60px; }
+      .caption-45 { left: 540px; }
+      .caption-90 { left: 1020px; }
+      .caption-171 { left: 1500px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Rotation-only control: same ring geometry as ring-filter-hue-blur-static.html, no filter, 4 fixed rotation angles instead of the CSS animation - a symmetric circle+shadow must render identically at every angle if rotation is truly a no-op here.</div>
+    <div class="ring ring-0"></div>
+    <div class="ring ring-45"></div>
+    <div class="ring ring-90"></div>
+    <div class="ring ring-171"></div>
+    <div class="caption caption-0">rotate(0deg)</div>
+    <div class="caption caption-45">rotate(45deg)</div>
+    <div class="caption caption-90">rotate(90deg)</div>
+    <div class="caption caption-171">rotate(171deg) - odd angle, no symmetry alignment</div>
+  </body>
+</html>

@@ -28,6 +28,7 @@ import { parseFilter } from "../paint/filter";
 import { resolveNodeBackground, resolveNodeClipPath, resolveNodeOutline, resolveNodePaintEffects, resolveNodeSvgPath, resolveNodeTextPayload } from "./resolve-node";
 import { emitNodePaint } from "./paint-node";
 import { emitNodeBorder } from "./border-node";
+import { raiseContentAboveOwnDecorations } from "./paint-order";
 import { splitTopLevel } from "../utils";
 import { animationTimelineDuration, resolveNodeAnimationTracks } from "../css/animation";
 import { motionPathLength, parseMotionPath } from "../transform/motion-path";
@@ -337,8 +338,13 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
            perspective,
          });
          const { paintAnimationTracks, borderAnimationTracks } = animationTracks;
-         const { textShadows: staticTextShadows, paintEffects, compositeState, compositeNeedsGroup } = resolveNodePaintEffects(style, containingWidth, font, viewport, currentColor);
+         const { textShadows: staticTextShadows, paintEffects: staticPaintEffects, compositeState, compositeNeedsGroup } = resolveNodePaintEffects(style, containingWidth, font, viewport, currentColor);
          const textShadows = animationTracks.textShadowBase ?? staticTextShadows;
+         // An animated filter replaces the static filter effects with a padded
+         // base list, so every `effects.filter-<i>` track has an effect to write into.
+         const paintEffects = animationTracks.filterBase
+           ? [...staticPaintEffects.filter((effect) => !effect.id.startsWith("filter:")), ...animationTracks.filterBase]
+           : staticPaintEffects;
          const { hasOutline, emitOutline } = resolveNodeOutline({ outline, cornerRadius, width: w, height: h, groupId, parentId, localX, localY, zIndex, opacity, state, duration, transformFor, layers });
          const maskLayerRefs = lowerMaskImages(node, style, style.get("color") ?? parentStyle.get("color") ?? "#000000", w, h);
         if (loweringKind === "image") {
@@ -562,6 +568,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
         });
     }
     if (body) flowLayout(body.children, body, 0, 0, width, height, bodyStyle, rootContainingBlock, { flowY: 0, previousBottomMargin: 0, hasFlowChild: false }); else flowLayout(root.children, null, 0, 0, width, height, new Map(), rootContainingBlock, { flowY: 0, previousBottomMargin: 0, hasFlowChild: false });
+    raiseContentAboveOwnDecorations(layers);
     // The global Web Crypto API (not node:crypto) so this keeps working in
     // both the Node compiler and any future browser-side compile path.
     const protocol = MotionProtocolV2Schema.parse({ format: "motion-protocol", formatVersion: 2, id: options.composition?.id ?? crypto.randomUUID(), composition: { width, height, fps, background: backgroundColor, colorSpace: composition.colorSpace, view: { projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 }, transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } } } }, assets, layers, ...(clipPaths.length ? { clipPaths } : {}), ...(masks.length ? { masks } : {}), audio: { sampleRate: 48000, tracks: audioTracks } });

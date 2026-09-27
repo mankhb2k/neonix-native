@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1750px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+      .caption { position: absolute; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+
+      /*
+        Consolidates 5 former debug/box-shadow-spread-* fixtures into one
+        permanent regression grid for Blink's box-shadow spread geometry
+        (ApplySpreadToShadowShape/OutsetWithCornerCorrection, ported verbatim
+        in canvaskit-preview/command/box-effect.ts's outsetSilhouette()):
+        growing the rect AND its corner radius by `spread` on every side,
+        then clamping the radius to [0, half of the new smallest side] -
+        which is only ever non-trivial when spread is negative enough to
+        push (radius+spread) below zero. Each shape below isolates one
+        regime of that clamp.
+      */
+
+      /* Case 1 - circle (radius == min(w,h)/2, already at the clamp
+         boundary): after growing by spread on all sides it must still land
+         exactly on the new boundary and stay a perfect circle. */
+      .shape-circle {
+        position: absolute;
+        left: 260px;
+        top: 360px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: #22d3ee;
+        box-shadow: 0 0 60px 70px #22d3ee;
+      }
+      /* Case 2 - rounded rect (radius=24 well under half the smallest
+         side): the upper clamp is provably a no-op here however large
+         spread gets, so this proves the unclamped newRadius = radius +
+         spread formula matches Chrome even at spread (80) larger than the
+         radius itself. */
+      .shape-rounded-rect {
+        position: absolute;
+        left: 700px;
+        top: 360px;
+        width: 400px;
+        height: 200px;
+        border-radius: 24px;
+        background: #f472b6;
+        box-shadow: 0 0 40px 80px #f472b6;
+      }
+      /* Case 3 - pill/stadium (radius == half-height): a very common real
+         UI shape whose long top/bottom edges are already axis-aligned, so a
+         rectangular dilate kernel cannot distort them - only the two
+         semicircular end-caps should show the same curvature change as the
+         full circle case. */
+      .shape-pill {
+        position: absolute;
+        left: 1400px;
+        top: 400px;
+        width: 300px;
+        height: 120px;
+        border-radius: 60px;
+        background: #34d399;
+        box-shadow: 0 0 40px 50px #34d399;
+      }
+      /* Case 4 - negative spread (erode) large enough that radius + spread
+         goes negative (40 + (-50) = -10): the one regime where clamping is
+         NOT a no-op - the radius must floor to 0, turning the eroded
+         silhouette into a plain rect. 300x150 at spread:-50 also shrinks to
+         200x50, still positive, so only the radius floor is exercised. */
+      .shape-negative-erode {
+        position: absolute;
+        left: 700px;
+        top: 820px;
+        width: 300px;
+        height: 150px;
+        border-radius: 40px;
+        background: #a3e635;
+        box-shadow: 0 0 30px -50px #a3e635;
+      }
+      /* Case 5 - the same circle geometry at icon/badge UI scale (60px box,
+         12px spread) instead of "hero glow" scale, to confirm the fix isn't
+         only correct at large decorative sizes. */
+      .shape-small-icon {
+        position: absolute;
+        left: 1150px;
+        top: 865px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #fb7185;
+        box-shadow: 0 0 8px 12px #fb7185;
+      }
+
+      .caption-circle { left: 160px; top: 700px; width: 400px; }
+      .caption-rounded-rect { left: 700px; top: 700px; width: 400px; }
+      .caption-pill { left: 1300px; top: 700px; width: 500px; }
+      .caption-negative-erode { left: 560px; top: 1020px; width: 420px; }
+      .caption-small-icon { left: 1020px; top: 1020px; width: 300px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Box-shadow spread geometry across shapes - circle stays a perfect circle after growth, unclamped linear growth on a normal rounded rect, only the end-caps of a pill curve, negative spread floors the radius to 0, and the fix holds at icon scale too.</div>
+    <div class="shape-circle"></div>
+    <div class="shape-rounded-rect"></div>
+    <div class="shape-pill"></div>
+    <div class="shape-negative-erode"></div>
+    <div class="shape-small-icon"></div>
+    <div class="caption caption-circle">circle (radius=100, spread=70) - must stay a perfect circle</div>
+    <div class="caption caption-rounded-rect">rounded rect (radius=24, spread=80) - unclamped linear growth, clamp never binds</div>
+    <div class="caption caption-pill">pill/stadium (radius=60=half-height, spread=50) - only the end-caps curve</div>
+    <div class="caption caption-negative-erode">negative spread erode (radius=40, spread=-50) - radius floors to 0</div>
+    <div class="caption caption-small-icon">small-scale icon (radius=30, spread=12) - fix holds at UI scale</div>
+  </body>
+</html>

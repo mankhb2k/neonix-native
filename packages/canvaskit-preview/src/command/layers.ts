@@ -1,6 +1,6 @@
 import { hasPerspectiveTerms, type PaintCommand } from "@motionvideo/motion-runtime";
 import type { SkiaAsset } from "../types";
-import { boundsToRect, compositionBounds, drawCommandBounds, expandBounds, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
+import { boundsToRect, compositionBounds, drawCommandBounds, expandBounds, matrix4ToSkia3x3, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
 import { cssBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "./effects";
 import { applyClipPath, drawMaskSource, type MaskSource } from "./masks";
 import { blendModeFor } from "./paint";
@@ -118,6 +118,38 @@ function effectFilterForCached(ctx: ReplayContext, program: Extract<PaintCommand
   }
   resources.filterCache.set(key, created);
   return created;
+}
+
+/**
+ * CSS confines a filtered backdrop to the element's rounded border box
+ * (Filter Effects 2), but never clips the element's children unless it has
+ * `overflow: hidden`. The backdrop saveLayer above is only clipped to a
+ * rectangle - the union of all drawable content, overflowing children
+ * included - so without this the filtered backdrop shows through as square
+ * corners outside border-radius (clearly visible once a dark box-shadow halo
+ * sits in those corners) and under any child that overflows the box.
+ * Clearing the layer outside the box right after the backdrop is captured -
+ * before any content is drawn - fixes both without clipping later content.
+ */
+function confineBackdropToBox(ctx: ReplayContext, box: NonNullable<Extract<PaintCommand, { op: "beginLayer" }>["backdropBox"]>): void {
+  const { kit, canvas, addDiagnostic } = ctx;
+  if (!canvas.clipPath || kit.ClipOp.Difference === undefined) {
+    addDiagnostic("skia_backdrop_box_clip_unsupported");
+    return;
+  }
+  const { width, height } = box;
+  const radius = Math.max(0, Math.min(box.cornerRadius ?? 0, width / 2, height / 2));
+  const svg = radius > 0
+    ? `M${radius} 0H${width - radius}A${radius} ${radius} 0 0 1 ${width} ${radius}V${height - radius}A${radius} ${radius} 0 0 1 ${width - radius} ${height}H${radius}A${radius} ${radius} 0 0 1 0 ${height - radius}V${radius}A${radius} ${radius} 0 0 1 ${radius} 0Z`
+    : `M0 0H${width}V${height}H0Z`;
+  const path = kit.Path.MakeFromSVGString(svg);
+  if (!path) return;
+  canvas.save();
+  canvas.concat(matrix4ToSkia3x3(box.matrix4));
+  canvas.clipPath(path, kit.ClipOp.Difference, true);
+  canvas.clear(kit.TRANSPARENT);
+  canvas.restore();
+  path.delete();
 }
 
 export function beginLayer(ctx: ReplayContext, command: Extract<PaintCommand, { op: "beginLayer" }>, commandIndex: number): void {
@@ -274,6 +306,9 @@ export function beginLayer(ctx: ReplayContext, command: Extract<PaintCommand, { 
     }
     canvas.saveLayer(paint, saveBounds, backdropEffectFilter.filter);
     paint.delete();
+    if (backdropEffectFilter.filter && command.backdropBox && !layer.backdropClipPathApplied) {
+      confineBackdropToBox(ctx, command.backdropBox);
+    }
     if (!resources && !projectiveFilter && !effectFilter.sourceOnly) effectFilter.filter?.delete();
     // tailFilter (see layerFilter above) is always consumed here on the
     // saveLayer paint, unlike `filter` which a sourceOnly box-shadow

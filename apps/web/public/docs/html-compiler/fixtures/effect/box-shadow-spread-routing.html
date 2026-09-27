@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1750px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+      .caption { position: absolute; top: 900px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; }
+
+      /*
+        Consolidates 2 former debug/box-shadow-spread-circle-* fixtures:
+        which effects.ts code PATH a box-shadow spread renders through,
+        rather than the geometry formula itself (covered by
+        box-shadow-spread-shapes.html/-sweeps.html). Same circle/spread/blur
+        as those fixtures' case 1 throughout, so all three tiles below must
+        render as visually identical perfect circles.
+      */
+
+      .tile { position: absolute; left: 180px; top: 460px; width: 200px; height: 200px; border-radius: 50%; background: #22d3ee; }
+      /* Reference: a single, non-inset box-shadow with no other filter -
+         the "ordinary" DropShadow-ImageFilter path. */
+      .tile-reference { box-shadow: 0 0 60px 70px #22d3ee; }
+      /* Identical shadow listed TWICE. CSS renders this identically to a
+         single shadow, but it changes the code path: a *list* of 2+ shadows
+         is only recognized by boxShadowBranches() (branches.length > 1),
+         which forces sourceOnly:true and routes through the isolated-mask
+         drawBoxEffect compositor instead - this must match the reference
+         pixel-for-pixel. */
+      .tile-2shadow-list { left: 780px; box-shadow: 0 0 60px 70px #22d3ee, 0 0 60px 70px #22d3ee; }
+      /* Same shadow with a non-zero offset (40, 40). Offset happens AFTER
+         the morphology op in the effect-program order (alpha-mask ->
+         morphology -> blur -> tint -> offset -> composite), so it should be
+         a pure translation of whatever shape the spread geometry produces -
+         checks that offset and spread compose cleanly. */
+      .tile-offset { left: 1380px; box-shadow: 40px 40px 60px 70px #22d3ee; }
+
+      .caption-reference { left: 100px; width: 360px; }
+      .caption-2shadow-list { left: 700px; width: 360px; }
+      .caption-offset { left: 1300px; width: 360px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Box-shadow spread routing &amp; composition - three code paths for the same visual circle: the ordinary single-shadow path, the 2-shadow-list isolated-mask path, and offset composed with spread. All three must match.</div>
+    <div class="tile tile-reference"></div>
+    <div class="tile tile-2shadow-list"></div>
+    <div class="tile tile-offset"></div>
+    <div class="caption caption-reference">single box-shadow (ordinary path) - reference, must be a perfect circle</div>
+    <div class="caption caption-2shadow-list">identical shadow listed twice (isolated-mask drawBoxEffect route) - must match the reference</div>
+    <div class="caption caption-offset">circle + offset(40,40) - offset must compose cleanly with the spread expansion</div>
+  </body>
+</html>

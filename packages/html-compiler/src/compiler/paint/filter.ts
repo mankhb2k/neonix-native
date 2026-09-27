@@ -86,52 +86,63 @@ function dropShadow(body: string, id: string, viewport: { width: number; height:
 }
 
 export function parseFilter(value: string | undefined, relative: number, fontSize: number, viewport: { width: number; height: number }, currentColor: string): HtmlFilterEffect[] {
+  return parseFilterFunctions(value, relative, fontSize, viewport, currentColor).map((entry) => entry.effect);
+}
+
+/**
+ * Like parseFilter, but keeps each effect's CSS function name. Several
+ * functions share one V2 effect type (brightness/contrast/saturate/hue-rotate
+ * are all `color-adjust`), and filter-list interpolation pairs functions by
+ * name, not by lowered type.
+ */
+export function parseFilterFunctions(value: string | undefined, relative: number, fontSize: number, viewport: { width: number; height: number }, currentColor: string): Array<{ name: string; effect: HtmlFilterEffect }> {
   const raw = value?.trim();
   if (!raw || raw.toLowerCase() === "none") return [];
-  return parseFunctions(raw).map(({ name, body }, index) => {
-    const id = `filter:${index}`;
-    const values = tokens(body);
-    if (name === "blur") {
-      if (values.length !== 1) fail("css-filter-invalid", "blur() expects one length");
-      const radius = lengthValue(values[0]!, "filter.blur", viewport, fontSize, relative);
-      if (radius < 0) fail("css-filter-blur-invalid", "blur() radius must be non-negative");
-      return { id, type: "blur", radius };
-    }
-    if (name === "brightness" || name === "contrast") {
-      if (values.length !== 1) fail("css-filter-invalid", `${name}() expects one number or percentage`);
-      const factor = numberValue(values[0]!, `filter.${name}`, viewport, fontSize, 1);
-      if (factor < 0 || factor > 4) fail("css-filter-amount-unsupported", `${name}() must resolve within 0..4`);
-      if (name === "contrast") return colorAdjust(id, 0, factor);
-      if (factor === 0) return colorAdjust(id, -1, 1);
-      // CSS brightness(f) is a channel multiplication. The existing V2
-      // color-adjust applies contrast around the normalized midpoint and then
-      // adds brightness. Together, contrast=f and brightness=.5*(f-1) are
-      // exactly the channel multiplication used by CSS brightness(f).
-      const additive = 0.5 * (factor - 1);
-      if (additive < -1 || additive > 1) fail("css-filter-amount-unsupported", "brightness() cannot be represented by the V2 color-adjust bounds");
-      return colorAdjust(id, additive, factor);
-    }
-    if (name === "saturate") {
-      if (values.length !== 1) fail("css-filter-invalid", "saturate() expects one number or percentage");
-      // Unlike grayscale()/sepia(), saturate() is not clamped to 1: CSS allows oversaturation (e.g. 180%).
-      const factor = numberValue(values[0]!, "filter.saturate", viewport, fontSize, 1);
-      if (factor < 0 || factor > 4) fail("css-filter-amount-unsupported", "saturate() must resolve within 0..4");
-      return colorAdjust(id, 0, 1, 0, factor);
-    }
-    if (name === "hue-rotate") {
-      if (values.length !== 1) fail("css-filter-invalid", "hue-rotate() expects one angle");
-      const hueRotate = angleDegreesValue(values[0]!, "filter.hue-rotate", viewport, fontSize, relative);
-      return colorAdjust(id, 0, 1, hueRotate);
-    }
-    if (["grayscale", "sepia", "invert", "opacity"].includes(name)) {
-      if (values.length !== 1) fail("css-filter-invalid", `${name}() expects one number or percentage`);
-      const normalized = clampedAmount(values[0]!, `filter.${name}`, viewport, fontSize);
-      if (name === "grayscale") return { id, type: "grayscale", amount: normalized };
-      if (name === "sepia") return { id, type: "sepia", amount: normalized };
-      if (name === "invert") return { id, type: "invert", amount: normalized };
-      return { id, type: "filter-opacity", amount: normalized };
-    }
-    if (name === "drop-shadow") return dropShadow(body, id, viewport, fontSize, relative, currentColor);
-    return fail("css-filter-unsupported", `Unsupported filter function: ${name}()`);
-  });
+  return parseFunctions(raw).map(({ name, body }, index) => ({ name, effect: parseFilterFunction(name, body, `filter:${index}`, relative, fontSize, viewport, currentColor) }));
+}
+
+function parseFilterFunction(name: string, body: string, id: string, relative: number, fontSize: number, viewport: { width: number; height: number }, currentColor: string): HtmlFilterEffect {
+  const values = tokens(body);
+  if (name === "blur") {
+    if (values.length !== 1) fail("css-filter-invalid", "blur() expects one length");
+    const radius = lengthValue(values[0]!, "filter.blur", viewport, fontSize, relative);
+    if (radius < 0) fail("css-filter-blur-invalid", "blur() radius must be non-negative");
+    return { id, type: "blur", radius };
+  }
+  if (name === "brightness" || name === "contrast") {
+    if (values.length !== 1) fail("css-filter-invalid", `${name}() expects one number or percentage`);
+    const factor = numberValue(values[0]!, `filter.${name}`, viewport, fontSize, 1);
+    if (factor < 0 || factor > 4) fail("css-filter-amount-unsupported", `${name}() must resolve within 0..4`);
+    if (name === "contrast") return colorAdjust(id, 0, factor);
+    if (factor === 0) return colorAdjust(id, -1, 1);
+    // CSS brightness(f) is a channel multiplication. The existing V2
+    // color-adjust applies contrast around the normalized midpoint and then
+    // adds brightness. Together, contrast=f and brightness=.5*(f-1) are
+    // exactly the channel multiplication used by CSS brightness(f).
+    const additive = 0.5 * (factor - 1);
+    if (additive < -1 || additive > 1) fail("css-filter-amount-unsupported", "brightness() cannot be represented by the V2 color-adjust bounds");
+    return colorAdjust(id, additive, factor);
+  }
+  if (name === "saturate") {
+    if (values.length !== 1) fail("css-filter-invalid", "saturate() expects one number or percentage");
+    // Unlike grayscale()/sepia(), saturate() is not clamped to 1: CSS allows oversaturation (e.g. 180%).
+    const factor = numberValue(values[0]!, "filter.saturate", viewport, fontSize, 1);
+    if (factor < 0 || factor > 4) fail("css-filter-amount-unsupported", "saturate() must resolve within 0..4");
+    return colorAdjust(id, 0, 1, 0, factor);
+  }
+  if (name === "hue-rotate") {
+    if (values.length !== 1) fail("css-filter-invalid", "hue-rotate() expects one angle");
+    const hueRotate = angleDegreesValue(values[0]!, "filter.hue-rotate", viewport, fontSize, relative);
+    return colorAdjust(id, 0, 1, hueRotate);
+  }
+  if (["grayscale", "sepia", "invert", "opacity"].includes(name)) {
+    if (values.length !== 1) fail("css-filter-invalid", `${name}() expects one number or percentage`);
+    const normalized = clampedAmount(values[0]!, `filter.${name}`, viewport, fontSize);
+    if (name === "grayscale") return { id, type: "grayscale", amount: normalized };
+    if (name === "sepia") return { id, type: "sepia", amount: normalized };
+    if (name === "invert") return { id, type: "invert", amount: normalized };
+    return { id, type: "filter-opacity", amount: normalized };
+  }
+  if (name === "drop-shadow") return dropShadow(body, id, viewport, fontSize, relative, currentColor);
+  return fail("css-filter-unsupported", `Unsupported filter function: ${name}()`);
 }

@@ -1,5 +1,6 @@
 import type { V2AnimatableValue, V2Easing, V2Track } from "@motionvideo/motion-protocol/v2";
 import { parseColor, parseShadows, type ShadowEffect } from "../paint/paint";
+import { parseFilterFunctions, type HtmlFilterEffect } from "../paint/filter";
 import { parseTransform } from "../transform/transform";
 import { splitTopLevel } from "../utils";
 import { calcExpression } from "./values";
@@ -342,6 +343,103 @@ function lowerTextShadowAnimations(sources: readonly TextShadowAnimationSource[]
   return { base, tracks };
 }
 
+/**
+ * CSS `filter` is also a list, interpolated per Filter Effects 1 §Interpolation:
+ * two lists interpolate function-by-function when the shorter one is a prefix
+ * (by function name) of the longer one, padded with each missing function's
+ * identity value; `none` is the empty list. Each function index becomes effect
+ * `filter-<i>` (track path segments only allow `[A-Za-z0-9_-]`, so not the
+ * `filter:<i>` id a static filter gets), animated through one
+ * `effects.filter-<i>.<field>` track per field that moves.
+ */
+type FilterFunction = { name: string; effect: HtmlFilterEffect };
+
+const FILTER_FIELDS: Record<HtmlFilterEffect["type"], readonly string[]> = {
+  blur: ["radius"],
+  "color-adjust": ["brightness", "contrast", "saturation", "hueRotate"],
+  grayscale: ["amount"],
+  sepia: ["amount"],
+  invert: ["amount"],
+  "filter-opacity": ["amount"],
+  shadow: ["offset.x", "offset.y", "blur", "color"],
+};
+
+function parseFilterList(raw: string | undefined, options: LowerAnimationOptions): FilterFunction[] {
+  return parseFilterFunctions(raw, options.containingWidth, options.fontSize, options.viewport, options.currentColor).map(({ name, effect }) => ({
+    name,
+    // parseFilter lowers brightness(0) to a non-affine special case; every
+    // other encoding is affine in the CSS argument, so field-wise
+    // interpolation equals CSS interpolation. Use the affine form here too.
+    effect: name === "brightness" && effect.type === "color-adjust" && effect.brightness === -1 && effect.contrast === 1
+      ? { ...effect, brightness: -0.5, contrast: 0 }
+      : effect,
+  }));
+}
+
+/** The value a filter function interpolates from/to when the other list lacks it. */
+function identityFilterEffect(reference: FilterFunction): HtmlFilterEffect {
+  const { effect } = reference;
+  const { id } = effect;
+  if (effect.type === "blur") return { id, type: "blur", radius: 0 };
+  if (effect.type === "color-adjust") return { id, type: "color-adjust", brightness: 0, contrast: 1, saturation: 1, hueRotate: 0 };
+  if (effect.type === "filter-opacity") return { id, type: "filter-opacity", amount: 1 };
+  if (effect.type === "shadow") return { ...effect, id, offset: { x: 0, y: 0 }, blur: 0, color: `${effect.color.slice(0, 7)}00` };
+  return { ...effect, id, amount: 0 };
+}
+
+function filterFieldValue(effect: HtmlFilterEffect, field: string, currentColor: string): V2AnimatableValue {
+  if (field === "color" && effect.type === "shadow") return color(effect.color, currentColor);
+  const value = field.split(".").reduce<unknown>((object, key) => (object as Record<string, unknown>)[key], effect);
+  return { type: "number", value: value as number };
+}
+
+type FilterAnimationSource = {
+  definition: KeyframeDefinition;
+  durationMs: number;
+  animation: NonNullable<V2Track["animation"]>;
+  defaultTiming: string;
+  entries: Array<{ at: number; list: FilterFunction[] }>;
+};
+
+function lowerFilterAnimations(sources: readonly FilterAnimationSource[], staticList: readonly FilterFunction[], options: LowerAnimationOptions): { base: HtmlFilterEffect[]; tracks: V2Track[] } | undefined {
+  if (!sources.length) return undefined;
+  const allLists = [staticList, ...sources.flatMap((source) => source.entries.map((entry) => entry.list))];
+  const reference = allLists.reduce((longest, list) => list.length > longest.length ? list : longest, staticList);
+  if (reference.length === 0) return undefined;
+  for (const list of allLists) {
+    if (list.some((item, index) => item.name !== reference[index]!.name)) {
+      fail("css-animation-filter-incompatible", `Animated filter lists must use the same functions in the same order (got "${list.map((item) => `${item.name}()`).join(" ")}" vs "${reference.map((item) => `${item.name}()`).join(" ")}"); discrete filter interpolation is not supported`);
+    }
+  }
+  const pad = (list: readonly FilterFunction[]): HtmlFilterEffect[] => reference.map((item, index) => ({ ...(list[index]?.effect ?? identityFilterEffect(item)), id: `filter-${index}` }));
+  const base = pad(staticList);
+  const tracks: V2Track[] = [];
+  for (const source of sources) {
+    const padded = source.entries.map((entry) => ({ at: entry.at, list: pad(entry.list) }));
+    for (let index = 0; index < reference.length; index += 1) {
+      for (const field of FILTER_FIELDS[base[index]!.type]) {
+        const baseValue = filterFieldValue(base[index]!, field, options.currentColor);
+        const keyframes = padded.map((entry) => ({
+          time: Math.round(entry.at * source.durationMs),
+          value: filterFieldValue(entry.list[index]!, field, options.currentColor),
+          easing: easing(styleTiming(source.definition, entry.at) ?? source.defaultTiming),
+        }));
+        if (field === "hueRotate" && keyframes.some((keyframe) => Math.abs(keyframe.value.value as number) > 180)) {
+          fail("css-animation-filter-unsupported", "Animated hue-rotate() must stay within -180deg..180deg");
+        }
+        // Same from/to reconstruction and no-op skipping as text-shadow above.
+        if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseValue, easing: easing(source.defaultTiming) });
+        if (keyframes.at(-1)!.time < source.durationMs) keyframes.push({ time: source.durationMs, value: baseValue, easing: { type: "linear" } });
+        const baseKey = JSON.stringify(baseValue);
+        if (keyframes.every((keyframe) => JSON.stringify(keyframe.value) === baseKey)) continue;
+        const path = `effects.filter-${index}.${field}`;
+        tracks.push({ id: `animation:${source.definition.name}:${path}`, path, keyframes, animation: source.animation } as V2Track);
+      }
+    }
+  }
+  return { base, tracks };
+}
+
 /** The CSS-identity value of a transform sub-path: the value it holds when the
  * function that drives it is entirely absent from a `transform` declaration.
  * translate.x/y fold in the static layout position (see transformValues),
@@ -539,7 +637,7 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): V
   return { type: "number", value: 0 };
 }
 
-export function lowerAnimationTracks(style: Style, keyframes: Map<string, KeyframeDefinition>, options: LowerAnimationOptions): { group: V2Track[]; paint: V2Track[]; textShadowBase?: ShadowEffect[] } {
+export function lowerAnimationTracks(style: Style, keyframes: Map<string, KeyframeDefinition>, options: LowerAnimationOptions): { group: V2Track[]; paint: V2Track[]; textShadowBase?: ShadowEffect[]; filterBase?: HtmlFilterEffect[] } {
   const names = list(style.get("animation-name"), "none");
   const durations = list(style.get("animation-duration"), "0s");
   const delays = list(style.get("animation-delay"), "0s");
@@ -551,6 +649,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
   const timings = list(style.get("animation-timing-function"), "ease");
   const allTracks: V2Track[] = [];
   const textShadowSources: TextShadowAnimationSource[] = [];
+  const filterSources: FilterAnimationSource[] = [];
   names.forEach((name, index) => {
     if (name === "none") return;
     const definition = keyframes.get(name) ?? fail("css-animation-name-unknown", `animation-name references unknown @keyframes: ${name}`);
@@ -617,14 +716,26 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
         entries: textShadowEntries.map((entry) => ({ at: entry.at, list: parseTextShadowList(entry.value, options) })),
       });
     }
+    const filterEntries = knownKeyframeEntries(definition, "filter");
+    if (filterEntries.length) {
+      filterSources.push({
+        definition,
+        durationMs,
+        animation,
+        defaultTiming: easingValue,
+        entries: filterEntries.map((entry) => ({ at: entry.at, list: parseFilterList(entry.value, options) })),
+      });
+    }
   });
   const textShadow = lowerTextShadowAnimations(textShadowSources, parseTextShadowList(style.get("text-shadow"), options), options);
   if (textShadow) allTracks.push(...textShadow.tracks);
+  const filter = lowerFilterAnimations(filterSources, parseFilterList(style.get("filter"), options), options);
+  if (filter) allTracks.push(...filter.tracks);
   const mergedTracks = mergeSequentialTracksOnSamePath(allTracks);
   const group: V2Track[] = [];
   const paint: V2Track[] = [];
-  for (const track of mergedTracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
-  return { group: resolveTransformTrackConflicts(group, style, options), paint, ...(textShadow ? { textShadowBase: textShadow.base } : {}) };
+  for (const track of mergedTracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") || track.path.startsWith("effects.filter-") ? group : paint).push(track);
+  return { group: resolveTransformTrackConflicts(group, style, options), paint, ...(textShadow ? { textShadowBase: textShadow.base } : {}), ...(filter ? { filterBase: filter.base } : {}) };
 }
 
 /**
@@ -640,6 +751,8 @@ export function resolveNodeAnimationTracks(style: Style, keyframes: Map<string, 
   borderAnimationTracks: V2Track[];
   /** Padded base list for an animated text-shadow; replaces the static text-shadow effects so every `effects.text-shadow-<i>` track has an effect to write into. */
   textShadowBase?: ShadowEffect[];
+  /** Padded base list for an animated filter; replaces the static filter effects so every `effects.filter-<i>` track has an effect to write into. */
+  filterBase?: HtmlFilterEffect[];
 } {
   const tracks = lowerAnimationTracks(style, keyframes, options);
   const paintAnimationTracks = [

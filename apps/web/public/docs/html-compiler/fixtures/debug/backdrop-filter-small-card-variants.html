@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#05060a","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #05060a; }
+
+      .label { position: absolute; left: 24px; top: 24px; width: 1800px; color: #64748b; font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; }
+
+      /*
+        Static, small-scale replica of neonix-motion-test-10s.html's feature
+        card (230x230, 28px radius, 1px border, backdrop-filter blur(18px),
+        the same two box-shadows, an icon + label child) - the scale where
+        the CanvasKit corner artifact is visible - in four variants that
+        isolate one suspected cause each:
+          A  box-shadow + children   (exact replica)
+          B  no box-shadow + children
+          C  box-shadow, no children
+          D  no box-shadow, no children
+        Two bright horizontal lines run BEHIND every card: a working
+        backdrop-filter blur(18px) smears them into a soft band inside the
+        card; if they stay sharp inside a card, its backdrop isn't blurring
+        what is actually behind it.
+      */
+      .glow {
+        position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+        background-image:
+          radial-gradient(circle at 25% 40%, #101c33 0%, transparent 50%),
+          radial-gradient(circle at 75% 70%, #2a1040 0%, transparent 50%);
+      }
+      .line-a { position: absolute; left: 0; top: 470px; width: 1920px; height: 3px; background: #a855f7; }
+      .line-b { position: absolute; left: 0; top: 560px; width: 1920px; height: 3px; background: #22d3ee; }
+
+      .card {
+        position: absolute; top: 400px; width: 230px; height: 230px;
+        border-radius: 28px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(18px);
+      }
+      .with-shadow { box-shadow: 0 0 50px rgba(34, 211, 238, 0.35), 0 20px 40px rgba(0, 0, 0, 0.4); }
+      .card-a { left: 260px; }
+      .card-b { left: 660px; }
+      .card-c { left: 1060px; }
+      .card-d { left: 1460px; }
+
+      .icon {
+        position: absolute; left: 83px; top: 60px; width: 64px; height: 64px;
+        border-radius: 18px; background: #22d3ee;
+      }
+      .name {
+        position: absolute; left: 0; top: 150px; width: 230px; text-align: center;
+        color: #eaf2ff; font-family: Inter, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 5px;
+      }
+      .caption { position: absolute; top: 660px; width: 300px; color: #94a3b8; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption-a { left: 225px; }
+      .caption-b { left: 625px; }
+      .caption-c { left: 1025px; }
+      .caption-d { left: 1425px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">backdrop-filter debug - small card (230px, radius 28px) - A: shadow + children, B: children only, C: shadow only, D: neither - lines behind must blur inside every card</div>
+    <div class="glow"></div>
+    <div class="line-a"></div>
+    <div class="line-b"></div>
+
+    <div class="card card-a with-shadow"><div class="icon"></div><div class="name">GLOW</div></div>
+    <div class="card card-b"><div class="icon"></div><div class="name">GLOW</div></div>
+    <div class="card card-c with-shadow"></div>
+    <div class="card card-d"></div>
+
+    <div class="caption caption-a">A: shadow + children</div>
+    <div class="caption caption-b">B: children, no shadow</div>
+    <div class="caption caption-c">C: shadow, no children</div>
+    <div class="caption caption-d">D: no shadow, no children</div>
+  </body>
+</html>

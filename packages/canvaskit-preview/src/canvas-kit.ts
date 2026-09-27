@@ -29,7 +29,7 @@ export type SkiaCanvasKit = {
     MakeMatrix(matrix: number[]): SkiaColorFilter | null;
     MakeBlend?(color: unknown, mode: unknown): SkiaColorFilter | null;
   };
-  ClipOp: { Intersect: unknown };
+  ClipOp: { Intersect: unknown; Difference?: unknown };
   ImageFilter: {
     MakeBlur(sigmaX: number, sigmaY: number, tileMode: unknown, input?: unknown): SkiaImageFilter | null;
     /** CanvasKit image-filter transform used for translated shadow masks. */
@@ -51,7 +51,7 @@ export type SkiaCanvasKit = {
   MakeImageFromCanvasImageSource(source: TexImageSource): SkiaImage | null;
   MakeImageFromEncoded?(bytes: Uint8Array): SkiaImage | null;
   Shader: {
-    MakeLinearGradient(start: unknown, end: unknown, colors: unknown[], positions?: number[], tileMode?: unknown): SkiaShader | null;
+    MakeLinearGradient(start: unknown, end: unknown, colors: unknown[], positions?: number[], tileMode?: unknown, localMatrix?: number[], flags?: number): SkiaShader | null;
     MakeRadialGradient(center: unknown, radius: number, colors: unknown[], positions?: number[], tileMode?: unknown, localMatrix?: number[], flags?: number): SkiaShader | null;
     MakeSweepGradient(cx: number, cy: number, colors: unknown[], positions?: number[], tileMode?: unknown, localMatrix?: number[], flags?: number, startAngle?: number, endAngle?: number): SkiaShader | null;
     MakeTwoPointConicalGradient?(start: unknown, startRadius: number, end: unknown, endRadius: number, colors: unknown[], positions?: number[], tileMode?: unknown, localMatrix?: number[], flags?: number): SkiaShader | null;

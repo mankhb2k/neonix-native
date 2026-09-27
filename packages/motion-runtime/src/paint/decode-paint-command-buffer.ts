@@ -123,6 +123,7 @@ export function decodePaintCommandBuffer(
           ...(cmd.effectProgram ? { effectProgram: cmd.effectProgram } : {}),
           ...(cmd.effectBox ? { effectBox: cmd.effectBox } : {}),
           ...(cmd.backdropEffectProgram ? { backdropEffectProgram: cmd.backdropEffectProgram } : {}),
+          ...(cmd.backdropBox ? { backdropBox: cmd.backdropBox } : {}),
           ...(cmd.clipPath ? { clipPath: cmd.clipPath } : {}),
           ...(cmd.mask ? { mask: cmd.mask } : {}),
           children: [],

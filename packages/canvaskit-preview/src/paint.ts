@@ -433,7 +433,17 @@ function makeGradientShader(
         start[1] + (end[1] - start[1]) * (1 - epsilon),
       ];
     }
-    return kit.Shader.MakeLinearGradient(start, end, colors, positions, mode);
+    // flags=1: premultiply each color stop before interpolating, instead of
+    // CanvasKit's default (interpolate unpremultiplied, then premultiply the
+    // result). Real browsers always build CSS gradients this way (Blink's
+    // css_gradient_value.cc unconditionally passes
+    // Gradient::PremultipliedAlpha::kPremultiplied, which maps directly to
+    // this flag - see chromium-reference/chromium's platform/graphics/
+    // gradient.cc). Interpolating unpremultiplied means fading toward a
+    // `transparent` stop (parsed as literal #00000000) visibly darkens/
+    // muddies the color instead of just fading its alpha, since the color
+    // channels get pulled toward black before alpha reaches 0.
+    return kit.Shader.MakeLinearGradient(start, end, colors, positions, mode, undefined, 1);
   }
   if (paintGradient.type === "radial-gradient") {
     const geometry = radialGeometry(paintGradient, width, height);
@@ -451,16 +461,16 @@ function makeGradientShader(
         positions,
         mode,
         radialLocalMatrix(paintGradient, geometry),
-        0,
+        1,
       );
     }
-    return kit.Shader.MakeRadialGradient(geometry.center, shaderRadius, colors, positions, mode, radialLocalMatrix(paintGradient, geometry), 0);
+    return kit.Shader.MakeRadialGradient(geometry.center, shaderRadius, colors, positions, mode, radialLocalMatrix(paintGradient, geometry), 1);
   }
   const units = paintGradient.gradientUnits ?? "objectBoundingBox";
   const scaleX = units === "objectBoundingBox" ? width : 1;
   const scaleY = units === "objectBoundingBox" ? height : 1;
   const center: Point = [(paintGradient.cx ?? 0.5) * scaleX, (paintGradient.cy ?? 0.5) * scaleY];
-  return kit.Shader.MakeSweepGradient(center[0], center[1], colors, positions, mode, conicLocalMatrix(paintGradient, center), 0, 0, 360);
+  return kit.Shader.MakeSweepGradient(center[0], center[1], colors, positions, mode, conicLocalMatrix(paintGradient, center), 1, 0, 360);
 }
 
 /** Creates one backend-neutral paint from Runtime paint semantics. */

@@ -33,6 +33,13 @@ export type PaintLayerScope = {
   };
   /** CSS backdrop-filter program; it samples the parent backdrop before content. */
   backdropEffectProgram?: RuntimeEffectProgram;
+  /** Rounded border box the filtered backdrop is confined to (see PaintCommand's `backdropBox`). */
+  backdropBox?: {
+    width: number;
+    height: number;
+    cornerRadius?: number;
+    matrix4: number[];
+  };
   clipPath?: {
     sourceKey: string;
     sourceKeys?: string[];

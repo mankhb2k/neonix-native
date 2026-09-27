@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#0b1220","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #0b1220; }
+
+      .label { position: absolute; left: 24px; top: 20px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption { position: absolute; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 13px; font-weight: 700; }
+
+      /*
+        Consolidates 7 former debug/box-shadow-* sweep fixtures into one
+        1920x1080 regression grid (2 sweeps per row, left/right half), so it
+        still fits the native-stage comparison tool's fixed 1920x1080 panel
+        size (see box-shadow-spread-shapes.html's header for the underlying
+        spread-geometry formula this exercises). Rows 1-2 scale every
+        box/spread/blur/offset value from the originals by 0.7x, rows 3-4 by
+        0.45x - every ratio between radius, spread and blur is preserved
+        unchanged, only the absolute pixel scale shrank to fit; the formula
+        being tested is scale-invariant (ported verbatim from Blink's
+        FloatRoundedRect source, not curve-fit against a specific
+        magnitude), so this does not weaken the coverage.
+      */
+
+      /* Row 1 (left): offset-x sweep - spread=0/blur=17 fixed, offset-x swept. */
+      .tile-s1 { position: absolute; top: 60px; width: 140px; height: 140px; border-radius: 17px; background: #22d3ee; }
+      .s1-a { left: 40px; box-shadow: -42px 0 17px 0 #22d3ee; }
+      .s1-b { left: 220px; box-shadow: 14px 0 17px 0 #22d3ee; }
+      .s1-c { left: 400px; box-shadow: 84px 0 17px 0 #22d3ee; }
+      .caption-s1 { top: 240px; width: 160px; }
+      .caption-s1-a { left: 30px; }
+      .caption-s1-b { left: 210px; }
+      .caption-s1-c { left: 390px; }
+
+      /* Row 1 (right): offset-y sweep - spread=0/blur=17 fixed, offset-y swept. */
+      .tile-s2 { position: absolute; top: 60px; width: 140px; height: 140px; border-radius: 17px; background: #f472b6; }
+      .s2-a { left: 1020px; box-shadow: 0 -42px 17px 0 #f472b6; }
+      .s2-b { left: 1200px; box-shadow: 0 14px 17px 0 #f472b6; }
+      .s2-c { left: 1380px; box-shadow: 0 84px 17px 0 #f472b6; }
+      .caption-s2 { top: 307px; width: 160px; }
+      .caption-s2-a { left: 1010px; }
+      .caption-s2-b { left: 1190px; }
+      .caption-s2-c { left: 1370px; }
+
+      /* Row 2 (left): spread-radius sweep, PLAIN rect (cornerRadius:0) - isolates spread math from corner-rounding. */
+      .tile-s3 { position: absolute; top: 343px; width: 154px; height: 98px; background: #fbbf24; }
+      .s3-a { left: 40px; box-shadow: 0 0 28px -28px #fbbf24; }
+      .s3-b { left: 230px; box-shadow: 0 0 28px 14px #fbbf24; }
+      .s3-c { left: 420px; box-shadow: 0 0 28px 63px #fbbf24; }
+      .caption-s3 { top: 538px; width: 190px; }
+      .caption-s3-a { left: 25px; }
+      .caption-s3-b { left: 215px; }
+      .caption-s3-c { left: 405px; }
+
+      /* Row 2 (right): corner-radius sweep (spread=49/blur=42 fixed) - maps squircle severity vs. how round the shape already is. */
+      .tile-s4 { position: absolute; top: 343px; width: 140px; height: 140px; background: #a78bfa; box-shadow: 0 0 42px 49px #a78bfa; }
+      .s4-a { left: 1020px; border-radius: 14px; }
+      .s4-b { left: 1210px; border-radius: 42px; }
+      .s4-c { left: 1400px; border-radius: 70px; }
+      .caption-s4 { top: 580px; width: 190px; }
+      .caption-s4-a { left: 1005px; }
+      .caption-s4-b { left: 1195px; }
+      .caption-s4-c { left: 1385px; }
+
+      /* Row 3 (left): circle spread-magnitude sweep (blur=27 fixed) - severity scaling with spread magnitude. */
+      .tile-s5 { position: absolute; top: 616px; width: 90px; height: 90px; border-radius: 50%; background: #22d3ee; }
+      .s5-a { left: 40px; box-shadow: 0 0 27px 7px #22d3ee; }
+      .s5-b { left: 150px; box-shadow: 0 0 27px 14px #22d3ee; }
+      .s5-c { left: 260px; box-shadow: 0 0 27px 23px #22d3ee; }
+      .s5-d { left: 370px; box-shadow: 0 0 27px 32px #22d3ee; }
+      .caption-s5 { top: 771px; width: 108px; }
+      .caption-s5-a { left: 32px; }
+      .caption-s5-b { left: 142px; }
+      .caption-s5-c { left: 252px; }
+      .caption-s5-d { left: 362px; }
+
+      /* Row 3 (right): radius-vs-spread relationship (spread=40/blur=18 fixed) - is the radius:0 mismatch a sharp-corner-only boundary case? */
+      .tile-s6 { position: absolute; top: 616px; width: 99px; height: 63px; background: #60a5fa; box-shadow: 0 0 18px 40px #60a5fa; }
+      .s6-a { left: 1020px; border-radius: 0; }
+      .s6-b { left: 1135px; border-radius: 9px; }
+      .s6-c { left: 1250px; border-radius: 18px; }
+      .s6-d { left: 1365px; border-radius: 27px; }
+      .caption-s6 { top: 743px; width: 115px; }
+      .caption-s6-a { left: 1012px; }
+      .caption-s6-b { left: 1127px; }
+      .caption-s6-c { left: 1242px; }
+      .caption-s6-d { left: 1357px; }
+
+      /* Row 4 (centered): extreme large spread (cornerRadius:0, blur=18 fixed) - does the residual radius:0 error grow with magnitude or stay fixed? */
+      .tile-s7 { position: absolute; top: 807px; width: 99px; height: 63px; border-radius: 0; background: #f87171; }
+      .s7-a { left: 795px; box-shadow: 0 0 18px 45px #f87171; }
+      .s7-b { left: 910px; box-shadow: 0 0 18px 68px #f87171; }
+      .s7-c { left: 1025px; box-shadow: 0 0 18px 90px #f87171; }
+      .caption-s7 { top: 984px; width: 115px; }
+      .caption-s7-a { left: 787px; }
+      .caption-s7-b { left: 902px; }
+      .caption-s7-c { left: 1017px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Box-shadow spread magnitude &amp; corner-radius sweeps - 7 probes, 2 per row (left/right half), scaled 0.7x/0.45x from the originals with every ratio preserved. Row order top to bottom: offset-x / offset-y, spread-radius (plain rect) / corner-radius, circle spread-magnitude / radius-vs-spread, extreme large spread.</div>
+
+    <div class="tile-s1 s1-a"></div><div class="tile-s1 s1-b"></div><div class="tile-s1 s1-c"></div>
+    <div class="caption caption-s1 caption-s1-a">x: -42px</div>
+    <div class="caption caption-s1 caption-s1-b">x: +14px</div>
+    <div class="caption caption-s1 caption-s1-c">x: +84px</div>
+
+    <div class="tile-s2 s2-a"></div><div class="tile-s2 s2-b"></div><div class="tile-s2 s2-c"></div>
+    <div class="caption caption-s2 caption-s2-a">y: -42px</div>
+    <div class="caption caption-s2 caption-s2-b">y: +14px</div>
+    <div class="caption caption-s2 caption-s2-c">y: +84px</div>
+
+    <div class="tile-s3 s3-a"></div><div class="tile-s3 s3-b"></div><div class="tile-s3 s3-c"></div>
+    <div class="caption caption-s3 caption-s3-a">spread: -28px</div>
+    <div class="caption caption-s3 caption-s3-b">spread: +14px</div>
+    <div class="caption caption-s3 caption-s3-c">spread: +63px</div>
+
+    <div class="tile-s4 s4-a"></div><div class="tile-s4 s4-b"></div><div class="tile-s4 s4-c"></div>
+    <div class="caption caption-s4 caption-s4-a">radius: 14px (20%)</div>
+    <div class="caption caption-s4 caption-s4-b">radius: 42px (60%)</div>
+    <div class="caption caption-s4 caption-s4-c">radius: 70px (100%)</div>
+
+    <div class="tile-s5 s5-a"></div><div class="tile-s5 s5-b"></div><div class="tile-s5 s5-c"></div><div class="tile-s5 s5-d"></div>
+    <div class="caption caption-s5 caption-s5-a">spread: 7px</div>
+    <div class="caption caption-s5 caption-s5-b">spread: 14px</div>
+    <div class="caption caption-s5 caption-s5-c">spread: 23px</div>
+    <div class="caption caption-s5 caption-s5-d">spread: 32px</div>
+
+    <div class="tile-s6 s6-a"></div><div class="tile-s6 s6-b"></div><div class="tile-s6 s6-c"></div><div class="tile-s6 s6-d"></div>
+    <div class="caption caption-s6 caption-s6-a">radius: 0</div>
+    <div class="caption caption-s6 caption-s6-b">radius: 9px</div>
+    <div class="caption caption-s6 caption-s6-c">radius: 18px</div>
+    <div class="caption caption-s6 caption-s6-d">radius: 27px</div>
+
+    <div class="tile-s7 s7-a"></div><div class="tile-s7 s7-b"></div><div class="tile-s7 s7-c"></div>
+    <div class="caption caption-s7 caption-s7-a">spread: 45px</div>
+    <div class="caption caption-s7 caption-s7-b">spread: 68px</div>
+    <div class="caption caption-s7 caption-s7-c">spread: 90px</div>
+  </body>
+</html>

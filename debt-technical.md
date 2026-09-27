@@ -299,6 +299,12 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
 - Việc còn lại: port fix này (cả routing lẫn công thức corner-radius) sang
   `export-renderer` (native backend) — xem mục sigma text-shadow/box-shadow
   phía trên, cùng một nợ "chưa port sang export-renderer".
+- [DỌN DẸP] 15 fixture debug kể trên (`box-shadow-spread-*`,
+  `box-shadow-offset-*-sweep`) đã được gộp thành 3 fixture cố định trong
+  catalog `effect`: `box-shadow-spread-shapes.html` (5 case hình dạng),
+  `box-shadow-spread-sweeps.html` (7 sweep tham số, gộp trong 1 file),
+  `box-shadow-spread-routing.html` (routing single/2-shadow-list/offset).
+  `e2e/box-shadow-spread-comparison.spec.ts` đã trỏ sang 3 id mới này.
 
 ## Layout (html-compiler)
 

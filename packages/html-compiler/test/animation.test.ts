@@ -695,3 +695,75 @@ describe("text-shadow animation", () => {
     ]);
   });
 });
+
+describe("filter animation", () => {
+  const compileBox = (css: string) => compileHtmlCss(createHtmlCssSource({
+    html: "<div id=\"ring\"></div>",
+    css: `#ring { position: absolute; left: 100px; top: 100px; width: 200px; height: 200px; background: #a855f7; } ${css}`,
+  }));
+  const ringLayer = (result: ReturnType<typeof compileBox>) => result.protocol?.layers.find((layer) => layer.id === "ring");
+
+  it("animates a filter that only exists inside @keyframes, from an identity base", () => {
+    const result = compileBox(`
+      @keyframes hue { 0%, 100% { filter: blur(2px) hue-rotate(0deg); } 50% { filter: blur(2px) hue-rotate(50deg); } }
+      #ring { animation: hue 8s ease-in-out infinite; }
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = ringLayer(result);
+    // No static filter: identity effects the tracks write into, so outside the
+    // animation (fill-mode none) the layer is unfiltered, exactly like CSS.
+    expect(layer && "effects" in layer ? layer.effects : undefined).toEqual([
+      { id: "filter-0", type: "blur", radius: 0 },
+      { id: "filter-1", type: "color-adjust", brightness: 0, contrast: 1, saturation: 1, hueRotate: 0 },
+    ]);
+    const blur = layer?.tracks?.find((track) => track.path === "effects.filter-0.radius");
+    expect(blur?.keyframes.map((keyframe) => [keyframe.time, keyframe.value])).toEqual([
+      [0, { type: "number", value: 2 }],
+      [4000, { type: "number", value: 2 }],
+      [8000, { type: "number", value: 2 }],
+    ]);
+    const hue = layer?.tracks?.find((track) => track.path === "effects.filter-1.hueRotate");
+    expect(hue?.keyframes.map((keyframe) => keyframe.value)).toEqual([{ type: "number", value: 0 }, { type: "number", value: 50 }, { type: "number", value: 0 }]);
+    // hue-rotate never touches the other color-adjust fields.
+    expect(layer?.tracks?.some((track) => track.path === "effects.filter-1.contrast")).toBe(false);
+  });
+
+  it("pads a shorter prefix-compatible filter list with identity functions and replaces the static filter", () => {
+    const result = compileBox(`
+      @keyframes enter { from { filter: blur(14px); } to { filter: blur(0px) brightness(1.5); } }
+      #ring { filter: blur(4px); animation: enter 1s linear both; }
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = ringLayer(result);
+    const effects = layer && "effects" in layer ? layer.effects ?? [] : [];
+    // The static blur(4px) becomes the base of filter-0; no stale `filter:0` remains.
+    expect(effects).toEqual([
+      { id: "filter-0", type: "blur", radius: 4 },
+      { id: "filter-1", type: "color-adjust", brightness: 0, contrast: 1, saturation: 1, hueRotate: 0 },
+    ]);
+    const contrast = layer?.tracks?.find((track) => track.path === "effects.filter-1.contrast");
+    expect(contrast?.keyframes.map((keyframe) => keyframe.value)).toEqual([{ type: "number", value: 1 }, { type: "number", value: 1.5 }]);
+    const brightness = layer?.tracks?.find((track) => track.path === "effects.filter-1.brightness");
+    expect(brightness?.keyframes.map((keyframe) => keyframe.value)).toEqual([{ type: "number", value: 0 }, { type: "number", value: 0.25 }]);
+  });
+
+  it("interpolates brightness(0) affinely instead of through its static special case", () => {
+    const result = compileBox(`
+      @keyframes dim { from { filter: brightness(0); } to { filter: brightness(1); } }
+      #ring { animation: dim 1s linear both; }
+    `);
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const tracks = ringLayer(result)?.tracks ?? [];
+    expect(tracks.find((track) => track.path === "effects.filter-0.contrast")?.keyframes.map((keyframe) => keyframe.value.value)).toEqual([0, 1]);
+    expect(tracks.find((track) => track.path === "effects.filter-0.brightness")?.keyframes.map((keyframe) => keyframe.value.value)).toEqual([-0.5, 0]);
+  });
+
+  it("fails loudly on filter lists that CSS would only interpolate discretely", () => {
+    const result = compileBox(`
+      @keyframes swap { from { filter: blur(2px); } to { filter: grayscale(1); } }
+      #ring { animation: swap 1s linear both; }
+    `);
+    expect(result.status).toBe("error");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain("css-animation-filter-incompatible");
+  });
+});

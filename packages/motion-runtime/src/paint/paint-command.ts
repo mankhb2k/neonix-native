@@ -69,6 +69,19 @@ export type PaintCommand =
       };
       /** Runtime-only ordered effect graph applied to the already-painted backdrop. */
       backdropEffectProgram?: RuntimeEffectProgram;
+      /**
+       * Runtime-only border box (with its corner radius) the filtered backdrop
+       * must be confined to - CSS clips backdrop-filter output to the
+       * element's rounded border box regardless of `overflow`, while its
+       * children stay unclipped. Replay erases the backdrop outside this box
+       * instead of clipping the whole layer, so overflowing children survive.
+       */
+      backdropBox?: {
+        width: number;
+        height: number;
+        cornerRadius?: number;
+        matrix4: number[];
+      };
       clipPath?: {
         sourceKey: string;
         sourceKeys?: string[];

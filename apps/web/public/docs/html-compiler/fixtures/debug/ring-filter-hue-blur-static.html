@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#05060a","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #05060a; }
+      .label { position: absolute; left: 24px; top: 24px; width: 1870px; color: #64748b; font-family: Inter, sans-serif; font-size: 16px; font-weight: 700; }
+      .caption { position: absolute; top: 900px; width: 360px; text-align: center; color: #94a3b8; font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; }
+
+      /*
+        neonix-motion-test-10s.html's `.ring` has BOTH an inset AND an outer
+        box-shadow, a border, and an animated `filter: blur(2px)
+        hue-rotate(Ndeg)` all on the same element - a combination not
+        exercised by effect/box-shadow-filter.html (single outer shadow +
+        blur/brightness only, no inset, no hue-rotate). This isolates that
+        exact combo at 4 STATIC hue-rotate angles (no CSS animation, no
+        rotate() transform) to check the filter/box-shadow ordering and the
+        color-adjust matrix alone, before layering in rotation or the
+        backdrop-filter card the ring sits behind (see
+        ring-rotation-symmetric-control.html and
+        ring-behind-backdrop-card.html).
+      */
+      .ring {
+        position: absolute;
+        top: 260px;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        border: 2px solid rgba(168, 85, 247, 0.35);
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.25) inset, 0 0 20px rgba(34, 211, 238, 0.2);
+      }
+      .ring-a { left: 60px; filter: blur(2px) hue-rotate(0deg); }
+      .ring-b { left: 540px; filter: blur(2px) hue-rotate(25deg); }
+      .ring-c { left: 1020px; filter: blur(2px) hue-rotate(50deg); }
+      .ring-d { left: 1500px; filter: blur(2px) hue-rotate(75deg); }
+
+      .caption-a { left: 60px; }
+      .caption-b { left: 540px; }
+      .caption-c { left: 1020px; }
+      .caption-d { left: 1500px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">Ring's own filter+box-shadow combo (inset+outer shadow, border, blur(2px)+hue-rotate) at 4 static hue-rotate angles, half scale, no rotation - isolates color-adjust/blur ordering from the animation and backdrop-card interaction.</div>
+    <div class="ring ring-a"></div>
+    <div class="ring ring-b"></div>
+    <div class="ring ring-c"></div>
+    <div class="ring ring-d"></div>
+    <div class="caption caption-a">hue-rotate(0deg)</div>
+    <div class="caption caption-b">hue-rotate(25deg)</div>
+    <div class="caption caption-c">hue-rotate(50deg)</div>
+    <div class="caption caption-d">hue-rotate(75deg)</div>
+  </body>
+</html>

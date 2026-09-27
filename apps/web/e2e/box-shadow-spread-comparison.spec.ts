@@ -5,58 +5,21 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 // Maps 1:1 to Chrome's box-shadow spread algorithm (Blink's
 // ApplySpreadToShadowShape / OutsetWithCornerCorrection + ConstrainRadii in
 // box_painter_base.cc): grow the rect and corner radius by `spread` on every
-// side, then clamp the radius to [0, half of the smallest new side]. Three
-// cases isolate the three distinct arithmetic regimes instead of only ever
-// exercising them tangled together inside a big composite scene:
-//   - circle:      radius == min(w,h)/2 already - must stay self-consistent
-//                  (a circle stays a circle) after growth.
-//   - rounded-rect: radius << min(w,h)/2 - proves the upper clamp is
-//                  mathematically a no-op for any valid CSS shape under
-//                  positive spread (CSS never allows radius > min(w,h)/2 to
-//                  begin with, and growth preserves that inequality).
-//   - negative-erode: spread negative enough to push (radius+spread) below
-//                  zero - the one regime where clamping (floor to 0) is not
-//                  a no-op.
-const WIDTH = 1920;
-const HEIGHT = 1080;
+// side, then clamp the radius to [0, half of the smallest new side] - only
+// non-trivial when spread is negative enough to push (radius+spread) below
+// zero. The three fixtures below (moved into the permanent effect/
+// catalog - see box-shadow-spread-shapes.html's own header comment for the
+// full geometry rationale) cover shape correctness, magnitude/corner-radius
+// sweeps, and which effects.ts code path a spread renders through.
+// Compositions here vary in size (the sweeps fixture stacks 7 rows), so
+// dimensions are read from each fixture's own rendered surface rather than
+// assumed - see captureNativeSurface below.
 const REPORT_ROOT = resolve(process.cwd(), "..", "..", "tmp", "box-shadow-spread-comparison");
 
 const CASES = [
-  // Foundation check first: offset-x/offset-y are box-shadow's most basic
-  // components (pure translation, no shape change), kept at spread:0 to
-  // stay on effects.ts's simplest recognizer and prove a clean 1:1 pixel
-  // match against Chrome before anything spread-related.
-  "box-shadow-offset-x-sweep",
-  "box-shadow-offset-y-sweep",
-  // Same foundation methodology applied to spread-radius: a plain rect
-  // (cornerRadius:0) cannot show the corner-rounding squircle artifact
-  // regardless of how the dilate kernel is shaped, so this isolates
-  // whether spread's magnitude/direction math itself is correct.
-  "box-shadow-spread-radius-sweep",
-  "box-shadow-spread-circle",
-  "box-shadow-spread-rounded-rect",
-  "box-shadow-spread-negative-erode",
-  // Case 1 (circle) deep-dive: a spread-magnitude sweep, an offset+spread
-  // interaction check, and a 2-shadow-list pair (same CSS, forces the
-  // sourceOnly route) now that boxShadowBranches() also recognizes a
-  // leading spread branch.
-  "box-shadow-spread-circle-2shadow-list",
-  "box-shadow-spread-circle-magnitude-sweep",
-  "box-shadow-spread-circle-offset",
-  // Further characterizing the confirmed corner-radius+spread bug: severity
-  // vs. how round the shape already is, which part of a shape it hits
-  // (straight edges vs. rounded end-caps on a pill), and whether it still
-  // matters at small icon/badge UI scale.
-  "box-shadow-spread-corner-radius-sweep",
-  "box-shadow-spread-pill-shape",
-  "box-shadow-spread-small-scale-icon",
-  // Digging into the residual mismatch spotted on the radius:0/spread:90
-  // tile of spread-radius-sweep after the sourceOnly fix landed: isolated
-  // for a clean crop, a radius-vs-spread relationship check, and an
-  // extreme-magnitude stress test.
-  "box-shadow-spread-sharp-rect-isolated",
-  "box-shadow-spread-radius-vs-spread-relationship",
-  "box-shadow-spread-extreme-large-spread",
+  "box-shadow-spread-shapes",
+  "box-shadow-spread-sweeps",
+  "box-shadow-spread-routing",
 ] as const;
 
 type Diff = {
@@ -112,17 +75,26 @@ async function comparePixels(page: Page, left: Buffer, right: Buffer, threshold:
   }, { leftUrl: dataUrl(left), rightUrl: dataUrl(right), threshold });
 }
 
-async function captureNativeSurface(page: Page, surface: Locator): Promise<Buffer> {
+// Captures the surface at its own rendered size rather than an assumed
+// composition size - box-shadow-spread-sweeps.html alone is 1920x3060 while
+// the other two are 1920x1080/1920x1140, and stacked layout renders every
+// composition at native 1:1 regardless of size.
+async function captureNativeSurface(page: Page, surface: Locator): Promise<{ png: Buffer; width: number; height: number }> {
   await surface.scrollIntoViewIfNeeded();
   const box = await surface.boundingBox();
   if (!box) throw new Error("Native surface bounds are unavailable");
-  return page.screenshot({ type: "png", clip: { x: box.x, y: box.y, width: WIDTH, height: HEIGHT } });
+  const png = await page.screenshot({ type: "png", clip: { x: box.x, y: box.y, width: box.width, height: box.height } });
+  return { png, width: box.width, height: box.height };
 }
 
 test("compares the three box-shadow spread geometry regimes against real Chrome", async ({ page }) => {
   test.setTimeout(120_000);
   mkdirSync(REPORT_ROOT, { recursive: true });
-  await page.setViewportSize({ width: 2200, height: 3000 });
+  // Tall enough to render box-shadow-spread-sweeps.html's 1920x3060
+  // composition without needing an in-page scroll before the screenshot -
+  // Playwright's clip is viewport-relative, so a surface taller than the
+  // viewport would still get cut off after scrollIntoViewIfNeeded.
+  await page.setViewportSize({ width: 2200, height: 3200 });
   await page.goto("/playground/native-stage", { waitUntil: "domcontentloaded" });
 
   const groupPicker = page.getByTestId("radial-native-group-picker");
@@ -130,13 +102,15 @@ test("compares the three box-shadow spread geometry regimes against real Chrome"
   const browser = page.getByTestId("radial-native-browser-iframe");
   const skia = page.getByTestId("radial-native-skia-canvas");
   await expect(picker).toBeEnabled({ timeout: 30_000 });
-  // The fixture picker is filtered by folder - our fixtures live in "debug",
-  // and the picker only lists options for the currently selected folder.
-  await groupPicker.selectOption("debug");
+  // The fixture picker is filtered by folder - these fixtures live in
+  // "effect" (moved out of "debug" once the underlying spread-geometry bug
+  // was confirmed fixed), and the picker only lists options for the
+  // currently selected folder.
+  await groupPicker.selectOption("effect");
   // Stacked layout renders both panels at native 1:1 (no CSS scale-down),
-  // which the fixed-size WIDTHxHEIGHT clip below assumes. Side-by-side
-  // scales both panels down to fit, so the surfaces are no longer 1920x1080
-  // and a 1920x1080 clip can run off the smaller panel's edge.
+  // which the native-size clip in captureNativeSurface assumes. Side-by-side
+  // scales both panels down to fit, so a 1:1 pixel clip would run off the
+  // smaller panel's edge.
   await page.getByTestId("compare-layout-stacked").click();
 
   const report: Array<{ fixture: string; browserVsSkia: Diff }> = [];
@@ -153,16 +127,17 @@ test("compares the three box-shadow spread geometry regimes against real Chrome"
     const diagnostics = await skia.getAttribute("data-diagnostics");
     expect(diagnostics ?? "").not.toMatch(/unsupported|surface_unavailable|snapshot_unsupported|missing/);
 
-    const browserPng = await captureNativeSurface(page, browser);
-    const skiaPng = await captureNativeSurface(page, skia);
-    const diff = await comparePixels(page, browserPng, skiaPng, 8);
-    expect(diff).toMatchObject({ width: WIDTH, height: HEIGHT });
+    const browserCapture = await captureNativeSurface(page, browser);
+    const skiaCapture = await captureNativeSurface(page, skia);
+    expect(skiaCapture, `${fixture} browser/skia surface size mismatch`).toMatchObject({ width: browserCapture.width, height: browserCapture.height });
+    const diff = await comparePixels(page, browserCapture.png, skiaCapture.png, 8);
+    expect(diff).toMatchObject({ width: browserCapture.width, height: browserCapture.height });
     expect(diff.changedRatio, `${fixture} catastrophic pixel divergence`).toBeLessThan(0.98);
-    writeFileSync(resolve(REPORT_ROOT, `${fixture}.browser.png`), browserPng);
-    writeFileSync(resolve(REPORT_ROOT, `${fixture}.skia.png`), skiaPng);
+    writeFileSync(resolve(REPORT_ROOT, `${fixture}.browser.png`), browserCapture.png);
+    writeFileSync(resolve(REPORT_ROOT, `${fixture}.skia.png`), skiaCapture.png);
     report.push({ fixture, browserVsSkia: diff });
   }
 
-  writeFileSync(resolve(REPORT_ROOT, "report.json"), JSON.stringify({ width: WIDTH, height: HEIGHT, report }, null, 2));
+  writeFileSync(resolve(REPORT_ROOT, "report.json"), JSON.stringify({ report }, null, 2));
   expect(report).toHaveLength(CASES.length);
 });
