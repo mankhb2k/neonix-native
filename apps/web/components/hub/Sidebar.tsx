@@ -3,11 +3,12 @@
 import {
   Boxes,
   Download,
+  FolderKanban,
   KeyRound,
   LayoutDashboard,
   LogOut,
-  Plug,
   Settings,
+  Wallet,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,16 +21,21 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navItems = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "projects", href: "/dashboard/projects", icon: FolderKanban },
   { key: "assets", href: "/dashboard/assets", icon: Boxes },
   { key: "exports", href: "/dashboard/exports", icon: Download },
-  { key: "mcp", href: "/dashboard/mcp", icon: Plug },
   { key: "api", href: "/dashboard/api", icon: KeyRound },
   // { key: "usage", href: "/usage", icon: Gauge },
   // { key: "billing", href: "/billing", icon: CreditCard },
+  { key: "topup", href: "/dashboard/topup", icon: Wallet },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
 ] as const;
 
 function isActive(pathname: string, href: string) {
+  // "/dashboard" is a literal path prefix of every other dashboard route
+  // (e.g. "/dashboard/assets"), so it must match exactly or every sub-page
+  // would also highlight the Dashboard nav item.
+  if (href === "/dashboard") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -47,7 +53,7 @@ function NavItem({
   return (
     <Link
       href={dashboardHref(item.href)}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-body font-medium no-underline transition ${active ? "bg-[var(--hub-active)] text-[var(--fg-primary)]" : "text-[var(--fg-muted)] hover:bg-[var(--hub-hover)] hover:text-[var(--fg-primary)]"}`}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium no-underline transition ${active ? "bg-[var(--hub-active)] text-[var(--fg-primary)]" : "text-[var(--fg-muted)] hover:bg-[var(--hub-hover)] hover:text-[var(--fg-primary)]"}`}
     >
       <Icon className={`size-4 ${active ? "text-[var(--hub-accent)]" : ""}`} />
       {t(item.key)}
@@ -129,24 +135,24 @@ export function Sidebar() {
         </div>
 
         <div className="mb-5 border-b border-[var(--hub-border)] pb-5">
-          <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
+          <p className="mb-2 px-3 text-sm font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
             {t("sections.workspace")}
           </p>
-          {navItems.slice(0, 3).map((item) => (
+          {navItems.slice(0, 4).map((item) => (
             <NavItem key={item.key} item={item} pathname={pathname} />
           ))}
         </div>
 
         <div className="mb-5 border-b border-[var(--hub-border)] pb-5">
-          <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
+          <p className="mb-2 px-3 text-sm font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
             {t("sections.connect")}
           </p>
-          {navItems.slice(3, 5).map((item) => (
+          {navItems.slice(4, 5).map((item) => (
             <NavItem key={item.key} item={item} pathname={pathname} />
           ))}
         </div>
 
-        <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
+        <p className="mb-2 px-3 text-sm font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
           {t("sections.account")}
         </p>
         {navItems.slice(5).map((item) => (
@@ -157,7 +163,7 @@ export function Sidebar() {
       <div className="space-y-4 border-t border-[var(--hub-border)] p-4">
         {storage ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-caption">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-[var(--fg-muted)]">{t("storage.label")}</span>
               <span className="font-mono text-[var(--fg-secondary)]">
                 {formatBytes(storage.usedBytes)} / {formatBytes(storage.quotaBytes)}
@@ -183,17 +189,17 @@ export function Sidebar() {
           type="button"
           className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-[var(--hub-hover)]"
         >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-body font-semibold text-[var(--hub-accent)]">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-base font-semibold text-[var(--hub-accent)]">
             {account.name.slice(0, 1).toUpperCase()}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-body font-medium text-[var(--fg-primary)]">{account.name}</span>
+              <span className="truncate text-base font-medium text-[var(--fg-primary)]">{account.name}</span>
               <span className="inline-flex shrink-0 items-center rounded border border-[var(--hub-accent)]/30 bg-[var(--accent-soft)] px-1 py-0.5 text-[9px] font-semibold leading-none tracking-[0.06em] text-[var(--hub-accent)]">
                 FREE
               </span>
             </span>
-            <span className="mt-0.5 block truncate text-caption text-[var(--fg-muted)]">{account.email}</span>
+            <span className="mt-0.5 block truncate text-sm text-[var(--fg-muted)]">{account.email}</span>
           </span>
           <LogOut className="size-3.5 text-[var(--fg-disabled)]" />
         </button>

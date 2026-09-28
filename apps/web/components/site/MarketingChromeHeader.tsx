@@ -15,6 +15,8 @@ export function MarketingChromeHeader() {
     ? "mcp"
     : pathname.startsWith("/docs")
       ? "docs"
-      : undefined;
+      : pathname.startsWith("/templates")
+        ? "templates"
+        : undefined;
   return <SiteHeader active={active} />;
 }

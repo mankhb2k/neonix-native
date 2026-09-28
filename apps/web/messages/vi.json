@@ -3,9 +3,10 @@
     "nav": {
       "ariaLabel": "Không gian làm việc",
       "dashboard": "Tổng quan",
+      "projects": "Dự án",
+      "topup": "Nạp tiền",
       "assets": "Tài nguyên",
       "exports": "Xuất video",
-      "mcp": "MCP",
       "api": "API",
       "settings": "Cài đặt"
     },
@@ -24,5 +25,279 @@
       "title": "Ngôn ngữ",
       "description": "Chọn ngôn ngữ hiển thị cho bảng điều khiển Neonix."
     }
+  },
+  "TemplatesGallery": {
+    "title": "Thư Viện Mẫu Motion Graphic HTML/CSS - Prompt - Skill for AI",
+    "description": "Bộ sưu tập template motion graphic, Giúp AI agent hiểu nhanh yêu cầu chuyển động và render các hiệu ứng đồ họa động nhanh chóng."
+  },
+  "SiteHeader": {
+    "nav": {
+      "docs": "Tài liệu",
+      "templates": "Mẫu",
+      "mcp": "MCP",
+      "playground": "Sân thử nghiệm"
+    },
+    "actions": {
+      "dashboard": "Bảng điều khiển",
+      "login": "Đăng nhập",
+      "signUp": "Đăng ký"
+    }
+  },
+  "WorkspaceHome": {
+    "eyebrow": "Không gian cá nhân",
+    "title": "Dự án",
+    "description": "Tạo cùng Claude, tinh chỉnh trong trình chỉnh sửa, và xuất video khi câu chuyện chuyển động đã sẵn sàng.",
+    "newProject": "Dự án mới",
+    "tabs": {
+      "all": "Tất cả dự án",
+      "recent": "Gần đây"
+    },
+    "projectsCount": "{count}/{limit} dự án",
+    "layers": "{count, plural, other {# lớp}}"
+  },
+  "ProjectGrid": {
+    "updatedAt": "Cập nhật {time}",
+    "updatedRecently": "Vừa cập nhật gần đây",
+    "actionsAriaLabel": "Thao tác với {title}",
+    "menu": {
+      "openEditor": "Mở trình chỉnh sửa",
+      "openPreview": "Xem trước",
+      "remove": "Xoá"
+    },
+    "removeDialog": {
+      "title": "Xoá dự án?",
+      "body": "“{title}” sẽ bị xoá khỏi không gian làm việc của bạn. Hành động này không thể hoàn tác.",
+      "cancel": "Huỷ",
+      "confirm": "Xoá dự án",
+      "confirming": "Đang xoá…",
+      "error": "Không thể xoá dự án"
+    }
+  },
+  "ImportHtmlDialog": {
+    "trigger": "Nhập HTML",
+    "errorMissingHtml": "Dán một tài liệu HTML hoặc chọn file .html trước.",
+    "errorFallback": "Không thể nhập HTML",
+    "eyebrow": "Tạo từ mã nguồn",
+    "description": "Dán tài liệu HTML của Neonix hoặc tải lên một file để tạo dự án có thể chỉnh sửa.",
+    "closeAria": "Đóng hộp thoại nhập HTML",
+    "projectName": "Tên dự án",
+    "optional": "(không bắt buộc)",
+    "projectNamePlaceholder": "Dự án chưa đặt tên",
+    "chooseFile": "Chọn file HTML",
+    "htmlDocument": "Tài liệu HTML",
+    "cancel": "Huỷ",
+    "importing": "Đang nhập..."
+  },
+  "AssetsWorkspace": {
+    "meta": {
+      "uploading": "Đang tải lên",
+      "preparingMedia": "Đang xử lý media",
+      "previewUnavailable": "Không có bản xem trước",
+      "ready": "Sẵn sàng"
+    },
+    "actions": {
+      "download": "Tải xuống",
+      "deleteAria": "Xoá {name}",
+      "deleteAriaFallbackName": "tệp"
+    },
+    "deleteDialog": {
+      "title": "Xoá tệp?",
+      "body": "“{name}” và toàn bộ dữ liệu lưu trữ sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.",
+      "usedByProjects": "{count, plural, other {Tệp này đang được # dự án sử dụng.}}",
+      "placeholderNote": "Phiên bản hiện tại của mỗi dự án sẽ dùng tạm placeholder hệ thống tương thích thay thế.",
+      "andMore": "và {count} dự án khác",
+      "cancel": "Huỷ",
+      "deleting": "Đang xoá...",
+      "deleteAndReplace": "Xoá và thay thế",
+      "deleteAsset": "Xoá tệp"
+    },
+    "errors": {
+      "loadAssets": "Không thể tải danh sách tài nguyên",
+      "refreshAssets": "Không thể làm mới danh sách tài nguyên",
+      "uploadFailed": "Tải lên thất bại",
+      "fontUploadFailed": "Tải font thất bại",
+      "checkUsage": "Không thể kiểm tra tình trạng sử dụng tài nguyên",
+      "deleteFailed": "Xoá thất bại"
+    },
+    "eyebrow": "Thư viện không gian làm việc",
+    "title": {
+      "assets": "Tài nguyên",
+      "fonts": "Font chữ"
+    },
+    "description": {
+      "assets": "Tải media lên R2 và dùng lại trong các dự án Neonix của bạn.",
+      "fonts": "Tải font tĩnh lên một lần và dùng trong mọi dự án Neonix."
+    },
+    "upload": {
+      "uploading": "Đang tải lên...",
+      "asset": "Tải lên tài nguyên",
+      "font": "Tải lên font"
+    },
+    "search": {
+      "label": "Tìm tài nguyên"
+    },
+    "counts": {
+      "files": "{count, plural, other {# tệp}}",
+      "fonts": "{count, plural, other {# font}}"
+    },
+    "view": {
+      "assetAria": "Chế độ xem tài nguyên",
+      "listAria": "Xem danh sách",
+      "cardAria": "Xem dạng thẻ"
+    },
+    "loading": "Đang tải tài nguyên...",
+    "fontsEmpty": {
+      "noMatch": "Không tìm thấy font phù hợp",
+      "none": "Chưa có font tuỳ chỉnh nào",
+      "description": "Tải lên file .ttf, .woff, hoặc .woff2 tĩnh. Metadata sẽ được đọc tự động."
+    },
+    "fontSource": {
+      "custom": "Tuỳ chỉnh",
+      "system": "Hệ thống"
+    },
+    "fontDeleteAria": "Xoá {family} {subfamily}",
+    "assetsEmpty": {
+      "noMatch": "Không tìm thấy tài nguyên phù hợp",
+      "none": "Chưa có tài nguyên nào",
+      "descriptionSearch": "Hãy thử từ khoá tìm kiếm khác.",
+      "descriptionEmpty": "Tải lên hình ảnh, video, hoặc file âm thanh để bắt đầu."
+    }
+  },
+  "ExportsWorkspace": {
+    "errors": {
+      "loadingFormat": "Không thể tải danh sách xuất video ({status})",
+      "loadFallback": "Không thể tải danh sách xuất video",
+      "downloadUnavailable": "Không thể tải xuống ({status})",
+      "downloadUrlMissing": "Thiếu đường dẫn tải xuống",
+      "downloadFailed": "Tải xuống thất bại"
+    },
+    "awaitingMetrics": "Đang chờ số liệu",
+    "unknownDate": "Không rõ ngày",
+    "statusLabels": {
+      "queued": "Đang chờ",
+      "rendering": "Đang render",
+      "encoding": "Đang mã hoá",
+      "publishing": "Đang xuất bản",
+      "finalizing": "Đang hoàn tất",
+      "failed": "Thất bại",
+      "cancelled": "Đã huỷ",
+      "done": "Sẵn sàng"
+    },
+    "stats": {
+      "total": "Tổng số bản xuất",
+      "ready": "Sẵn sàng",
+      "processing": "Đang xử lý",
+      "failed": "Thất bại"
+    },
+    "eyebrow": "Thư viện render",
+    "title": "Xuất video",
+    "description": "Tải video đã hoàn thành và theo dõi lịch sử xuất video.",
+    "refresh": "Làm mới",
+    "search": {
+      "label": "Tìm bản xuất",
+      "placeholder": "Tìm dự án hoặc bản xuất"
+    },
+    "filter": {
+      "aria": "Lọc bản xuất theo trạng thái",
+      "all": "Tất cả trạng thái",
+      "ready": "Sẵn sàng",
+      "processing": "Đang xử lý",
+      "failed": "Thất bại",
+      "cancelled": "Đã huỷ"
+    },
+    "counts": {
+      "files": "{count, plural, other {# tệp}}"
+    },
+    "view": {
+      "exportAria": "Chế độ xem bản xuất",
+      "listAria": "Xem danh sách",
+      "cardAria": "Xem dạng thẻ"
+    },
+    "loading": "Đang tải danh sách xuất video...",
+    "projectLabel": "Dự án {id}",
+    "downloadPreparing": "Đang chuẩn bị...",
+    "download": "Tải xuống",
+    "empty": {
+      "noneTitle": "Chưa có bản xuất nào",
+      "noMatchTitle": "Không tìm thấy bản xuất phù hợp",
+      "noneDescription": "Xuất video một dự án từ trình chỉnh sửa, file MP4 sẽ xuất hiện ở đây.",
+      "noMatchDescription": "Hãy thử từ khoá tìm kiếm hoặc bộ lọc trạng thái khác."
+    },
+    "browseProjects": "Xem các dự án",
+    "storageNote": "Các file đã xuất được tính vào giới hạn dung lượng lưu trữ của không gian làm việc."
+  },
+  "ApiWorkspace": {
+    "errors": {
+      "fallback": "Chúng tôi không thể lưu email của bạn. Vui lòng thử lại."
+    },
+    "eyebrow": "Sắp ra mắt",
+    "title": "API của Neonix sắp ra mắt.",
+    "description": "Chúng tôi đang chuẩn bị một cách đơn giản để xây dựng, cập nhật, và render dự án chuyển động có thể chỉnh sửa từ công cụ của riêng bạn. Để lại email, chúng tôi sẽ báo khi API sẵn sàng.",
+    "emailLabel": "Địa chỉ email",
+    "emailPlaceholder": "ban@vidu.com",
+    "saving": "Đang lưu…",
+    "notifyMe": "Báo cho tôi"
+  },
+  "OverviewWorkspace": {
+    "eyebrow": "Sử dụng & thanh toán",
+    "title": "Tổng quan",
+    "description": "Theo dõi số video bạn đã xuất và chi phí tương ứng.",
+    "trend": {
+      "title": "Video xuất trong 14 ngày qua",
+      "description": "Số lượng video xuất theo từng ngày.",
+      "valueLabel": "video",
+      "dateLabel": "Ngày",
+      "showTable": "Xem dạng bảng",
+      "showChart": "Xem dạng biểu đồ"
+    },
+    "stats": {
+      "videosExported": "Video đã xuất",
+      "totalDuration": "Tổng thời lượng video",
+      "totalDurationValue": "{seconds} giây",
+      "totalCost": "Chi phí ước tính",
+      "balance": "Số dư"
+    },
+    "durations": {
+      "title": "Thời lượng video",
+      "description": "Thời lượng từng video trong các bản xuất gần đây nhất, tính theo giây.",
+      "columns": {
+        "video": "Video",
+        "duration": "Thời lượng",
+        "seconds": "Số giây"
+      }
+    },
+    "breakdown": {
+      "title": "Chi tiết chi phí",
+      "description": "Ước tính đơn giản dựa trên số lượng video đã xuất và đơn giá. Đây là dữ liệu mẫu — kết nối hệ thống thanh toán để xem số liệu thật.",
+      "columns": {
+        "item": "Hạng mục",
+        "quantity": "Số lượng",
+        "unitPrice": "Đơn giá",
+        "subtotal": "Thành tiền"
+      },
+      "rowLabel": "Video đã xuất"
+    }
+  },
+  "TopupWorkspace": {
+    "eyebrow": "Thanh toán",
+    "title": "Nạp tiền",
+    "description": "Nạp số dư vào ví Neonix để thanh toán cho API và xuất video.",
+    "amountLabel": "Số tiền",
+    "custom": "Tuỳ chọn",
+    "customPlaceholder": "Nhập số tiền",
+    "totalLabel": "Tổng cộng",
+    "paymentMethodLabel": "Phương thức thanh toán",
+    "methods": {
+      "paypal": "PayPal / Thẻ ghi nợ hoặc tín dụng",
+      "card": "Visa / Mastercard",
+      "googlepay": "Google Pay",
+      "vietqr": "Chuyển khoản (VietQR)"
+    },
+    "comingSoon": "Sắp ra mắt",
+    "vietqrDescription": "Quét mã QR để thanh toán qua chuyển khoản ngân hàng. Phương thức này chưa khả dụng.",
+    "nextStep": "Tiếp tục",
+    "previewNotice": "Đây là giao diện xem trước — chưa kết nối cổng thanh toán thật nên chưa có khoản nào bị trừ.",
+    "balance": "Số dư hiện tại: {amount}",
+    "accountNote": "Số dư sẽ được cộng vào tài khoản {email}"
   }
 }

@@ -1,5 +1,10 @@
-import { WorkspaceHome } from "@/components/hub/WorkspaceHome";
+import { HubFrame } from "@/components/hub/HubFrame";
+import { OverviewWorkspace } from "@/components/hub/OverviewWorkspace";
 
 export default function DashboardPage() {
-  return <WorkspaceHome />;
+  return (
+    <HubFrame>
+      <OverviewWorkspace />
+    </HubFrame>
+  );
 }

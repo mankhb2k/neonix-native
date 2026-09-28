@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SiteNavButton } from "@/components/site/SiteNavButton";
@@ -17,8 +18,9 @@ const headerOuterClass =
 export function SiteHeader({
   active,
 }: {
-  active?: "docs" | "mcp" | "playground";
+  active?: "docs" | "mcp" | "playground" | "templates";
 }) {
+  const t = useTranslations("SiteHeader");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -74,23 +76,26 @@ export function SiteHeader({
         </Link>
         <nav className="flex items-center justify-self-center gap-6">
           <SiteNavButton href="/docs" active={active === "docs"}>
-            Docs
+            {t("nav.docs")}
+          </SiteNavButton>
+          <SiteNavButton href="/templates" active={active === "templates"}>
+            {t("nav.templates")}
           </SiteNavButton>
           <SiteNavButton href="/docs/mcp" active={active === "mcp"}>
-            MCP
+            {t("nav.mcp")}
           </SiteNavButton>
           <SiteNavButton href="/playground" active={active === "playground"}>
-            Playground
+            {t("nav.playground")}
           </SiteNavButton>
         </nav>
         <div className="flex items-center justify-self-end gap-2">
-          <LocaleSwitcher className="rounded-lg border border-[var(--border-subtle)] bg-transparent px-2 py-1.5 text-caption text-[var(--fg-secondary)]" />
+          <LocaleSwitcher iconOnly align="end" />
           {showDashboard ? (
             <a
               href={dashboardUrl("/dashboard")}
-              className={buttonClassName({ variant: "secondary", size: "md" })}
+              className={buttonClassName({ variant: "secondary", size: "lg" })}
             >
-              Dashboard
+              {t("actions.dashboard")}
             </a>
           ) : null}
           {showAuthActions ? (
@@ -99,21 +104,21 @@ export function SiteHeader({
                 href="/login"
                 className={buttonClassName({
                   variant: "ghost",
-                  size: "md",
+                  size: "lg",
                   className: "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]",
                 })}
               >
-                Log in
+                {t("actions.login")}
               </Link>
               <Link
                 href="/register"
                 className={buttonClassName({
                   variant: "primary",
-                  size: "md",
+                  size: "lg",
                   className: "hidden sm:inline-flex",
                 })}
               >
-                Sign up
+                {t("actions.signUp")}
               </Link>
             </>
           ) : null}

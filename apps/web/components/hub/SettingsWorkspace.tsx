@@ -252,7 +252,13 @@ export function SettingsWorkspace() {
                 <h2 className="text-lg font-semibold text-[var(--fg-primary)]">{t("title")}</h2>
                 <p className="mt-1 text-sm leading-6 text-[var(--fg-muted)]">{t("description")}</p>
                 <div className="mt-4 max-w-xs">
-                  <LocaleSwitcher className="h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-editor)] px-3 text-sm text-[var(--fg-primary)] outline-none transition hover:border-[var(--border-focus)] focus:border-[var(--border-focus)] focus:ring-2 focus:ring-[var(--accent-soft)]" />
+                  <LocaleSwitcher
+                    variant="outline"
+                    size="lg"
+                    align="start"
+                    triggerClassName="h-11 w-full justify-between border-[var(--border-strong)] bg-[var(--bg-editor)] text-[var(--fg-primary)] hover:border-[var(--border-focus)] focus-visible:border-[var(--border-focus)] focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)]"
+                    menuClassName="min-w-[var(--radix-dropdown-menu-trigger-width)]"
+                  />
                 </div>
               </div>
             </div>

@@ -2,10 +2,11 @@
   "Sidebar": {
     "nav": {
       "ariaLabel": "Workspace",
-      "dashboard": "Dashboard",
+      "dashboard": "Overview",
+      "projects": "Projects",
+      "topup": "Top up",
       "assets": "Assets",
       "exports": "Exports",
-      "mcp": "MCP",
       "api": "API",
       "settings": "Settings"
     },
@@ -24,5 +25,279 @@
       "title": "Language",
       "description": "Choose the language used across the Neonix dashboard."
     }
+  },
+  "TemplatesGallery": {
+    "title": "HTML/CSS Motion Graphic Template Library — Prompt & Skill for AI",
+    "description": "A collection of motion graphic templates that helps AI agents quickly understand motion requests and render dynamic graphic effects."
+  },
+  "SiteHeader": {
+    "nav": {
+      "docs": "Docs",
+      "templates": "Templates",
+      "mcp": "MCP",
+      "playground": "Playground"
+    },
+    "actions": {
+      "dashboard": "Dashboard",
+      "login": "Log in",
+      "signUp": "Sign up"
+    }
+  },
+  "WorkspaceHome": {
+    "eyebrow": "Personal workspace",
+    "title": "Projects",
+    "description": "Create with Claude, refine in the editor, and export when your motion story is ready.",
+    "newProject": "New project",
+    "tabs": {
+      "all": "All projects",
+      "recent": "Recent"
+    },
+    "projectsCount": "{count}/{limit} projects",
+    "layers": "{count, plural, one {# layer} other {# layers}}"
+  },
+  "ProjectGrid": {
+    "updatedAt": "Updated {time}",
+    "updatedRecently": "Updated recently",
+    "actionsAriaLabel": "{title} actions",
+    "menu": {
+      "openEditor": "Open editor",
+      "openPreview": "Open preview",
+      "remove": "Remove"
+    },
+    "removeDialog": {
+      "title": "Remove project?",
+      "body": "“{title}” will be removed from your workspace. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Remove project",
+      "confirming": "Removing…",
+      "error": "Unable to remove project"
+    }
+  },
+  "ImportHtmlDialog": {
+    "trigger": "Import HTML",
+    "errorMissingHtml": "Paste an HTML document or choose an .html file first.",
+    "errorFallback": "Unable to import HTML",
+    "eyebrow": "Create from source",
+    "description": "Paste a Neonix HTML document or upload a file to create an editable project.",
+    "closeAria": "Close import HTML dialog",
+    "projectName": "Project name",
+    "optional": "(optional)",
+    "projectNamePlaceholder": "Untitled project",
+    "chooseFile": "Choose HTML file",
+    "htmlDocument": "HTML document",
+    "cancel": "Cancel",
+    "importing": "Importing..."
+  },
+  "AssetsWorkspace": {
+    "meta": {
+      "uploading": "Uploading",
+      "preparingMedia": "Preparing media",
+      "previewUnavailable": "Preview unavailable",
+      "ready": "Ready"
+    },
+    "actions": {
+      "download": "Download",
+      "deleteAria": "Delete {name}",
+      "deleteAriaFallbackName": "asset"
+    },
+    "deleteDialog": {
+      "title": "Delete asset?",
+      "body": "“{name}” and its stored files will be permanently deleted. This action cannot be undone.",
+      "usedByProjects": "{count, plural, one {This asset is used by # project.} other {This asset is used by # projects.}}",
+      "placeholderNote": "The current revision of each project will use a compatible system placeholder instead.",
+      "andMore": "and {count} more",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "deleteAndReplace": "Delete and replace",
+      "deleteAsset": "Delete asset"
+    },
+    "errors": {
+      "loadAssets": "Unable to load assets",
+      "refreshAssets": "Unable to refresh assets",
+      "uploadFailed": "Upload failed",
+      "fontUploadFailed": "Font upload failed",
+      "checkUsage": "Unable to check asset usage",
+      "deleteFailed": "Delete failed"
+    },
+    "eyebrow": "Workspace library",
+    "title": {
+      "assets": "Assets",
+      "fonts": "Fonts"
+    },
+    "description": {
+      "assets": "Upload media to R2 and reuse it across your Neonix projects.",
+      "fonts": "Upload static fonts once and use them across every Neonix project."
+    },
+    "upload": {
+      "uploading": "Uploading...",
+      "asset": "Upload asset",
+      "font": "Upload font"
+    },
+    "search": {
+      "label": "Search assets"
+    },
+    "counts": {
+      "files": "{count, plural, one {# file} other {# files}}",
+      "fonts": "{count, plural, one {# font} other {# fonts}}"
+    },
+    "view": {
+      "assetAria": "Asset view",
+      "listAria": "List view",
+      "cardAria": "Card view"
+    },
+    "loading": "Loading assets...",
+    "fontsEmpty": {
+      "noMatch": "No matching fonts",
+      "none": "No custom fonts yet",
+      "description": "Upload a static .ttf, .woff, or .woff2 file. Metadata is read automatically."
+    },
+    "fontSource": {
+      "custom": "Custom",
+      "system": "System"
+    },
+    "fontDeleteAria": "Delete {family} {subfamily}",
+    "assetsEmpty": {
+      "noMatch": "No matching assets",
+      "none": "No assets yet",
+      "descriptionSearch": "Try a different search term.",
+      "descriptionEmpty": "Upload an image, video, or audio file to get started."
+    }
+  },
+  "ExportsWorkspace": {
+    "errors": {
+      "loadingFormat": "Unable to load exports ({status})",
+      "loadFallback": "Unable to load exports",
+      "downloadUnavailable": "Download unavailable ({status})",
+      "downloadUrlMissing": "Download URL is missing",
+      "downloadFailed": "Download failed"
+    },
+    "awaitingMetrics": "Awaiting metrics",
+    "unknownDate": "Unknown date",
+    "statusLabels": {
+      "queued": "Queued",
+      "rendering": "Rendering",
+      "encoding": "Encoding",
+      "publishing": "Publishing",
+      "finalizing": "Finalizing",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "done": "Ready"
+    },
+    "stats": {
+      "total": "Total exports",
+      "ready": "Ready",
+      "processing": "Processing",
+      "failed": "Failed"
+    },
+    "eyebrow": "Render library",
+    "title": "Exports",
+    "description": "Download finished videos and keep track of your export history.",
+    "refresh": "Refresh",
+    "search": {
+      "label": "Search exports",
+      "placeholder": "Search project or export"
+    },
+    "filter": {
+      "aria": "Filter exports by status",
+      "all": "All statuses",
+      "ready": "Ready",
+      "processing": "Processing",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "counts": {
+      "files": "{count, plural, one {# file} other {# files}}"
+    },
+    "view": {
+      "exportAria": "Export view",
+      "listAria": "List view",
+      "cardAria": "Card view"
+    },
+    "loading": "Loading exports...",
+    "projectLabel": "Project {id}",
+    "downloadPreparing": "Preparing...",
+    "download": "Download",
+    "empty": {
+      "noneTitle": "No exports yet",
+      "noMatchTitle": "No matching exports",
+      "noneDescription": "Export a project from the editor and your MP4 files will appear here.",
+      "noMatchDescription": "Try a different search term or status filter."
+    },
+    "browseProjects": "Browse projects",
+    "storageNote": "Exported files count toward your workspace storage limit."
+  },
+  "ApiWorkspace": {
+    "errors": {
+      "fallback": "We could not save your email. Please try again."
+    },
+    "eyebrow": "Coming soon",
+    "title": "The Neonix API is on its way.",
+    "description": "We are preparing a simple way to build, update, and render editable motion projects from your own tools. Leave your email and we will notify you when API access is available.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "saving": "Saving…",
+    "notifyMe": "Notify me"
+  },
+  "OverviewWorkspace": {
+    "eyebrow": "Usage & billing",
+    "title": "Overview",
+    "description": "Track how many videos you've exported and what it costs.",
+    "trend": {
+      "title": "Exports over the last 14 days",
+      "description": "Daily video export count.",
+      "valueLabel": "exports",
+      "dateLabel": "Date",
+      "showTable": "Show as table",
+      "showChart": "Show as chart"
+    },
+    "stats": {
+      "videosExported": "Videos exported",
+      "totalDuration": "Total video duration",
+      "totalDurationValue": "{seconds}s",
+      "totalCost": "Estimated cost",
+      "balance": "Balance"
+    },
+    "durations": {
+      "title": "Video durations",
+      "description": "Length of each of your most recent exports, measured in seconds.",
+      "columns": {
+        "video": "Video",
+        "duration": "Duration",
+        "seconds": "Seconds"
+      }
+    },
+    "breakdown": {
+      "title": "Cost breakdown",
+      "description": "A simple estimate based on your export count and unit price. Mock data for now — connect billing to see real numbers.",
+      "columns": {
+        "item": "Item",
+        "quantity": "Quantity",
+        "unitPrice": "Unit price",
+        "subtotal": "Subtotal"
+      },
+      "rowLabel": "Video exports"
+    }
+  },
+  "TopupWorkspace": {
+    "eyebrow": "Billing",
+    "title": "Top up",
+    "description": "Add balance to your Neonix wallet to pay for API and export usage.",
+    "amountLabel": "Amount",
+    "custom": "Custom",
+    "customPlaceholder": "Enter an amount",
+    "totalLabel": "Total",
+    "paymentMethodLabel": "Payment method",
+    "methods": {
+      "paypal": "PayPal / Debit or Credit Card",
+      "card": "Visa / Mastercard",
+      "googlepay": "Google Pay",
+      "vietqr": "Bank transfer (VietQR)"
+    },
+    "comingSoon": "Coming soon",
+    "vietqrDescription": "Scan a QR code to pay by bank transfer. This method isn't available yet.",
+    "nextStep": "Next step",
+    "previewNotice": "This is a preview — no payment provider is connected yet, so nothing was charged.",
+    "balance": "Current balance: {amount}",
+    "accountNote": "Balance goes to account {email}"
   }
 }

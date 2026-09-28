@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations, useFormatter } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { removeProject } from "@/lib/api/projects";
 import { appUrl, previewUrl } from "@/lib/hosts";
@@ -11,13 +12,24 @@ export type ProjectCardData = {
   href: string;
   layers: string;
   duration: string;
-  updated: string;
+  updatedAt: string;
   accent: string;
 };
 
 type MenuPosition = { x: number; y: number };
 
+function useUpdatedLabel(updatedAt: string) {
+  const t = useTranslations("ProjectGrid");
+  const format = useFormatter();
+
+  const date = new Date(updatedAt);
+  if (Number.isNaN(date.getTime())) return t("updatedRecently");
+  return t("updatedAt", { time: format.relativeTime(date, new Date()) });
+}
+
 function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemoved: (projectId: string) => void }) {
+  const t = useTranslations("ProjectGrid");
+  const updatedLabel = useUpdatedLabel(project.updatedAt);
   const [menu, setMenu] = useState<MenuPosition | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -50,7 +62,7 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
       onRemoved(project.projectId);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to remove project");
+      setError(caught instanceof Error ? caught.message : t("removeDialog.error"));
     } finally {
       setRemoving(false);
     }
@@ -77,28 +89,28 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
         </div>
         <div className="space-y-1.5 px-4 py-3.5">
           <h3 className="truncate text-base font-semibold text-[var(--fg-primary)]">{project.title}</h3>
-          <p className="pt-1 font-mono text-caption text-[var(--fg-muted)]">{project.layers} · {project.updated}</p>
+          <p className="pt-1 font-mono text-caption text-[var(--fg-muted)]">{project.layers} · {updatedLabel}</p>
         </div>
       </a>
 
       {menu ? (
-        <div ref={menuRef} role="menu" aria-label={`${project.title} actions`} className="fixed z-50 min-w-56 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)]" style={{ left: menu.x, top: menu.y }}>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(appUrl(project.href)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">Open editor</button>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(previewUrl(`/preview/${project.projectId}`)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">Open preview</button>
+        <div ref={menuRef} role="menu" aria-label={t("actionsAriaLabel", { title: project.title })} className="fixed z-50 min-w-56 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)]" style={{ left: menu.x, top: menu.y }}>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(appUrl(project.href)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openEditor")}</button>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(previewUrl(`/preview/${project.projectId}`)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openPreview")}</button>
           <div className="my-1 border-t border-[var(--hub-border)]" />
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); setConfirming(true); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-red-600 hover:bg-red-50">Remove</button>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); setConfirming(true); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-red-600 hover:bg-red-50">{t("menu.remove")}</button>
         </div>
       ) : null}
 
       {confirming ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/30 px-5" role="presentation">
           <div role="dialog" aria-modal="true" aria-labelledby={`remove-project-${project.projectId}`} className="w-full max-w-md rounded-2xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.2)]">
-            <h2 id={`remove-project-${project.projectId}`} className="text-xl font-semibold text-[var(--fg-primary)]">Remove project?</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fg-muted)]">“{project.title}” will be removed from your workspace. This action cannot be undone.</p>
+            <h2 id={`remove-project-${project.projectId}`} className="text-xl font-semibold text-[var(--fg-primary)]">{t("removeDialog.title")}</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--fg-muted)]">{t("removeDialog.body", { title: project.title })}</p>
             {error ? <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" disabled={removing} onClick={() => { setConfirming(false); setError(null); }} className="rounded-lg border border-[var(--hub-border)] px-4 py-2 text-sm font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)] disabled:opacity-60">Cancel</button>
-              <button type="button" disabled={removing} onClick={() => void confirmRemoveProject()} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{removing ? "Removing…" : "Remove project"}</button>
+              <button type="button" disabled={removing} onClick={() => { setConfirming(false); setError(null); }} className="rounded-lg border border-[var(--hub-border)] px-4 py-2 text-sm font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)] disabled:opacity-60">{t("removeDialog.cancel")}</button>
+              <button type="button" disabled={removing} onClick={() => void confirmRemoveProject()} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{removing ? t("removeDialog.confirming") : t("removeDialog.confirm")}</button>
             </div>
           </div>
         </div>

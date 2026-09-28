@@ -12,6 +12,7 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   completeAssetUpload,
@@ -127,6 +128,7 @@ function formatDuration(seconds: number): string {
 }
 
 function AssetMeta({ asset, duration }: { asset: Asset; duration?: number }) {
+  const t = useTranslations("AssetsWorkspace");
   return (
     <p className="mt-1 font-mono text-caption text-[var(--fg-muted)]">
       {formatBytes(asset.byte_size)}
@@ -138,12 +140,12 @@ function AssetMeta({ asset, duration }: { asset: Asset; duration?: number }) {
         </>
       ) : null}
       {asset.status !== "ready"
-        ? "Uploading"
+        ? t("meta.uploading")
         : asset.mime_type.startsWith("video/") && asset.preview_status === "pending"
-          ? "Preparing media"
+          ? t("meta.preparingMedia")
           : asset.mime_type.startsWith("video/") && asset.preview_status === "failed"
-            ? "Preview unavailable"
-            : "Ready"}
+            ? t("meta.previewUnavailable")
+            : t("meta.ready")}
     </p>
   );
 }
@@ -157,6 +159,7 @@ function AssetActions({
   checking: boolean;
   onDelete: (id: string) => void;
 }) {
+  const t = useTranslations("AssetsWorkspace");
   return (
     <div className="flex shrink-0 items-center gap-2">
       {asset.download_url ? (
@@ -166,13 +169,13 @@ function AssetActions({
           rel="noreferrer"
           className="text-caption font-medium text-[var(--hub-accent)] no-underline hover:underline"
         >
-          Download
+          {t("actions.download")}
         </a>
       ) : null}
       <button
         type="button"
         disabled={checking}
-        aria-label={`Delete ${asset.original_filename ?? "asset"}`}
+        aria-label={t("actions.deleteAria", { name: asset.original_filename ?? t("actions.deleteAriaFallbackName") })}
         onClick={() => onDelete(asset.id)}
         className="rounded-md p-2 text-[var(--fg-muted)] transition hover:bg-red-500/10 hover:text-red-600 disabled:cursor-wait disabled:opacity-50"
       >
@@ -195,6 +198,7 @@ function DeleteAssetDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations("AssetsWorkspace");
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = "delete-asset-dialog-title";
   const descriptionId = "delete-asset-dialog-description";
@@ -221,22 +225,22 @@ function DeleteAssetDialog({
         className="w-full max-w-md rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-6 shadow-2xl"
       >
         <h2 id={titleId} className="m-0 text-lg font-semibold text-[var(--fg-primary)]">
-          Delete asset?
+          {t("deleteDialog.title")}
         </h2>
         <p id={descriptionId} className="mt-2 text-sm leading-6 text-[var(--fg-muted)]">
-          “{assetName}” and its stored files will be permanently deleted. This action cannot be undone.
+          {t("deleteDialog.body", { name: assetName })}
         </p>
         {projects.length > 0 ? (
           <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
             <p className="font-semibold">
-              This asset is used by {projects.length} {projects.length === 1 ? "project" : "projects"}.
+              {t("deleteDialog.usedByProjects", { count: projects.length })}
             </p>
             <p className="mt-1 leading-5">
-              The current revision of each project will use a compatible system placeholder instead.
+              {t("deleteDialog.placeholderNote")}
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               {projects.slice(0, 5).map((project) => <li key={project.id}>{project.title}</li>)}
-              {projects.length > 5 ? <li>and {projects.length - 5} more</li> : null}
+              {projects.length > 5 ? <li>{t("deleteDialog.andMore", { count: projects.length - 5 })}</li> : null}
             </ul>
           </div>
         ) : null}
@@ -248,7 +252,7 @@ function DeleteAssetDialog({
             onClick={onCancel}
             className="rounded-lg border border-[var(--hub-border)] px-3.5 py-2 text-sm font-medium text-[var(--fg-primary)] transition hover:bg-[var(--hub-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Cancel
+            {t("deleteDialog.cancel")}
           </button>
           <button
             type="button"
@@ -257,7 +261,7 @@ function DeleteAssetDialog({
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
           >
             {deleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            {deleting ? "Deleting..." : projects.length > 0 ? "Delete and replace" : "Delete asset"}
+            {deleting ? t("deleteDialog.deleting") : projects.length > 0 ? t("deleteDialog.deleteAndReplace") : t("deleteDialog.deleteAsset")}
           </button>
         </div>
       </div>
@@ -266,6 +270,7 @@ function DeleteAssetDialog({
 }
 
 export function AssetsWorkspace() {
+  const t = useTranslations("AssetsWorkspace");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [fonts, setFonts] = useState<FontOption[]>([]);
   const [activeTab, setActiveTab] = useState<AssetTab>("assets");
@@ -295,31 +300,31 @@ export function AssetsWorkspace() {
 
   useEffect(() => {
     loadAssets()
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to load assets"))
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : t("errors.loadAssets")))
       .finally(() => setLoading(false));
-  }, [loadAssets]);
+  }, [loadAssets, t]);
 
   useEffect(() => {
     function reloadAfterDemoAuth() {
       setLoading(true);
       setError(null);
       loadAssets()
-        .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to load assets"))
+        .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : t("errors.loadAssets")))
         .finally(() => setLoading(false));
     }
 
     window.addEventListener("neonix:dev-demo-authenticated", reloadAfterDemoAuth);
     return () => window.removeEventListener("neonix:dev-demo-authenticated", reloadAfterDemoAuth);
-  }, [loadAssets]);
+  }, [loadAssets, t]);
 
   useEffect(() => {
     const hasPendingMedia = assets.some((asset) => asset.mime_type.startsWith("video/") && asset.preview_status === "pending");
     if (!hasPendingMedia) return undefined;
     const timer = window.setInterval(() => {
-      loadAssets().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to refresh assets"));
+      loadAssets().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : t("errors.refreshAssets")));
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [assets, loadAssets]);
+  }, [assets, loadAssets, t]);
 
   async function uploadFile(file: File) {
     setError(null);
@@ -355,7 +360,7 @@ export function AssetsWorkspace() {
           // Keep the original upload error visible if cleanup also fails.
         }
       }
-      setError(reason instanceof Error ? reason.message : "Upload failed");
+      setError(reason instanceof Error ? reason.message : t("errors.uploadFailed"));
     } finally {
       setUploading(null);
     }
@@ -371,7 +376,7 @@ export function AssetsWorkspace() {
       await completeFontUpload(session.assetId);
       await loadAssets();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Font upload failed");
+      setError(reason instanceof Error ? reason.message : t("errors.fontUploadFailed"));
     } finally {
       setUploading(null);
     }
@@ -391,12 +396,12 @@ export function AssetsWorkspace() {
       setPendingDelete(asset);
     } catch (reason) {
       if (deleteRequestIdRef.current === requestId) {
-        setError(reason instanceof Error ? reason.message : "Unable to check asset usage");
+        setError(reason instanceof Error ? reason.message : t("errors.checkUsage"));
       }
     } finally {
       if (deleteRequestIdRef.current === requestId) setCheckingDeleteAssetId(null);
     }
-  }, [assets]);
+  }, [assets, t]);
 
   const deleteAsset = useCallback(async () => {
     if (!pendingDelete) return;
@@ -409,13 +414,13 @@ export function AssetsWorkspace() {
       setPendingDelete(null);
       setDeleteProjects([]);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Delete failed");
+      setError(reason instanceof Error ? reason.message : t("errors.deleteFailed"));
       setPendingDelete(null);
       setDeleteProjects([]);
     } finally {
       setDeletingAssetId(null);
     }
-  }, [pendingDelete]);
+  }, [pendingDelete, t]);
 
   const normalizedSearch = search.trim().toLowerCase();
   const visibleAssets = normalizedSearch
@@ -440,18 +445,18 @@ export function AssetsWorkspace() {
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-caption font-semibold tracking-[0.16em] text-[var(--hub-accent)] uppercase">
-            Workspace library
+            {t("eyebrow")}
           </p>
           <h1 className="m-0 text-3xl font-semibold tracking-[-0.04em] text-[var(--fg-primary)] sm:text-4xl">
-            {activeTab === "assets" ? "Assets" : "Fonts"}
+            {activeTab === "assets" ? t("title.assets") : t("title.fonts")}
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--fg-muted)]">
-            {activeTab === "assets" ? "Upload media to R2 and reuse it across your Neonix projects." : "Upload static fonts once and use them across every Neonix project."}
+            {activeTab === "assets" ? t("description.assets") : t("description.fonts")}
           </p>
         </div>
         <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[var(--hub-accent)] px-4 py-2.5 text-body font-semibold text-[var(--hub-accent-on)] transition hover:bg-[var(--hub-accent-hover)]">
           {uploading ? <LoaderCircle className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
-          {uploading ? "Uploading..." : activeTab === "assets" ? "Upload asset" : "Upload font"}
+          {uploading ? t("upload.uploading") : activeTab === "assets" ? t("upload.asset") : t("upload.font")}
           <input
             type="file"
             className="sr-only"
@@ -471,7 +476,7 @@ export function AssetsWorkspace() {
       <div className="mt-6 flex gap-1 border-b border-[var(--hub-border)]">
         {(["assets", "fonts"] as const).map((tab) => (
           <button key={tab} type="button" onClick={() => { setActiveTab(tab); setSearch(""); }} className={`border-b-2 px-4 py-2 text-base font-medium ${activeTab === tab ? "border-[var(--hub-accent)] text-[var(--fg-primary)]" : "border-transparent text-[var(--fg-muted)]"}`}>
-            {tab === "assets" ? "Assets" : "Fonts"}
+            {tab === "assets" ? t("title.assets") : t("title.fonts")}
           </button>
         ))}
       </div>
@@ -479,22 +484,22 @@ export function AssetsWorkspace() {
       <div className="mt-8 flex flex-col gap-3 border-b border-[var(--hub-border)] pb-3 sm:flex-row sm:items-center">
         <label className="relative block min-w-0 flex-1 sm:max-w-sm">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--fg-disabled)]" />
-          <span className="sr-only">Search assets</span>
+          <span className="sr-only">{t("search.label")}</span>
           <input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search assets"
+            placeholder={t("search.label")}
             className="h-10 w-full rounded-lg border border-[var(--hub-border)] bg-[var(--hub-card-bg)] pl-9 pr-3 text-body text-[var(--fg-primary)] outline-none placeholder:text-[var(--fg-disabled)] focus:border-[var(--hub-accent)]"
           />
         </label>
         <span className="text-caption text-[var(--fg-muted)]">
-          {activeTab === "assets" ? visibleAssets.length : visibleFonts.length} {activeTab === "assets" ? (visibleAssets.length === 1 ? "file" : "files") : (visibleFonts.length === 1 ? "font" : "fonts")}
+          {activeTab === "assets" ? t("counts.files", { count: visibleAssets.length }) : t("counts.fonts", { count: visibleFonts.length })}
         </span>
-        <div className="flex items-center gap-1 sm:ml-auto" aria-label="Asset view">
+        <div className="flex items-center gap-1 sm:ml-auto" aria-label={t("view.assetAria")}>
           <button
             type="button"
-            aria-label="List view"
+            aria-label={t("view.listAria")}
             aria-pressed={viewMode === "list"}
             onClick={() => setViewMode("list")}
             className={`rounded-md p-2 transition ${viewMode === "list" ? "bg-[var(--hub-active)] text-[var(--fg-primary)]" : "text-[var(--fg-muted)] hover:bg-[var(--hub-hover)] hover:text-[var(--fg-primary)]"}`}
@@ -503,7 +508,7 @@ export function AssetsWorkspace() {
           </button>
           <button
             type="button"
-            aria-label="Card view"
+            aria-label={t("view.cardAria")}
             aria-pressed={viewMode === "grid"}
             onClick={() => setViewMode("grid")}
             className={`rounded-md p-2 transition ${viewMode === "grid" ? "bg-[var(--hub-active)] text-[var(--fg-primary)]" : "text-[var(--fg-muted)] hover:bg-[var(--hub-hover)] hover:text-[var(--fg-primary)]"}`}
@@ -521,14 +526,14 @@ export function AssetsWorkspace() {
 
       {loading ? (
         <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-5 py-16 text-body text-[var(--fg-muted)]">
-          <LoaderCircle className="size-4 animate-spin" /> Loading assets...
+          <LoaderCircle className="size-4 animate-spin" /> {t("loading")}
         </div>
       ) : activeTab === "fonts" ? (
         visibleFonts.length === 0 ? (
           <div className="mt-6 flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-6 py-14 text-center">
             <span className="flex size-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--hub-accent)]"><UploadCloud className="size-5" /></span>
-            <p className="mt-4 text-body font-semibold text-[var(--fg-primary)]">{normalizedSearch ? "No matching fonts" : "No custom fonts yet"}</p>
-            <p className="mt-1 max-w-sm text-caption text-[var(--fg-muted)]">Upload a static .ttf, .woff, or .woff2 file. Metadata is read automatically.</p>
+            <p className="mt-4 text-body font-semibold text-[var(--fg-primary)]">{normalizedSearch ? t("fontsEmpty.noMatch") : t("fontsEmpty.none")}</p>
+            <p className="mt-1 max-w-sm text-caption text-[var(--fg-muted)]">{t("fontsEmpty.description")}</p>
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)]">
@@ -538,12 +543,12 @@ export function AssetsWorkspace() {
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--hub-hover)] text-[var(--hub-accent)]">Aa</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{font.familyName} · {font.subfamilyName}</p>
-                    <p className="mt-1 font-mono text-caption text-[var(--fg-muted)]">{font.source === "custom" ? "Custom" : "System"} · {font.format.toUpperCase()} · {font.weight}</p>
+                    <p className="mt-1 font-mono text-caption text-[var(--fg-muted)]">{font.source === "custom" ? t("fontSource.custom") : t("fontSource.system")} · {font.format.toUpperCase()} · {font.weight}</p>
                   </div>
                   {font.source === "custom" ? (
-                    <button type="button" className="rounded-md p-2 text-[var(--fg-muted)] hover:bg-red-500/10 hover:text-red-600" aria-label={`Delete ${font.familyName} ${font.subfamilyName}`} onClick={() => {
+                    <button type="button" className="rounded-md p-2 text-[var(--fg-muted)] hover:bg-red-500/10 hover:text-red-600" aria-label={t("fontDeleteAria", { family: font.familyName, subfamily: font.subfamilyName })} onClick={() => {
                       if (!font.id.startsWith("custom:")) return;
-                      void deleteFont(font.id.slice("custom:".length)).then(() => loadAssets()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Delete failed"));
+                      void deleteFont(font.id.slice("custom:".length)).then(() => loadAssets()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : t("errors.deleteFailed")));
                     }}>
                       <Trash2 className="size-4" />
                     </button>
@@ -559,10 +564,10 @@ export function AssetsWorkspace() {
             <UploadCloud className="size-5" />
           </span>
           <p className="mt-4 text-body font-semibold text-[var(--fg-primary)]">
-            {normalizedSearch ? "No matching assets" : "No assets yet"}
+            {normalizedSearch ? t("assetsEmpty.noMatch") : t("assetsEmpty.none")}
           </p>
           <p className="mt-1 max-w-sm text-caption text-[var(--fg-muted)]">
-            {normalizedSearch ? "Try a different search term." : "Upload an image, video, or audio file to get started."}
+            {normalizedSearch ? t("assetsEmpty.descriptionSearch") : t("assetsEmpty.descriptionEmpty")}
           </p>
         </div>
       ) : viewMode === "list" ? (

@@ -540,7 +540,7 @@ export function HtmlCompilerPlayground() {
                   {exportError.code === "PROJECT_LIMIT_REACHED" ? (
                     <>
                       {" "}Your HTML here is kept — come back and click Export again after deleting one.
-                      <a href={dashboardUrl("/dashboard")} className="mt-1 block font-semibold underline">
+                      <a href={dashboardUrl("/dashboard/projects")} className="mt-1 block font-semibold underline">
                         Manage projects →
                       </a>
                     </>

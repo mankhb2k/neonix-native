@@ -11,9 +11,17 @@ test.describe("web V2 smoke", () => {
     ).toBeVisible();
   });
 
-  test("dashboard exposes the project hub", async ({ page }) => {
+  test("dashboard overview shows usage metrics", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/dashboard\/?$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      /overview/i,
+    );
+  });
+
+  test("dashboard projects page exposes the project hub", async ({ page }) => {
+    await page.goto("/dashboard/projects");
+    await expect(page).toHaveURL(/\/dashboard\/projects\/?$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       /projects/i,
     );

@@ -1,5 +1,6 @@
 import { FolderKanban, Plus } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dashboardHref } from "@/components/AppLink";
 import { HubFrame } from "@/components/hub/HubFrame";
 import { ImportHtmlDialog } from "@/components/hub/ImportHtmlDialog";
@@ -8,44 +9,9 @@ import { listProjects } from "@/lib/editor/document/project-repository";
 
 const FREE_PROJECT_LIMIT = 10;
 
-const fallbackProjects: ProjectCardData[] = [
-  {
-    projectId: "three-kingdoms",
-    title: "Three Kingdoms",
-    href: "/editor/three-kingdoms",
-    layers: "14 layers",
-    duration: "—",
-    updated: "Updated today",
-    accent: "from-cyan-400/25 via-slate-900 to-violet-500/20",
-  },
-  {
-    projectId: "shape",
-    title: "Shape composition",
-    href: "/editor/shape",
-    layers: "1 layer",
-    duration: "—",
-    updated: "Updated yesterday",
-    accent: "from-cyan-300/20 via-slate-900 to-slate-900",
-  },
-  {
-    projectId: "overlap",
-    title: "Overlap study",
-    href: "/editor/overlap",
-    layers: "2 layers",
-    duration: "—",
-    updated: "Updated 2 days ago",
-    accent: "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
-  },
-  {
-    projectId: "timeline",
-    title: "Timeline prototype",
-    href: "/editor/timeline",
-    layers: "6 layers",
-    duration: "—",
-    updated: "Updated 3 days ago",
-    accent: "from-amber-300/20 via-slate-900 to-cyan-500/15",
-  },
-];
+function hoursAgoIso(hours: number): string {
+  return new Date(Date.now() - hours * 3_600_000).toISOString();
+}
 
 function _LegacyProjectCard({ project }: { project: ProjectCardData }) {
   return (
@@ -69,7 +35,7 @@ function _LegacyProjectCard({ project }: { project: ProjectCardData }) {
           {project.title}
         </h3>
         <p className="pt-1 font-mono text-caption text-[var(--fg-muted)]">
-          {project.layers} · {project.updated}
+          {project.layers}
         </p>
       </div>
     </a>
@@ -78,6 +44,47 @@ function _LegacyProjectCard({ project }: { project: ProjectCardData }) {
 
 /** Shared application shell for the Neonix project hub. */
 export async function HubShell() {
+  const t = await getTranslations("WorkspaceHome");
+
+  const fallbackProjects: ProjectCardData[] = [
+    {
+      projectId: "three-kingdoms",
+      title: "Three Kingdoms",
+      href: "/editor/three-kingdoms",
+      layers: t("layers", { count: 14 }),
+      duration: "—",
+      updatedAt: hoursAgoIso(3),
+      accent: "from-cyan-400/25 via-slate-900 to-violet-500/20",
+    },
+    {
+      projectId: "shape",
+      title: "Shape composition",
+      href: "/editor/shape",
+      layers: t("layers", { count: 1 }),
+      duration: "—",
+      updatedAt: hoursAgoIso(26),
+      accent: "from-cyan-300/20 via-slate-900 to-slate-900",
+    },
+    {
+      projectId: "overlap",
+      title: "Overlap study",
+      href: "/editor/overlap",
+      layers: t("layers", { count: 2 }),
+      duration: "—",
+      updatedAt: hoursAgoIso(50),
+      accent: "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
+    },
+    {
+      projectId: "timeline",
+      title: "Timeline prototype",
+      href: "/editor/timeline",
+      layers: t("layers", { count: 6 }),
+      duration: "—",
+      updatedAt: hoursAgoIso(74),
+      accent: "from-amber-300/20 via-slate-900 to-cyan-500/15",
+    },
+  ];
+
   let projects = fallbackProjects;
   try {
     const rows = await listProjects(50);
@@ -86,9 +93,9 @@ export async function HubShell() {
         projectId: project.projectId,
         title: project.title,
         href: `/editor/${project.projectId}`,
-        layers: `${project.layerCount} ${project.layerCount === 1 ? "layer" : "layers"}`,
+        layers: t("layers", { count: project.layerCount }),
         duration: formatDuration(project.durationMs),
-        updated: formatUpdated(project.updatedAt),
+        updatedAt: project.updatedAt,
         accent: [
           "from-cyan-400/25 via-slate-900 to-violet-500/20",
           "from-cyan-300/20 via-slate-900 to-slate-900",
@@ -107,14 +114,13 @@ export async function HubShell() {
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div>
                 <p className="mb-2 text-caption font-semibold tracking-[0.16em] text-[var(--hub-accent)] uppercase">
-                  Personal workspace
+                  {t("eyebrow")}
                 </p>
                 <h1 className="m-0 text-3xl font-semibold tracking-[-0.04em] text-[var(--fg-primary)] sm:text-4xl">
-                  Projects
+                  {t("title")}
                 </h1>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--fg-muted)]">
-                  Create with Claude, refine in the editor, and export when your
-                  motion story is ready.
+                  {t("description")}
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
@@ -124,7 +130,7 @@ export async function HubShell() {
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--hub-accent)] px-4 py-2.5 text-body font-semibold text-[var(--hub-accent-on)] no-underline transition hover:bg-[var(--hub-accent-hover)]"
                 >
                   <Plus className="size-4" />
-                  New project
+                  {t("newProject")}
                 </Link>
               </div>
             </div>
@@ -134,32 +140,23 @@ export async function HubShell() {
                 type="button"
                 className="rounded-md bg-[var(--hub-active)] px-3 py-1.5 text-body font-medium text-[var(--fg-primary)]"
               >
-                All projects
+                {t("tabs.all")}
               </button>
               <button
                 type="button"
                 className="rounded-md px-3 py-1.5 text-body font-medium text-[var(--fg-muted)] transition hover:bg-[var(--hub-hover)] hover:text-[var(--fg-primary)]"
               >
-                Recent
+                {t("tabs.recent")}
               </button>
               <span className="ml-auto flex items-center gap-2 text-caption text-[var(--fg-disabled)]">
                 <FolderKanban className="size-3.5" />
-                {projects.length}/{FREE_PROJECT_LIMIT} projects
+                {t("projectsCount", { count: projects.length, limit: FREE_PROJECT_LIMIT })}
               </span>
             </div>
 
             <ProjectGrid projects={projects} />
     </HubFrame>
   );
-}
-
-function formatUpdated(value: string): string {
-  const updatedAt = new Date(value);
-  if (Number.isNaN(updatedAt.getTime())) return "Updated recently";
-  const days = Math.floor((Date.now() - updatedAt.getTime()) / 86_400_000);
-  if (days <= 0) return "Updated today";
-  if (days === 1) return "Updated yesterday";
-  return `Updated ${days} days ago`;
 }
 
 function formatDuration(durationMs: number): string {

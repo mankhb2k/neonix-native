@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 export type AvatarSize = "sm" | "md" | "lg";
 
@@ -7,6 +8,8 @@ export type AvatarProps = {
   name?: string;
   size?: AvatarSize;
   className?: string;
+  /** Overrides the image/initials rendering — e.g. for a flag or custom icon. */
+  children?: ReactNode;
 };
 
 const sizeStyles: Record<AvatarSize, string> = {
@@ -15,7 +18,7 @@ const sizeStyles: Record<AvatarSize, string> = {
   lg: "size-12 text-lg",
 };
 
-export function Avatar({ src, name, size = "md", className }: AvatarProps) {
+export function Avatar({ src, name, size = "md", className, children }: AvatarProps) {
   const initial = name?.trim().slice(0, 1).toUpperCase() || "?";
 
   return (
@@ -26,7 +29,9 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
         className,
       )}
     >
-      {src ? (
+      {children ? (
+        children
+      ) : src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="size-full object-cover" />
       ) : (
