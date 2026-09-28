@@ -360,6 +360,7 @@ export default tseslint.config(
       "**/default.tsx",
       "middleware.ts",
       "next.config.ts",
+      "i18n/request.ts",
     ],
     rules: {
       "no-restricted-syntax": "off",

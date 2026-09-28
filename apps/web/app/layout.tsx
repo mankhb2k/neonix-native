@@ -1,4 +1,6 @@
 import { Be_Vietnam_Pro, Fraunces, Roboto_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -54,14 +56,17 @@ const ORGANIZATION_AND_WEBSITE_JSON_LD = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${sans.variable} ${display.variable} ${mono.variable}`}
     >
       <body>
@@ -72,7 +77,9 @@ export default function RootLayout({
             __html: JSON.stringify(ORGANIZATION_AND_WEBSITE_JSON_LD),
           }}
         />
-        {children}
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

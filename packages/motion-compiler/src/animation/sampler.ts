@@ -281,6 +281,19 @@ function applyTrackValue(layer: V2Layer, path: string, value: unknown): V2Layer 
   if (path === "opacity" && typeof value === "number") {
     value = Math.min(1, Math.max(0, value));
   }
+  // A width/height keyframe of literally 0 is ordinary, common CSS (a
+  // reveal-by-width typewriter/progress-bar/wipe animation legitimately
+  // authors `width: 0` at its starting keyframe, sampled here whenever
+  // fill-mode backwards/both holds that value before the animation's own
+  // delay elapses) - real browsers render it without complaint. Protocol
+  // V2's layer.frame schema requires a strictly positive width/height
+  // (division-by-zero guards throughout layout/paint), so floor it the same
+  // way html-compiler's own static geometry resolution already does
+  // (`Math.max(1, ...)` in layout/geometry.ts and friends) instead of
+  // letting a legitimately-zero instant fail schema re-validation.
+  if ((path === "frame.width" || path === "frame.height") && typeof value === "number") {
+    value = Math.max(1, value);
+  }
   const segments = path.split(".");
   if (segments[0] === "effects") {
     const effectId = segments[1];

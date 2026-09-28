@@ -186,6 +186,47 @@ describe("sampleMotionLayerAtTime — per-id array addressing", () => {
       expect(opacity).toBeLessThanOrEqual(1);
     }
   });
+
+  // Regression test for a real crash found while compiling
+  // debug/neonix_ui_transform_showcase.html's typewriter/progress-bar acts
+  // (a `width: 0` -> `width: <N>px` reveal animation with `animation-delay`
+  // and `animation-fill-mode: both`): sampling at t=0 (before the delay
+  // elapses) returns the FIRST keyframe's literal authored value via the
+  // backwards-fill branch - here, exactly 0 - which Protocol V2's
+  // layer.frame schema rejects outright (width/height must be > 0) once the
+  // sampled protocol is re-parsed. Real browsers render `width: 0px` without
+  // any complaint; this must too.
+  it("floors a sampled width/height of exactly 0 to 1, matching html-compiler's own static Math.max(1, ...) geometry floor", () => {
+    const layer = {
+      id: "reveal1",
+      type: "shape",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1, height: 40 },
+      transform: BASE_TRANSFORM,
+      opacity: 1,
+      // A 65s delay with fill-mode "both": at t=0 the animation hasn't
+      // started, so its own first keyframe (width: 0) backwards-fills.
+      timing: { start: 0, duration: 1000 },
+      payload: { shape: "rectangle" },
+      style: {},
+      tracks: [
+        {
+          id: "t1",
+          path: "frame.width",
+          animation: { durationMs: 3000, delayMs: 65000, iterations: 1, direction: "normal", fillMode: "both" },
+          keyframes: [
+            { time: 0, value: { type: "number", value: 0 } },
+            { time: 3000, value: { type: "number", value: 367.2 } },
+          ],
+        },
+      ],
+    } as unknown as V2Layer;
+
+    const beforeDelay = sampleMotionLayerAtTime(layer, 0);
+    expect((beforeDelay.frame as { width: number }).width).toBe(1);
+    expect((beforeDelay.frame as { width: number }).width).toBeGreaterThan(0);
+  });
 });
 
 describe("sampleMotionProjectDefsAtTime — project-level def tracks (no timing.start)", () => {

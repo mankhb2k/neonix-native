@@ -9,7 +9,7 @@
     width: 1920px;
     height: 1080px;
     background: radial-gradient(1200px 700px at 50% 20%, #121826 0%, #0b0e14 60%, #06080d 100%);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Inter, sans-serif;
     overflow: hidden;
   }
 
@@ -304,17 +304,37 @@
   /* =========================================================
      ACT 13 (65-70s): Typewriter text
   ========================================================== */
+  /* The compiler has no `ch` unit (it's font-metric-dependent - not yet
+     resolvable at compile time). 18ch measured as 367.2px: JetBrains Mono
+     400's "0" advance width is exactly 20.4px at this 34px font-size
+     (harfbuzzjs shape of "0", fontScale = fontSize / face.upem = 34/1000 -
+     same formula text-layout.ts uses), and every glyph in a monospace font
+     shares that one advance. Text is "NEONIX MOTION DEMO" (18 characters),
+     matching steps(18,end) 1:1 with the reveal timing unchanged. */
   .act13-text {
     position: absolute; left: 660px; top: 486px;
-    font-family: "Courier New", monospace; font-size: 34px; color: #7dd3fc;
-    white-space: nowrap; overflow: hidden; width: 0ch;
+    font-family: "JetBrains Mono", monospace; font-size: 34px; color: #7dd3fc;
+    white-space: nowrap; overflow: hidden; width: 0px;
     animation: act13Type 3s steps(18,end) 65s 1 both, actFade 5s ease-in-out 65s 1 both;
   }
-  @keyframes act13Type { 0% { width: 0ch; } 100% { width: 18ch; } }
+  @keyframes act13Type { 0% { width: 0px; } 100% { width: 367.2px; } }
+  /* Two animations on one element that both touch opacity have no defined
+     way to combine (act13Blink is `infinite`, actFade is a single 65-70s
+     fade - CSS itself resolves this by having the later-listed animation
+     win outright for that property, silently discarding the earlier one's
+     opacity keyframes; the original single-element version never actually
+     blinked in a real browser). Split into a wrapper (actFade only) and an
+     inner fill (act13Blink only) so both apply, matching the intended
+     "blink while the act is visible" effect instead of the CSS-spec
+     override outcome. */
   .act13-cursor {
     position: absolute; left: 1030px; top: 486px; width: 4px; height: 42px;
+    animation: actFade 5s ease-in-out 65s 1 both;
+  }
+  .act13-cursor-fill {
+    position: absolute; inset: 0;
     background: #7dd3fc;
-    animation: act13Blink 0.9s steps(1,end) infinite, actFade 5s ease-in-out 65s 1 both;
+    animation: act13Blink 0.9s steps(1,end) infinite;
   }
   @keyframes act13Blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
@@ -418,7 +438,7 @@
     <div class="caption cap-12">12. PROGRESS / LOADING BAR</div>
 
     <div class="act13-text">NEONIX MOTION DEMO</div>
-    <div class="act13-cursor"></div>
+    <div class="act13-cursor"><div class="act13-cursor-fill"></div></div>
     <div class="caption cap-13">13. TYPEWRITER TEXT</div>
 
     <div class="act14-ring"></div>

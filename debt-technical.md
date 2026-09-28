@@ -445,6 +445,100 @@ lại patch khi có thời gian.
   thay vì hard-code, để hỗ trợ đúng mọi kích thước composition trong tương
   lai.
 
+## Animation pipeline (found while compiling debug/neonix_ui_transform_showcase.html + neonix_physics_path_showcase.html + neonix_particle_showcase.html)
+
+Ba fixture debug này là bộ "showcase" cố tình phủ nhiều idiom animation khác
+nhau (16+13+18 act). Biên dịch qua `compileDocument()` (html-compiler một
+mình) đã pass 167/167 từ trước, nhưng chạy tiếp qua toàn bộ pipeline runtime
+thật (`compileProtocol`/`compileAndPrepareRuntimeProjectV3`, thứ mà preview
+trực tiếp trong trình duyệt và `debug-act-timing-probe.mts` đều cần) phát
+hiện thêm 3 bug thật, đều cùng một dạng: một giá trị hình học hợp lệ trong
+CSS thật (0, hoặc suy biến từ phép chiếu 3D) va vào một giả định "phải > 0 /
+phải có ≥3 điểm không thẳng hàng" ở đâu đó sâu trong pipeline, làm crash toàn
+bộ compile thay vì render ra "không có gì" như Chrome thật.
+
+### [ĐÃ SỬA] `frame.width`/`frame.height` sample về đúng 0 khi animation-fill-mode: both backward-fill trước delay
+- Vị trí: `packages/motion-compiler/src/animation/sampler.ts`, `applyTrackValue`.
+- Ca thật: `.act12-fill`/`.act13-text` có `width: 0` ở keyframe 0% cộng
+  `animation-delay` lớn + `fill-mode: both` (progress bar, hiệu ứng
+  typewriter). Trước delay, `sampleTrack` backward-fill đúng giá trị keyframe
+  đầu = 0 y hệt Chrome thật sẽ làm - nhưng Protocol V2 schema đòi
+  `frame.width/height` phải > 0 nghiêm ngặt, nên `sampleProtocolFullyAtTime`
+  re-parse ra ZodError, crash toàn bộ compile.
+- Fix: floor về `Math.max(1, value)` ngay trong `applyTrackValue`, ngay cạnh
+  chỗ đã clamp opacity overshoot 0..1 - cùng quy ước `Math.max(1, ...)`
+  html-compiler đã dùng cho geometry tĩnh (`layout/geometry.ts` và tương tự).
+- Test: `sampler.test.ts` — "floors a sampled width/height of exactly 0 to 1".
+
+### [ĐÃ SỬA] `clip-path: circle(0%)`/`ellipse(0 0)` sinh contour suy biến (mọi điểm trùng nhau)
+- Vị trí: `packages/html-compiler/src/compiler/paint/clip.ts`, `parseRadial`.
+- Ca thật: `.act10-fill { clip-path: circle(0% at 50% 50%); }` (điểm bắt đầu
+  của hiệu ứng "wipe / iris reveal") — radius=0 khiến cả 4 điểm cuối của 4
+  cung tròn trùng làm một điểm, `flattenPathContourAny` ném lỗi "không đủ
+  điểm không thẳng hàng".
+- Fix: floor radius về `Math.max(1, radius)` (thử 0.01 trước, không đủ - xem
+  bên dưới, phải dùng đúng 1 mới ổn định qua hết pipeline).
+- Test: `clip-path.test.ts` (3 case: circle 0%, ellipse 0 0, circle thường
+  không đổi).
+
+### [ĐÃ SỬA] Rectangle chiếu 3D edge-on (giữa flip 90°/270°) suy biến thành 1 đường thẳng, crash thay vì render trống
+- Vị trí: `packages/motion-compiler/src/compiler/index.ts`, `flattenPathNodeAtBoundary`.
+- Ca thật: ACT 5 "3D flip card" (`rotateY` qua đúng 90°/270°) — một hình chữ
+  nhật nhìn nghiêng đúng 90° chiếu xuống 2D thành các điểm THẲNG HÀNG THẬT
+  (không phải lỗi làm tròn) - Chrome thật chỉ hiện một lát mỏng/không có gì
+  tại đúng khoảnh khắc đó, không crash.
+- Fix: lọc bỏ (không throw) đúng những contour suy biến TRƯỚC khi gọi
+  `tessellateClosedPath`, dùng lại đúng khái niệm `fullyClipped` đã có sẵn
+  ngay phía trên (near/far clip loại bỏ hết contour cũng xử lý y hệt cách
+  này) thay vì để cả node/frame crash.
+- Chưa làm: `flattenPathContourAny` vẫn throw cứng ở MỌI call site khác (glyph
+  outline, replay-2d, non-scaling-stroke, path fill thường) - chỉ riêng chỗ
+  này được bọc tolerant vì "suy biến do góc chiếu" là trường hợp BÌNH THƯỜNG
+  ở đây, không phải lỗi tác giả. Nếu găp crash tương tự ở call site khác,
+  cân nhắc named riêng chứ đừng nới lỏng `flattenPathContourAny` chung chung.
+
+### [CHƯA SỬA] `clip-path` animate qua `@keyframes` hoàn toàn không được lower thành track
+- Vị trí: `packages/html-compiler/src/compiler/css/animation.ts` —
+  `lowerAnimationTracks`'s `supported` list không có `clip-path`.
+- Phát hiện khi tìm nguyên nhân crash ở trên: ACT 10 "wipe / iris reveal"
+  của `neonix_ui_transform_showcase.html` animate `clip-path: circle(...)`
+  qua `@keyframes act10Wipe`, nhưng vì `clip-path` không nằm trong danh sách
+  property được animate, giá trị `clip-path` DUY NHẤT được dùng là giá trị
+  TĨNH khai báo trực tiếp trên `.act10-fill` (`circle(0% ...)`) - nghĩa là
+  compile ra đúng, không crash (sau fix ở trên), nhưng **hiệu ứng reveal
+  không hề chạy**: element luôn bị clip về gần-như-không-có-gì suốt.
+- Cần làm: thêm `clip-path` vào danh sách property animate được trong
+  `animation.ts`, tương tự cách `filter`/`text-shadow` đã có track riêng
+  (`lowerFilterAnimations`/`lowerTextShadowAnimations`) - clip-path cần
+  nội suy GIỮA 2 SHAPE (circle/inset/polygon), không phải giữa 2 số đơn,
+  nên nhiều khả năng cần cùng kiểu "padded list + geometry-aware
+  interpolation" như filter list đã làm, không đơn giản như opacity/width.
+
+### [KHÔNG PHẢI BUG] Nghi ngờ ban đầu "easing ease-in-out sai giá trị giữa segment" hóa ra là do so 2 thời điểm khác nhau
+- Nghi vấn ban đầu (bằng `apps/web/scripts/debug-act-timing-probe.mts`): tại
+  t=250ms giữa segment `act0Fade`'s [0%,10%]=[0,500ms] (progress cục bộ 50%),
+  Chrome thật cho opacity=0.500 (đúng lý thuyết, `ease-in-out` đối xứng qua
+  tâm) nhưng runtime cho ra 0.443 - tưởng là bug ở
+  `sampleKeyframes`/`applyEasing`.
+- Thực ra: `evaluateRuntimeProjectV3`'s `options.time` được
+  `frameIndexAtTime`/`roundTimeToFrame` (`motion-runtime/src/foundation/
+  clock.ts`) SNAP về đúng frame nguyên gần nhất của fps composition (đúng
+  chủ ý - khớp với việc video xuất ra thật chỉ có frame rời rạc, không phải
+  bug). Ở fps=30, t=250ms = frame 7.5 → làm tròn về frame 7 = 233.33ms.
+  0.443 chính là giá trị ĐÚNG tại 233.33ms (verify trực tiếp bằng
+  `sampleMotionLayerAtTime` độc lập, không qua đường nào khác: cho ra
+  0.4999971 tại t=250ms thật, và 0.4426886 tại t=233.33ms - khớp in hệt
+  0.443 quan sát được). Công cụ probe đang so opacity Chrome thật tại
+  250ms (liên tục) với opacity runtime tại 233ms (bị snap) - lệch thời điểm,
+  không lệch công thức. Y hệt bài học "1px offset" đã ghi trong CLAUDE.md
+  (`pitfall_native_stage_pixel_crop_rounding` memory) - một pitfall khác,
+  cùng một bài học: luôn verify một nghi ngờ mismatch còn sống sót qua so
+  sánh đúng-cùng-một-thời-điểm trước khi tin nó là bug thật.
+- Đã sửa `debug-act-timing-probe.mts`: tự động snap mọi thời điểm được yêu
+  cầu về đúng lưới frame của composition's fps trước khi so (in ra dòng
+  "note: ... snapped to ..." khi có snap) - để công cụ không tái phạm lỗi
+  này ở lần dùng sau.
+
 ## Playground fixtures
 
 ### 15 file debug orphan trong `fixtures/paint/` chưa được đưa vào registry

@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
+import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 
 const currentDirectory = process.cwd();
@@ -113,4 +114,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
+export default withNextIntl(nextConfig);

@@ -1020,10 +1020,30 @@ function flattenPathNodeAtBoundary(node: VisualRuntimeNode, placement: FlatBound
     const transformed = transformContourForFlatBoundary(contour, matrix);
     return transformed ? [transformed] : [];
   });
-  const mesh = contours.length > 0 && node.content.fill !== undefined
-    ? tessellateClosedPath(contours, node.content.fillRule)
+  // A flat rectangle rotated to exactly edge-on to the camera (the midpoint
+  // of any 3D flip-card animation, `rotateY`/`rotateX` passing through
+  // 90deg/270deg) projects to a perfectly straight line in screen space -
+  // every one of its corners is collinear after perspective divide, even
+  // though `transformContourForFlatBoundary` above didn't consider it fully
+  // degenerate (it still has >= 2 finite points). Real browsers just show
+  // nothing but a hairline for that instant; flattenPathContourAny's shared
+  // "not enough non-collinear points" guard (correctly protective for a
+  // genuinely malformed authored path elsewhere) would otherwise throw for
+  // this perfectly normal, expected mid-rotation moment. Drop exactly the
+  // contour(s) this happens to, the same way a near/far clip's own
+  // "fullyClipped" case just above already tolerates zero surviving
+  // contours instead of failing the whole node/frame.
+  const tessellableContours = contours.filter((contour) => {
+    try { flattenPathContourAny(contour); return true; } catch { return false; }
+  });
+  const mesh = tessellableContours.length > 0 && node.content.fill !== undefined
+    ? tessellateClosedPath(tessellableContours, node.content.fillRule)
     : undefined;
-  const fullyClipped = contours.length === 0;
+  // Same "nothing left to paint" outcome as a near/far clip removing every
+  // contour outright - an edge-on rectangle's contour is still geometrically
+  // present (kept below for stroke/hit-testing purposes) but contributes no
+  // fillable area, so it must not be treated as "has a fill but no mesh".
+  const fullyClipped = contours.length === 0 || (node.content.fill !== undefined && tessellableContours.length === 0);
   return {
     ...node,
     // A near/far clip can remove the complete surface. Keep the node in the

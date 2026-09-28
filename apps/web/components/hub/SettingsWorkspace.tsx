@@ -1,8 +1,11 @@
 "use client";
 
-import { Camera, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Camera, CheckCircle2, Eye, EyeOff, KeyRound, Languages, Loader2, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { Avatar } from "@/components/ui";
 import { removeAvatar, uploadAvatar } from "@/lib/api/avatar";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -15,6 +18,7 @@ type AccountState = {
 };
 
 export function SettingsWorkspace() {
+  const t = useTranslations("Settings.language");
   const [account, setAccount] = useState<AccountState | null>(null);
   const [loadingAccount, setLoadingAccount] = useState(true);
   const [accountError, setAccountError] = useState<string | null>(null);
@@ -200,14 +204,7 @@ export function SettingsWorkspace() {
         <>
           <section className="rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-5 sm:p-6">
             <div className="flex items-start gap-4">
-              <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-lg font-semibold text-[var(--hub-accent)]">
-                {account.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={account.avatarUrl} alt="" className="size-full object-cover" />
-                ) : (
-                  account.name.slice(0, 1).toUpperCase()
-                )}
-              </span>
+              <Avatar src={account.avatarUrl} name={account.name} size="lg" />
               <div className="min-w-0 flex-1">
                 <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--fg-primary)]">
                   <UserRound className="size-4 text-[var(--hub-accent)]" />
@@ -244,6 +241,19 @@ export function SettingsWorkspace() {
                   ) : null}
                 </div>
                 {avatarError ? <p role="alert" className="mt-2 text-sm text-rose-300">{avatarError}</p> : null}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <Languages className="mt-0.5 size-5 text-[var(--hub-accent)]" />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-[var(--fg-primary)]">{t("title")}</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--fg-muted)]">{t("description")}</p>
+                <div className="mt-4 max-w-xs">
+                  <LocaleSwitcher className="h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-editor)] px-3 text-sm text-[var(--fg-primary)] outline-none transition hover:border-[var(--border-focus)] focus:border-[var(--border-focus)] focus:ring-2 focus:ring-[var(--accent-soft)]" />
+                </div>
               </div>
             </div>
           </section>

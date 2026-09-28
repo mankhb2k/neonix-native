@@ -154,15 +154,28 @@ function parseInset(body: string, box: ClipReferenceBox, id: string): HtmlClipPa
   return roundedRectangleContour(target, scaleRadii(target, horizontal, vertical), id);
 }
 
+// `circle(0%)`/`ellipse(0 0)` (the natural starting point of a growing
+// "iris reveal" clip-path) is valid CSS - a real browser just clips the
+// element away to nothing, no different from `visibility: hidden` for that
+// instant. A mathematically exact zero radius collapses this contour's 4
+// arc endpoints onto one identical point, which motion-runtime's shared
+// path tessellator rejects as "not enough non-collinear points" (a real,
+// useful guard against a genuinely malformed authored path elsewhere - see
+// debt-technical.md). Floor the radius to an imperceptible epsilon instead
+// of letting a legitimate zero collapse the whole compile, the same way
+// html-compiler already floors width/height to Math.max(1, ...) elsewhere
+// (layout/geometry.ts and friends) rather than ever emitting a literal 0.
+const MIN_CLIP_RADIUS = 1;
+
 function parseRadial(name: "circle" | "ellipse", body: string, box: ClipReferenceBox, id: string): HtmlClipPathNode {
   const [sizeValue, positionValue] = splitTopLevelKeyword(body, "at");
   const center = parsePosition(positionValue, box);
   const sizes = splitTopLevel(sizeValue, " ");
   if (name === "circle") {
     const radiusValue = sizes[0];
-    const radius = radiusValue?.toLowerCase() === "closest-corner" || radiusValue?.toLowerCase() === "farthest-corner"
+    const radius = Math.max(MIN_CLIP_RADIUS, radiusValue?.toLowerCase() === "closest-corner" || radiusValue?.toLowerCase() === "farthest-corner"
       ? cornerRadius(radiusValue, center, box, radiusValue.toLowerCase() === "farthest-corner")
-      : radialRadius(radiusValue, box, center, "x");
+      : radialRadius(radiusValue, box, center, "x"));
     return {
       type: "path",
       contours: [{ id, start: { x: center.x + radius, y: center.y }, segments: [
@@ -175,8 +188,8 @@ function parseRadial(name: "circle" | "ellipse", body: string, box: ClipReferenc
     };
   }
   if (sizes.length < 1 || sizes.length > 2) fail("css-clip-path-ellipse-invalid", `ellipse() expects one or two radii: ${body}`);
-  const rx = radialRadius(sizes[0], box, center, "x");
-  const ry = radialRadius(sizes[1] ?? sizes[0], box, center, "y");
+  const rx = Math.max(MIN_CLIP_RADIUS, radialRadius(sizes[0], box, center, "x"));
+  const ry = Math.max(MIN_CLIP_RADIUS, radialRadius(sizes[1] ?? sizes[0], box, center, "y"));
   return {
     type: "path",
     contours: [{ id, start: { x: center.x + rx, y: center.y }, segments: [

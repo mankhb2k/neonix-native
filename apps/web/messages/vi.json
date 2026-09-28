@@ -1,0 +1,28 @@
+{
+  "Sidebar": {
+    "nav": {
+      "ariaLabel": "Không gian làm việc",
+      "dashboard": "Tổng quan",
+      "assets": "Tài nguyên",
+      "exports": "Xuất video",
+      "mcp": "MCP",
+      "api": "API",
+      "settings": "Cài đặt"
+    },
+    "sections": {
+      "workspace": "Không gian làm việc",
+      "connect": "Kết nối",
+      "account": "Tài khoản"
+    },
+    "storage": {
+      "label": "Dung lượng",
+      "ariaLabel": "Dung lượng đã dùng"
+    }
+  },
+  "Settings": {
+    "language": {
+      "title": "Ngôn ngữ",
+      "description": "Chọn ngôn ngữ hiển thị cho bảng điều khiển Neonix."
+    }
+  }
+}

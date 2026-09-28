@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SiteNavButton } from "@/components/site/SiteNavButton";
 import { buttonClassName } from "@/components/ui";
 import { APP_NAME } from "@/lib/app-config";
@@ -83,6 +84,7 @@ export function SiteHeader({
           </SiteNavButton>
         </nav>
         <div className="flex items-center justify-self-end gap-2">
+          <LocaleSwitcher className="rounded-lg border border-[var(--border-subtle)] bg-transparent px-2 py-1.5 text-caption text-[var(--fg-secondary)]" />
           {showDashboard ? (
             <a
               href={dashboardUrl("/dashboard")}

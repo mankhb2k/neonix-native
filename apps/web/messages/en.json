@@ -1,0 +1,28 @@
+{
+  "Sidebar": {
+    "nav": {
+      "ariaLabel": "Workspace",
+      "dashboard": "Dashboard",
+      "assets": "Assets",
+      "exports": "Exports",
+      "mcp": "MCP",
+      "api": "API",
+      "settings": "Settings"
+    },
+    "sections": {
+      "workspace": "Workspace",
+      "connect": "Connect",
+      "account": "Account"
+    },
+    "storage": {
+      "label": "Storage",
+      "ariaLabel": "Storage usage"
+    }
+  },
+  "Settings": {
+    "language": {
+      "title": "Language",
+      "description": "Choose the language used across the Neonix dashboard."
+    }
+  }
+}
