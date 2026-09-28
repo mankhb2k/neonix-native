@@ -32,6 +32,103 @@ export async function createHtmlProject(input: { title?: string; html: string; i
   return { projectId };
 }
 
+/**
+ * Kiến trúc B entry point: stores HTML/CSS as-is, no compile step. See
+ * ARCHITECHTURE.md "Hai kiến trúc render độc lập".
+ */
+export async function createHtmlProjectRaw(input: { title?: string; html: string }): Promise<{ projectId: string }> {
+  const response = await fetch("/api/v1/projects/html-raw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => null) as {
+    project?: { id?: unknown };
+    error?: { message?: unknown; code?: unknown };
+  } | null;
+  if (!response.ok) {
+    throw new CreateHtmlProjectError(
+      typeof payload?.error?.message === "string" ? payload.error.message : "Unable to import HTML",
+      typeof payload?.error?.code === "string" ? payload.error.code : undefined,
+    );
+  }
+  const projectId = payload?.project?.id;
+  if (typeof projectId !== "string" || !projectId) throw new Error("The project was created without an id");
+  return { projectId };
+}
+
+export type NewProjectComposition = {
+  width: number;
+  height: number;
+  fps: number;
+  background: string;
+};
+
+function blankMotionProtocolDocument(composition: NewProjectComposition): MotionProtocolV2 {
+  return {
+    format: "motion-protocol",
+    formatVersion: 2,
+    id: crypto.randomUUID(),
+    composition: {
+      width: composition.width,
+      height: composition.height,
+      fps: composition.fps,
+      background: composition.background,
+      colorSpace: "srgb",
+      view: {
+        projection: { kind: "orthographic", zoom: 1, near: 0.1, far: 1000 },
+        transform: {
+          translate: { x: 0, y: 0, z: 0 },
+          rotate: { x: 0, y: 0, z: 0 },
+        },
+      },
+    },
+    assets: [],
+    layers: [],
+    audio: { sampleRate: 48000, tracks: [] },
+  };
+}
+
+/** Kiến trúc A entry point: creates a blank, editable Neonix JSON V2 project. */
+export async function createBlankProject(input: { title?: string; composition: NewProjectComposition }): Promise<{ projectId: string }> {
+  const response = await fetch("/api/v1/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      title: input.title,
+      document: blankMotionProtocolDocument(input.composition),
+    }),
+  });
+  const payload = await response.json().catch(() => null) as {
+    project?: { id?: unknown };
+    error?: { message?: unknown };
+  } | null;
+  if (!response.ok) {
+    throw new Error(typeof payload?.error?.message === "string" ? payload.error.message : "Unable to create project");
+  }
+  const projectId = payload?.project?.id;
+  if (typeof projectId !== "string" || !projectId) throw new Error("The project was created without an id");
+  return { projectId };
+}
+
+/** The "Convert JSON V2" action — compiles a raw HTML project's HTML once. */
+export async function convertHtmlProjectToJson(projectId: string): Promise<{ revisionNo: number }> {
+  const response = await fetch(`/api/v1/projects/${encodeURIComponent(projectId)}/convert-json`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  const payload = await response.json().catch(() => null) as {
+    project?: { currentRevisionNo?: unknown };
+    error?: { message?: unknown };
+  } | null;
+  if (!response.ok) {
+    throw new Error(typeof payload?.error?.message === "string" ? payload.error.message : "Unable to convert project");
+  }
+  const revisionNo = payload?.project?.currentRevisionNo;
+  if (typeof revisionNo !== "number") throw new Error("The project was converted without a revision number");
+  return { revisionNo };
+}
+
 /** Browser BFF client for the authenticated V2 project repository. */
 export async function saveEditorProject(input: {
   projectRef: string;

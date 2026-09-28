@@ -6,11 +6,13 @@ import { NumberField } from "../controls/NumberField";
 import type { InspectorCommands } from "../hooks/use-inspector-commands";
 import type { InspectorModel } from "../hooks/use-inspector-model";
 
-export function Transform({ model, commands, open, onToggle }: {
+export function Transform({ model, commands, open, onToggle, anchorOpen, onToggleAnchor }: {
   model: InspectorModel;
   commands: InspectorCommands;
   open: boolean;
   onToggle: () => void;
+  anchorOpen: boolean;
+  onToggleAnchor: () => void;
 }) {
   if (!model.selected) return null;
   const translateX = model.commonLayerNumber((layer) => layer.transform.translate.x);
@@ -26,6 +28,7 @@ export function Transform({ model, commands, open, onToggle }: {
   const field = (path: Parameters<InspectorCommands["patchAnimatedValue"]>[0], value: number, fallback: Parameters<InspectorCommands["patchAnimatedValue"]>[2]) => commands.patchAnimatedValue(path, value, fallback);
 
   return (
+    <>
     <InspectorSection label="Transform" className="order-0" open={open} onToggle={onToggle}>
       <div className="grid grid-cols-2 gap-x-3 gap-y-2">
         <NumberField label="X" step={1} integer suffix="px" value={translateX.value} mixed={model.isMultiLayerSelection && translateX.mixed} keyframed={commands.isKeyframedAtCurrentTime("transform.translate.x")} keyframeDisabled={!model.isPlayheadInsideLayer} onKeyframe={!model.isMultiLayerSelection ? () => commands.setKeyframeAtCurrentTime("transform.translate.x", { type: "number", value: translateX.value }) : undefined} onChange={(value) => field("transform.translate.x", value, { transform: { translate: { x: value } } })} />
@@ -39,6 +42,8 @@ export function Transform({ model, commands, open, onToggle }: {
         <NumberField label="Scale Y" step={1} integer value={scaleY.value} mixed={model.isMultiLayerSelection && scaleY.mixed} keyframed={commands.isKeyframedAtCurrentTime("transform.scale.y")} keyframeDisabled={!model.isPlayheadInsideLayer} onKeyframe={!model.isMultiLayerSelection ? () => commands.setKeyframeAtCurrentTime("transform.scale.y", { type: "number", value: scaleY.value }) : undefined} onChange={(value) => field("transform.scale.y", Math.max(0.001, value), { transform: { scale: { y: Math.max(0.001, value) } } })} />
         {textSizing && textSizing !== "fixed" && (scaleX.value !== 1 || scaleY.value !== 1) ? <ActionButton label="Reset scale" onClick={() => commands.patchLayer({ transform: { scale: { x: 1, y: 1 } } })} /> : null}
       </div>
+    </InspectorSection>
+    <InspectorSection label="Anchor" className="order-0" open={anchorOpen} onToggle={onToggleAnchor}>
       <div className="mx-auto grid w-fit grid-cols-3 gap-1" aria-label="Anchor presets">
         {[0, 0.5, 1].flatMap((y) => [0, 0.5, 1].map((x) => ({ x, y }))).map((preset) => (
           <button key={`${preset.x}-${preset.y}`} type="button" aria-label={`Anchor ${preset.x}, ${preset.y}`} className="flex h-8 w-8 items-center justify-center rounded border border-[var(--border-strong)] text-[var(--fg-muted)] data-[active=true]:border-[var(--accent)] data-[active=true]:text-[var(--accent)]" data-active={model.selected!.transform.anchor.x === model.selected!.frame.width * preset.x && model.selected!.transform.anchor.y === model.selected!.frame.height * preset.y} onClick={() => commands.setAnchor(model.selected!.frame.width * preset.x, model.selected!.frame.height * preset.y)}>
@@ -51,5 +56,6 @@ export function Transform({ model, commands, open, onToggle }: {
         <NumberField label="Anchor Y" step={1} integer suffix="px" value={model.selected.transform.anchor.y} onChange={(value) => commands.setAnchor(model.selected!.transform.anchor.x, value)} />
       </div>
     </InspectorSection>
+    </>
   );
 }

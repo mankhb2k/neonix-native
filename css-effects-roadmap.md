@@ -157,7 +157,7 @@ runtime thật trong `motion-runtime/src/visual/text-layout.test.ts`):
 
 **Đã sửa** (commit `30151d6e`, có test `test/text-decoration-style.test.ts`
 + test thật ở cả `canvaskit-preview/test/command-replay.test.ts` và
-`export-renderer/test/svg-rasterizer.test.ts`):
+`render-native/test/svg-rasterizer.test.ts`):
 - **`text-decoration-style: wavy`/`dotted`/`dashed`** — mục lớn nhất và
   cuối cùng trong 5 gap, đụng cả 2 renderer (trước đây cả hai chỉ vẽ 1
   hình chữ nhật đặc, không có khái niệm style). Hình học (x/y/width/height)
@@ -234,7 +234,7 @@ bug này — không cần sửa, chỉ cần test khoá lại (chuyển sang m�
   vẽ (không chỉ "được nhận diện là hỗ trợ"), filter áp đúng lên cả layer.
   Test non-vacuous được xác nhận bằng cách tạm revert fix và thấy test fail
   đúng như kỳ vọng. Commit `b75dce8f`.
-- **Còn thiếu (ghi nhận, chưa làm)**: `export-renderer`'s native C++ CPU
+- **Còn thiếu (ghi nhận, chưa làm)**: `render-native`'s native C++ CPU
   backend (`skia_command_cpu_backend.cpp`) có pattern matcher song song
   cùng giới hạn — fix này chỉ áp dụng cho đường browser preview
   (canvaskit-preview), chưa đụng tới native export.

@@ -40,7 +40,7 @@ RUN python3 -c "from pathlib import Path; p=Path('tools/git-sync-deps'); s=p.rea
   && git config --global url.https://github.com/.insteadOf https://skia.googlesource.com/external/github.com/ \
   && for attempt in 1 2 3; do python3 tools/git-sync-deps && exit 0; echo "git-sync-deps retry ${attempt}"; sleep 5; done; exit 1
 
-COPY packages/export-renderer/native/skia_command_cpu_backend.cpp /opt/skia/neonix/skia_command_cpu_backend.cpp
+COPY packages/render-native/native/skia_command_cpu_backend.cpp /opt/skia/neonix/skia_command_cpu_backend.cpp
 COPY infra/cloud-run/export-renderer/skia-command-cpu-bench/neonix_skia_target.gni /tmp/neonix_skia_target.gni
 RUN python3 -c "from pathlib import Path; p=Path('/opt/skia/BUILD.gn'); p.write_text(p.read_text() + '\\n' + Path('/tmp/neonix_skia_target.gni').read_text())"
 RUN gn gen out/Release --args='is_official_build=true skia_use_vulkan=false skia_enable_ganesh=false skia_enable_tools=true skia_use_gl=false skia_use_egl=false skia_use_x11=false skia_use_freetype=false skia_use_fontconfig=false skia_use_harfbuzz=false skia_use_icu=false skia_use_expat=false skia_use_libjpeg_turbo_decode=false skia_use_libjpeg_turbo_encode=false skia_use_libpng_decode=false skia_use_libpng_encode=false skia_use_libwebp_decode=false skia_use_libwebp_encode=false skia_use_perfetto=false skia_use_wuffs=false skia_enable_pdf=false skia_enable_skottie=false skia_use_partition_alloc=false'
@@ -73,17 +73,17 @@ FROM node:22-bookworm-slim AS app-builder
 WORKDIR /workspace
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm --filter @motionvideo/export-renderer deploy --prod --legacy /app
-# Only export-renderer's own real npm dependencies (transitively, through
+RUN pnpm --filter @motionvideo/render-native deploy --prod --legacy /app
+# Only render-native's own real npm dependencies (transitively, through
 # motion-runtime/html-compiler/motion-protocol too) are excluded from the
 # bundle; every @motionvideo/* workspace package is plain .ts source with no
 # other runtime, so esbuild bundles those in directly.
 RUN pnpm exec esbuild \
-  packages/export-renderer/src/render-job.ts \
-  packages/export-renderer/src/render-chunk-job.ts \
-  packages/export-renderer/src/render-finalizer-job.ts \
-  packages/export-renderer/src/benchmark-native-skia-command-cpu.ts \
-  packages/export-renderer/src/api/server.ts \
+  packages/render-native/src/render-job.ts \
+  packages/render-native/src/render-chunk-job.ts \
+  packages/render-native/src/render-finalizer-job.ts \
+  packages/render-native/src/benchmark-native-skia-command-cpu.ts \
+  packages/render-native/src/api/server.ts \
   --bundle --platform=node --format=esm --outdir=/app/dist \
   --external:@aws-sdk/client-s3 --external:google-auth-library --external:@supabase/supabase-js --external:sharp --external:zod
 

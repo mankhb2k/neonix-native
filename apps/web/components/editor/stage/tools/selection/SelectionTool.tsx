@@ -26,6 +26,7 @@ type Props = {
   onTransformPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onTransformPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onCancelMove: () => void;
+  onBackgroundPointerDown: () => void;
 };
 
 export function SelectionTool({
@@ -44,6 +45,7 @@ export function SelectionTool({
   onTransformPointerMove,
   onTransformPointerUp,
   onCancelMove,
+  onBackgroundPointerDown,
 }: Props) {
   return (
     <div
@@ -51,6 +53,9 @@ export function SelectionTool({
       className="pointer-events-auto absolute inset-0 z-[4] cursor-default"
       data-testid="stage-transform-overlay"
       aria-label="Selected layer transform bounds"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onBackgroundPointerDown();
+      }}
     >
       {snapGuides.map((guide, index) => {
         if (guide.kind === "vline") {

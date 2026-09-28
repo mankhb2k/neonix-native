@@ -33,7 +33,7 @@ pnpm --filter @motionvideo/<pkg> exec vitest run <file>   # single test file in 
 pnpm --filter @motionvideo/<pkg> exec vitest run <file> -t "<test name>"  # single test case
 pnpm --filter @motionvideo/web e2e        # Playwright e2e (apps/web/playwright.config.ts)
 
-pnpm --filter @motionvideo/export-renderer exec tsx ../../scripts/validate-arch-deps.ts
+pnpm --filter @motionvideo/render-native exec tsx ../../scripts/validate-arch-deps.ts
                                            # guards core packages (protocol/compiler/runtime/editor-core)
                                            # against depending on renderer or app packages
 node scripts/validate-v2-boundary.mjs     # fails if motion-compiler/motion-runtime contain V1 markers
@@ -53,9 +53,9 @@ supabase db push       # migrations are the source of truth — never hand-edit 
 
 The render pipeline (`Author → Protocol → Compiler → Runtime → Playback & Render`) is documented package-by-package in `ARCHITECHTURE.md`. A few things that aren't obvious from any single file:
 
-- **Two independent render backends consume the same `PaintCommandBuffer`.** `canvaskit-preview` replays it via CanvasKit/Skia for the live browser preview only; `export-renderer` replays it via native Skia + FFmpeg for the only production MP4 path. These two packages must stay decoupled from each other — `export-renderer` should never depend on `canvaskit-preview` (they previously did, via a stray `SkiaAsset` type import; that type now lives in `motion-runtime`, which both depend on).
+- **Two independent render backends consume the same `PaintCommandBuffer`.** `canvaskit-preview` replays it via CanvasKit/Skia for the live browser preview only; `render-native` replays it via native Skia + FFmpeg for the only production MP4 path. These two packages must stay decoupled from each other — `render-native` should never depend on `canvaskit-preview` (they previously did, via a stray `SkiaAsset` type import; that type now lives in `motion-runtime`, which both depend on).
 - **Boundaries are enforced by scripts and tests, not just convention.** Before assuming a cross-package import is fine, check `scripts/validate-arch-deps.ts` (package.json dependency direction) and `apps/web/lib/editor/__tests__/architecture-boundary.test.ts` (regex-based import guard for `components/editor`/`hooks/editor`). If you add a legitimate new cross-package dependency, update these guards' allow-lists rather than letting them silently miss it — several packages (`canvaskit-preview`, `playback-engine`, `editor-runtime`, `html-compiler`, `motion-mcp`, `asset-registry`, `audio-analysis`) are not classified in `validate-arch-deps.ts` at all, so it does not check them.
-- **`motion-mcp` reuses `computeProjectHash`/`computeRuntimeHash` from `@motionvideo/export-renderer/contracts`** for project/runtime identity — the only sanctioned dependency an authoring-side package has on the export renderer; it must not reach for anything else in that package (no native rendering).
+- **`motion-mcp` reuses `computeProjectHash`/`computeRuntimeHash` from `@motionvideo/render-native/contracts`** for project/runtime identity — the only sanctioned dependency an authoring-side package has on the export renderer; it must not reach for anything else in that package (no native rendering).
 - **Protocol V1 is fully retired.** `scripts/validate-v2-boundary.mjs` fails the build if V1 markers (`formatVersion: 1`, `motion-protocol/v1` imports, etc.) reappear in `motion-compiler`/`motion-runtime`. Do not add V1 compatibility code.
 - **`pnpm-workspace.yaml` pins `onlyBuiltDependencies: [electron, sharp]` and `supportedArchitectures: {os: [win32, linux], cpu: [x64]}`** — this exists so `sharp`'s native binary is present for both Windows dev machines and the Linux Cloud Run/Cloud Build export workers; don't narrow it without checking both platforms still build.
 

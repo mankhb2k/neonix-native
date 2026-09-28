@@ -1,10 +1,10 @@
-import { LandingPage } from "@/components/site/LandingPage";
+import { HomePage } from "@/components/site/HomePage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "HTML to Motion Video for AI Agents",
+  title: "Neonix — Cloud Rendering Infrastructure for Motion Graphic Video",
   description:
-    "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. Connect Claude, ChatGPT or Grok over Remote MCP to create, preview and export motion projects.",
+    "Neonix operates distributed infrastructure and large-scale cloud rendering to turn HTML/CSS into motion graphic video — auto-scaling, cost-optimized, and built for bulk video rendering.",
   alternates: { canonical: "/" },
 };
 
@@ -15,7 +15,7 @@ const SOFTWARE_APPLICATION_JSON_LD = {
   applicationCategory: "MultimediaApplication",
   operatingSystem: "Web",
   description:
-    "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video.",
+    "Neonix operates distributed infrastructure and large-scale cloud rendering to turn HTML/CSS into motion graphic video at scale.",
   url: "https://www.neonix.video",
   offers: {
     "@type": "Offer",
@@ -34,7 +34,7 @@ export default function MarketingHomePage() {
           __html: JSON.stringify(SOFTWARE_APPLICATION_JSON_LD),
         }}
       />
-      <LandingPage />
+      <HomePage />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { Be_Vietnam_Pro, Fraunces, Roboto_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Fraunces, Noto_Sans, Roboto_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { Metadata } from "next";
@@ -22,6 +22,13 @@ const mono = Roboto_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-roboto-mono",
+  display: "swap",
+});
+
+const notoSans = Noto_Sans({
+  subsets: ["latin", "vietnamese"],
+  weight: ["500", "600", "700"],
+  variable: "--font-noto-sans",
   display: "swap",
 });
 
@@ -67,7 +74,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      className={`${sans.variable} ${display.variable} ${mono.variable} ${notoSans.variable}`}
     >
       <body>
         <script

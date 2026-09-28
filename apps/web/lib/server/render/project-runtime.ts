@@ -8,7 +8,7 @@ import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 function repoRoot(): string {
   const cwd = path.resolve(process.cwd());
   const normalized = cwd.replace(/\\/g, "/");
-  if (normalized.endsWith("/apps/web") || normalized.endsWith("/packages/export-renderer")) {
+  if (normalized.endsWith("/apps/web") || normalized.endsWith("/packages/render-native")) {
     return path.resolve(cwd, "../..");
   }
   return cwd;

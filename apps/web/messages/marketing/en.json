@@ -1,0 +1,133 @@
+{
+  "home": {
+    "hero": {
+      "eyebrow": "Cloud video rendering infrastructure",
+      "title": "Rendering infrastructure for motion graphic video,",
+      "titleAccent": "built for scale.",
+      "description": "Neonix operates distributed infrastructure and large-scale cloud rendering to turn HTML/CSS into motion graphic video — stable, cost-transparent, and built to scale with your workload.",
+      "ctaPrimary": "Try it now",
+      "ctaSecondary": "See how it works"
+    },
+    "trust": {
+      "uptime": "24/7",
+      "uptimeLabel": "stable operation, self-healing",
+      "savings": "40–50%",
+      "savingsLabel": "infrastructure cost savings",
+      "autoscale": "Auto-scaling",
+      "autoscaleLabel": "elastic compute matched to real load"
+    },
+    "infra": {
+      "eyebrow": "Distributed Infrastructure & Cloud Rendering",
+      "title": "Quick, flexible, and powerful deployment.",
+      "description": "5+ years operating and managing distributed infrastructure and large-scale cloud rendering systems. Resources auto-scale flexibly with real workload, keeping bulk video rendering stable even under sudden demand spikes.",
+      "cards": [
+        {
+          "title": "Auto-scaling resources",
+          "description": "Compute expands or contracts with the render queue — no manual tuning."
+        },
+        {
+          "title": "Distributed operations",
+          "description": "Infrastructure spread across nodes, reducing any single point of failure."
+        },
+        {
+          "title": "Bulk rendering",
+          "description": "Process many videos in parallel without trading off quality or speed."
+        }
+      ]
+    },
+    "cost": {
+      "eyebrow": "Cost Optimization & Automation",
+      "title": "Putting the economics first.",
+      "description": "Built for startups, solo SaaS builders, and teams that want operating costs under control. A highly automated video processing pipeline, combined with hardware resource optimization, cuts infrastructure operating costs by 40–50% compared to conventional setups.",
+      "cards": [
+        {
+          "title": "End-to-end automated pipeline",
+          "description": "Automatic transcoding and rendering — no manual intervention."
+        },
+        {
+          "title": "Extremely low error rate",
+          "description": "Automatic fault detection and recovery, running stably 24/7."
+        },
+        {
+          "title": "Hardware optimization",
+          "description": "Fully utilizes provisioned resources instead of leaving them idle."
+        }
+      ]
+    },
+    "stack": {
+      "eyebrow": "Modern Technical Architecture",
+      "title": "Built on an architecture ready for video-as-code.",
+      "description": "A microservices architecture combined with a queue-based processing pipeline, purpose-built for heavy workloads like real-time rendering and 4K video processing, integrating seamlessly with automation APIs.",
+      "cards": [
+        {
+          "title": "Queue-based processing",
+          "description": "Asynchronous, queue-driven processing that holds up under sudden load spikes."
+        },
+        {
+          "title": "Dedicated rendering engine",
+          "description": "A purpose-built render system optimized for low latency and high throughput."
+        },
+        {
+          "title": "Video-as-code ready",
+          "description": "API-ready, built to the standards modern video-as-code platforms expect."
+        }
+      ]
+    },
+    "bridge": {
+      "eyebrow": "Introducing the HTML to JSON solution",
+      "title": "From HTML/CSS to structured video.",
+      "description": "Neonix compiles HTML/CSS into a structured JSON document — where every layer and property stays independently editable instead of becoming a flattened, unchangeable render. No-code designers can open and refine projects visually in the editor without touching code. It's what lets developers, designers, and AI agents collaborate transparently on the same document.",
+      "link": "See the HTML → JSON technology"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Frequently asked questions.",
+      "items": [
+        {
+          "question": "Why do I need cloud rendering if I can just render videos at home?",
+          "answer": "It's true — you can absolutely render videos at home using CapCut, Premiere, or traditional editing software for manual, one-off projects. But the equation changes completely once you're building Video-as-Code from HTML/CSS. You need dedicated cloud infrastructure to:\n\nAvoid silent failures: If you write your own render scripts, you'll run into missing fonts, flaky network errors while loading assets, or animation timing drift. The result is batches of exported videos with missing visuals, missing audio, broken layouts, or frozen mid-render.\n\nFully free up your machine: Code-based video rendering is extremely RAM-, CPU-, and GPU-intensive. Render at home and your machine locks up, overheats, and can't do anything else. Cloud rendering carries that entire hardware burden in the cloud."
+        },
+        {
+          "question": "Why use Neonix's rendering service instead of setting up our own infrastructure on AWS/GCP?",
+          "answer": "Building and optimizing your own render infrastructure takes significant trial-and-error and is easy to fall into hidden cost traps — egress bandwidth optimization, job queue configuration, hardware bottleneck handling. With over 5 years of hands-on experience operating cloud rendering systems, we've already solved these complex problems. You focus on your product and business — we carry the heavy lifting of hardware, speed, and cost optimization."
+        },
+        {
+          "question": "Does the infrastructure really auto-scale, or is that just marketing?",
+          "answer": "Yes. The auto-scaling system reacts to the real render queue — when job volume spikes, compute expands automatically; when load drops, resources contract. No manual configuration or pre-provisioned capacity needed."
+        },
+        {
+          "question": "How is the 40–50% cost savings calculated?",
+          "answer": "Compared to operating your own render infrastructure (buying/renting fixed servers, building your own transcoding pipeline), Neonix's automated pipeline eliminates idle compute costs and reduces manual operations headcount."
+        },
+        {
+          "question": "What happens if I render many videos at once?",
+          "answer": "A queue-based architecture processes jobs asynchronously, so hundreds of jobs can queue and run in parallel without bottlenecking the system or slowing down any single job. For example, if you submit 10 render jobs, we dispatch 10 separate machines to render them in parallel — keeping both quality and turnaround time intact."
+        },
+        {
+          "question": "Is Neonix a good fit for a small startup or solo SaaS builder?",
+          "answer": "Yes — this is exactly the customer segment we optimize cost for first. You pay based on actual usage, with no need to invest in fixed infrastructure the way a large enterprise would."
+        },
+        {
+          "question": "Is my data and video processed transparently?",
+          "answer": "Yes. The entire transcoding/render pipeline is automated and traceable through a structured JSON document — there's no \"black box\" step you can't inspect."
+        },
+        {
+          "question": "Do I need to know how to code to use Neonix?",
+          "answer": "Not required. Neonix's HTML/CSS-to-JSON compiler comes with a visual editor that lets people without coding skills design and edit videos. For developers or AI agents, the platform also supports integration through MCP and the API."
+        }
+      ]
+    },
+    "finalCta": {
+      "eyebrow": "Ready to render?",
+      "title": "Bring your video rendering infrastructure to Neonix.",
+      "description": "Transparent cost, stable operations, and elastic scaling matched to your real workload.",
+      "ctaPrimary": "Try the playground",
+      "ctaSecondary": "See the HTML → JSON technology"
+    }
+  },
+  "htmlToJson": {
+    "hero": {
+      "eyebrow": "HTML-to-motion-video compiler"
+    }
+  }
+}

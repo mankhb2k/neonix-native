@@ -124,7 +124,7 @@ export async function renderNativeCommandBuffer(
   const command = bundlePath ? process.execPath : (process.env.PNPM_PATH?.trim() || (process.platform === "win32" ? "pnpm.cmd" : "pnpm"));
   const args = bundlePath
     ? [bundlePath]
-    : ["--filter", "@motionvideo/export-renderer", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"];
+    : ["--filter", "@motionvideo/render-native", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"];
   const fps = project.visual.composition.fps;
   const frameCount = range.endFrameExclusive - range.startFrame;
   const durationSeconds = frameCount / fps;

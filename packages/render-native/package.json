@@ -1,5 +1,5 @@
 {
-  "name": "@motionvideo/export-renderer",
+  "name": "@motionvideo/render-native",
   "version": "0.0.1",
   "private": true,
   "type": "module",

@@ -16,7 +16,7 @@ import {
   resolveLocalPreviewAssetPath,
   SkiaFrameAssetResolver,
   type SkiaAssetResolverStats,
-} from "@motionvideo/export-renderer";
+} from "@motionvideo/render-native";
 import type { SkiaAsset } from "../../../packages/canvaskit-preview/src";
 import { PREVIEW_LAB_CASES } from "../lib/docs/preview-lab";
 import { compileAndPrepareRuntimeProjectV3 } from "../lib/server/render/project-runtime";

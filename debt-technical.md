@@ -235,7 +235,7 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
     (`motion-runtime` `effectBoxFor`, `box: "padding"`) cho cả outer lẫn
     inset. Blink dùng border box cho outer shadow, nên phần tử có border bị
     lệch đúng bằng độ dày border. Lỗi này có từ trước, chưa sửa.
-  - `export-renderer` (native) chưa port cách vẽ này (xem mục sigma ngay
+  - `render-native` (native) chưa port cách vẽ này (xem mục sigma ngay
     dưới).
 
 ### [ĐÃ SỬA] Khung chữ nhật quanh text-shadow khi phần tử cha đang animate opacity
@@ -260,18 +260,18 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
   11.4 → 11.6ms, settled 15.7 → 15.6ms). Regression test nằm trong
   `test/save-layer-bounds.test.ts`.
 
-### Công thức sigma của text-shadow/box-shadow chưa port sang export-renderer
+### Công thức sigma của text-shadow/box-shadow chưa port sang render-native
 - Vị trí: `packages/canvaskit-preview/src/command/effects.ts`
   (`cssShadowBlurRadiusToSkiaSigma`, dùng chung cho text-shadow và box-shadow
   không inset từ bản sửa gần đây) — mới sửa ở `canvaskit-preview` (browser
   preview), theo đúng quy ước "sửa canvaskit-preview trước, port native sau".
-  `export-renderer` (Skia native dùng khi export MP4 thật) vẫn ở trạng thái
+  `render-native` (Skia native dùng khi export MP4 thật) vẫn ở trạng thái
   cũ (nếu có logic sigma riêng, cần đối chiếu).
 - Đã đo pixel thật (ground-truth Chrome vs canvaskit-preview) trên hình chữ
   nhật sạch: lệch <3% ở blur 24px/40px, lệch nhiều hơn (~16%) ở 4px nhưng nghi
   là nhiễu đo lường ở quy mô quá nhỏ (đã tự validate method qua synthetic
   test), không phải bug công thức.
-- Cần làm: kiểm tra `export-renderer` có đang dùng đúng
+- Cần làm: kiểm tra `render-native` có đang dùng đúng
   `cssShadowBlurRadiusToSkiaSigma` tương đương không, port nếu chưa, để export
   MP4 khớp với preview.
 
@@ -331,8 +331,8 @@ thời gian. Cập nhật file này khi phát sinh nợ mới hoặc khi trả x
   nằm trong khoảng 0.3%-1.0%, đồng đều với baseline offset-only (~0.7%) —
   không còn case nào lệch bất thường.
 - Việc còn lại: port fix này (cả routing lẫn công thức corner-radius) sang
-  `export-renderer` (native backend) — xem mục sigma text-shadow/box-shadow
-  phía trên, cùng một nợ "chưa port sang export-renderer".
+  `render-native` (native backend) — xem mục sigma text-shadow/box-shadow
+  phía trên, cùng một nợ "chưa port sang render-native".
 - [DỌN DẸP] 15 fixture debug kể trên (`box-shadow-spread-*`,
   `box-shadow-offset-*-sweep`) đã được gộp thành 3 fixture cố định trong
   catalog `effect`: `box-shadow-spread-shapes.html` (5 case hình dạng),

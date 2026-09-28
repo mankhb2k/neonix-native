@@ -1,0 +1,133 @@
+{
+  "home": {
+    "hero": {
+      "eyebrow": "Hạ tầng render video cloud",
+      "title": "Hạ tầng render video motion graphic",
+      "titleAccent": "cho đa nền tảng.",
+      "description": "Neonix vận hành hạ tầng phân tán và hệ thống cloud rendering quy mô lớn, chuyển HTML/CSS thành video motion graphic — ổn định, minh bạch chi phí, và sẵn sàng mở rộng theo đúng tải công việc của bạn.",
+      "ctaPrimary": "Dùng thử ngay",
+      "ctaSecondary": "Xem cách hoạt động"
+    },
+    "trust": {
+      "uptime": "24/7",
+      "uptimeLabel": "vận hành ổn định, tự phục hồi sự cố",
+      "savings": "40–50%",
+      "savingsLabel": "tiết kiệm chi phí vận hành hạ tầng",
+      "autoscale": "Auto-scaling",
+      "autoscaleLabel": "co giãn tài nguyên theo tải thực tế"
+    },
+    "infra": {
+      "eyebrow": "Hạ tầng phân tán & Cloud Rendering",
+      "title": "Triển khai nhanh chóng, linh hoạt và mạnh mẽ.",
+      "description": "Hơn 5 năm kinh nghiệm vận hành và quản lý hạ tầng phân tán (Distributed Infrastructure) và hệ thống cloud rendering quy mô lớn (Large-scale Cloud Rendering). Tài nguyên tự động co giãn (Auto-scaling) linh hoạt theo tải công việc thực tế, đảm bảo render hàng loạt video ổn định ngay cả khi nhu cầu tăng đột biến.",
+      "cards": [
+        {
+          "title": "Auto-scaling tài nguyên",
+          "description": "Tài nguyên compute mở rộng hoặc co lại theo hàng đợi render, không cần cấu hình thủ công."
+        },
+        {
+          "title": "Vận hành phân tán",
+          "description": "Hạ tầng trải nhiều node, giảm điểm lỗi đơn (single point of failure)."
+        },
+        {
+          "title": "Render số lượng lớn",
+          "description": "Xử lý hàng loạt video song song mà không đánh đổi chất lượng hay tốc độ."
+        }
+      ]
+    },
+    "cost": {
+      "eyebrow": "Tối ưu chi phí & Tự động hóa",
+      "title": "Bài toán kinh tế đặt lên hàng đầu.",
+      "description": "Phù hợp cho startup, solo SaaS hoặc doanh nghiệp muốn tối ưu chi phí vận hành. Pipeline xử lý video tự động hóa cao (Automated Video Processing Pipeline), kết hợp tối ưu hóa tài nguyên phần cứng, giúp tiết kiệm đến 40–50% chi phí vận hành hạ tầng so với cách làm truyền thống.",
+      "cards": [
+        {
+          "title": "Pipeline tự động end-to-end",
+          "description": "Hệ thống transcoding và render tự động, không cần can thiệp thủ công."
+        },
+        {
+          "title": "Tỷ lệ lỗi cực thấp",
+          "description": "Tự động phát hiện và phục hồi sự cố, vận hành ổn định 24/7."
+        },
+        {
+          "title": "Tối ưu phần cứng",
+          "description": "Tận dụng tối đa tài nguyên đã cấp phát, tránh lãng phí chi phí."
+        }
+      ]
+    },
+    "stack": {
+      "eyebrow": "Kiến trúc kỹ thuật hiện đại",
+      "title": "Được xây trên kiến trúc sẵn sàng cho video-as-code.",
+      "description": "Hạ tầng microservices kết hợp hàng đợi xử lý bất đồng bộ (Queue-based Processing Pipeline), chuyên trị các tác vụ nặng như dựng hình thời gian thực, xử lý video 4K, và tích hợp liền mạch với các API tự động hóa.",
+      "cards": [
+        {
+          "title": "Queue-based Processing",
+          "description": "Xử lý bất đồng bộ theo hàng đợi, chịu tải tốt khi khối lượng công việc tăng đột biến."
+        },
+        {
+          "title": "Dedicated Rendering Engine",
+          "description": "Hệ thống render chuyên dụng, tối ưu độ trễ thấp và băng thông lớn."
+        },
+        {
+          "title": "Video-as-code ready",
+          "description": "Sẵn sàng tích hợp API, đáp ứng tiêu chuẩn của các nền tảng video-as-code hiện đại."
+        }
+      ]
+    },
+    "bridge": {
+      "eyebrow": "Giới thiệu giải pháp HTML convert JSON",
+      "title": "Từ HTML/CSS đến video có cấu trúc.",
+      "description": "Neonix biên dịch HTML/CSS thành tài liệu JSON có cấu trúc — mỗi lớp, mỗi thuộc tính đều có thể chỉnh sửa độc lập, thay vì một bản render phẳng không thể sửa lại. Các designer không cần code có thể mở và chỉnh tinh các dự án trực quan qua trình chỉnh sửa giao diện, mà không cần chạm vào code. Đây là nền tảng để lập trình viên, designer, và AI agent cùng làm việc minh bạch trên một tài liệu duy nhất.",
+      "link": "Xem công nghệ HTML → JSON"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Câu hỏi thường gặp.",
+      "items": [
+        {
+          "question": "Vì sao tôi cần dùng cloud render nếu tôi hoàn toàn có thể render video ở nhà?",
+          "answer": "Đúng là bạn hoàn toàn có thể render video tại nhà bằng CapCut, Premiere hay các phần mềm editor truyền thống khi làm việc với các project thủ công. Nhưng bài toán sẽ thay đổi hoàn toàn khi bạn dựng Video-as-Code từ mã HTML/CSS. Bạn cần một hạ tầng đám mây chuyên dụng để:\n\nTránh lỗi ngầm: Nếu tự viết script render, bạn sẽ gặp phải tình trạng thiếu hụt font chữ, lỗi mạng chớp nhoáng khi load asset, hay timing animation lệch nhịp. Kết quả là hàng loạt video xuất ra bị mất hình, mất tiếng, vỡ layout hoặc đứng hình giữa chừng.\n\nGiải phóng hoàn toàn máy tính của bạn: Quá trình render video bằng code cực kỳ ngốn RAM, CPU và GPU. Nếu render ở nhà, máy tính của bạn sẽ bị đơ, nóng máy và không thể làm việc khác. Cloud render gánh toàn bộ sức nặng phần cứng đó trên mây."
+        },
+        {
+          "question": "Tại sao chúng tôi nên dùng dịch vụ render của Neonix thay vì tự setup hạ tầng trên AWS/GCP riêng?",
+          "answer": "Việc tự dựng và tối ưu hạ tầng render đòi hỏi thời gian thử nghiệm lớn và rất dễ lọt vào các \"cái bẫy\" chi phí ẩn (như tối ưu băng thông egress, cấu hình queue job, hay xử lý bottleneck phần cứng). Với hơn 5 năm kinh nghiệm chuyên sâu vận hành hệ thống cloud rendering, chúng tôi đã giải quyết sẵn các bài toán phức tạp đó. Bạn chỉ cần tập trung vào sản phẩm và business, việc \"gánh\" toàn bộ phần cứng nặng nhọc, tốc độ và tối ưu chi phí đã có hạ tầng của chúng tôi lo."
+        },
+        {
+          "question": "Hạ tầng có thực sự tự động co giãn không, hay chỉ là marketing?",
+          "answer": "Có. Hệ thống auto-scaling phản ứng theo hàng đợi render thực tế — khi lượng job tăng đột biến, compute tự mở rộng; khi tải giảm, tài nguyên tự co lại. Không cần bạn cấu hình thủ công hay đặt trước công suất."
+        },
+        {
+          "question": "Chi phí 40–50% tiết kiệm được tính như thế nào?",
+          "answer": "So với việc tự vận hành hạ tầng render riêng (mua/thuê máy chủ cố định, tự viết pipeline transcoding), pipeline tự động hóa của Neonix loại bỏ chi phí nhàn rỗi (idle compute) và giảm nhân sự vận hành thủ công."
+        },
+        {
+          "question": "Điều gì xảy ra nếu tôi render hàng loạt video cùng lúc?",
+          "answer": "Kiến trúc queue-based xử lý bất đồng bộ, nên hàng trăm job có thể xếp hàng và chạy song song mà không nghẽn hệ thống hay ảnh hưởng tốc độ từng job. Ví dụ bạn chạy 10 job render video, chúng tôi sẽ phân phát 10 máy để render song song, đảm bảo chất lượng và thời gian."
+        },
+        {
+          "question": "Neonix có phù hợp cho một startup nhỏ hoặc solo SaaS không?",
+          "answer": "Có — đây chính là nhóm khách hàng chúng tôi tối ưu chi phí đầu tiên. Bạn trả theo mức sử dụng thực tế, không cần đầu tư hạ tầng cố định như doanh nghiệp lớn."
+        },
+        {
+          "question": "Dữ liệu và video của tôi có được xử lý minh bạch không?",
+          "answer": "Có. Toàn bộ pipeline transcoding/render đều tự động và có thể theo dõi qua tài liệu JSON có cấu trúc — không có bước \"hộp đen\" nào bạn không thể kiểm tra lại."
+        },
+        {
+          "question": "Tôi có cần biết code để dùng Neonix không?",
+          "answer": "Không bắt buộc. Neonix ra mắt tính năng chuyển đổi HTML/CSS sang JSON, với editor trực quan cho phép người không biết code thiết kế và chỉnh sửa video. Với người biết code hoặc AI agent, hệ thống cũng hỗ trợ tích hợp qua MCP và API."
+        }
+      ]
+    },
+    "finalCta": {
+      "eyebrow": "Sẵn sàng render?",
+      "title": "Đưa hạ tầng render video của bạn lên Neonix.",
+      "description": "Minh bạch chi phí, ổn định vận hành, và co giãn linh hoạt theo đúng nhu cầu thực tế của bạn.",
+      "ctaPrimary": "Dùng thử playground",
+      "ctaSecondary": "Xem công nghệ HTML → JSON"
+    }
+  },
+  "htmlToJson": {
+    "hero": {
+      "eyebrow": "Trình biên dịch HTML-to-motion-video"
+    }
+  }
+}

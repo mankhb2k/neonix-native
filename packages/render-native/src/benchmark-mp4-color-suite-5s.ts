@@ -85,7 +85,7 @@ async function renderNative(test: ColorTest, variant: Variant, mode: "render-onl
     BENCHMARK_COMPARE_COLOR: converter === "libyuv" ? "true" : "false",
     NEONIX_X264_CRF: encoderCrf,
   };
-  const result = await run(pnpm, ["--filter", "@motionvideo/export-renderer", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"], { env });
+  const result = await run(pnpm, ["--filter", "@motionvideo/render-native", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"], { env });
   if (result.code !== 0) throw new Error(`Native ${test}/${variant}/${mode} failed: ${result.stderr.slice(-4000)}`);
   return lastJson(result.stdout);
 }

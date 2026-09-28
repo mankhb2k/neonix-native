@@ -23,7 +23,7 @@ describe("publicRendererMessage", () => {
   });
 
   it("redacts absolute filesystem paths embedded in a message", () => {
-    expect(publicRendererMessage("Cannot find module D:\\NextJS\\neonix\\packages\\export-renderer\\src\\render-job.ts"))
+    expect(publicRendererMessage("Cannot find module D:\\NextJS\\neonix\\packages\\render-native\\src\\render-job.ts"))
       .toBe("Cannot find module <path>");
     expect(publicRendererMessage("open /app/dist/render-job.js: no such file or directory"))
       .toBe("open <path>: no such file or directory");

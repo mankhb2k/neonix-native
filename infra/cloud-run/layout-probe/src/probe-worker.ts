@@ -52,7 +52,7 @@ export async function closeSharedBrowser(): Promise<void> {
 
 /**
  * Measures real-browser layout geometry for an already-stamped HTML
- * document. Mirrors packages/export-renderer/src/media/media-worker.ts's
+ * document. Mirrors packages/render-native/src/media/media-worker.ts's
  * prepareMediaJob() shape: one job in, one result out, no shared state
  * beyond the browser instance itself.
  */

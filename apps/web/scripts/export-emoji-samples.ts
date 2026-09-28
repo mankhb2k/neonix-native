@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import { prepareRuntimeProjectV3Text } from "@motionvideo/motion-runtime";
-import { encodeRgbaToPng, rasterizeSvgToRgba, renderOneFrameToSvg } from "@motionvideo/export-renderer";
+import { encodeRgbaToPng, rasterizeSvgToRgba, renderOneFrameToSvg } from "@motionvideo/render-native";
 import { PREVIEW_LAB_CASES } from "../lib/docs/preview-lab";
 import { PATH_RENDERING_FIXTURES } from "../lib/docs/path-rendering-fixtures";
 

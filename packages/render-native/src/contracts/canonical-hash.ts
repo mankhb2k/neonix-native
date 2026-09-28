@@ -1,7 +1,7 @@
 /**
  * Hash canonical — deterministic hashing for motion artifacts.
  *
- * Moved from @motionvideo/motion-protocol (V1) into export-renderer contracts so
+ * Moved from @motionvideo/motion-protocol (V1) into render-native contracts so
  * motion-protocol stays schema-only ("atom"). Consolidates with
  * content-hash.ts, which owns the generic helpers (`computeContentHash`,
  * `shortHash`, `hashesMatch`, `deepSortKeys`).

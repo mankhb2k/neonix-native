@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`apps/web` is Neonix's **control plane** — it owns product rules, durable data, and job orchestration. It does not render video, probe media, or encode MP4 itself. For the render pipeline's own packages (`motion-protocol`/`motion-compiler`/`motion-runtime`/`canvaskit-preview`/`export-renderer`), see the root [`ARCHITECHTURE.md`](../../ARCHITECHTURE.md). For the editor's document/command boundary, see [`README.md`](README.md) and [`lib/editor/README.md`](lib/editor/README.md). This file is about the parts those don't cover: how `apps/web` talks to Supabase/R2/Cloud Run to actually run an export or ingest an upload.
+`apps/web` is Neonix's **control plane** — it owns product rules, durable data, and job orchestration. It does not render video, probe media, or encode MP4 itself. For the render pipeline's own packages (`motion-protocol`/`motion-compiler`/`motion-runtime`/`canvaskit-preview`/`render-native`), see the root [`ARCHITECHTURE.md`](../../ARCHITECHTURE.md). For the editor's document/command boundary, see [`README.md`](README.md) and [`lib/editor/README.md`](lib/editor/README.md). This file is about the parts those don't cover: how `apps/web` talks to Supabase/R2/Cloud Run to actually run an export or ingest an upload.
 
 ## Commands
 
@@ -57,7 +57,7 @@ User / MCP create_export
 
 CanvasKit is never part of this path — it's a browser-preview dependency only (see root `ARCHITECHTURE.md`).
 
-**Naming gotcha:** code still labels this engine `"native-vps"` in places (`export-canary.ts`, `export-worker.ts`, several comments in `export-renderer`). That's legacy vocabulary from before the Cloud Run migration — there is no actual VPS in production today, only Cloud Run. Don't infer a real VPS deployment target from that string.
+**Naming gotcha:** code still labels this engine `"native-vps"` in places (`export-canary.ts`, `export-worker.ts`, several comments in `render-native`). That's legacy vocabulary from before the Cloud Run migration — there is no actual VPS in production today, only Cloud Run. Don't infer a real VPS deployment target from that string.
 
 ## Media ingest flow (separate from export)
 
@@ -67,7 +67,7 @@ Browser
   → POST /api/v1/assets/upload/complete
   → Web inserts a media_jobs row (status: queued)
   → a SEPARATE Cloud Run service, infra/cloud-run/media-preparer — its own
-    Dockerfile, no Skia, only reuses @motionvideo/export-renderer's media
+    Dockerfile, no Skia, only reuses @motionvideo/render-native's media
     contract types — claims the job
   → runs ffprobe, creates audio.m4a when the source has an audio stream
     (worker never creates the poster — the browser already did)
@@ -77,7 +77,7 @@ Browser
     asset_variants in one idempotent operation
 ```
 
-`media_jobs.status` is `queued | processing | ready | partial | failed`. Jobs are deduplicated by `(assetId, sourceIntegrity, pipelineVersion)`. `export-renderer` and `media-preparer` are two separate Cloud Run deployments today, not one shared image — don't assume changing one redeploys the other.
+`media_jobs.status` is `queued | processing | ready | partial | failed`. Jobs are deduplicated by `(assetId, sourceIntegrity, pipelineVersion)`. `render-native` and `media-preparer` are two separate Cloud Run deployments today, not one shared image — don't assume changing one redeploys the other.
 
 ## System asset fallback
 

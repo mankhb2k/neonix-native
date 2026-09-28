@@ -1,4 +1,4 @@
-/** Server-only client for the native export-renderer worker. */
+/** Server-only client for the render-native worker. */
 
 import "server-only";
 

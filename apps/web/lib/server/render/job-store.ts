@@ -13,8 +13,8 @@ import {
   buildRenderChunkManifest,
   type RenderChunkManifest,
   type RenderChunkManifestOptions,
-} from "@motionvideo/export-renderer";
-import type { RenderJobStatus } from "@motionvideo/export-renderer/contracts";
+} from "@motionvideo/render-native";
+import type { RenderJobStatus } from "@motionvideo/render-native/contracts";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
 export type PersistentRenderJob = {

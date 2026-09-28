@@ -14,6 +14,7 @@ type ProjectRow = {
   workspace_id: string;
   title: string;
   current_revision_no: number;
+  source_format: "protocol-v2" | "html";
   updated_at: string;
 };
 
@@ -24,7 +25,7 @@ type RevisionRow = {
 };
 
 const PROJECT_COLUMNS =
-  "id, public_ref, workspace_id, title, current_revision_no, created_at, updated_at, last_activity_at, deleted_at, purge_after";
+  "id, public_ref, workspace_id, title, current_revision_no, source_format, created_at, updated_at, last_activity_at, deleted_at, purge_after";
 const REVISION_COLUMNS =
   "id, revision_no, document_json, content_hash, source_schema_version, reason, byte_size, created_at";
 
@@ -46,6 +47,10 @@ export type EditorProjectListItem = Pick<
   updatedAt: string;
   layerCount: number;
   durationMs: number;
+  /** "html" with revisionNo === 0 means a Kiến trúc B raw HTML project with
+   * no compiled Neonix JSON V2 revision yet — see ARCHITECHTURE.md "Hai
+   * kiến trúc render độc lập". */
+  sourceFormat: "protocol-v2" | "html";
 };
 
 export type ProjectRepositoryErrorCode =
@@ -412,6 +417,7 @@ export async function listProjects(
         ? document.layers.length
         : 0,
       durationMs: documentDurationMs(document),
+      sourceFormat: project.source_format,
     };
   });
 }

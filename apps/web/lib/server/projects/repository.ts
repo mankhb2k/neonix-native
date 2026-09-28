@@ -540,6 +540,167 @@ export async function createProjectHtml(
   };
 }
 
+/**
+ * Kiến trúc B entry point: stores HTML/CSS as-is with no compile step and no
+ * Neonix JSON V2 revision. The project stays at `current_revision_no: 0`
+ * until (and unless) `convertProjectHtmlToJson` is called explicitly. See
+ * "Hai kiến trúc render độc lập" in ARCHITECHTURE.md — this must stay a thin
+ * storage-only path and never call the HTML compiler.
+ */
+export async function createProjectHtmlRaw(
+  client: ProjectClient,
+  actor: ProjectActor,
+  input: { workspaceId?: string; title?: string; html: string },
+) {
+  if (!input.html.trim()) {
+    throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
+  }
+  const workspace = await resolveWorkspace(client, actor, input.workspaceId);
+  const title = input.title?.trim() || extractHtmlTitle(input.html) || "Untitled project";
+
+  const created = await client
+    .from("projects")
+    .insert({
+      workspace_id: workspace.id,
+      title,
+      created_by: actor.userId,
+      current_revision_no: 0,
+      source_format: "html",
+    })
+    .select(PROJECT_COLUMNS)
+    .single();
+  if (created.error || !created.data) throwDatabase("Unable to create project", created.error);
+  const project = created.data as unknown as ProjectRow;
+
+  const htmlRevision = await client
+    .from("project_html_revisions")
+    .insert({
+      project_id: project.id,
+      revision_no: 1,
+      protocol_revision_id: null,
+      document_html: input.html,
+      content_hash: hash(input.html),
+      document_schema_version: 2,
+      composition_json: {},
+      diagnostics_json: [],
+      byte_size: Buffer.byteLength(input.html, "utf8"),
+      created_by: actor.userId,
+    })
+    .select(HTML_REVISION_COLUMNS)
+    .single();
+  if (htmlRevision.error || !htmlRevision.data) {
+    await client.from("projects").delete().eq("id", project.id);
+    throwDatabase("Unable to create HTML revision", htmlRevision.error);
+  }
+
+  await audit(client, actor, {
+    workspaceId: project.workspace_id,
+    action: "project.create",
+    targetId: project.id,
+    metadata: { revisionNo: 0, source: "html-raw" },
+  });
+
+  return {
+    project: projectOutput(project, null),
+    workspace,
+    htmlRevision: htmlRevision.data as unknown as HtmlRevisionRow,
+  };
+}
+
+/**
+ * Explicit, on-demand bridge from Kiến trúc B (raw HTML project) to Kiến
+ * trúc A (Neonix JSON V2 project) — the "Convert JSON V2" action. Only valid
+ * for a project that has never been compiled (`current_revision_no === 0`).
+ * `project_html_revisions` is append-only (no UPDATE grant), so this inserts
+ * a new HTML revision (same content, now linked to the new protocol
+ * revision) rather than mutating the raw-import revision in place.
+ */
+export async function convertProjectHtmlToJson(
+  client: ProjectClient,
+  actor: ProjectActor,
+  input: ProjectReference,
+) {
+  const { project } = await requireProject(client, actor, input, true);
+  if (project.source_format !== "html" || project.current_revision_no !== 0) {
+    throw new ProjectRepositoryError(
+      "Project is already a Neonix JSON V2 project",
+      "INVALID_DOCUMENT",
+    );
+  }
+  const rawRevision = await latestHtmlRevision(client, project.id);
+  if (!rawRevision) throw new ProjectRepositoryError("Project does not contain an HTML source", "NOT_FOUND");
+
+  const compiled = await compileHtmlWithLayoutSnapshot({ html: rawRevision.document_html }, HTML_COMPILER_FONT_ASSETS);
+  const errors = compiled.diagnostics.filter((item) => item.severity === "error");
+  if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
+    logCompileDiagnostics(compiled.diagnostics);
+    throw new ProjectRepositoryError(
+      errors[0]?.message ?? "HTML document could not be compiled",
+      "INVALID_DOCUMENT",
+      compiled.diagnostics,
+    );
+  }
+
+  await attachDocumentAssets(client, actor, project, compiled.protocol);
+  const document = compiled.protocol as unknown as JsonObject;
+
+  const revision = await client
+    .from("project_revisions")
+    .insert({
+      project_id: project.id,
+      revision_no: 1,
+      document_json: document,
+      content_hash: hash(JSON.stringify(document)),
+      source_schema_version: compiled.protocol.formatVersion,
+      reason: "html-import",
+      byte_size: jsonSize(document),
+      created_by: actor.userId,
+    })
+    .select(REVISION_COLUMNS)
+    .single();
+  if (revision.error || !revision.data) throwDatabase("Unable to create Neonix JSON V2 revision", revision.error);
+
+  const linkedHtmlRevision = await client
+    .from("project_html_revisions")
+    .insert({
+      project_id: project.id,
+      revision_no: rawRevision.revision_no + 1,
+      protocol_revision_id: revision.data.id,
+      document_html: rawRevision.document_html,
+      content_hash: rawRevision.content_hash,
+      document_schema_version: compiled.protocol.formatVersion,
+      composition_json: compiled.source.composition,
+      diagnostics_json: compiled.diagnostics,
+      byte_size: rawRevision.byte_size,
+      created_by: actor.userId,
+    })
+    .select(HTML_REVISION_COLUMNS)
+    .single();
+  if (linkedHtmlRevision.error || !linkedHtmlRevision.data) {
+    throwDatabase("Unable to link HTML revision to Neonix JSON V2 revision", linkedHtmlRevision.error);
+  }
+
+  const updatedProject = await client
+    .from("projects")
+    .update({ current_revision_no: 1, last_activity_at: new Date().toISOString() })
+    .eq("id", project.id)
+    .select(PROJECT_COLUMNS)
+    .single();
+  if (updatedProject.error || !updatedProject.data) throwDatabase("Unable to activate Neonix JSON V2 revision", updatedProject.error);
+
+  await audit(client, actor, {
+    workspaceId: project.workspace_id,
+    action: "project.html.convert-json",
+    targetId: project.id,
+    metadata: { revisionNo: 1 },
+  });
+
+  return {
+    project: projectOutput(updatedProject.data as unknown as ProjectRow, revision.data as unknown as ProtocolRevisionRow),
+    diagnostics: compiled.diagnostics,
+  };
+}
+
 export async function updateProject(
   client: ProjectClient,
   actor: ProjectActor,

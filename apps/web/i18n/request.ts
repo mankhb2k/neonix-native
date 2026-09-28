@@ -11,9 +11,19 @@ export default getRequestConfig(async () => {
   const messagesModule = (await import(`../messages/${locale}.json`)) as {
     default: AbstractIntlMessages;
   };
+  const marketingMessagesModule = (await import(
+    `../messages/marketing/${locale}.json`
+  )) as {
+    default: AbstractIntlMessages;
+  };
+
+  const messages = {
+    ...messagesModule.default,
+    ...marketingMessagesModule.default,
+  };
 
   return {
     locale,
-    messages: messagesModule.default,
+    messages,
   };
 });

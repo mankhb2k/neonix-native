@@ -2,7 +2,7 @@ import {
   orthographicProjectionMatrix,
   type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
-import { RENDER_PRESET_SPECS, type RenderPresetId } from "@motionvideo/export-renderer/contracts";
+import { RENDER_PRESET_SPECS, type RenderPresetId } from "@motionvideo/render-native/contracts";
 
 /**
  * Minimal V3 runtime for the API stub. Real export orchestration will load

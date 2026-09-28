@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { useEditorActions } from "@/hooks/editor/use-editor-actions";
 import {
@@ -69,6 +69,10 @@ export function useTransformTool({
   });
   const snapGuides = useStageSnapGuides();
 
+  const onBackgroundPointerDown = useCallback(() => {
+    if (selectedLayerIds.length > 0) setSelectedLayerIds([]);
+  }, [selectedLayerIds, setSelectedLayerIds]);
+
   const selectedDocumentBounds = useMemo(
     () => getSelectionBounds(selectedLayers.map((layer) => getV2LayerBounds(layer))),
     [selectedLayers],
@@ -106,5 +110,6 @@ export function useTransformTool({
     onTransformPointerMove: pointer.onTransformPointerMove,
     onTransformPointerUp: pointer.onTransformPointerUp,
     onCancelMove: session.cancel,
+    onBackgroundPointerDown,
   };
 }

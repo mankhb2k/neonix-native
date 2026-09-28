@@ -62,6 +62,8 @@
     "menu": {
       "openEditor": "Mở trình chỉnh sửa",
       "openPreview": "Xem trước",
+      "convertToJson": "Convert JSON V2",
+      "converting": "Đang chuyển đổi…",
       "remove": "Xoá"
     },
     "removeDialog": {
@@ -71,6 +73,9 @@
       "confirm": "Xoá dự án",
       "confirming": "Đang xoá…",
       "error": "Không thể xoá dự án"
+    },
+    "convertDialog": {
+      "error": "Không thể chuyển đổi dự án này sang Neonix JSON V2"
     }
   },
   "ImportHtmlDialog": {
@@ -87,6 +92,30 @@
     "htmlDocument": "Tài liệu HTML",
     "cancel": "Huỷ",
     "importing": "Đang nhập..."
+  },
+  "NewProjectDialog": {
+    "trigger": "Dự án mới",
+    "errorInvalidDimensions": "Chiều rộng và chiều cao phải là số dương.",
+    "errorFallback": "Không thể tạo dự án",
+    "eyebrow": "Tạo từ đầu",
+    "description": "Chọn khung hình để bắt đầu — bạn có thể thay đổi mọi thứ sau trong trình chỉnh sửa.",
+    "closeAria": "Đóng hộp thoại tạo dự án mới",
+    "projectName": "Tên dự án",
+    "optional": "(không bắt buộc)",
+    "projectNamePlaceholder": "Dự án chưa đặt tên",
+    "aspectRatio": "Tỉ lệ khung hình",
+    "aspectRatioPresets": {
+      "vertical": "Dọc 9:16",
+      "square": "Vuông 1:1",
+      "horizontal": "Ngang 16:9",
+      "custom": "Tùy chỉnh"
+    },
+    "width": "Chiều rộng (px)",
+    "height": "Chiều cao (px)",
+    "fps": "Tốc độ khung hình (fps)",
+    "background": "Màu nền",
+    "cancel": "Huỷ",
+    "creating": "Đang tạo..."
   },
   "AssetsWorkspace": {
     "meta": {

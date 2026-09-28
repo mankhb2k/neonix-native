@@ -1,7 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { useEditorDocument, useEditorVisibility } from "@/hooks/editor/use-editor-store";
+import { useEditorActions } from "@/hooks/editor/use-editor-actions";
+import { useEditorDocument, useEditorSelection, useEditorVisibility } from "@/hooks/editor/use-editor-store";
 import { usePlaybackController } from "@/hooks/editor/use-playback-controller";
 import { StageRenderer } from "./StageRenderer";
 import { StageToolLayer } from "./StageToolLayer";
@@ -38,6 +39,8 @@ function StageViewportContent() {
   } = usePlaybackController();
   const document = useEditorDocument();
   const hiddenLayerIds = useEditorVisibility();
+  const selectedLayerIds = useEditorSelection();
+  const { setSelectedLayerIds } = useEditorActions();
   const runtimeSnapshot = useStageRuntimeSnapshot(document);
   const [stageZoom, setStageZoom] = useState(STAGE_ZOOM_DEFAULT);
   const [fitScale, setFitScale] = useState(0.5);
@@ -99,6 +102,9 @@ function StageViewportContent() {
         onPointerMoveCapture={onPanPointerMove}
         onPointerUpCapture={onPanPointerUp}
         onPointerCancelCapture={onPanPointerUp}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget && selectedLayerIds.length > 0) setSelectedLayerIds([]);
+        }}
       >
         <StageToolRail
           isPanMode={isPanMode}

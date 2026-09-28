@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: [
-    "@motionvideo/export-renderer",
+    "@motionvideo/render-native",
     "@motionvideo/motion-protocol",
     "@motionvideo/motion-runtime",
     "@motionvideo/motion-compiler",

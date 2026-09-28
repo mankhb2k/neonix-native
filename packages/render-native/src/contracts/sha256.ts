@@ -3,7 +3,7 @@
  *
  * Produces byte-for-byte identical output to Node's `createHash("sha256")`,
  * but runs in the browser and Node without `node:crypto`. Used by
- * export-renderer contracts so content hashing is isomorphic across the web editor,
+ * render-native contracts so content hashing is isomorphic across the web editor,
  * render-worker, and desktop.
  *
  * Inputs here are small (canonical JSON of a runtime/project document — a

@@ -26,7 +26,7 @@ export function PropertiesPanel({ model, commands, openSections, toggle }: { mod
     <div className="flex min-h-full w-full flex-col" data-testid="inspector-properties">
       {model.diagnostics.length > 0 ? <div role="alert" className="order-[-2] border-b border-[var(--danger)]/40 bg-[var(--danger)]/10 py-2 text-[11px] text-[var(--danger)]">{model.diagnostics[0]?.message}</div> : null}
       <Timing model={model} commands={commands} open={openSections.timing ?? false} onToggle={() => toggle("timing")} />
-      <Transform model={model} commands={commands} open={openSections.transform ?? false} onToggle={() => toggle("transform")} />
+      <Transform model={model} commands={commands} open={openSections.transform ?? false} onToggle={() => toggle("transform")} anchorOpen={openSections.anchor ?? false} onToggleAnchor={() => toggle("anchor")} />
       <LayerOrder model={model} commands={commands} open={openSections.alignment ?? false} onToggle={() => toggle("alignment")} />
       <Appearance model={model} commands={commands} open={openSections.appearance ?? false} onToggle={() => toggle("appearance")} />
       <Compositing model={model} commands={commands} open={openSections.compositing ?? false} onToggle={() => toggle("compositing")} />

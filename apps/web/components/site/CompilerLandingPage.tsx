@@ -14,121 +14,20 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState } from "react";
+import {
+  Eyebrow,
+  Heading,
+  MarketingButton as Button,
+  MARKETING_TYPOGRAPHY as LANDING_TYPOGRAPHY,
+  Reveal,
+  Section,
+} from "./marketing-ui";
 import {
   NEONIX_DEMO_HTML,
   NEONIX_DEMO_JSON,
 } from "./neonix-demo-fixture";
 import { NeonixMotionPreview } from "./NeonixMotionPreview";
-
-const LANDING_TYPOGRAPHY = {
-  eyebrow: "text-xs",
-  heading: "text-4xl sm:text-6xl",
-  lead: "text-lg",
-  cardTitle: "text-xl",
-  body: "text-base",
-  codeMeta: "text-xs",
-  code: "text-sm",
-} as const;
-
-function Reveal({
-  children,
-  delay = 0,
-}: {
-  children: ReactNode;
-  delay?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const element = ref.current;
-    if (
-      !element ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      setVisible(true);
-      return undefined;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.12 },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ${visible ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Section({
-  children,
-  className = "",
-  id,
-}: {
-  children: ReactNode;
-  className?: string;
-  id?: string;
-}) {
-  return (
-    <section
-      id={id}
-      className={`mx-auto w-full max-w-[1200px] px-6 py-20 sm:py-28 ${className}`}
-    >
-      {children}
-    </section>
-  );
-}
-
-function Eyebrow({ children }: { children: ReactNode }) {
-  return (
-    <p
-      className={`${LANDING_TYPOGRAPHY.eyebrow} font-mono font-semibold uppercase tracking-[0.18em] text-[var(--accent-text)]`}
-    >
-      {children}
-    </p>
-  );
-}
-
-function Heading({ children }: { children: ReactNode }) {
-  return (
-    <h2
-      className={`mt-3 max-w-3xl font-semibold leading-tight tracking-[-0.025em] text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.heading}`}
-    >
-      {children}
-    </h2>
-  );
-}
-
-function Button({
-  href,
-  children,
-  secondary = false,
-}: {
-  href: string;
-  children: ReactNode;
-  secondary?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-4 text-base font-semibold no-underline transition ${secondary ? "border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--fg-primary)] hover:border-[var(--accent)]" : "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-sm hover:bg-[var(--accent-hover)]"}`}
-    >
-      {children}
-    </a>
-  );
-}
 
 function CompilerShowcase() {
   const [tab, setTab] = useState<"html" | "json">("html");
@@ -408,17 +307,21 @@ function StructuredMotion() {
     <Section className="border-y border-[var(--border-subtle)] bg-[var(--bg-site)]">
       <div className="grid items-center gap-12 lg:grid-cols-[0.85fr_1.15fr]">
         <Reveal>
-          <Eyebrow>The output</Eyebrow>
+          <Eyebrow>Why JSON, not just HTML</Eyebrow>
           <Heading>Video data you can actually work with.</Heading>
           <p className={`mt-5 max-w-lg leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
-            Neonix turns HTML/CSS into semantic, atomic JSON: named layers,
-            properties and relationships that can be edited by a person, an
-            agent or a template system.
+            Plain HTML/CSS is great for authoring, but once it's rendered to
+            video it becomes a flattened frame — nothing left to target or
+            change. Neonix compiles that same markup into semantic, atomic
+            JSON: named layers, properties and relationships a person, an
+            agent, or a template system can still edit after the fact.
           </p>
           <div className={`mt-7 space-y-3 text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.body}`}>
             {[
               "Named elements instead of flattened frames",
               "Properties you can target independently",
+              "Deterministic — the same JSON renders identically every time",
+              "Diffable and versionable, like source code",
               "Reusable components and templates",
             ].map((item) => (
               <p key={item} className="flex items-center gap-2">
@@ -529,7 +432,7 @@ function FinalCta() {
   );
 }
 
-export function LandingPage() {
+export function CompilerLandingPage() {
   return (
     <main className="bg-[var(--bg-site)] text-[var(--fg-primary)]">
       <Hero />

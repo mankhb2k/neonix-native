@@ -45,7 +45,7 @@
     "@motionvideo/canvaskit-preview": "workspace:*",
     "@motionvideo/editor-core": "workspace:*",
     "@motionvideo/editor-runtime": "workspace:*",
-    "@motionvideo/export-renderer": "workspace:*",
+    "@motionvideo/render-native": "workspace:*",
     "@motionvideo/html-compiler": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-mcp": "workspace:*",

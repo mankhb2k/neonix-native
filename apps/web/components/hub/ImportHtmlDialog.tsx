@@ -1,13 +1,15 @@
 "use client";
 
 import { FileCode2, LoaderCircle, Upload, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
-import { createHtmlProject } from "@/lib/api/projects";
+import { createHtmlProjectRaw } from "@/lib/api/projects";
 import { previewUrl } from "@/lib/hosts";
 
 export function ImportHtmlDialog() {
   const t = useTranslations("ImportHtmlDialog");
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [html, setHtml] = useState("");
@@ -40,10 +42,16 @@ export function ImportHtmlDialog() {
     setSubmitting(true);
     setError(null);
     try {
-      const { projectId } = await createHtmlProject({ title: title.trim() || undefined, html });
-      window.location.assign(previewUrl(`/preview/${projectId}`));
+      const { projectId } = await createHtmlProjectRaw({ title: title.trim() || undefined, html });
+      window.open(previewUrl(`/preview/html/${projectId}`), "_blank", "noopener,noreferrer");
+      setOpen(false);
+      setTitle("");
+      setHtml("");
+      setFileName("");
+      router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("errorFallback"));
+    } finally {
       setSubmitting(false);
     }
   }

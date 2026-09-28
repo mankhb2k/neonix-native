@@ -9,7 +9,7 @@ import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-r
 import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
 import { validateProjectVideoDurations } from "@/lib/server/render/source-duration";
 import { publicRendererMessage } from "@/lib/public-renderer-message";
-import { isRenderPresetId } from "@motionvideo/export-renderer/contracts";
+import { isRenderPresetId } from "@motionvideo/render-native/contracts";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import { createSupabaseAdminClient } from "@/lib/server/supabase/admin";
 import { getMcpSupabaseClient } from "./projects";

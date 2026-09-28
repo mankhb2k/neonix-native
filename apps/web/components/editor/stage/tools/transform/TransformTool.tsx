@@ -31,6 +31,7 @@ export function TransformTool({ compositionWidth, compositionHeight, runtimeSnap
       onTransformPointerMove={stage.onTransformPointerMove}
       onTransformPointerUp={stage.onTransformPointerUp}
       onCancelMove={stage.onCancelMove}
+      onBackgroundPointerDown={stage.onBackgroundPointerDown}
     />
   );
 }

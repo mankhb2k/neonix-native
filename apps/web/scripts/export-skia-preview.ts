@@ -3,7 +3,7 @@ import { basename, join, resolve } from "node:path";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { PREVIEW_LAB_CASES } from "../lib/docs/preview-lab";
 import { compileAndPrepareRuntimeProjectV3 } from "../lib/server/render/project-runtime";
-import { renderRuntimeProjectV3, type ExportRenderStats } from "@motionvideo/export-renderer";
+import { renderRuntimeProjectV3, type ExportRenderStats } from "@motionvideo/render-native";
 
 function repoRoot(): string {
   const cwd = resolve(process.cwd());

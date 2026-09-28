@@ -87,7 +87,7 @@ const CORE_PACKAGES = new Set([
 ]);
 
 const RENDERER_PACKAGES = new Set([
-  "@motionvideo/export-renderer",
+  "@motionvideo/render-native",
 ]);
 
 const APP_PACKAGES = new Set([

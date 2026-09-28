@@ -1,4 +1,4 @@
-# `@motionvideo/export-renderer/contracts`
+# `@motionvideo/render-native/contracts`
 
 Hợp đồng dữ liệu (Zod + types) cho **render jobs / export pipeline**. Web API và native VPS export worker dùng chung schema này để tạo job, theo dõi progress, và nhận kết quả — không chứa engine render hay Pixi.
 
@@ -26,7 +26,7 @@ import {
   RENDER_PRESETS,
   type RenderJobStatus,
   type RenderManifest,
-} from "@motionvideo/export-renderer/contracts";
+} from "@motionvideo/render-native/contracts";
 ```
 
 | Nhóm | Chức năng |

@@ -1,6 +1,6 @@
 # Native export renderer
 
-`@motionvideo/export-renderer` is Neonix's local-first, offline export worker
+`@motionvideo/render-native` is Neonix's local-first, offline export worker
 for `RuntimeProjectV3`.
 
 The package owns the export contracts and the pixel-to-artifact pipeline. It
@@ -11,7 +11,7 @@ runtime packages.
 Import shared schemas and types from:
 
 ```ts
-import type { RenderJob } from "@motionvideo/export-renderer/contracts";
+import type { RenderJob } from "@motionvideo/render-native/contracts";
 ```
 
 ## Architecture at a glance
@@ -456,19 +456,19 @@ future endpoints do not duplicate processing logic.
 From the repository root:
 
 ```bash
-pnpm --filter @motionvideo/export-renderer render:smoke
+pnpm --filter @motionvideo/render-native render:smoke
 ```
 
 Output is written to:
 
 ```text
-tmp/export-renderer/native-export-smoke.mp4
+tmp/render-native/native-export-smoke.mp4
 ```
 
 ## HTTP worker
 
 ```bash
-pnpm --filter @motionvideo/export-renderer start
+pnpm --filter @motionvideo/render-native start
 ```
 
 Endpoints:
@@ -567,7 +567,7 @@ frames, one AAC audio stream, and 10.000 s duration. The encoder submitted all
 300 frames; pipe backpressure was 100 ms and finalization was 91 ms.
 
 `outputName` is restricted to a relative `.mp4` path under
-`tmp/export-renderer` by default. Media preparation reads the origin from the
+`tmp/render-native` by default. Media preparation reads the origin from the
 configured R2 user-assets bucket, reuses the browser-generated
 `{assetId}/poster.webp`, and writes `{assetId}/audio.m4a` when an audio stream
 exists. The worker does not generate posters and never writes Supabase
@@ -596,7 +596,7 @@ root so workspace packages are available:
 
 ```bash
 docker build --platform linux/amd64 -f infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile -t neonix-skia-command-cpu-native .
-docker run --rm -p 8787:8787 neonix-skia-command-cpu-native pnpm --filter @motionvideo/export-renderer start
+docker run --rm -p 8787:8787 neonix-skia-command-cpu-native pnpm --filter @motionvideo/render-native start
 ```
 
 ## Reference policy

@@ -5,7 +5,7 @@ import {
 import {
   compileProtocol,
 } from "@motionvideo/motion-compiler";
-import { computeRuntimeHash, shortHash } from "@motionvideo/export-renderer/contracts";
+import { computeRuntimeHash, shortHash } from "@motionvideo/render-native/contracts";
 import type { MCPApplyPatchInput, MCPApplyPatchResult, MCPCapabilityCheck, MCPCompileProjectInput, MCPCompileProjectResult, MCPCreateProjectInput, MCPCreateProjectResult, MCPValidateProjectInput, MCPValidateProjectResult } from "./mcp";
 import { computeMCPProjectHash, preflightCapabilities } from "./mcp";
 import { applyMotionProtocolV2Patch } from "./patch";

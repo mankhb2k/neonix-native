@@ -84,7 +84,7 @@ The detailed protocol and renderer contract is documented in
 | --- | --- |
 | [`motion-mcp`](packages/motion-mcp) | Transport-agnostic remote MCP tool contracts and registration. The web app supplies auth and persistence. |
 | [`web storage orchestration`](apps/web/lib/server/r2.ts) | Web-owned R2 access, upload/download signing, asset keys, and artifact storage. Postgres stores metadata, not media bytes. |
-| [`export-renderer`](packages/export-renderer) | Native Skia + FFmpeg renderer — the only production MP4 export path — plus the shared render manifest, job, provider, and preset contracts. |
+| [`render-native`](packages/render-native) | Native Skia + FFmpeg renderer — the only production MP4 export path — plus the shared render manifest, job, provider, and preset contracts. |
 | [`asset-registry`](packages/asset-registry) | Asset identity, MIME/hash metadata, SVG safety, and font metadata. |
 | [`audio-analysis`](packages/audio-analysis) | Audio metadata and analysis helpers. |
 | [`playback-engine`](packages/playback-engine) | Browser playback scheduling and WebAudio consumption of Runtime audio plans. |

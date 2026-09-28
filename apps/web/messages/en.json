@@ -62,6 +62,8 @@
     "menu": {
       "openEditor": "Open editor",
       "openPreview": "Open preview",
+      "convertToJson": "Convert JSON V2",
+      "converting": "Converting…",
       "remove": "Remove"
     },
     "removeDialog": {
@@ -71,6 +73,9 @@
       "confirm": "Remove project",
       "confirming": "Removing…",
       "error": "Unable to remove project"
+    },
+    "convertDialog": {
+      "error": "Unable to convert this project to Neonix JSON V2"
     }
   },
   "ImportHtmlDialog": {
@@ -87,6 +92,30 @@
     "htmlDocument": "HTML document",
     "cancel": "Cancel",
     "importing": "Importing..."
+  },
+  "NewProjectDialog": {
+    "trigger": "New project",
+    "errorInvalidDimensions": "Width and height must be positive numbers.",
+    "errorFallback": "Unable to create project",
+    "eyebrow": "Create from scratch",
+    "description": "Choose a composition to start with — you can change everything later in the editor.",
+    "closeAria": "Close new project dialog",
+    "projectName": "Project name",
+    "optional": "(optional)",
+    "projectNamePlaceholder": "Untitled project",
+    "aspectRatio": "Aspect ratio",
+    "aspectRatioPresets": {
+      "vertical": "Vertical 9:16",
+      "square": "Square 1:1",
+      "horizontal": "Horizontal 16:9",
+      "custom": "Custom"
+    },
+    "width": "Width (px)",
+    "height": "Height (px)",
+    "fps": "Frame rate (fps)",
+    "background": "Background color",
+    "cancel": "Cancel",
+    "creating": "Creating..."
   },
   "AssetsWorkspace": {
     "meta": {

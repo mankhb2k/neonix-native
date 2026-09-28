@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
-import { renderRuntimeProjectV3, type ExportRenderStats } from "@motionvideo/export-renderer";
+import { renderRuntimeProjectV3, type ExportRenderStats } from "@motionvideo/render-native";
 import { compileDocument, type HtmlCompilerDiagnostic } from "@motionvideo/html-compiler";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../lib/docs/html-compiler-preview";
 import { compileAndPrepareRuntimeProjectV3 } from "../lib/server/render/project-runtime";

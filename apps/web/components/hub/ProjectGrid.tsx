@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { removeProject } from "@/lib/api/projects";
+import { convertHtmlProjectToJson, removeProject } from "@/lib/api/projects";
 import { appUrl, previewUrl } from "@/lib/hosts";
 
 export type ProjectCardData = {
@@ -14,6 +14,8 @@ export type ProjectCardData = {
   duration: string;
   updatedAt: string;
   accent: string;
+  /** Kiến trúc B raw HTML project — no Neonix JSON V2 revision yet. */
+  isRawHtml?: boolean;
 };
 
 type MenuPosition = { x: number; y: number };
@@ -21,21 +23,43 @@ type MenuPosition = { x: number; y: number };
 function useUpdatedLabel(updatedAt: string) {
   const t = useTranslations("ProjectGrid");
   const format = useFormatter();
+  // Relative time depends on "now", which differs between the server render
+  // and client hydration by a few seconds — computing it eagerly causes a
+  // hydration mismatch. Render the same static label on both sides, then
+  // swap to the real relative time once mounted on the client.
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
 
   const date = new Date(updatedAt);
   if (Number.isNaN(date.getTime())) return t("updatedRecently");
-  return t("updatedAt", { time: format.relativeTime(date, new Date()) });
+  if (!now) return t("updatedRecently");
+  return t("updatedAt", { time: format.relativeTime(date, now) });
 }
 
-function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemoved: (projectId: string) => void }) {
+function ProjectCard({
+  project,
+  onRemoved,
+  onConverted,
+}: {
+  project: ProjectCardData;
+  onRemoved: (projectId: string) => void;
+  onConverted: (projectId: string) => void;
+}) {
   const t = useTranslations("ProjectGrid");
   const updatedLabel = useUpdatedLabel(project.updatedAt);
   const [menu, setMenu] = useState<MenuPosition | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const previewHref = project.isRawHtml
+    ? previewUrl(`/preview/html/${project.projectId}`)
+    : previewUrl(`/preview/${project.projectId}`);
 
   useEffect(() => {
     if (!menu) return undefined;
@@ -68,10 +92,27 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
     }
   }
 
+  async function convertToJson() {
+    setConverting(true);
+    setError(null);
+    try {
+      await convertHtmlProjectToJson(project.projectId);
+      setMenu(null);
+      onConverted(project.projectId);
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("convertDialog.error"));
+    } finally {
+      setConverting(false);
+    }
+  }
+
   return (
     <>
       <a
-        href={previewUrl(`/preview/${project.projectId}`)}
+        href={previewHref}
+        target="_blank"
+        rel="noopener noreferrer"
         onContextMenu={(event) => {
           event.preventDefault();
           setError(null);
@@ -84,7 +125,7 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
       >
         <div className={`relative aspect-video overflow-hidden bg-gradient-to-br ${project.accent}`}>
           <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(135deg,transparent_35%,rgba(255,255,255,0.08)_36%,transparent_37%),linear-gradient(45deg,transparent_48%,rgba(34,211,238,0.12)_49%,transparent_50%)] [background-size:32px_32px,48px_48px]" />
-          <span className="absolute bottom-3 left-3 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-caption font-medium text-slate-200 backdrop-blur-sm">Neonix JSON V2</span>
+          <span className="absolute bottom-3 left-3 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-caption font-medium text-slate-200 backdrop-blur-sm">{project.isRawHtml ? "Neonix HTML" : "Neonix JSON V2"}</span>
           <span className="absolute right-3 bottom-3 rounded-md bg-black/45 px-2 py-1 font-mono text-caption text-slate-200 backdrop-blur-sm">{project.duration}</span>
         </div>
         <div className="space-y-1.5 px-4 py-3.5">
@@ -95,10 +136,20 @@ function ProjectCard({ project, onRemoved }: { project: ProjectCardData; onRemov
 
       {menu ? (
         <div ref={menuRef} role="menu" aria-label={t("actionsAriaLabel", { title: project.title })} className="fixed z-50 min-w-56 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)]" style={{ left: menu.x, top: menu.y }}>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(appUrl(project.href)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openEditor")}</button>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(previewUrl(`/preview/${project.projectId}`)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openPreview")}</button>
+          {project.isRawHtml ? (
+            <>
+              <button type="button" role="menuitem" onClick={() => { setMenu(null); window.open(previewHref, "_blank", "noopener,noreferrer"); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openPreview")}</button>
+              <button type="button" role="menuitem" disabled={converting} onClick={() => void convertToJson()} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)] disabled:opacity-60">{converting ? t("menu.converting") : t("menu.convertToJson")}</button>
+            </>
+          ) : (
+            <>
+              <button type="button" role="menuitem" onClick={() => { setMenu(null); window.location.assign(appUrl(project.href)); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openEditor")}</button>
+              <button type="button" role="menuitem" onClick={() => { setMenu(null); window.open(previewHref, "_blank", "noopener,noreferrer"); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)]">{t("menu.openPreview")}</button>
+            </>
+          )}
           <div className="my-1 border-t border-[var(--hub-border)]" />
           <button type="button" role="menuitem" onClick={() => { setMenu(null); setConfirming(true); }} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-red-600 hover:bg-red-50">{t("menu.remove")}</button>
+          {error ? <p role="alert" className="mx-1 mt-1 rounded-lg bg-red-50 px-2.5 py-2 text-sm leading-5 text-red-700">{error}</p> : null}
         </div>
       ) : null}
 
@@ -124,7 +175,16 @@ export function ProjectGrid({ projects: initialProjects }: { projects: ProjectCa
   return (
     <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {projects.map((project) => (
-        <ProjectCard key={project.projectId} project={project} onRemoved={(projectId) => setProjects((current) => current.filter((item) => item.projectId !== projectId))} />
+        <ProjectCard
+          key={project.projectId}
+          project={project}
+          onRemoved={(projectId) => setProjects((current) => current.filter((item) => item.projectId !== projectId))}
+          onConverted={(projectId) => setProjects((current) => current.map((item) => (
+            item.projectId === projectId
+              ? { ...item, isRawHtml: false, href: `/editor/${projectId}` }
+              : item
+          )))}
+        />
       ))}
     </div>
   );

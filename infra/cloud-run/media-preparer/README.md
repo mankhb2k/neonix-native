@@ -1,7 +1,7 @@
 # Neonix Cloud Run media-preparer
 
 This is the Phase 3 service boundary. It contains FFmpeg/ffprobe and reuses the
-versioned `@motionvideo/export-renderer` media contract, but it does not contain
+versioned `@motionvideo/render-native` media contract, but it does not contain
 Skia, composition rendering, or render-job state.
 
 The service reads the origin object from R2, probes it, creates `poster.webp`
@@ -27,7 +27,7 @@ for local development.
 
 ```powershell
 docker build -f infra/cloud-run/media-preparer/Dockerfile -t neonix-media-preparer:phase3 .
-docker run --rm -p 8787:8080 --env-file packages/export-renderer/.env `
+docker run --rm -p 8787:8080 --env-file packages/render-native/.env `
   -e PORT=8080 `
   -e MEDIA_CALLBACK_HOSTS=host.docker.internal `
   neonix-media-preparer:phase3

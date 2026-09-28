@@ -9,7 +9,7 @@ import {
   prepareMediaJob,
   type MediaObjectStore,
   type MediaPrepareResult,
-} from "@motionvideo/export-renderer";
+} from "@motionvideo/render-native";
 
 const execFile = promisify(nodeExecFile);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));

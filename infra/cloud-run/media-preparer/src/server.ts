@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { prepareMediaJob, type MediaPrepareRequest } from "../../../../packages/export-renderer/src/media/media-worker";
+import { prepareMediaJob, type MediaPrepareRequest } from "../../../../packages/render-native/src/media/media-worker";
 
 const port = Number(process.env.PORT ?? process.env.MEDIA_PREPARER_PORT ?? 8080);
 const maxBodyBytes = 64 * 1024;

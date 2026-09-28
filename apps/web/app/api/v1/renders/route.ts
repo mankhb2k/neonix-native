@@ -20,7 +20,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   CreateRenderJobRequestSchema,
   isRenderPresetId,
-} from "@motionvideo/export-renderer/contracts";
+} from "@motionvideo/render-native/contracts";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 export const runtime = "nodejs";

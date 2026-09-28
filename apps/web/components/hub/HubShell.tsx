@@ -1,9 +1,8 @@
-import { FolderKanban, Plus } from "lucide-react";
-import Link from "next/link";
+import { FolderKanban } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { dashboardHref } from "@/components/AppLink";
 import { HubFrame } from "@/components/hub/HubFrame";
 import { ImportHtmlDialog } from "@/components/hub/ImportHtmlDialog";
+import { NewProjectDialog } from "@/components/hub/NewProjectDialog";
 import { ProjectGrid, type ProjectCardData } from "@/components/hub/ProjectGrid";
 import { listProjects } from "@/lib/editor/document/project-repository";
 
@@ -89,20 +88,24 @@ export async function HubShell() {
   try {
     const rows = await listProjects(50);
     if (rows.length > 0) {
-      projects = rows.map((project, index) => ({
-        projectId: project.projectId,
-        title: project.title,
-        href: `/editor/${project.projectId}`,
-        layers: t("layers", { count: project.layerCount }),
-        duration: formatDuration(project.durationMs),
-        updatedAt: project.updatedAt,
-        accent: [
-          "from-cyan-400/25 via-slate-900 to-violet-500/20",
-          "from-cyan-300/20 via-slate-900 to-slate-900",
-          "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
-          "from-amber-300/20 via-slate-900 to-cyan-500/15",
-        ][index % 4],
-      }));
+      projects = rows.map((project, index) => {
+        const isRawHtml = project.sourceFormat === "html" && project.revisionNo === 0;
+        return {
+          projectId: project.projectId,
+          title: project.title,
+          href: isRawHtml ? `/preview/html/${project.projectId}` : `/editor/${project.projectId}`,
+          layers: t("layers", { count: project.layerCount }),
+          duration: formatDuration(project.durationMs),
+          updatedAt: project.updatedAt,
+          isRawHtml,
+          accent: [
+            "from-cyan-400/25 via-slate-900 to-violet-500/20",
+            "from-cyan-300/20 via-slate-900 to-slate-900",
+            "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
+            "from-amber-300/20 via-slate-900 to-cyan-500/15",
+          ][index % 4],
+        };
+      });
     }
   } catch {
     // DevDemoAuth bootstraps the browser session after the initial render.
@@ -125,13 +128,7 @@ export async function HubShell() {
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <ImportHtmlDialog />
-                <Link
-                  href={dashboardHref("/projects/new")}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--hub-accent)] px-4 py-2.5 text-body font-semibold text-[var(--hub-accent-on)] no-underline transition hover:bg-[var(--hub-accent-hover)]"
-                >
-                  <Plus className="size-4" />
-                  {t("newProject")}
-                </Link>
+                <NewProjectDialog />
               </div>
             </div>
 

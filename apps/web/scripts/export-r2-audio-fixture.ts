@@ -8,7 +8,7 @@ import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { Readable } from "node:stream";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { renderRuntimeProjectV3 } from "@motionvideo/export-renderer";
+import { renderRuntimeProjectV3 } from "@motionvideo/render-native";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
 const execFile = promisify(nodeExecFile);
@@ -27,7 +27,7 @@ function requiredEnv(name: string): string {
 }
 
 async function loadLocalRendererEnv(root: string): Promise<void> {
-  const file = join(root, "packages", "export-renderer", ".env");
+  const file = join(root, "packages", "render-native", ".env");
   const contents = await readFile(file, "utf8").catch(() => "");
   for (const line of contents.split(/\r?\n/)) {
     const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);

@@ -10,7 +10,7 @@ import {
   type ProviderCapabilities,
 } from "../src/contracts/provider";
 
-describe("export-renderer contracts", () => {
+describe("render-native contracts", () => {
   it("parses job status", () => {
     expect(RenderJobStatusSchema.parse("queued")).toBe("queued");
     expect(RenderJobStatusSchema.parse("done")).toBe("done");
