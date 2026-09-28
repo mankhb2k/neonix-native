@@ -27,7 +27,6 @@ import {
   listWorkspaces,
   openEditor,
   openPreview,
-  createProtocolProject,
   createProjectHtml,
   getProtocolProject,
   getProtocolProjectJson,
@@ -51,7 +50,6 @@ export function createMcpServer(principal: McpPrincipal) {
     principal: remotePrincipal,
     api: {
       listWorkspaces: () => listWorkspaces(principal),
-      createProject: (input) => createProtocolProject(principal, input),
       createProjectHtml: (input) => createProjectHtml(principal, input),
       listProjects: (input) => listProjects(principal, input),
       getProject: (input) => getProtocolProject(principal, input),

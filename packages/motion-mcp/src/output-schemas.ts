@@ -91,8 +91,10 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
   update_project_html: {
     project: jsonObject,
     htmlRevision: revision,
-    protocolRevision: revision,
-    diagnostics: z.array(diagnostic),
+    // Kiến trúc B (raw HTML, no compile) — see ARCHITECHTURE.md "Hai kiến
+    // trúc render độc lập". Neither field applies since nothing is compiled.
+    protocolRevision: revision.optional(),
+    diagnostics: z.array(diagnostic).optional(),
     alreadyCreated: z.boolean().optional(),
     warning: htmlOverwriteWarning.nullable().optional(),
   },
@@ -147,17 +149,14 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
   cancel_export: {
     export: exportJob,
   },
-  create_project: {
-    project: project,
-    revision: revision.nullable().optional(),
-    workspace: workspace,
-  },
   create_project_html: {
     project: jsonObject,
     workspace: jsonObject,
     htmlRevision: revision,
-    protocolRevision: revision,
-    diagnostics: z.array(diagnostic),
+    // Kiến trúc B (raw HTML, no compile) — see ARCHITECHTURE.md "Hai kiến
+    // trúc render độc lập". Neither field applies since nothing is compiled.
+    protocolRevision: revision.optional(),
+    diagnostics: z.array(diagnostic).optional(),
     alreadyCreated: z.boolean().optional(),
   },
   list_projects: {

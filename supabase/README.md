@@ -97,13 +97,17 @@ the expected revision number to reject concurrent writes with HTTP 409.
 ## Verify Phase 2 database + MCP
 
 After `supabase db push`, connect the Neonix MCP endpoint and run these tools
-with an authenticated user:
+with an authenticated user (MCP's own creation tool, `create_project_html`,
+only creates raw-HTML Kiến trúc B projects with no `project_revisions` row —
+see ARCHITECHTURE.md "Hai kiến trúc render độc lập" — so this checklist gives
+that project its first JSON revision via `update_project` instead):
 
-1. `create_project` with a small JSON `document`.
-2. `get_project` for the returned `project_id`; verify the latest revision has
-   `source_schema_version`, `reason: "mcp"`, and `byte_size`.
-3. `update_project` with `expected_revision_no: 1`; verify the next revision
-   and `last_activity_at` advance.
+1. `create_project_html` to get a `project_id`.
+2. `update_project` on that project with a small JSON `document`; verify the
+   inserted revision has `source_schema_version`, `reason: "mcp"`, and
+   `byte_size`.
+3. `update_project` again with `expected_revision_no: 1`; verify the next
+   revision and `last_activity_at` advance.
 4. Sign in as another user and verify `get_project` returns no project.
 
 Project deletion uses `request_project_deletion(project_id)`, which marks the

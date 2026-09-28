@@ -7,6 +7,7 @@ import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/moti
 import { logCompileDiagnostics } from "../compile-diagnostics-log";
 import { HTML_COMPILER_FONT_ASSETS } from "../html-compiler-font-assets";
 import { compileHtmlWithLayoutSnapshot } from "../layout-snapshot";
+import { validateRawHtmlDocument } from "../validate-raw-html";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ProjectClient = SupabaseClient;
@@ -55,6 +56,8 @@ type ProjectRow = {
   title: string;
   current_revision_no: number;
   source_format: "protocol-v2" | "html";
+  create_idempotency_key?: string | null;
+  create_idempotency_hash?: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -92,7 +95,7 @@ type HtmlRevisionRow = {
 };
 
 const PROJECT_COLUMNS =
-  "id, public_ref, workspace_id, title, current_revision_no, source_format, created_by, created_at, updated_at, last_activity_at, deleted_at, purge_after";
+  "id, public_ref, workspace_id, title, current_revision_no, source_format, create_idempotency_key, create_idempotency_hash, created_by, created_at, updated_at, last_activity_at, deleted_at, purge_after";
 const REVISION_COLUMNS =
   "id, project_id, revision_no, document_json, content_hash, source_schema_version, reason, byte_size, created_by, created_at";
 const HTML_REVISION_COLUMNS =
@@ -550,13 +553,41 @@ export async function createProjectHtml(
 export async function createProjectHtmlRaw(
   client: ProjectClient,
   actor: ProjectActor,
-  input: { workspaceId?: string; title?: string; html: string },
+  input: { workspaceId?: string; title?: string; html: string; idempotencyKey?: string },
 ) {
   if (!input.html.trim()) {
     throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
   }
+  const validationErrors = validateRawHtmlDocument(input.html);
+  if (validationErrors.length > 0) {
+    throw new ProjectRepositoryError(
+      validationErrors[0]?.message ?? "HTML document failed validation",
+      "INVALID_DOCUMENT",
+      validationErrors,
+    );
+  }
   const workspace = await resolveWorkspace(client, actor, input.workspaceId);
   const title = input.title?.trim() || extractHtmlTitle(input.html) || "Untitled project";
+  const idempotencyKey = input.idempotencyKey?.trim() || undefined;
+  const idempotencyHash = idempotencyKey ? hash(JSON.stringify({ title, html: input.html })) : undefined;
+
+  if (idempotencyKey) {
+    const existing = await client
+      .from("projects")
+      .select(PROJECT_COLUMNS)
+      .eq("workspace_id", workspace.id)
+      .eq("create_idempotency_key", idempotencyKey)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (existing.error) throwDatabase("Unable to check idempotency", existing.error);
+    if (existing.data) {
+      const existingProject = existing.data as unknown as ProjectRow;
+      if (existingProject.create_idempotency_hash && existingProject.create_idempotency_hash !== idempotencyHash) {
+        throw new ProjectRepositoryError("Idempotency key was already used with a different payload", "INVALID_DOCUMENT");
+      }
+      return { project: projectOutput(existingProject, null), workspace, alreadyCreated: true };
+    }
+  }
 
   const created = await client
     .from("projects")
@@ -566,6 +597,7 @@ export async function createProjectHtmlRaw(
       created_by: actor.userId,
       current_revision_no: 0,
       source_format: "html",
+      ...(idempotencyKey ? { create_idempotency_key: idempotencyKey, create_idempotency_hash: idempotencyHash } : {}),
     })
     .select(PROJECT_COLUMNS)
     .single();
@@ -604,6 +636,7 @@ export async function createProjectHtmlRaw(
     project: projectOutput(project, null),
     workspace,
     htmlRevision: htmlRevision.data as unknown as HtmlRevisionRow,
+    alreadyCreated: false,
   };
 }
 
@@ -698,6 +731,81 @@ export async function convertProjectHtmlToJson(
   return {
     project: projectOutput(updatedProject.data as unknown as ProjectRow, revision.data as unknown as ProtocolRevisionRow),
     diagnostics: compiled.diagnostics,
+  };
+}
+
+/**
+ * Edits a Kiến trúc B raw HTML project in place — a new html revision only,
+ * no compile, no JSON. Only valid before `convertProjectHtmlToJson` has ever
+ * run (`current_revision_no === 0`); once a project has a Neonix JSON V2
+ * revision, further edits go through `applyJsonPatch`/the editor, not this
+ * function, since MCP export defaults to Kiến trúc B and must never silently
+ * regain a compiled JSON revision through an update call.
+ */
+export async function updateProjectHtmlRaw(
+  client: ProjectClient,
+  actor: ProjectActor,
+  input: ProjectReference & { html: string; expectedHtmlRevisionNo?: number },
+) {
+  const { project } = await requireProject(client, actor, input, true);
+  if (project.source_format !== "html" || project.current_revision_no !== 0) {
+    throw new ProjectRepositoryError(
+      "This project already has a Neonix JSON V2 revision — edit it with apply_json_patch or the editor instead of update_project_html.",
+      "INVALID_DOCUMENT",
+    );
+  }
+  if (!input.html.trim()) throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
+  const validationErrors = validateRawHtmlDocument(input.html);
+  if (validationErrors.length > 0) {
+    throw new ProjectRepositoryError(
+      validationErrors[0]?.message ?? "HTML document failed validation",
+      "INVALID_DOCUMENT",
+      validationErrors,
+    );
+  }
+
+  const previousHtml = await latestHtmlRevision(client, project.id);
+  if (input.expectedHtmlRevisionNo !== undefined && (previousHtml?.revision_no ?? 0) !== input.expectedHtmlRevisionNo) {
+    throw new ProjectRepositoryError("HTML revision conflict", "REVISION_CONFLICT");
+  }
+  const revisionNo = (previousHtml?.revision_no ?? 0) + 1;
+
+  const inserted = await client
+    .from("project_html_revisions")
+    .insert({
+      project_id: project.id,
+      revision_no: revisionNo,
+      protocol_revision_id: null,
+      document_html: input.html,
+      content_hash: hash(input.html),
+      document_schema_version: 2,
+      composition_json: {},
+      diagnostics_json: [],
+      byte_size: Buffer.byteLength(input.html, "utf8"),
+      created_by: actor.userId,
+    })
+    .select(HTML_REVISION_COLUMNS)
+    .single();
+  if (inserted.error || !inserted.data) throwDatabase("Unable to create HTML revision", inserted.error);
+
+  const updatedProject = await client
+    .from("projects")
+    .update({ last_activity_at: new Date().toISOString() })
+    .eq("id", project.id)
+    .select(PROJECT_COLUMNS)
+    .single();
+  if (updatedProject.error || !updatedProject.data) throwDatabase("Unable to update project", updatedProject.error);
+
+  await audit(client, actor, {
+    workspaceId: project.workspace_id,
+    action: "project.html.update-raw",
+    targetId: project.id,
+    metadata: { revisionNo },
+  });
+
+  return {
+    project: projectOutput(updatedProject.data as unknown as ProjectRow, null),
+    htmlRevision: inserted.data as unknown as HtmlRevisionRow,
   };
 }
 

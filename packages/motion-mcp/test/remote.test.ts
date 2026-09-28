@@ -7,7 +7,6 @@ const empty = () => Promise.resolve({});
 
 const api: RemoteMcpProjectApi = {
   listWorkspaces: () => Promise.resolve([]),
-  createProject: empty,
   createProjectHtml: empty,
   listProjects: empty,
   getProject: empty,

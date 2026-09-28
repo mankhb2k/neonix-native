@@ -14,7 +14,6 @@ vi.mock("./projects", () => ({
   deleteProtocolProject: vi.fn(() => ({ deleted: true })),
   openEditor: vi.fn(() => ({ url: "https://example.com/editor" })),
   openPreview: vi.fn(() => ({ url: "https://example.com/preview" })),
-  createProtocolProject: vi.fn(() => ({ project: {} })),
   createProjectHtml: vi.fn(() => ({ project: {} })),
   getProtocolProjectJson: vi.fn(() => ({ json: {} })),
   applyProjectJsonPatch: vi.fn(() => ({ project: {} })),
@@ -91,9 +90,6 @@ describe("createMcpServer", () => {
 
     await api.listWorkspaces();
     expect(projects.listWorkspaces).toHaveBeenCalledWith(principal);
-
-    await api.createProject({ title: "t" });
-    expect(projects.createProtocolProject).toHaveBeenCalledWith(principal, { title: "t" });
 
     await api.getProject({ projectId: "p1" });
     expect(projects.getProtocolProject).toHaveBeenCalledWith(principal, { projectId: "p1" });

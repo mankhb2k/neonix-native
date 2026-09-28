@@ -18,6 +18,18 @@ default = number of CPUs), each rendering a contiguous slice of the frame
 range, so wall-clock time scales down roughly linearly with vCPU count (see
 the notes at the bottom of this file for the numbers this was benchmarked at).
 
+NO RAW FRAMES EVER TOUCH DISK (Cloud Run has no real disk -- see below)
+-------------------------------------------------------------------------
+Each worker pipes its captured PNG screenshots directly into its OWN
+`ffmpeg -f image2pipe -i -` subprocess (stdin), producing one small encoded
+MP4 *segment* per worker. Segments are then concatenated with ffmpeg's
+`-f concat -c copy` (stream copy, no re-encode) into the final output. Only
+small H.264 segments -- never raw PNG frames -- are written to the
+filesystem, which matters because on Cloud Run "disk" is actually the
+container's own memory (tmpfs): a few hundred MB of raw PNGs for a longer
+clip could exhaust the memory budget, while the equivalent H.264 segments are
+a small fraction of that size.
+
 USAGE
 -----
   python3 render_neonix_video.py --html input.html --out output.mp4 \
@@ -41,18 +53,8 @@ REQUIRES
   pip install playwright && playwright install chromium
   ffmpeg on PATH
 
-CLOUD DEPLOYMENT NOTE (Cloud Run specifically)
------------------------------------------------
-This script writes each PNG frame to a temp directory on "disk" and lets
-ffmpeg read that directory as an image sequence afterward. On a normal VM
-that's fine (disk and RAM are separate resources). On Cloud Run, the writable
-filesystem is backed by the container's own memory (tmpfs) -- writing frames
-"to disk" there counts against your memory allocation like any other RAM use.
-For a short clip (a few hundred MB of frames) this is usually a non-issue if
-you size memory accordingly; for longer/larger renders, prefer piping frames
-directly into ffmpeg's stdin (`ffmpeg -f image2pipe -i -`) instead of writing
-them to files at all, or mount a Cloud Storage FUSE / Filestore volume so
-"disk" is backed by real storage instead of memory.
+This module is also imported directly (not just run as a CLI) by
+server.py's FastAPI render endpoint -- see render_html_to_mp4() below.
 """
 
 import argparse
@@ -67,6 +69,7 @@ import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import Optional
 
 
 def parse_composition(html_path: Path):
@@ -81,45 +84,84 @@ def parse_composition(html_path: Path):
         return {}
 
 
-def render_frame_range(html_path: str, frames_dir: str, width: int, height: int,
-                        fps: float, start_frame: int, end_frame: int):
+def render_frame_range_to_segment(html_path: str, segment_path: str, width: int, height: int,
+                                   fps: float, start_frame: int, end_frame: int):
     """Runs in its own OS process: launches one headless Chromium, scrubs every
-    CSS animation on the page to each frame's exact virtual time, screenshots it."""
+    CSS animation on the page to each frame's exact virtual time, screenshots
+    it, and pipes the PNG bytes straight into this worker's own ffmpeg
+    subprocess -- no frame file ever hits the filesystem."""
     from playwright.sync_api import sync_playwright
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(args=["--no-sandbox", "--force-color-profile=srgb"])
-        page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
-        page.goto(f"file://{os.path.abspath(html_path)}")
-        page.wait_for_timeout(200)
+    # ffmpeg's own stderr goes straight to a file, not a pipe: a pipe has a
+    # small OS buffer (64KB on Linux), and ffmpeg logs enough per-frame stats
+    # that leaving it undrained while we're busy writing frames to stdin can
+    # deadlock (ffmpeg blocks writing to a full stderr pipe, we're blocked
+    # writing to its stdin, neither side is reading the other). A file has no
+    # such limit, and we only need the contents if the encode actually fails.
+    stderr_path = f"{segment_path}.stderr.log"
+    with open(stderr_path, "wb") as stderr_file:
+        ffmpeg = subprocess.Popen(
+            [
+                "ffmpeg", "-y",
+                "-f", "image2pipe", "-vcodec", "png", "-framerate", str(fps), "-i", "-",
+                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium",
+                segment_path,
+            ],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=stderr_file,
+        )
 
-        # Pause every CSS animation so we can scrub to an exact global time.
-        page.evaluate("() => { document.getAnimations().forEach(a => a.pause()); }")
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(args=["--no-sandbox", "--force-color-profile=srgb"])
+                page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
+                page.goto(f"file://{os.path.abspath(html_path)}")
+                page.wait_for_timeout(200)
 
-        for i in range(start_frame, end_frame):
-            t_ms = (i / fps) * 1000.0
-            page.evaluate(
-                "(t) => { document.getAnimations().forEach(a => { a.currentTime = t; }); }",
-                t_ms,
-            )
-            # let two rAF ticks elapse so style/paint reflect the new currentTime
-            page.evaluate(
-                "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
-            )
-            page.screenshot(path=os.path.join(frames_dir, f"frame_{i:06d}.png"))
+                # Pause every CSS animation so we can scrub to an exact global time.
+                page.evaluate("() => { document.getAnimations().forEach(a => a.pause()); }")
 
-        browser.close()
-    return (start_frame, end_frame)
+                for i in range(start_frame, end_frame):
+                    t_ms = (i / fps) * 1000.0
+                    page.evaluate(
+                        "(t) => { document.getAnimations().forEach(a => { a.currentTime = t; }); }",
+                        t_ms,
+                    )
+                    # let two rAF ticks elapse so style/paint reflect the new currentTime
+                    page.evaluate(
+                        "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+                    )
+                    assert ffmpeg.stdin is not None
+                    ffmpeg.stdin.write(page.screenshot())
+
+                browser.close()
+        finally:
+            # NOTE: deliberately .wait(), not .communicate() -- communicate()
+            # tries to close+flush stdin itself, which raises "flush of closed
+            # file" on a stream we already closed ourselves above.
+            if ffmpeg.stdin is not None:
+                ffmpeg.stdin.close()
+            ffmpeg.wait()
+
+    if ffmpeg.returncode != 0:
+        stderr_tail = Path(stderr_path).read_text(encoding="utf-8", errors="ignore")[-2000:]
+        os.remove(stderr_path)
+        raise RuntimeError(
+            f"ffmpeg segment encode failed (frames {start_frame}-{end_frame}): {stderr_tail}"
+        )
+    os.remove(stderr_path)
+
+    return (start_frame, end_frame, segment_path)
 
 
-def encode_video(frames_dir: str, fps: float, silent_out: str):
-    cmd = [
-        "ffmpeg", "-y",
-        "-framerate", str(fps),
-        "-i", os.path.join(frames_dir, "frame_%06d.png"),
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium",
-        silent_out,
-    ]
+def concat_segments(segment_paths, out_path: str):
+    """Stream-copies (no re-encode) a list of already-encoded MP4 segments into one file."""
+    work_dir = os.path.dirname(segment_paths[0])
+    list_path = os.path.join(work_dir, "segments.txt")
+    with open(list_path, "w", encoding="utf-8") as f:
+        for path in segment_paths:
+            escaped = os.path.abspath(path).replace("'", "'\\''")
+            f.write(f"file '{escaped}'\n")
+    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", out_path]
     subprocess.run(cmd, check=True, capture_output=True)
 
 
@@ -132,6 +174,68 @@ def mux_audio(silent_video: str, audio_path: str, final_out: str):
         final_out,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
+
+
+def render_html_to_mp4(
+    html_path: str,
+    out_path: str,
+    width: int,
+    height: int,
+    fps: float,
+    duration: float,
+    workers: Optional[int] = None,
+    audio_path: Optional[str] = None,
+    tmp_root: Optional[str] = None,
+    keep_segments: bool = False,
+    progress=print,
+) -> Path:
+    """Core entry point shared by the CLI (main(), below) and server.py's
+    FastAPI render endpoint. Renders html_path frame-by-frame into out_path,
+    writing only small per-worker H.264 segments (never raw frames) to disk,
+    then concatenating them (and optionally muxing audio_path in)."""
+    total_frames = math.ceil(duration * fps)
+    resolved_workers = workers or os.cpu_count() or 1
+    resolved_workers = max(1, min(resolved_workers, total_frames))
+
+    chunk = math.ceil(total_frames / resolved_workers)
+    ranges = [(i, min(i + chunk, total_frames)) for i in range(0, total_frames, chunk)]
+
+    progress(f"[render] {Path(html_path).name} -> {total_frames} frames @ {fps}fps, "
+              f"{width}x{height}, {len(ranges)} worker(s)")
+
+    work_dir = tempfile.mkdtemp(prefix="neonix_render_", dir=tmp_root)
+    segment_paths = [os.path.join(work_dir, f"segment_{idx:04d}.mp4") for idx in range(len(ranges))]
+    t0 = time.time()
+
+    try:
+        with ProcessPoolExecutor(max_workers=len(ranges)) as pool:
+            futures = [
+                pool.submit(render_frame_range_to_segment, str(html_path), segment_paths[idx], width, height, fps, s, e)
+                for idx, (s, e) in enumerate(ranges)
+            ]
+            for f in as_completed(futures):
+                s, e, seg = f.result()
+                progress(f"[render] worker done: frames {s}-{e} -> {os.path.basename(seg)}")
+
+        progress(f"[render] capture done in {time.time() - t0:.1f}s, concatenating...")
+
+        resolved_out = Path(out_path).resolve()
+        resolved_out.parent.mkdir(parents=True, exist_ok=True)
+
+        merged = str(resolved_out.with_suffix(".merged.mp4")) if audio_path else str(resolved_out)
+        concat_segments(segment_paths, merged)
+        if audio_path:
+            mux_audio(merged, str(Path(audio_path).resolve()), str(resolved_out))
+            os.remove(merged)
+
+        progress(f"[render] wrote {resolved_out} ({resolved_out.stat().st_size / 1e6:.2f} MB) "
+                  f"in {time.time() - t0:.1f}s total")
+        return resolved_out
+    finally:
+        if not keep_segments:
+            shutil.rmtree(work_dir, ignore_errors=True)
+        else:
+            progress(f"[render] segments kept at {work_dir}")
 
 
 def main():
@@ -152,8 +256,8 @@ def main():
                     help="Total duration in seconds (required -- not auto-detected, see notes above)")
     ap.add_argument("--workers", type=int, default=None,
                     help="Number of parallel Chromium worker processes (default: CPU count)")
-    ap.add_argument("--keep-frames", action="store_true",
-                    help="Don't delete the temporary PNG frames directory afterward")
+    ap.add_argument("--keep-segments", action="store_true",
+                    help="Don't delete the temporary per-worker MP4 segments directory afterward")
     args = ap.parse_args()
 
     html_path = Path(args.html).resolve()
@@ -174,49 +278,10 @@ def main():
             f"was omitted -- it must always be given explicitly)."
         )
 
-    total_frames = math.ceil(duration * fps)
-    workers = args.workers or os.cpu_count() or 1
-    workers = max(1, min(workers, total_frames))
-
-    print(f"[render] {html_path.name} -> {total_frames} frames @ {fps}fps, "
-          f"{width}x{height}, {workers} worker(s)")
-
-    frames_dir = tempfile.mkdtemp(prefix="neonix_frames_")
-    t0 = time.time()
-
-    chunk = math.ceil(total_frames / workers)
-    ranges = [(i, min(i + chunk, total_frames)) for i in range(0, total_frames, chunk)]
-
-    try:
-        with ProcessPoolExecutor(max_workers=len(ranges)) as pool:
-            futures = [
-                pool.submit(render_frame_range, str(html_path), frames_dir, width, height, fps, s, e)
-                for s, e in ranges
-            ]
-            for f in as_completed(futures):
-                s, e = f.result()
-                print(f"[render] worker done: frames {s}-{e}")
-
-        print(f"[render] capture done in {time.time() - t0:.1f}s, encoding...")
-
-        out_path = Path(args.out).resolve()
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-
-        if args.audio:
-            silent = str(out_path.with_suffix(".silent.mp4"))
-            encode_video(frames_dir, fps, silent)
-            mux_audio(silent, str(Path(args.audio).resolve()), str(out_path))
-            os.remove(silent)
-        else:
-            encode_video(frames_dir, fps, str(out_path))
-
-        print(f"[render] wrote {out_path} ({out_path.stat().st_size / 1e6:.2f} MB) "
-              f"in {time.time() - t0:.1f}s total")
-    finally:
-        if not args.keep_frames:
-            shutil.rmtree(frames_dir, ignore_errors=True)
-        else:
-            print(f"[render] frames kept at {frames_dir}")
+    render_html_to_mp4(
+        str(html_path), args.out, int(width), int(height), float(fps), float(duration),
+        workers=args.workers, audio_path=args.audio, keep_segments=args.keep_segments,
+    )
 
 
 if __name__ == "__main__":
@@ -228,5 +293,8 @@ if __name__ == "__main__":
 #   2 workers (= vCPU count): ~538 s total    -> ~9 min total  (near-linear 2x)
 # Parallel speedup scales close to linearly up to (worker count == vCPU count);
 # going beyond that gives diminishing or negative returns (context-switching,
-# per-worker Chromium startup overhead, shared disk/memory bandwidth).
+# per-worker Chromium startup overhead, shared disk/memory bandwidth). These
+# numbers predate the piped-segment rewrite above; per-frame Chromium/paint
+# cost is unchanged, so wall-clock time should be materially the same or
+# slightly better (no PNG file I/O), just with far lower peak memory/disk use.
 # ---------------------------------------------------------------------------

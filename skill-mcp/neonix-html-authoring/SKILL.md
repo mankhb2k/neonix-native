@@ -67,11 +67,11 @@ event handlers, forms, navigation, or web-only behavior.
 
 ### New project
 
-1. Call `create_project` with the requested project title and workspace.
-2. Create a complete Neonix HTML document using the requested composition.
-3. Call `validate_html` before saving the authoring source.
-4. Call `update_project_html` to create the linked HTML and Protocol V2
-   revisions.
+1. Create a complete Neonix HTML document using the requested composition.
+2. Call `validate_html` before saving the authoring source.
+3. Call `create_project_html` with the requested project title, workspace,
+   and the validated HTML — this creates the project and saves the HTML in
+   one step; no separate Protocol V2 revision is created.
 
 ### Capabilities
 

@@ -6,8 +6,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { previewUrl } from "@/lib/hosts";
 import {
   applyJsonPatch as applySharedJsonPatch,
-  createProject as createSharedProject,
-  createProjectHtml as createSharedProjectHtml,
+  createProjectHtmlRaw as createSharedProjectHtmlRaw,
   deleteProject as deleteSharedProject,
   getProject as getSharedProject,
   getProjectHtml as getSharedProjectHtml,
@@ -15,9 +14,10 @@ import {
   listHtmlRevisions as listSharedHtmlRevisions,
   getHtmlRevision as getSharedHtmlRevision,
   updateProject as updateSharedProject,
-  updateProjectHtml as updateSharedProjectHtml,
+  updateProjectHtmlRaw as updateSharedProjectHtmlRaw,
   type ProjectRepositoryError,
 } from "@/lib/server/projects/repository";
+import { DEFAULT_RAW_HTML_TEMPLATE } from "@/lib/server/validate-raw-html";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { parseMotionProtocol } from "@motionvideo/motion-protocol";
 import type { McpPrincipal } from "./auth";
@@ -223,22 +223,6 @@ function repositoryActor(principal: McpPrincipal) {
   return { userId: principal.userId, clientId: principal.clientId };
 }
 
-export async function createProtocolProject(
-  principal: McpPrincipal,
-  input: { workspaceId?: string; title?: string; document?: JsonObject },
-) {
-  if (!input.document) throw new McpProjectError("document is required and must be a valid Neonix JSON V2 document", "INVALID_INPUT");
-  try {
-    return await createSharedProject(getClient(principal), repositoryActor(principal), {
-      workspaceId: input.workspaceId,
-      title: input.title,
-      document: input.document,
-    });
-  } catch (error) {
-    return rethrowRepositoryError(error);
-  }
-}
-
 export async function getProtocolProject(
   principal: McpPrincipal,
   input: { projectId?: string; publicRef?: string },
@@ -307,12 +291,10 @@ export async function updateProjectHtmlSource(
     publicRef?: string;
     html: string;
     expectedHtmlRevisionNo?: number;
-    expectedProtocolRevisionNo?: number;
-    ensureBrowserPreviewStyle?: boolean;
   },
 ) {
   try {
-    return await updateSharedProjectHtml(getClient(principal), repositoryActor(principal), input);
+    return await updateSharedProjectHtmlRaw(getClient(principal), repositoryActor(principal), input);
   } catch (error) {
     return rethrowRepositoryError(error);
   }
@@ -511,15 +493,24 @@ export async function createProject(
   return { project: { ...project, current_revision_no: 1 }, revision, workspace };
 }
 
+/**
+ * Kiến trúc B entry point for AI agents — stores HTML/CSS as-is, no compile
+ * step, no Neonix JSON V2 revision (see ARCHITECHTURE.md "Hai kiến trúc
+ * render độc lập"). Validated only by the lightweight raw-HTML rules
+ * (`validateRawHtmlDocument`), not the full HTML compiler. To get an
+ * editable Neonix JSON V2 project (Kiến trúc A), the project must be
+ * converted from the Neonix dashboard/web app — there is no MCP tool for it.
+ */
 export async function createProjectHtml(
   principal: McpPrincipal,
-  input: { workspaceId?: string; title?: string; html?: string; idempotencyKey?: string; ensureBrowserPreviewStyle?: boolean },
+  input: { workspaceId?: string; title?: string; html?: string; idempotencyKey?: string },
 ) {
+  const html = input.html?.trim() ? input.html : DEFAULT_RAW_HTML_TEMPLATE;
   try {
-    return await createSharedProjectHtml(
+    return await createSharedProjectHtmlRaw(
       getClient(principal),
       { userId: principal.userId, clientId: principal.clientId },
-      input,
+      { workspaceId: input.workspaceId, title: input.title, html, idempotencyKey: input.idempotencyKey },
     );
   } catch (error) {
     return rethrowRepositoryError(error);
@@ -595,6 +586,12 @@ export async function openEditor(
   input: { projectId?: string; publicRef?: string },
 ) {
   const project = await getProject(principal, input);
+  if (project.current_revision_no === 0) {
+    throw new McpProjectError(
+      "This is an HTML project (Kiến trúc B) — a complete project type on its own, not a JSON project waiting to be finished. The editor only opens JSON V2 projects. Open this project in the Neonix dashboard; convert it to Neonix JSON V2 there if you want to edit it in the editor.",
+      "HTML_ONLY_PROJECT",
+    );
+  }
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.neonix.video";
   // app.neonix.video exposes clean editor URLs; middleware maps them to /app/editor.
   const editorUrl = new URL(`/editor/${project.id}`, appUrl).toString();
@@ -606,6 +603,7 @@ export async function openPreview(
   input: { projectId?: string; publicRef?: string },
 ) {
   const project = await getProject(principal, input);
-  const projectPreviewUrl = new URL(`/preview/${project.id}`, previewUrl()).toString();
+  const previewPath = project.current_revision_no === 0 ? `/preview/html/${project.id}` : `/preview/${project.id}`;
+  const projectPreviewUrl = new URL(previewPath, previewUrl()).toString();
   return { project_id: project.id, public_ref: project.public_ref, preview_url: projectPreviewUrl };
 }

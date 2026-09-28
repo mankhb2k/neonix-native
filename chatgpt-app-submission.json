@@ -16,10 +16,10 @@
         "destructive_justification": "Does not create, modify, or delete data."
       }
     },
-    "create_project": {
+    "create_project_html": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Creates a project and an initial Protocol V2 revision at the user's request.",
+        "read_only_justification": "Creates a project and saves its HTML source at the user's request.",
         "open_world_justification": "Operates only inside the authenticated user's Neonix workspace.",
         "destructive_justification": "It creates new user-owned data and does not delete or overwrite an existing project."
       }
@@ -219,9 +219,9 @@
   },
   "test_cases": [
     {
-      "description": "Create a project and inspect its generated editor document.",
+      "description": "Create a project and inspect its saved project reference.",
       "user_prompt": "Create a Neonix project called Product launch and show me the project reference.",
-      "tools_triggered": "create_project, get_project",
+      "tools_triggered": "create_project_html, get_project",
       "expected_output": "A project is created and its project reference is returned."
     },
     {

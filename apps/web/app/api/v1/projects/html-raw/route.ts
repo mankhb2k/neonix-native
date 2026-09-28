@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       workspaceId: typeof body.workspaceId === "string" ? body.workspaceId : undefined,
       title: typeof body.title === "string" ? body.title : undefined,
       html: body.html,
+      idempotencyKey: typeof body.idempotencyKey === "string" ? body.idempotencyKey : undefined,
     }), { status: 201 });
   } catch (error) {
     if (error instanceof ProjectRepositoryError) {

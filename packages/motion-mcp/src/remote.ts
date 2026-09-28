@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { NEONIX_HTML_DOCUMENT_TEMPLATE } from "@motionvideo/html-compiler";
 import {
   ADDITIVE_TOOL_ANNOTATIONS,
   DESTRUCTIVE_TOOL_ANNOTATIONS,
@@ -18,6 +17,29 @@ import {
   VIDEO_PREVIEW_UI_HTML,
 } from "./video-preview-ui";
 
+/**
+ * Kiến trúc B raw HTML project (see ARCHITECHTURE.md "Hai kiến trúc render
+ * độc lập") blank starting point. Deliberately not imported from
+ * @motionvideo/html-compiler — Kiến trúc B must not share code with Kiến
+ * trúc A's compile pipeline, even a static template string. Must satisfy
+ * apps/web's own copy of this template's validation rules (exactly one
+ * neonix-document meta tag, no <script>, body declares matching px
+ * width/height) — keep both in sync by hand if either changes.
+ */
+const NEONIX_RAW_HTML_TEMPLATE = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="neonix-document"
+      content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1920,"fps":30,"background":"#000000","colorSpace":"srgb"}}'
+    />
+  </head>
+  <body style="margin:0;width:1080px;height:1920px;background:#000000;">
+    <!-- Add your HTML elements here. -->
+  </body>
+</html>`;
+
 /** The identity is validated by the hosting application's OAuth adapter. */
 export type RemoteMcpPrincipal = {
   userId: string;
@@ -29,11 +51,6 @@ export type RemoteMcpPrincipal = {
 
 export type RemoteMcpProjectApi = {
   listWorkspaces: () => Promise<unknown>;
-  createProject: (input: {
-    workspaceId?: string;
-    title?: string;
-    document?: Record<string, unknown>;
-  }) => Promise<unknown>;
   createProjectHtml: (input: {
     workspaceId?: string;
     title?: string;
@@ -214,7 +231,7 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: MCP_SERVER_VERSION },
     {
       instructions:
-        "Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, exportable motion video. For a new project, call create_project_html; its html field is optional - omit it (or pass an empty string) to scaffold and actually save a project from the standard blank template, then call update_project_html to author real content and set the composition (size/aspect ratio, fps, background, duration) to whatever the user wants, or pass a complete html string directly in one step if you already know the exact document to save. For existing projects, read the attached HTML with get_project_html, check its htmlSyncStatus, edit it, validate_html, then save it with update_project_html. If htmlSyncStatus is 'stale', a JSON patch or another edit already moved the project past this HTML source; saving it anyway will overwrite that change, so re-derive the HTML (or confirm with the caller) before saving. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and makes the HTML source stale. Never convert JSON back to HTML. Creating or editing a project stops at the saved revision: call open_preview to show the result, and call create_export only when the user explicitly asks to render, export or download a video. Never call create_export on your own initiative after create_project_html or update_project_html, even to demonstrate the result.",
+        "Neonix is an HTML-to-motion-video compiler with two independent, complete render tracks. create_project_html/update_project_html create and edit a Kiến trúc B raw HTML project — no compile, no Neonix JSON V2 revision, cannot be opened in the editor. html is optional on create - omit it (or pass an empty string) to scaffold and save the standard blank template, then call update_project_html to author real content; update_project_html only works before the project has ever been converted to JSON - once it has a JSON revision, this tool is rejected. Converting a Kiến trúc B project to an editable Neonix JSON V2 document (Kiến trúc A) requires the Neonix dashboard/web app - there is no MCP tool for it, by design; do not tell a caller you can convert one. For a project that already has a JSON revision (created directly as Neonix JSON V2 in the dashboard, or converted there from an HTML project), read it with get_project_json and edit it with apply_json_patch for small changes (never write raw HTML back into it - that one-way HTML-to-JSON relationship no longer applies once a project is JSON-based). create_export works for both tracks but through two different pipelines: a JSON project renders its saved Protocol V2 revision; a Kiến trúc B HTML project renders through a separate headless-browser pipeline that requires composition.fps and composition.durationMs in the project's own neonix-document meta tag (durationMs isn't required to create/edit the project, only to export it - add it with update_project_html first if create_export reports it missing). Either kind of export can take many minutes; create_export always returns a queued/rendering job immediately, never a finished video - poll it with get_export and only fetch the file with get_export_download_url once its status is done. Only call create_export when the user explicitly asks to render, export or download a video - never automatically after create_project_html or update_project_html. Call open_preview to show a project's current state regardless of which track it's on; call open_editor only for a project with a JSON revision.",
     },
   );
   registerNeonixGuidance(server);
@@ -287,7 +304,7 @@ export function createRemoteMcpServer(options: {
     "create_project_html",
     {
       title: "Create HTML project",
-      description: `Atomically create a Neonix project with linked HTML and Protocol V2 revisions. Omit html (or pass an empty string) to scaffold the project from the standard blank template below, already saved for real - then call update_project_html to author real content and set composition.width/height/fps/background/durationMs (e.g. a specific aspect ratio) to whatever the user actually wants. Only pass html directly when you already know the exact document to save in one step; the template's html,body { width; height } are plain pixels copied from the meta tag's composition for browser-preview parity (a real browser resolves vw/vh/% against its own window, not the composition, so those units would not actually match) - if you change composition.width/height, update these two pixel values to match as well, in the same edit. Template:\n\n${NEONIX_HTML_DOCUMENT_TEMPLATE}`,
+      description: `Create a Neonix project that stores HTML/CSS as-is — no compile step, no Neonix JSON V2 revision. This is Kiến trúc B (see ARCHITECHTURE.md "Hai kiến trúc render độc lập"): the project cannot be opened in the JSON editor, but it is a complete project on its own, not one waiting to be finished — call create_export to render it once the user asks (that pipeline renders the HTML directly via a separate headless-browser path and requires composition.fps and composition.durationMs in the neonix-document meta tag; add durationMs with update_project_html first if create_export reports it missing). To convert it into an editable Neonix JSON V2 project (Kiến trúc A) instead, that requires the Neonix dashboard/web app — there is no MCP tool for that conversion. Validation here is deliberately light (not the full HTML compiler): exactly one meta[name="neonix-document"] with a valid composition, no <script> tags, and <body> (or its single top-level wrapping element) must declare width/height in px matching the composition exactly. Omit html (or pass an empty string) to scaffold from the standard blank template below, already saved for real - then call update_project_html to author real content (update_project_html only works before this project is ever converted; once it has a JSON revision, edit it with apply_json_patch or the editor instead). Template:\n\n${NEONIX_RAW_HTML_TEMPLATE}`,
       inputSchema: {
         workspace_id: uuid
           .optional()
@@ -316,12 +333,6 @@ export function createRemoteMcpServer(options: {
           .describe(
             "Unique key to safely retry the same creation request without creating duplicate projects.",
           ),
-        ensure_browser_preview_style: z
-          .boolean()
-          .optional()
-          .describe(
-            "If true and html/body has no margin/width/height/overflow reset, add one using this document's own composition width/height in exact pixels (margin:0; width:<composition.width>px; height:<composition.height>px; overflow:hidden) so opening the raw HTML in a real browser matches the composition - vw/vh/% would resolve against the browser's own window instead, not the composition, so they would not actually match. Only adds the rule when none of those four properties are already declared for html/body. Never changes the compiled Neonix output either way - only set this when the caller wants to preview the file in a browser. Has no effect when html is omitted, since the standard template already includes this reset.",
-          ),
       },
       annotations: withToolTitle(
         ADDITIVE_TOOL_ANNOTATIONS,
@@ -338,7 +349,6 @@ export function createRemoteMcpServer(options: {
         api.createProjectHtml({
           workspaceId: input.workspace_id,
           title: input.title,
-          ensureBrowserPreviewStyle: input.ensure_browser_preview_style,
           html: input.html,
           idempotencyKey: input.idempotency_key,
         }),
@@ -544,7 +554,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Update project HTML",
       description:
-        "Compile and save HTML on an existing project. A successful call creates both a new HTML revision and a linked Protocol V2 JSON revision. This is a one-way flow: HTML always wins. If the project's JSON was edited independently since this HTML was last saved, that JSON is discarded and the response's `warning` field explains what was overwritten.",
+        "Save a new HTML revision on a Kiến trúc B raw HTML project — no compile, no JSON revision. Only works before this project has ever been converted to Neonix JSON V2 (current_revision_no === 0); once it has a JSON revision, this tool is rejected — edit it with apply_json_patch or the editor instead. Validation is the same light rules as create_project_html (neonix-document meta, no <script>, body/wrapper px size match), not the full HTML compiler.",
       inputSchema: {
         ...projectLocator,
         html: z
@@ -561,20 +571,6 @@ export function createRemoteMcpServer(options: {
           .describe(
             "Expected current HTML revision number; omit to skip the optimistic-concurrency check.",
           ),
-        expected_protocol_revision_no: z
-          .number()
-          .int()
-          .min(0)
-          .optional()
-          .describe(
-            "Expected current Protocol V2 revision number; omit to skip the optimistic-concurrency check.",
-          ),
-        ensure_browser_preview_style: z
-          .boolean()
-          .optional()
-          .describe(
-            "If true and html/body has no margin/width/height/overflow reset, add one using this document's own composition width/height in exact pixels (margin:0; width:<composition.width>px; height:<composition.height>px; overflow:hidden) so opening the raw HTML in a real browser matches the composition - vw/vh/% would resolve against the browser's own window instead, not the composition, so they would not actually match. Only adds the rule when none of those four properties are already declared for html/body; it does not update an existing declaration if you later change composition.width/height, so keep them in sync yourself in that case. Never changes the compiled Neonix output either way - only set this when the caller wants to preview the file in a browser.",
-          ),
       },
       annotations: withToolTitle(
         ADDITIVE_TOOL_ANNOTATIONS,
@@ -590,8 +586,6 @@ export function createRemoteMcpServer(options: {
           publicRef: input.public_ref,
           html: input.html,
           expectedHtmlRevisionNo: input.expected_html_revision_no,
-          expectedProtocolRevisionNo: input.expected_protocol_revision_no,
-          ensureBrowserPreviewStyle: input.ensure_browser_preview_style,
         });
       }),
   );
@@ -752,7 +746,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Create export",
       description:
-        "Render a saved Protocol V2 project revision. The server reads the revision from the database; arbitrary unsaved JSON cannot be exported. Only call this when the user explicitly asks to render, export or download a video — never automatically after create_project_html or update_project_html.",
+        "Render a project and return a job to poll with get_export. For a Neonix JSON V2 project, renders the saved Protocol V2 revision (arbitrary unsaved JSON cannot be exported). For a Kiến trúc B raw HTML project (no JSON revision), renders the HTML directly via a separate headless-browser pipeline instead - that pipeline requires composition.fps and composition.durationMs in the project's own neonix-document meta tag (durationMs isn't required to create/edit the project, only to export it); add durationMs with update_project_html first if it's missing, then retry. Either kind of job can take many minutes - this call returns immediately with a queued/rendering job, never a finished video; only call this when the user explicitly asks to render, export or download a video, never automatically after create_project_html or update_project_html.",
       inputSchema: {
         ...projectLocator,
         protocol_revision_no: z
