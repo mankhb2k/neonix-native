@@ -1,10 +1,11 @@
 "use client";
 
-import { CreditCard, Landmark, Wallet } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { UsFlagIcon, VnFlagIcon } from "@/components/hub/topup/CurrencyFlags";
 import { VietQrPlaceholder } from "@/components/hub/topup/VietQrPlaceholder";
+import { createTopupCheckout, getWalletBalance } from "@/lib/api/billing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Currency = "USD" | "VND";
@@ -13,15 +14,6 @@ const AMOUNTS: Record<Currency, number[]> = {
   USD: [2, 5, 10, 20, 50, 100, 500],
   VND: [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000],
 };
-
-// Mock current balance — replace with the real wallet balance once billing is wired up.
-const MOCK_BALANCE_USD = 12.4;
-
-const USD_METHODS = [
-  { id: "paypal", icon: Wallet },
-  { id: "card", icon: CreditCard },
-  { id: "googlepay", icon: Landmark },
-] as const;
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -37,9 +29,11 @@ export function TopupWorkspace() {
   const [selectedAmount, setSelectedAmount] = useState<number>(AMOUNTS.USD[0]);
   const [isCustom, setIsCustom] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState<string>("paypal");
-  const [showNotice, setShowNotice] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [balanceUsd, setBalanceUsd] = useState<number | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [justTopped, setJustTopped] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -60,15 +54,46 @@ export function TopupWorkspace() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    async function loadBalance() {
+      const balance = await getWalletBalance();
+      if (mounted && balance) setBalanceUsd(balance.balanceUsd);
+    }
+    void loadBalance();
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("checkout") === "success") {
+        setJustTopped(true);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   function selectCurrency(next: Currency) {
     setCurrency(next);
     setIsCustom(false);
     setSelectedAmount(AMOUNTS[next][0]);
-    setShowNotice(false);
+    setCheckoutError(null);
   }
 
   const total = isCustom ? Number.parseFloat(customAmount) || 0 : selectedAmount;
   const totalLabel = format.number(total, { style: "currency", currency });
+
+  async function startCheckout() {
+    setCheckoutError(null);
+    setIsRedirecting(true);
+    const result = await createTopupCheckout(total);
+    if (!result) {
+      setCheckoutError(t("checkoutError"));
+      setIsRedirecting(false);
+      return;
+    }
+    window.location.href = result.checkoutUrl;
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -111,7 +136,7 @@ export function TopupWorkspace() {
                 onClick={() => {
                   setIsCustom(false);
                   setSelectedAmount(amount);
-                  setShowNotice(false);
+                  setCheckoutError(null);
                 }}
                 className={`rounded-lg px-3 py-2 text-body font-semibold transition ${active ? "bg-[var(--fg-primary)] text-[var(--bg-elevated)]" : "bg-[var(--hub-hover)] text-[var(--fg-primary)] hover:bg-[var(--hub-active)]"}`}
               >
@@ -123,7 +148,7 @@ export function TopupWorkspace() {
             type="button"
             onClick={() => {
               setIsCustom(true);
-              setShowNotice(false);
+              setCheckoutError(null);
             }}
             className={`rounded-lg px-3 py-2 text-body font-semibold transition ${isCustom ? "bg-[var(--fg-primary)] text-[var(--bg-elevated)]" : "bg-[var(--hub-hover)] text-[var(--fg-primary)] hover:bg-[var(--hub-active)]"}`}
           >
@@ -150,22 +175,9 @@ export function TopupWorkspace() {
       <div className="mt-6">
         <p className="mb-2 text-caption font-semibold text-[var(--fg-muted)]">{t("paymentMethodLabel")}</p>
         {currency === "USD" ? (
-          <div className="space-y-2">
-            {USD_METHODS.map((method) => {
-              const Icon = method.icon;
-              const active = selectedMethod === method.id;
-              return (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${active ? "border-[var(--fg-primary)]" : "border-[var(--hub-border)] hover:border-[var(--hub-accent)]"}`}
-                >
-                  <Icon className="size-5 shrink-0 text-[var(--fg-secondary)]" />
-                  <span className="font-medium text-[var(--fg-primary)]">{t(`methods.${method.id}`)}</span>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--hub-border)] px-4 py-3">
+            <ShieldCheck className="size-5 shrink-0 text-[var(--fg-secondary)]" />
+            <span className="font-medium text-[var(--fg-primary)]">{t("methods.polar")}</span>
           </div>
         ) : (
           <VietQrPlaceholder
@@ -179,21 +191,29 @@ export function TopupWorkspace() {
 
       <button
         type="button"
-        onClick={() => setShowNotice(true)}
-        disabled={currency === "VND" || total <= 0}
+        onClick={() => void startCheckout()}
+        disabled={currency === "VND" || total <= 0 || isRedirecting}
         className="mt-6 w-full rounded-lg bg-[var(--fg-primary)] py-3 text-body font-semibold text-[var(--bg-elevated)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {t("nextStep")}
+        {isRedirecting ? t("redirecting") : t("nextStep")}
       </button>
 
-      {showNotice ? (
+      {checkoutError ? (
+        <p role="alert" className="mt-3 rounded-lg border border-[var(--hub-border)] bg-[var(--hub-hover)] px-3.5 py-2.5 text-caption text-[var(--fg-secondary)]">
+          {checkoutError}
+        </p>
+      ) : null}
+
+      {justTopped ? (
         <p role="status" className="mt-3 rounded-lg border border-[var(--hub-border)] bg-[var(--hub-hover)] px-3.5 py-2.5 text-caption text-[var(--fg-secondary)]">
-          {t("previewNotice")}
+          {t("topupSuccess")}
         </p>
       ) : null}
 
       <p className="mt-6 text-center text-caption text-[var(--fg-muted)]">
-        {t("balance", { amount: format.number(MOCK_BALANCE_USD, { style: "currency", currency: "USD" }) })}
+        {balanceUsd === null
+          ? t("balanceLoading")
+          : t("balance", { amount: format.number(balanceUsd, { style: "currency", currency: "USD" }) })}
       </p>
       {email ? (
         <p className="mt-1 text-center text-caption text-[var(--fg-disabled)]">

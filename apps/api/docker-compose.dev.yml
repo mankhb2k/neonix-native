@@ -1,0 +1,21 @@
+# Local dev infra only (Postgres + Redis). Staging/production point
+# DATABASE_URL/REDIS_URL at real Neon + a managed Redis instead of this file.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: api
+      POSTGRES_DB: api
+    ports:
+      - "5433:5432"
+    volumes:
+      - api-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+volumes:
+  api-postgres-data:

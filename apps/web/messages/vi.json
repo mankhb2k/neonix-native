@@ -317,16 +317,17 @@
     "totalLabel": "Tổng cộng",
     "paymentMethodLabel": "Phương thức thanh toán",
     "methods": {
-      "paypal": "PayPal / Thẻ ghi nợ hoặc tín dụng",
-      "card": "Visa / Mastercard",
-      "googlepay": "Google Pay",
+      "polar": "Thẻ, Google Pay và Apple Pay qua Polar",
       "vietqr": "Chuyển khoản (VietQR)"
     },
     "comingSoon": "Sắp ra mắt",
     "vietqrDescription": "Quét mã QR để thanh toán qua chuyển khoản ngân hàng. Phương thức này chưa khả dụng.",
-    "nextStep": "Tiếp tục",
-    "previewNotice": "Đây là giao diện xem trước — chưa kết nối cổng thanh toán thật nên chưa có khoản nào bị trừ.",
+    "nextStep": "Tiếp tục thanh toán",
+    "redirecting": "Đang chuyển đến trang thanh toán…",
+    "checkoutError": "Không thể bắt đầu thanh toán. Vui lòng thử lại.",
+    "topupSuccess": "Đã nhận thanh toán — số dư sẽ cập nhật sau ít giây.",
     "balance": "Số dư hiện tại: {amount}",
+    "balanceLoading": "Đang tải số dư…",
     "accountNote": "Số dư sẽ được cộng vào tài khoản {email}"
   }
 }

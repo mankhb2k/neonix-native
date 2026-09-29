@@ -317,16 +317,17 @@
     "totalLabel": "Total",
     "paymentMethodLabel": "Payment method",
     "methods": {
-      "paypal": "PayPal / Debit or Credit Card",
-      "card": "Visa / Mastercard",
-      "googlepay": "Google Pay",
+      "polar": "Card, Google Pay, and Apple Pay via Polar",
       "vietqr": "Bank transfer (VietQR)"
     },
     "comingSoon": "Coming soon",
     "vietqrDescription": "Scan a QR code to pay by bank transfer. This method isn't available yet.",
-    "nextStep": "Next step",
-    "previewNotice": "This is a preview — no payment provider is connected yet, so nothing was charged.",
+    "nextStep": "Continue to secure checkout",
+    "redirecting": "Redirecting to checkout…",
+    "checkoutError": "Couldn't start checkout. Please try again.",
+    "topupSuccess": "Payment received — your balance will update within a few seconds.",
     "balance": "Current balance: {amount}",
+    "balanceLoading": "Loading balance…",
     "accountNote": "Balance goes to account {email}"
   }
 }

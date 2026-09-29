@@ -7,7 +7,7 @@
     "lint": "pnpm -r --if-present lint",
     "dev": "pnpm --filter @motionvideo/web dev",
     "build": "pnpm --filter @motionvideo/web build",
-    "typecheck": "pnpm typecheck:app && pnpm typecheck:protocol && pnpm typecheck:html && pnpm typecheck:compiler && pnpm typecheck:runtime && pnpm typecheck:skia && pnpm typecheck:render-native",
+    "typecheck": "pnpm typecheck:app && pnpm typecheck:protocol && pnpm typecheck:html && pnpm typecheck:compiler && pnpm typecheck:runtime && pnpm typecheck:skia && pnpm typecheck:render-native && pnpm typecheck:api",
     "typecheck:v2": "pnpm typecheck:editor",
     "typecheck:app": "pnpm --filter @motionvideo/web typecheck",
     "typecheck:editor": "pnpm --filter @motionvideo/web typecheck:editor && pnpm typecheck:protocol && pnpm typecheck:compiler && pnpm typecheck:runtime && pnpm typecheck:skia && pnpm typecheck:render-native",
@@ -17,7 +17,8 @@
     "typecheck:runtime": "pnpm --filter @motionvideo/motion-runtime typecheck",
     "typecheck:skia": "pnpm --filter @motionvideo/canvaskit-preview typecheck",
     "typecheck:render-native": "pnpm --filter @motionvideo/render-native typecheck",
-    "test": "pnpm test:app && pnpm test:protocol && pnpm test:html && pnpm test:compiler && pnpm test:runtime && pnpm test:skia && pnpm test:render-native",
+    "typecheck:api": "pnpm --filter @motionvideo/api typecheck",
+    "test": "pnpm test:app && pnpm test:protocol && pnpm test:html && pnpm test:compiler && pnpm test:runtime && pnpm test:skia && pnpm test:render-native && pnpm test:api",
     "test:app": "pnpm --filter @motionvideo/web test:editor",
     "test:protocol": "pnpm --filter @motionvideo/motion-protocol test",
     "test:html": "pnpm --filter @motionvideo/html-compiler test",
@@ -25,9 +26,11 @@
     "test:runtime": "pnpm --filter @motionvideo/motion-runtime test",
     "test:skia": "pnpm --filter @motionvideo/canvaskit-preview test",
     "test:render-native": "pnpm --filter @motionvideo/render-native test",
+    "test:api": "pnpm --filter @motionvideo/api test",
     "certify:playback": "pnpm --filter @motionvideo/playback-engine certify",
     "validate:v2-boundary": "node scripts/validate-v2-boundary.mjs",
-    "validate:v2-consumers": "node scripts/validate-v2-consumers.mjs"
+    "validate:v2-consumers": "node scripts/validate-v2-consumers.mjs",
+    "neon": "neonctl"
   },
   "engines": {
     "node": ">=20",
@@ -42,6 +45,7 @@
     "@eslint/js": "^9.22.0",
     "esbuild": "0.28.1",
     "eslint": "^9.22.0",
+    "neonctl": "^6.3.0",
     "picomatch": "^4.0.5",
     "typescript-eslint": "^8.26.1"
   }

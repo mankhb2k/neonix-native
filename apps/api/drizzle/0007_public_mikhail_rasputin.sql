@@ -1,0 +1,1 @@
+DROP TABLE "api_waitlist_signups" CASCADE;

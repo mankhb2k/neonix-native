@@ -4,7 +4,8 @@ import { mkdir, rm, stat } from "node:fs/promises";
 import { hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { fileURLToPath } from "node:url";
+import { Pool } from "pg";
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -15,7 +16,17 @@ import {
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { renderRuntimeProjectV3 } from "./render/render";
 
+// Ported off @supabase/supabase-js onto plain `pg` against Neon - this is the
+// only file in this package that talks to the database on the production
+// (non-chunked) render path. render-chunk-job.ts/render-finalizer-job.ts/
+// runtime-manifest.ts still use Supabase deliberately: that chunked-render
+// feature is confirmed unshipped/unused in every environment
+// (RENDER_CHUNK_EXECUTION_ENABLED is false everywhere), so it isn't part of
+// this port - @supabase/supabase-js stays a dependency of this package only
+// for those dead files.
+
 type RenderJobRow = {
+  id: string;
   public_ref: string;
   workspace_id: string;
   created_by: string;
@@ -24,17 +35,12 @@ type RenderJobRow = {
   attempt_count: number;
   cancel_requested: boolean;
   runtime_json: RuntimeProjectV3 | null;
-  runtime_manifest_text?: string | null;
 };
 
+const RENDER_JOB_COLUMNS = "id, public_ref, workspace_id, created_by, output_key, status, attempt_count, cancel_requested, runtime_json";
+
 function parseRuntimeManifest(row: RenderJobRow): RuntimeProjectV3 | null {
-  if (row.runtime_json) return row.runtime_json;
-  if (!row.runtime_manifest_text) return null;
-  try {
-    return JSON.parse(row.runtime_manifest_text) as RuntimeProjectV3;
-  } catch {
-    return null;
-  }
+  return row.runtime_json;
 }
 
 type VerifiedOutput = {
@@ -52,10 +58,8 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-function createDatabase(): SupabaseClient {
-  return createClient(requiredEnv("NEXT_PUBLIC_SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+export function createDatabase(): Pool {
+  return new Pool({ connectionString: requiredEnv("DATABASE_URL") });
 }
 
 function workerId(): string {
@@ -180,58 +184,103 @@ async function publishArtifact(filePath: string, finalKey: string): Promise<{ by
   }
 }
 
-async function updateJob(
-  database: SupabaseClient,
+// Replaces the Supabase `.update().eq().eq().select()` chain - same
+// lease-guarded write (only succeeds if `worker` still holds the lease).
+// jsonb-typed patch values (metrics_json etc.) must be JSON-encoded and cast
+// explicitly; `pg` doesn't auto-serialize objects into jsonb params the way
+// supabase-js's PostgREST layer did.
+export async function updateJob(
+  database: Pool,
   jobId: string,
   worker: string,
   patch: Record<string, unknown>,
 ): Promise<void> {
-  console.log(JSON.stringify({ diag: "updateJob:start", atMs: Date.now(), keys: Object.keys(patch) }));
-  const result = await database
-    .from("render_jobs")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("public_ref", jobId)
-    .eq("lease_owner", worker)
-    .select("public_ref");
-  console.log(JSON.stringify({ diag: "updateJob:done", atMs: Date.now(), keys: Object.keys(patch), matchedRows: Array.isArray(result.data) ? result.data.length : null, error: result.error?.message ?? null }));
-  if (result.error) throw new Error(`Unable to update render job: ${result.error.message}`);
-}
-
-async function loadJob(database: SupabaseClient, jobId: string): Promise<RenderJobRow | null> {
-  const result = await database
-    .from("render_jobs")
-    .select("public_ref, workspace_id, created_by, output_key, status, attempt_count, cancel_requested, runtime_json, runtime_manifest_text")
-    .eq("public_ref", jobId)
-    .maybeSingle();
-  if (result.error) throw new Error(`Unable to load render job: ${result.error.message}`);
-  return (result.data as RenderJobRow | null) ?? null;
-}
-
-async function claimJob(database: SupabaseClient, jobId: string, worker: string): Promise<RenderJobRow | null> {
-  const result = await database.rpc("render_job_claim", {
-    p_job_id: jobId,
-    p_worker_id: worker,
-    p_stale_after_seconds: Number(process.env.RENDER_JOB_STALE_AFTER_SECONDS ?? 1800),
+  const keys = Object.keys(patch);
+  if (keys.length === 0) return;
+  const values: unknown[] = [jobId, worker];
+  const assignments = keys.map((key) => {
+    const value = patch[key];
+    values.push(value !== null && typeof value === "object" ? JSON.stringify(value) : value);
+    const isJsonColumn = value !== null && typeof value === "object";
+    return `${key} = $${values.length}${isJsonColumn ? "::jsonb" : ""}`;
   });
-  if (result.error) throw new Error(`Unable to claim render job: ${result.error.message}`);
-  return (result.data as RenderJobRow | null) ?? null;
+  assignments.push("updated_at = now()");
+  const result = await database.query(
+    `update render_jobs set ${assignments.join(", ")} where public_ref = $1 and lease_owner = $2 returning public_ref`,
+    values,
+  );
+  console.log(JSON.stringify({ diag: "updateJob:done", atMs: Date.now(), keys, matchedRows: result.rowCount }));
+  if (result.rowCount === 0) throw new Error(`Unable to update render job ${jobId}: no row matched (lease no longer held by ${worker}?)`);
 }
 
-async function releaseLease(database: SupabaseClient, jobId: string, worker: string, status: "queued" | "done" | "failed" | "cancelled"): Promise<void> {
-  await database.from("render_jobs").update({
-    status,
-    stage: status === "queued" ? "queue-retry" : status,
-    lease_owner: null,
-    heartbeat_at: null,
-    finished_at: status === "queued" ? null : new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq("public_ref", jobId).eq("lease_owner", worker);
+export async function loadJob(database: Pool, jobId: string): Promise<RenderJobRow | null> {
+  const result = await database.query<RenderJobRow>(
+    `select ${RENDER_JOB_COLUMNS} from render_jobs where public_ref = $1`,
+    [jobId],
+  );
+  return result.rows[0] ?? null;
+}
+
+// Replaces the `render_job_claim` Postgres function with the identical
+// compare-and-swap logic inline: claimable only while not cancelled, not in
+// a terminal state, and either unleased or the existing lease is stale.
+export async function claimJob(database: Pool, jobId: string, worker: string): Promise<RenderJobRow | null> {
+  const staleAfterSeconds = Math.max(60, Number(process.env.RENDER_JOB_STALE_AFTER_SECONDS ?? 1800));
+  const result = await database.query<RenderJobRow>(
+    `update render_jobs
+        set lease_owner = $2,
+            heartbeat_at = now(),
+            attempt_count = attempt_count + 1,
+            status = case when status = 'queued' then 'planning' else status end,
+            stage = case when status = 'queued' then 'planning' else stage end,
+            updated_at = now()
+      where public_ref = $1
+        and cancel_requested = false
+        and status not in ('done', 'failed', 'cancelled')
+        and (lease_owner is null or heartbeat_at is null or heartbeat_at < now() - make_interval(secs => greatest($3, 60)))
+      returning ${RENDER_JOB_COLUMNS}`,
+    [jobId, worker, staleAfterSeconds],
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function releaseLease(database: Pool, jobId: string, worker: string, status: "queued" | "done" | "failed" | "cancelled"): Promise<void> {
+  await database.query(
+    `update render_jobs
+        set status = $3,
+            stage = case when $3 = 'queued' then 'queue-retry' else $3 end,
+            lease_owner = null,
+            heartbeat_at = null,
+            finished_at = case when $3 = 'queued' then null else now() end,
+            updated_at = now()
+      where public_ref = $1 and lease_owner = $2`,
+    [jobId, worker, status],
+  );
+}
+
+// Replaces the `render_job_touch_lease` Postgres function.
+export async function touchLease(database: Pool, jobId: string, worker: string): Promise<void> {
+  await database.query(
+    `update render_jobs
+        set heartbeat_at = now(), updated_at = now()
+      where public_ref = $1 and lease_owner = $2
+        and status not in ('done', 'failed', 'cancelled') and cancel_requested = false`,
+    [jobId, worker],
+  );
 }
 
 async function main(): Promise<void> {
   const jobId = requiredEnv("RENDER_JOB_ID");
   const worker = workerId();
   const database = createDatabase();
+  try {
+    await runJob(database, jobId, worker);
+  } finally {
+    await database.end();
+  }
+}
+
+async function runJob(database: Pool, jobId: string, worker: string): Promise<void> {
   const existing = await loadJob(database, jobId);
   if (!existing) throw new Error(`Render job not found: ${jobId}`);
   if (existing.status === "done" || existing.status === "cancelled") {
@@ -259,7 +308,7 @@ async function main(): Promise<void> {
   const outputPath = join(scratchDir, "render.mp4");
   await mkdir(dirname(outputPath), { recursive: true });
   const heartbeat = setInterval(() => {
-    void database.rpc("render_job_touch_lease", { p_job_id: jobId, p_worker_id: worker });
+    void touchLease(database, jobId, worker);
   }, 30_000);
   heartbeat.unref();
   let progressTail = Promise.resolve();
@@ -326,5 +375,9 @@ async function main(): Promise<void> {
   }
 }
 
-console.log(JSON.stringify({ marker: "render-job-started", atMs: Date.now() }));
-await main();
+// Guarded so this module can be imported (e.g. to test the DB layer's
+// exported functions directly) without also kicking off a real render.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  console.log(JSON.stringify({ marker: "render-job-started", atMs: Date.now() }));
+  await main();
+}
