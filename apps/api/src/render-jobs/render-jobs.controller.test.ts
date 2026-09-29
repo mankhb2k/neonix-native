@@ -6,15 +6,18 @@ import type { Queue } from "bullmq";
 import { eq, inArray } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CurrentUserGuard } from "../auth/current-user.guard";
 import { db } from "../db/client";
 import { DatabaseModule } from "../db/database.module";
 import { env } from "../env";
 import { projects } from "../db/schema/projects";
 import { renderJobs } from "../db/schema/render";
 import { ProjectsModule } from "../projects/projects.module";
+import { seedUserGuard } from "../test/seed-user-guard";
 import { RenderJobsModule } from "./render-jobs.module";
 
 const seedWorkspaceId = process.env.SEED_WORKSPACE_ID!;
+const seedUserId = process.env.SEED_USER_ID!;
 const createdProjectIds: string[] = [];
 let app: INestApplication;
 let queue: Queue;
@@ -42,7 +45,10 @@ beforeAll(async () => {
       RenderJobsModule,
       ProjectsModule,
     ],
-  }).compile();
+  })
+    .overrideGuard(CurrentUserGuard)
+    .useValue(seedUserGuard(seedUserId))
+    .compile();
   app = moduleRef.createNestApplication();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();

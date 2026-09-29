@@ -60,37 +60,41 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
   return {
     async listWorkspaces() {
       const rows = await workspaces.listForUser(userId);
-      return { workspaces: rows.map((w) => ({ id: w.id, name: w.name, role: w.role, created_at: w.createdAt.toISOString() })) };
+      return rows.map((w) => ({ id: w.id, name: w.name, role: w.role, created_at: w.createdAt.toISOString() }));
     },
 
     async listProjects(input) {
       if (!input.workspaceId) throw new ApiError(400, "workspaceId is required");
+      const workspace = await workspaces.getForMember(userId, input.workspaceId);
       const rows = await projectsService.list(userId, input.workspaceId);
       const limited = input.limit ? rows.slice(0, input.limit) : rows;
-      return { projects: limited.map(projectToJson) };
+      return {
+        workspace: { id: workspace.id, name: workspace.name, created_at: workspace.createdAt.toISOString() },
+        projects: limited.map(projectToJson),
+      };
     },
 
     async getProject(input) {
       const projectId = await resolveProjectId(db, input);
       const project = await projectsService.getForMember(userId, projectId);
-      return { project: projectToJson(project) };
+      return projectToJson(project);
     },
 
     async updateProject(input) {
       const projectId = await resolveProjectId(db, input);
       let project = input.title !== undefined ? await projectsService.update(userId, projectId, input.title) : await projectsService.getForMember(userId, projectId);
-      let revision: Awaited<ReturnType<ProjectsService["createRevision"]>> | undefined;
+      let revision: Awaited<ReturnType<ProjectsService["createRevision"]>> | null = null;
       if (input.document) {
         revision = await projectsService.createRevision(userId, projectId, input.document, "mcp:update_project");
         project = await projectsService.getForMember(userId, projectId);
       }
-      return { project: projectToJson(project), revision: revision ? revisionToJson(revision) : undefined };
+      return { project: projectToJson(project), revision: revision ? revisionToJson(revision) : null };
     },
 
     async deleteProject(input) {
       const projectId = await resolveProjectId(db, input);
-      const project = await projectsService.softDelete(userId, projectId);
-      return { project: projectToJson(project) };
+      await projectsService.softDelete(userId, projectId);
+      return { projectId, deleted: true };
     },
 
     async getProjectJson(input) {
@@ -123,12 +127,12 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
 
     async completeAssetUpload(input) {
       const asset = await assetsService.completeUpload(userId, input.assetId);
-      return { asset: assetToJson(asset) };
+      return { asset: assetToJson(asset), alreadyCompleted: false };
     },
 
     async deleteAsset(input) {
       const asset = await assetsService.softDelete(userId, input.assetId);
-      return { asset: assetToJson(asset) };
+      return { assetId: asset.id, deleted: true, deletion: assetToJson(asset) };
     },
 
     async createExport(input) {
@@ -141,13 +145,13 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
         revisionId: revision?.id,
         idempotencyKey: input.idempotencyKey,
       });
-      return { job: await renderJobToExportJson(db, renderJob!), idempotent };
+      return { export: await renderJobToExportJson(db, renderJob!), created: !idempotent };
     },
 
     async getExport(input) {
       const id = await resolveRenderJobId(db, input.jobId);
       const job = await renderJobsService.getForMember(userId, id);
-      return { job: await renderJobToExportJson(db, job) };
+      return { export: await renderJobToExportJson(db, job) };
     },
 
     async getExportDownloadUrl() {
@@ -157,17 +161,19 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
     async cancelExport(input) {
       const id = await resolveRenderJobId(db, input.jobId);
       const job = await renderJobsService.cancel(userId, id);
-      return { job: await renderJobToExportJson(db, job) };
+      return { export: await renderJobToExportJson(db, job) };
     },
 
     async openEditor(input) {
       const projectId = await resolveProjectId(db, input);
-      return { url: `${webAppUrl}/dashboard/editor/${projectId}` };
+      const project = await projectsService.getForMember(userId, projectId);
+      return { project_id: project.id, public_ref: project.publicRef, editor_url: `${webAppUrl}/dashboard/editor/${projectId}` };
     },
 
     async openPreview(input) {
       const projectId = await resolveProjectId(db, input);
-      return { url: `${webAppUrl}/dashboard/editor/${projectId}?panel=preview` };
+      const project = await projectsService.getForMember(userId, projectId);
+      return { project_id: project.id, public_ref: project.publicRef, preview_url: `${webAppUrl}/dashboard/editor/${projectId}?panel=preview` };
     },
 
     async createProjectHtml() {

@@ -1,35 +1,38 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { spawn } from "node:child_process";
-import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import { mkdir, stat } from "node:fs/promises";
+import { dirname } from "node:path";
+import { spawn, type ChildProcess } from "node:child_process";
+import { evaluateRuntimeProjectV3, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { ExportRendererError } from "../errors";
 import type { FrameRange } from "./frame-range-scheduler";
 import type { ExportRenderOptions, ExportRenderStats } from "./types";
+import { encodeEndOfStream, encodeFrame, encodeProtocolHeader } from "./native-protocol";
 
-type NativeCommandBenchmarkResult = {
+type NativeBackendMetrics = {
+  ok?: boolean;
   actualBackend?: string;
   frames?: number;
-  durationSeconds?: number;
-  outputBytes?: number;
   timingsMs?: Record<string, number>;
-  nativeMetrics?: {
-    timingsMs?: Record<string, number>;
-  };
 };
 
 function nativeCommandStats(
   project: RuntimeProjectV3,
   outputPath: string,
+  outputBytes: number,
+  evaluateMilliseconds: number,
   range: FrameRange,
-  result: NativeCommandBenchmarkResult,
+  result: NativeBackendMetrics,
 ): ExportRenderStats {
-  const timings = result.timingsMs ?? result.nativeMetrics?.timingsMs ?? {};
+  // These key names (render/composite/readback/encode/mux/finalize) come
+  // straight off the native binary's own stderr JSON (see the final
+  // std::fprintf in native/main.cpp's main()) — no wrapper
+  // process renames them anymore.
+  const timings = result.timingsMs ?? {};
   const fps = project.visual.composition.fps;
   const frames = Number(result.frames ?? (range.endFrameExclusive - range.startFrame));
-  const durationSeconds = Number(result.durationSeconds ?? (frames / fps));
-  const renderMilliseconds = Number(timings.nativeRender ?? 0)
-    + Number(timings.nativeComposite ?? 0)
-    + Number(timings.nativeReadback ?? 0);
+  const durationSeconds = frames / fps;
+  const renderMilliseconds = Number(timings.render ?? 0)
+    + Number(timings.composite ?? 0)
+    + Number(timings.readback ?? 0);
   const encodeMilliseconds = Number(timings.encode ?? 0)
     + Number(timings.mux ?? 0)
     + Number(timings.finalize ?? 0);
@@ -47,7 +50,7 @@ function nativeCommandStats(
     frames,
     durationSeconds,
     outputPath,
-    outputBytes: Number(result.outputBytes ?? 0),
+    outputBytes,
     renderMilliseconds,
     encodeMilliseconds,
     encodeBreakdown: {
@@ -57,12 +60,12 @@ function nativeCommandStats(
       finalizeMilliseconds: Number(timings.finalize ?? 0),
     },
     renderBreakdown: {
-      evaluateMilliseconds: Number(timings.evaluate ?? 0),
+      evaluateMilliseconds,
       assetMilliseconds: 0,
       paintAndReadbackMilliseconds: renderMilliseconds,
-      replayMilliseconds: Number(timings.nativeRender ?? 0),
-      flushMilliseconds: Number(timings.nativeComposite ?? 0),
-      readbackMilliseconds: Number(timings.nativeReadback ?? 0),
+      replayMilliseconds: Number(timings.render ?? 0),
+      flushMilliseconds: Number(timings.composite ?? 0),
+      readbackMilliseconds: Number(timings.readback ?? 0),
       drawCalls: 0,
       textMilliseconds: 0,
       layerMilliseconds: 0,
@@ -115,71 +118,99 @@ export async function renderNativeCommandBuffer(
 
   const outputPath = options.outputPath;
   await mkdir(dirname(outputPath), { recursive: true });
-  const runtimePath = join(dirname(outputPath), `.runtime-native-${process.pid}-${Date.now()}.json`);
-  await writeFile(runtimePath, `${JSON.stringify(project)}\n`, "utf8");
-  // Production images bundle this entrypoint to plain JS (no pnpm/tsx at
-  // runtime); NATIVE_COMMAND_BUNDLE_PATH points at it when present. Local
-  // dev has no bundle, so it falls back to the pnpm+tsx invocation.
-  const bundlePath = process.env.NATIVE_COMMAND_BUNDLE_PATH?.trim();
-  const command = bundlePath ? process.execPath : (process.env.PNPM_PATH?.trim() || (process.platform === "win32" ? "pnpm.cmd" : "pnpm"));
-  const args = bundlePath
-    ? [bundlePath]
-    : ["--filter", "@motionvideo/render-native", "exec", "tsx", "src/benchmark-native-skia-command-cpu.ts"];
-  const fps = project.visual.composition.fps;
   const frameCount = range.endFrameExclusive - range.startFrame;
-  const durationSeconds = frameCount / fps;
-  const childEnvironment = {
-    ...process.env,
-    BENCHMARK_RUNTIME_JSON_PATH: runtimePath,
-    BENCHMARK_MODE: "in-process",
-    BENCHMARK_OUTPUT: outputPath,
-    BENCHMARK_DURATION_SECONDS: String(durationSeconds),
-    BENCHMARK_FRAMES: String(frameCount),
-    BENCHMARK_START_FRAME: String(range.startFrame),
-    BENCHMARK_END_FRAME: String(range.endFrameExclusive),
-    BENCHMARK_PROTOCOL_BATCH_FRAMES: "1",
-    BENCHMARK_PROTOCOL_TRANSPORT: "pipe",
-    BENCHMARK_COLOR_CONVERTER: "libyuv",
-    BENCHMARK_SURFACE_MODE: "direct-raster",
-    BENCHMARK_KEEP_RAW: "false",
-  };
-  const stdout: string[] = [];
-  const stderr: string[] = [];
+
+  // Talks to `native/main.cpp` (backed by protocol.cpp/paint.cpp/effects.cpp/
+  // encoder.cpp) directly over stdin/stderr
+  // (the `NXSKIA02` protocol from ./native-protocol) instead of shelling out
+  // to a second Node process (the old path spawned the bundled benchmark
+  // script, which re-encoded the project from a temp JSON file and then
+  // spawned this same binary itself) — one process hop and one temp-file
+  // round trip removed from every export.
+  const nativeBinary = process.env.NATIVE_SKIA_BINARY?.trim() || "/usr/local/bin/neonix-skia-command-cpu-backend";
+  const nativeEnvironment: NodeJS.ProcessEnv = { ...process.env };
+  const nativeLibraryPath = process.env.BENCHMARK_NATIVE_LD_LIBRARY_PATH?.trim();
+  if (nativeLibraryPath) {
+    nativeEnvironment.LD_LIBRARY_PATH = [nativeLibraryPath, process.env.LD_LIBRARY_PATH].filter(Boolean).join(":");
+  }
+  const child = spawn(nativeBinary, [
+    "--no-raw", "--in-process", "--output", outputPath,
+    "--converter", "libyuv", "--surface-mode", "direct-raster",
+  ], {
+    cwd: process.env.RENDERER_WORKDIR?.trim() || process.cwd(),
+    env: nativeEnvironment,
+    stdio: ["pipe", "ignore", "pipe"],
+  });
+
+  let stderr = "";
+  child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+  // If the native process dies mid-write, the next stdin write fails with
+  // EPIPE. A Writable's unhandled 'error' event crashes the whole Node
+  // process (bypassing every try/catch, including this function's own),
+  // so this listener turns it into an ordinary, catchable failure instead.
+  let stdinError: Error | undefined;
+  child.stdin?.on("error", (error: Error) => { stdinError = error; });
+  const exitCode = waitForExit(child);
+
   options.onProgress?.({ stage: "rendering", completedFrames: 0, totalFrames: frameCount });
   try {
-    const result = await new Promise<{ code: number; stdout: string; stderr: string }>((resolveProcess, reject) => {
-      const child = spawn(command, args, {
-        cwd: process.env.RENDERER_WORKDIR?.trim() || process.cwd(),
-        env: childEnvironment,
-        stdio: ["ignore", "pipe", "pipe"],
-        // Windows exposes pnpm as a .cmd shim, which Node 24 cannot spawn
-        // directly without a shell. Cloud Run/Linux keeps the direct path.
-        shell: process.platform === "win32",
-      });
-      child.stdout.on("data", (chunk: Buffer) => { stdout.push(chunk.toString()); });
-      child.stderr.on("data", (chunk: Buffer) => { stderr.push(chunk.toString()); });
-      child.once("error", reject);
-      child.once("close", (code) => resolveProcess({ code: code ?? 1, stdout: stdout.join(""), stderr: stderr.join("") }));
-    });
-    if (result.code !== 0) {
+    await writeToNativeStdin(child, stdinError, encodeProtocolHeader(
+      project.visual.composition.width,
+      project.visual.composition.height,
+      frameCount,
+    ));
+    let evaluateMilliseconds = 0;
+    for (let frame = range.startFrame; frame < range.endFrameExclusive; frame += 1) {
+      if (options.signal?.aborted) throw new ExportRendererError("Render was cancelled.", "CANCELLED");
+      const evaluateStarted = performance.now();
+      const evaluated = evaluateRuntimeProjectV3(project, frame);
+      evaluateMilliseconds += performance.now() - evaluateStarted;
+      await writeToNativeStdin(child, stdinError, encodeFrame(frame, evaluated));
+    }
+    await writeToNativeStdin(child, stdinError, encodeEndOfStream());
+    if (!stdinError) child.stdin?.end();
+
+    const code = await exitCode;
+    if (code !== 0 || stdinError) {
       throw new ExportRendererError(
-        `Native Skia renderer exited with ${result.code}: ${result.stderr.slice(-4000) || result.stdout.slice(-4000)}`,
+        `Native Skia renderer exited with ${code}: ${stdinError?.message ?? stderr.slice(-4000)}`,
         "OUTPUT_FAILED",
       );
     }
-    const metricLine = [...result.stderr.matchAll(/BENCHMARK_RESULT\s+(\{.*\})/g)].at(-1)?.[1]
-      ?? result.stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
+    const metricLine = stderr.trim().split(/\r?\n/).filter(Boolean).at(-1);
     if (!metricLine) throw new ExportRendererError("Native Skia renderer returned no metrics.", "OUTPUT_FAILED");
-    let metrics: NativeCommandBenchmarkResult;
+    let metrics: NativeBackendMetrics;
     try {
-      metrics = JSON.parse(metricLine) as NativeCommandBenchmarkResult;
+      metrics = JSON.parse(metricLine) as NativeBackendMetrics;
     } catch {
       throw new ExportRendererError(`Native Skia renderer returned invalid metrics: ${metricLine.slice(0, 1000)}`, "OUTPUT_FAILED");
     }
+    if (!metrics.ok) throw new ExportRendererError(`Native Skia renderer reported failure: ${metricLine.slice(0, 1000)}`, "OUTPUT_FAILED");
     options.onProgress?.({ stage: "rendering", completedFrames: frameCount, totalFrames: frameCount });
     options.onProgress?.({ stage: "encoding", completedFrames: frameCount, totalFrames: frameCount });
-    return nativeCommandStats(project, outputPath, range, metrics);
+    const outputStats = await stat(outputPath);
+    return nativeCommandStats(project, outputPath, outputStats.size, evaluateMilliseconds, range, metrics);
   } finally {
-    await rm(runtimePath, { force: true }).catch(() => undefined);
+    if (child.exitCode === null && !child.killed) child.kill();
   }
+}
+
+function waitForExit(child: ChildProcess): Promise<number> {
+  return new Promise((resolveExit, reject) => {
+    child.once("error", (error) => reject(new Error(`Native Skia renderer failed to start: ${String(error)}`)));
+    child.once("close", (code) => resolveExit(code ?? 1));
+  });
+}
+
+async function writeToNativeStdin(child: ChildProcess, stdinError: Error | undefined, value: Buffer): Promise<void> {
+  if (stdinError) throw new ExportRendererError(`Native Skia renderer closed its input: ${stdinError.message}`, "OUTPUT_FAILED");
+  const stdin = child.stdin;
+  if (!stdin) throw new ExportRendererError("Native Skia renderer stdin is unavailable.", "OUTPUT_FAILED");
+  if (stdin.write(value)) return;
+  await new Promise<void>((resolveDrain, reject) => {
+    const onDrain = () => { stdin.off("error", onError); resolveDrain(); };
+    const onError = (error: Error) => { stdin.off("drain", onDrain); reject(error); };
+    stdin.once("drain", onDrain);
+    stdin.once("error", onError);
+  });
 }

@@ -8,13 +8,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
-    "./remote": "./src/remote.ts",
+    "./remote": "./dist/remote.js",
     "./guidance": "./src/guidance.ts",
     "./annotations": "./src/annotations.ts",
     "./output-schemas": "./src/output-schemas.ts",
     "./video-preview-ui": "./src/video-preview-ui.ts"
   },
   "scripts": {
+    "build": "node scripts/build-remote-cjs.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src -c ../../eslint.package.mjs --max-warnings 0"
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@motionvideo/motion-runtime": "workspace:*",
     "@types/node": "^22.13.10",
+    "esbuild": "^0.28.1",
     "typescript": "^5.8.2",
     "vitest": "^4.1.10"
   }

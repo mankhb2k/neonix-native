@@ -4,6 +4,7 @@ import { Test } from "@nestjs/testing";
 import { inArray } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CurrentUserGuard } from "../auth/current-user.guard";
 import { db } from "../db/client";
 import { DatabaseModule } from "../db/database.module";
 import { assets } from "../db/schema/assets";
@@ -12,9 +13,11 @@ import { projects } from "../db/schema/projects";
 import { R2Service } from "../r2/r2.service";
 import { AssetsModule } from "../assets/assets.module";
 import { ProjectsModule } from "../projects/projects.module";
+import { seedUserGuard } from "../test/seed-user-guard";
 import { FontsModule } from "./fonts.module";
 
 const seedWorkspaceId = process.env.SEED_WORKSPACE_ID!;
+const seedUserId = process.env.SEED_USER_ID!;
 const createdFamilyIds: string[] = [];
 const createdAssetIds: string[] = [];
 const createdProjectIds: string[] = [];
@@ -25,7 +28,10 @@ let r2: R2Service;
 beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, FontsModule, AssetsModule, ProjectsModule],
-  }).compile();
+  })
+    .overrideGuard(CurrentUserGuard)
+    .useValue(seedUserGuard(seedUserId))
+    .compile();
   app = moduleRef.createNestApplication();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();

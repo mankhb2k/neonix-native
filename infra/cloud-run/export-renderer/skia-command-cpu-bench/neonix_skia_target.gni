@@ -6,7 +6,18 @@
 # Dockerfiles and referenced source files this production image never copies
 # in — keep this file limited to what this Dockerfile actually builds.
 test_app("neonix_skia_command_cpu_backend_libyuv") {
-  sources = [ "neonix/skia_command_cpu_backend.cpp" ]
+  sources = [
+    "neonix/util.h",
+    "neonix/protocol.h",
+    "neonix/protocol.cpp",
+    "neonix/paint.h",
+    "neonix/paint.cpp",
+    "neonix/effects.h",
+    "neonix/effects.cpp",
+    "neonix/encoder.h",
+    "neonix/encoder.cpp",
+    "neonix/main.cpp",
+  ]
   deps = [ ":skia" ]
   defines = [ "NEONIX_ENABLE_LIBYUV", "NEONIX_LIBYUV_ONLY" ]
   include_dirs = [ "/opt/libyuv-install/include" ]

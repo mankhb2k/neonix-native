@@ -495,11 +495,12 @@ flowchart TD
     subgraph RENDER["Playback & Render"]
         playback-engine["playback-engine"]
         canvaskit-preview["canvaskit-preview<br/>(UI preview only)"]
-        render-native["render-native<br/>(native → MP4)"]
+        render-native["render-native<br/>(pure render → local MP4, no DB/queue)"]
     end
 
     subgraph APP["Host"]
         web["apps/web"]
+        render-worker["render-worker<br/>(Cloud Run Job entrypoint:<br/>claim/lease/publish + render-native)"]
     end
 
     editor-core --> motion-protocol
@@ -527,6 +528,7 @@ flowchart TD
     web --> playback-engine
     web --> canvaskit-preview
     web --> render-native
+    render-worker --> render-native
 
     motion-mcp -. "computeProjectHash / computeRuntimeHash<br/>(ngoại lệ được cho phép)" .-> render-native
 
@@ -546,6 +548,23 @@ toàn (`preview-renderer` bị "retire" ở commit xoá `render-native`'s
 `canvaskit-preview` dependency) — không xuất hiện trong `pnpm-workspace`
 hay bất kỳ `package.json` nào nữa; chỉ còn `node_modules` rác trên đĩa.
 
+`@motionvideo/render-worker` (mới tách ra khỏi `render-native`) là entrypoint
+Cloud Run **Job** thật (`render-job.ts`, build/deploy qua
+`infra/cloud-run/export-renderer`) — nó sở hữu toàn bộ phần "orchestration"
+trước đây nằm lẫn trong `render-native`: claim/lease job qua Postgres/Neon
+(CAS trên `render_jobs`), ghi progress, publish artifact lên R2. `render-native`
+sau khi tách chỉ còn đúng một việc: nhận `RuntimeProjectV3` + output path, chạy
+Skia/FFmpeg native, verify kết quả (`verifyRenderOutput`, ffprobe), trả về —
+không biết gì về Postgres, BullMQ hay vòng đời job. Lý do tách: trước đây
+`render-job.ts` (nằm trong `render-native`) tự query/update `render_jobs` bằng
+`pg.Pool` thô, trong khi `apps/api` cũng có `RenderJobsService`/BullMQ quản lý
+CHÍNH bảng đó — hai nơi độc lập cùng ghi một bảng là nguồn sinh race
+condition/bug khó soi. `render-chunk-job.ts`/`render-finalizer-job.ts`/
+`api/server.ts` (control-plane dispatcher) **chưa** được tách theo cùng cách —
+đây là việc còn lại (`render-chunk-job`/`render-finalizer-job` còn dùng
+Supabase cũ và tính năng chunk-render vẫn tắt bằng feature flag
+`RENDER_CHUNK_EXECUTION_ENABLED=false` ở mọi môi trường).
+
 ## Phân loại packages
 
 | Package | Phân loại | Trách nhiệm chính | Không sở hữu |
@@ -561,7 +580,8 @@ hay bất kỳ `package.json` nào nữa; chỉ còn `node_modules` rác trên �
 | `@motionvideo/editor-runtime` | Editor runtime session | Cache compile theo document generation, canonical layer sampling và frame evaluation cho editor | React, DOM, transport clock, renderer |
 | `@motionvideo/playback-engine` | Realtime transport | Clock, play/pause/seek/rate, readiness, scheduling và backend plan delivery | Document editing, timeline UI, pixels |
 | `@motionvideo/canvaskit-preview` | Browser preview backend | Replay PaintCommandBuffer bằng CanvasKit/Skia lên Canvas (UI preview only, không phải export) | Protocol parsing, compiler, timeline, playback clock |
-| `@motionvideo/render-native` | Offline renderer | Runtime frame/audio → native output và FFmpeg MP4 | Authoring semantics, Playback |
+| `@motionvideo/render-native` | Offline renderer (pure) | Runtime frame/audio → native output, FFmpeg MP4, verify chính output của mình (ffprobe) | Postgres/queue/job-lifecycle, R2 publish, Authoring semantics, Playback |
+| `@motionvideo/render-worker` | Cloud Run Job orchestration | Claim/lease `render_jobs` (Neon), progress, publish artifact lên R2, gọi `render-native` để render | Rendering thật (Skia/FFmpeg), UI, authoring semantics |
 | `apps/web` | Host/adapters | React, DOM, Canvas, stores, persistence, resource lifecycle và API bridge | Reimplementing command, compile/evaluate, duration, transport, renderer semantics |
 | `apps/web` `/docs/preview/skia` | Deterministic debug host | Gọi trực tiếp Compiler → Runtime → Skia với frame/time cố định | Realtime transport/playhead |
 
@@ -929,6 +949,16 @@ Chi tiết về CanvasKit/Skia resources và lifecycle được mô tả trong
 ##### Vai trò
 
 Export Renderer render project offline bằng native backend và tạo output video.
+
+Về mặt package: "Export Renderer" trong mục này là một **vai trò logic**, chia
+làm hai package từ khi tách (xem "Phân loại packages"): `@motionvideo/render-native`
+sở hữu mọi bước ở dưới TRỪ bước 11 (preflight, scheduler, native rendering,
+audio pipeline, verify output) — nó nhận `RuntimeProjectV3` + output path, trả
+về file MP4 đã verify, không tự claim job hay ghi gì vào `render_jobs`.
+`@motionvideo/render-worker` là Cloud Run Job entrypoint thật sự chạy trong
+production: claim/lease job (Neon), gọi `render-native`, rồi publish artifact
+lên R2 và ghi progress/metrics ngược lại `render_jobs` (bước 11) — đây là ranh
+giới duy nhất giữa hai package.
 
 ##### Luồng dữ liệu
 

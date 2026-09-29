@@ -3,9 +3,11 @@ import { Test } from "@nestjs/testing";
 import { eq } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CurrentUserGuard } from "../auth/current-user.guard";
 import { db } from "../db/client";
 import { DatabaseModule } from "../db/database.module";
 import { accountPlans } from "../db/schema/identity";
+import { seedUserGuard } from "../test/seed-user-guard";
 import { ProjectsModule } from "./projects.module";
 
 const seedWorkspaceId = process.env.SEED_WORKSPACE_ID!;
@@ -14,7 +16,10 @@ const createdProjectIds: string[] = [];
 let app: INestApplication;
 
 beforeAll(async () => {
-  const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, ProjectsModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, ProjectsModule] })
+    .overrideGuard(CurrentUserGuard)
+    .useValue(seedUserGuard(seedUserId))
+    .compile();
   app = moduleRef.createNestApplication();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();

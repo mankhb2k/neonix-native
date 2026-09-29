@@ -1,9 +1,8 @@
-import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, rm, stat } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import {
@@ -14,16 +13,21 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
-import { renderRuntimeProjectV3 } from "./render/render";
+import { renderRuntimeProjectV3, verifyRenderOutput } from "@motionvideo/render-native";
 
-// Ported off @supabase/supabase-js onto plain `pg` against Neon - this is the
-// only file in this package that talks to the database on the production
-// (non-chunked) render path. render-chunk-job.ts/render-finalizer-job.ts/
-// runtime-manifest.ts still use Supabase deliberately: that chunked-render
-// feature is confirmed unshipped/unused in every environment
-// (RENDER_CHUNK_EXECUTION_ENABLED is false everywhere), so it isn't part of
-// this port - @supabase/supabase-js stays a dependency of this package only
-// for those dead files.
+// The Cloud Run Job entrypoint for the (non-chunked) render pipeline. Owns
+// everything that isn't "render a manifest to an MP4": claiming/leasing the
+// render_jobs row, writing progress, publishing the artifact to R2. Actual
+// rendering (and verifying the render's own output) is delegated to
+// @motionvideo/render-native, which knows nothing about Postgres, queues, or
+// job records - see that package's own README for why this split exists
+// (render-native was doing all three jobs at once before this refactor).
+//
+// Ported off @supabase/supabase-js onto plain `pg` against Neon - render-
+// worker's OTHER entrypoints (render-chunk-job, render-finalizer-job) still
+// use Supabase deliberately: that chunked-render feature is confirmed
+// unshipped/unused in every environment (RENDER_CHUNK_EXECUTION_ENABLED is
+// false everywhere), so porting it wasn't part of this move.
 
 type RenderJobRow = {
   id: string;
@@ -42,15 +46,6 @@ const RENDER_JOB_COLUMNS = "id, public_ref, workspace_id, created_by, output_key
 function parseRuntimeManifest(row: RenderJobRow): RuntimeProjectV3 | null {
   return row.runtime_json;
 }
-
-type VerifiedOutput = {
-  bytes: number;
-  checksum: string;
-  frames: number;
-  durationSeconds: number;
-  codec: string;
-  audioStreams: number;
-};
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -78,61 +73,6 @@ function safeObjectKey(value: string): string {
 
 function outputKeyFor(job: RenderJobRow): string {
   return safeObjectKey(job.output_key ?? `${job.created_by}/${job.public_ref}.mp4`);
-}
-
-function runProcess(command: string, args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolveProcess, reject) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-    child.once("error", reject);
-    child.once("close", (code) => resolveProcess({ code: code ?? 1, stdout, stderr }));
-  });
-}
-
-async function checksumFile(filePath: string): Promise<string> {
-  const hash = createHash("sha256");
-  await new Promise<void>((resolveHash, reject) => {
-    const stream = createReadStream(filePath);
-    stream.on("data", (chunk: string | Buffer) => hash.update(chunk));
-    stream.once("error", reject);
-    stream.once("end", () => resolveHash());
-  });
-  return hash.digest("hex");
-}
-
-async function verifyOutput(filePath: string, expectedFrames: number, expectedAudio: boolean): Promise<VerifiedOutput> {
-  const probe = await runProcess(process.env.FFPROBE_PATH?.trim() || "ffprobe", [
-    "-v", "error",
-    "-count_frames",
-    "-show_entries", "stream=codec_type,codec_name,nb_read_frames,duration:format=duration",
-    "-of", "json",
-    filePath,
-  ]);
-  if (probe.code !== 0) throw new Error(`ffprobe verification failed: ${probe.stderr.trim()}`);
-  const parsed = JSON.parse(probe.stdout) as {
-    streams?: Array<{ codec_type?: string; codec_name?: string; nb_read_frames?: string; duration?: string }>;
-    format?: { duration?: string };
-  };
-  const video = parsed.streams?.find((stream) => stream.codec_type === "video");
-  const audio = parsed.streams?.filter((stream) => stream.codec_type === "audio") ?? [];
-  const frames = Number(video?.nb_read_frames ?? 0);
-  const durationSeconds = Number(parsed.format?.duration ?? 0);
-  const details = await stat(filePath);
-  if (!video?.codec_name || frames !== expectedFrames || !Number.isFinite(durationSeconds) || durationSeconds <= 0
-    || (expectedAudio && audio.length === 0)) {
-    throw new Error(`render output verification mismatch: frames=${frames}/${expectedFrames} duration=${durationSeconds} audio=${audio.length}`);
-  }
-  return {
-    bytes: details.size,
-    checksum: await checksumFile(filePath),
-    frames,
-    durationSeconds,
-    codec: video.codec_name,
-    audioStreams: audio.length,
-  };
 }
 
 function createR2Client(): { client: S3Client; bucket: string } {
@@ -333,7 +273,7 @@ async function runJob(database: Pool, jobId: string, worker: string): Promise<vo
     });
     await progressTail;
     await updateJob(database, jobId, worker, { status: "publishing", stage: "publishing", progress: 0.94 });
-    const verified = await verifyOutput(outputPath, expectedFrames, expectedAudio);
+    const verified = await verifyRenderOutput(outputPath, expectedFrames, expectedAudio);
     const published = await publishArtifact(outputPath, outputKeyFor(job));
     await updateJob(database, jobId, worker, {
       status: "done",

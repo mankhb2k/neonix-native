@@ -3,16 +3,22 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CurrentUserGuard } from "../auth/current-user.guard";
 import { DatabaseModule } from "../db/database.module";
+import { seedUserGuard } from "../test/seed-user-guard";
 import { WorkspacesModule } from "./workspaces.module";
 
 const seedWorkspaceId = process.env.SEED_WORKSPACE_ID!;
+const seedUserId = process.env.SEED_USER_ID!;
 let app: INestApplication;
 
 beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, WorkspacesModule],
-  }).compile();
+  })
+    .overrideGuard(CurrentUserGuard)
+    .useValue(seedUserGuard(seedUserId))
+    .compile();
   app = moduleRef.createNestApplication();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();

@@ -1,0 +1,4 @@
+{
+  "main": "../dist/remote.js",
+  "types": "../dist/remote.d.ts"
+}

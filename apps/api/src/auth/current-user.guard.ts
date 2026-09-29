@@ -1,6 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { fromNodeHeaders } from "better-auth/node";
 import type { Request } from "express";
 import { ApiError } from "../common/api-error";
+import { auth } from "./auth";
 
 declare module "express" {
   interface Request {
@@ -8,17 +10,13 @@ declare module "express" {
   }
 }
 
-// TODO(auth): replace with a real Better Auth session guard once OAuth
-// cutover happens (see project memory: routes are being built and tested
-// against a seed account first, auth wiring comes after). Every request is
-// currently treated as already authenticated as SEED_USER_ID.
 @Injectable()
 export class CurrentUserGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
-    const userId = process.env.SEED_USER_ID?.trim();
-    if (!userId) throw new ApiError(500, "SEED_USER_ID is not configured");
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    request.userId = userId;
+    const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+    if (!session) throw new ApiError(401, "Not authenticated");
+    request.userId = session.user.id;
     return true;
   }
 }

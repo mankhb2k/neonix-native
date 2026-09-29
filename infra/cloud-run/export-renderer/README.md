@@ -20,25 +20,36 @@
   `packages/skia-renderer/native/skia_gpu_backend.cpp` — git history still has
   them if needed.
 
-The production shape uses one immutable export-renderer image in three Cloud
-Run roles:
+The production shape is now **two separate images**, split along the
+render-native (pure render) / render-worker (job orchestration) / control-plane
+package boundary (see `ARCHITECHTURE.md`'s package table for the full
+reasoning):
 
-- Service: authenticated health/control-plane surface on port `8080`.
-- Job: one `render:job` task per render, with concurrency/parallelism `1` in
-  the initial correctness baseline.
-- Chunk Job: bounded indexed tasks (`taskCount` per job, configured
-  `parallelism`) that render video-only frame ranges.
-- Finalizer Job: one task that verifies all chunks, concatenates/remuxes once,
-  verifies the final MP4 and publishes it to R2.
+- **Job** (`neonix-render-job`) — built from this directory's
+  `skia-command-cpu-bench/Dockerfile`, entrypoint is
+  `packages/render-worker/src/render-job.ts` (bundled to `dist/render-job.js`).
+  One task per render, concurrency/parallelism `1`.
+- **Service** (`neonix-export-renderer`, the control plane) — built from
+  `../export-renderer-control-plane/Dockerfile`, a separate, much smaller image with no Skia/FFmpeg
+  build stage. Its own `deploy.ps1` lives in that directory.
 
-Every Job receives only `RENDER_JOB_ID` (Cloud Run supplies the indexed task
-index for the Chunk Job). Workers claim their lease through Supabase, read the
-immutable `render_jobs.runtime_json`/chunk manifest, render to
-`/tmp/neonix-export`, verify frame/audio topology with `ffprobe`, upload to R2
-using a temporary key, verify the final key, update Supabase, and exit. The
-queue message remains only a wake-up signal containing `job_id`; Supabase is
-the source of truth and R2 stores bytes only.
-The final MP4 is never treated as a container-local artifact.
+Each image is built and deployed independently now (`deploy.ps1` here only
+builds/deploys the Job); there is no longer one shared image serving both
+roles.
+
+The Job claims its lease through **Neon** (`DATABASE_URL`, plain `pg`, not
+Supabase - see `packages/render-worker`), reads the immutable
+`render_jobs.runtime_json`, renders to `/tmp/neonix-export`, verifies
+frame/audio topology with `ffprobe` (`render-native`'s `verifyRenderOutput`),
+uploads to R2 using a temporary key, verifies the final key, updates the row,
+and exits. The final MP4 is never treated as a container-local artifact.
+
+The previously-planned distributed chunk-render feature (Chunk Job, Finalizer
+Job, per-chunk R2 publication) has been deleted outright, not just disabled -
+it was gated behind `RENDER_CHUNK_EXECUTION_ENABLED=false` in every
+environment and never shipped. `render-chunk-job.ts`/`render-finalizer-job.ts`/
+`runtime-manifest.ts`/`chunk-manifest.ts`/`retry-policy.ts` are gone; git
+history has them if this is ever revisited.
 
 ## Build and publish
 
@@ -70,11 +81,11 @@ Cloud Run smoke evidence are recorded in
 
 The default `deploy.ps1` build must use
 `infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile`, and the
-production `render:job`, chunk worker, and finalizer all invoke the same native
-export adapter. Do not set `RENDER_BACKEND` to select another renderer; there
-is no CanvasKit export fallback. Audio/video/image/effect manifests that are
-not yet supported by the native command protocol fail explicitly and remain
-outside the production acceptance set until parity is implemented.
+production render job invokes the native export adapter. Do not set
+`RENDER_BACKEND` to select another renderer; there is no CanvasKit export
+fallback. Audio/video/image/effect manifests that are not yet supported by the
+native command protocol fail explicitly and remain outside the production
+acceptance set until parity is implemented.
 
 The native sandbox Job must use the native image and the same runtime secrets as
 the normal worker, but must have a distinct Job name. This keeps a failed
@@ -85,13 +96,13 @@ gcloud run jobs create neonix-render-native-e2e `
   --image <native-image-digest> `
   --region asia-southeast1 `
   --tasks 1 --parallelism 1 --cpu 4 --memory 16Gi `
-  --set-secrets NEXT_PUBLIC_SUPABASE_URL=neonix-supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=neonix-supabase-service-role:latest,R2_ACCOUNT_ID=neonix-r2-account-id:latest,R2_ACCESS_KEY_ID=neonix-r2-access-key:latest,R2_SECRET_ACCESS_KEY=neonix-r2-secret-key:latest
+  --set-secrets DATABASE_URL=neonix-database-url:latest,R2_ACCOUNT_ID=neonix-r2-account-id:latest,R2_ACCESS_KEY_ID=neonix-r2-access-key:latest,R2_SECRET_ACCESS_KEY=neonix-r2-secret-key:latest
 
 gcloud run jobs execute neonix-render-native-e2e `
   --region asia-southeast1 --update-env-vars RENDER_JOB_ID=<job-id>
 ```
 
-The `<job-id>` must already exist in Supabase with an inline
+The `<job-id>` must already exist in Neon's `render_jobs` table with an inline
 `runtime_json` for the 5-second visual-only fixture. The worker claims that
 row, renders the MP4 with native Skia/libyuv/in-process FFmpeg, verifies it,
 publishes it to R2, and updates the row. API/MCP creation and queue wake-up
@@ -117,48 +128,42 @@ only MP4 source of truth.
 
 The Job needs these values at runtime and they must come from Secret Manager:
 
-`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `R2_ACCOUNT_ID`,
-`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and either
-`R2_USER_EXPORTS_BUCKET` or `R2_BUCKET`.
+`DATABASE_URL` (Neon), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, and either `R2_USER_EXPORTS_BUCKET` or `R2_BUCKET`.
 
-The control-plane Service additionally needs `INTERNAL_WORKER_TOKEN` to accept
-Job submissions from the queue worker.
+The control-plane Service (deployed separately, see `../export-renderer-control-plane/`) needs
+`INTERNAL_WORKER_TOKEN` to accept requests from `apps/api`.
 
 The Cloud Run runtime service account should have only
-`roles/secretmanager.secretAccessor` on these secrets. R2 permissions are
-controlled by the scoped R2 API token, not by Google IAM.
+`roles/secretmanager.secretAccessor` on these secrets, plus
+`roles/run.jobsExecutor`/`roles/run.jobsExecutorWithOverrides` on the Job (this
+script grants both automatically). R2 permissions are controlled by the scoped
+R2 API token, not by Google IAM.
 
 ## Deploy
 
-`deploy.ps1` builds/pushes the image and can deploy the health Service and Job
-when `-Deploy` is provided. It requires a runtime service account and Secret
-Manager secret names for that mode. Actual Job execution is intentionally a
-separate operation because it requires a concrete `RENDER_JOB_ID`:
+This directory's `deploy.ps1` builds/pushes the render Job image and deploys
+only the Job (`-Deploy`) - the control-plane Service is a separate image with
+its own `../export-renderer-control-plane/deploy.ps1`, run independently:
 
 ```powershell
 .\infra\cloud-run\export-renderer\deploy.ps1 -ProjectId neonix-506607 -Deploy `
   -RuntimeServiceAccount neonix-renderer@neonix-506607.iam.gserviceaccount.com `
-  -SupabaseUrlSecret neonix-supabase-url `
-  -SupabaseServiceRoleSecret neonix-supabase-service-role `
+  -DatabaseUrlSecret neonix-database-url `
   -R2AccountIdSecret neonix-r2-account-id `
   -R2AccessKeySecret neonix-r2-access-key `
   -R2SecretKeySecret neonix-r2-secret-key `
-  -InternalWorkerTokenSecret neonix-internal-worker-token `
   -R2AssetsBucket neonix-user-assets `
   -R2ExportsBucket neonix-user-exports
+
+.\infra\cloud-run\export-renderer-control-plane\deploy.ps1 -ProjectId neonix-506607 -Deploy `
+  -RuntimeServiceAccount neonix-renderer@neonix-506607.iam.gserviceaccount.com `
+  -InternalWorkerTokenSecret neonix-internal-worker-token
 ```
 
-Run a Job only after a queued Supabase job exists:
+Run a Job only after a queued render_jobs row exists in Neon:
 
 ```powershell
 gcloud run jobs execute neonix-render-job --region asia-southeast1 `
   --update-env-vars RENDER_JOB_ID=rnd_example
 ```
-
-The Phase 5 slice additionally proves the chunk lifecycle RPCs, bounded
-indexed task submission, per-chunk R2 publication and finalizer path on a real
-60-second video-only E2E job. Native chunk export remains sequential at the
-renderer adapter until segment parity is completed. Keep `RENDER_CHUNK_EXECUTION_ENABLED=false` in
-the application queue worker until the repeated Phase 6 capacity matrix,
-audio-finalizer checks, failure/recovery tests and image-provenance audit in
-`docs/plans/phase6-7-production-validation.md` are complete.

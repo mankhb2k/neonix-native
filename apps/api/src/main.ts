@@ -14,6 +14,14 @@ async function bootstrap() {
   // instance before express.json() (added back further down) so no
   // body-parsing middleware touches those paths first.
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+  // Cross-subdomain session cookies (api.neonix.video <-> app.neonix.video)
+  // only reach the browser if the API echoes back a matching CORS origin
+  // with credentials allowed - the default Nest/Express behavior sends no
+  // Access-Control-Allow-Origin at all, which silently drops the cookie.
+  app.enableCors({
+    origin: [env.webAppUrl, ...env.additionalTrustedOrigins],
+    credentials: true,
+  });
   const expressInstance = app.getHttpAdapter().getInstance();
   expressInstance.all("/api/auth/*splat", toNodeHandler(auth));
   // Polar's webhook signature covers the exact raw bytes it sent - mounted

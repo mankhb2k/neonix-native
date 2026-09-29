@@ -5,9 +5,11 @@ import { eq } from "drizzle-orm";
 import express from "express";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { CurrentUserGuard } from "../auth/current-user.guard";
 import { db } from "../db/client";
 import { DatabaseModule } from "../db/database.module";
 import { walletLedger } from "../db/schema/misc";
+import { seedUserGuard } from "../test/seed-user-guard";
 import { BillingModule } from "./billing.module";
 import { PolarService } from "./polar.service";
 
@@ -21,6 +23,8 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, BillingModule] })
     .overrideProvider(PolarService)
     .useValue({ createTopupCheckout })
+    .overrideGuard(CurrentUserGuard)
+    .useValue(seedUserGuard(seedUserId))
     .compile();
   app = moduleRef.createNestApplication({ bodyParser: false });
   const expressInstance = app.getHttpAdapter().getInstance();

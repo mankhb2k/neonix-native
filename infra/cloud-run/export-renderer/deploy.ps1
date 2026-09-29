@@ -5,33 +5,21 @@ param(
   [string]$Repository = "neonix",
   [string]$ImageName = "skia-command-cpu-native",
   [string]$Dockerfile = "infra/cloud-run/export-renderer/skia-command-cpu-bench/Dockerfile",
-  [string]$ServiceName = "neonix-export-renderer",
   [string]$JobName = "neonix-render-job",
-  [string]$ChunkJobName = "neonix-render-chunk-job",
-  [string]$FinalizerJobName = "neonix-render-finalizer-job",
-  [int]$ChunkTaskCapacity = 8,
-  [int]$ChunkParallelism = 4,
   [int]$RenderCpu = 4,
   [string]$RenderMemory = "16Gi",
   [string]$GitSha,
   [switch]$Deploy,
   [string]$RuntimeServiceAccount,
-  [string]$SupabaseUrlSecret,
-  [string]$SupabaseServiceRoleSecret,
   [string]$R2AccountIdSecret,
   [string]$R2AccessKeySecret,
   [string]$R2SecretKeySecret,
-  [string]$InternalWorkerTokenSecret,
+  [string]$DatabaseUrlSecret,
   [string]$R2ExportsBucket = "neonix-user-exports",
   [string]$R2AssetsBucket = "neonix-user-assets"
 )
 
 $ErrorActionPreference = "Continue"
-$maxProductionChunkParallelism = 4
-if ($ChunkTaskCapacity -lt 1) { throw "ChunkTaskCapacity must be at least 1" }
-if ($ChunkParallelism -lt 1 -or $ChunkParallelism -gt $maxProductionChunkParallelism) {
-  throw "ChunkParallelism must be between 1 and $maxProductionChunkParallelism for production"
-}
 if ($RenderCpu -lt 1) { throw "RenderCpu must be at least 1" }
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot "..\..\.."))
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
@@ -77,39 +65,18 @@ if (-not $Deploy) {
 
 $required = @{
   RuntimeServiceAccount = $RuntimeServiceAccount
-  SupabaseUrlSecret = $SupabaseUrlSecret
-  SupabaseServiceRoleSecret = $SupabaseServiceRoleSecret
   R2AccountIdSecret = $R2AccountIdSecret
   R2AccessKeySecret = $R2AccessKeySecret
   R2SecretKeySecret = $R2SecretKeySecret
-  InternalWorkerTokenSecret = $InternalWorkerTokenSecret
+  DatabaseUrlSecret = $DatabaseUrlSecret
 }
 foreach ($entry in $required.GetEnumerator()) {
   if (-not $entry.Value) { throw "$($entry.Key) is required with -Deploy" }
 }
 
-$serviceEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,EXPORT_RENDERER_CONTROL_PLANE_ONLY=1,CLOUD_RUN_PROJECT_ID=$ProjectId,CLOUD_RUN_REGION=$Region,CLOUD_RUN_JOB_NAME=$JobName,CLOUD_RUN_CHUNK_JOB_NAME=$ChunkJobName,CLOUD_RUN_FINALIZER_JOB_NAME=$FinalizerJobName,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha,NATIVE_SKIA_BINARY=/usr/local/bin/neonix-skia-command-cpu-backend,BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat,BENCHMARK_COLOR_CONVERTER=libyuv,BENCHMARK_SURFACE_MODE=direct-raster"
-& $gcloudCommand run deploy $ServiceName `
-  --image=$immutableImage `
-  --region=$Region `
-  --platform=managed `
-  --allow-unauthenticated `
-  --service-account=$RuntimeServiceAccount `
-  --command=node `
-  --args='dist/api/server.js' `
-  --cpu=2 `
-  --memory=4Gi `
-  --concurrency=1 `
-  --timeout=900s `
-  --max=1 `
-  --set-env-vars=$serviceEnv `
-  --set-secrets="INTERNAL_WORKER_TOKEN=$InternalWorkerTokenSecret`:latest" `
-  --project=$ProjectId 2>&1 | Out-Host
-
-$jobEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,R2_USER_ASSETS_BUCKET=$R2AssetsBucket,R2_USER_EXPORTS_BUCKET=$R2ExportsBucket,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha,NATIVE_SKIA_BINARY=/usr/local/bin/neonix-skia-command-cpu-backend,BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat,BENCHMARK_COLOR_CONVERTER=libyuv,BENCHMARK_SURFACE_MODE=direct-raster"
+$jobEnv = "EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export,R2_USER_ASSETS_BUCKET=$R2AssetsBucket,R2_USER_EXPORTS_BUCKET=$R2ExportsBucket,IMAGE_DIGEST=$digest,GIT_SHA=$GitSha,NATIVE_SKIA_BINARY=/usr/local/bin/neonix-skia-command-cpu-backend,BENCHMARK_NATIVE_LD_LIBRARY_PATH=/opt/ffmpeg-compat"
 $jobSecrets = @(
-  "NEXT_PUBLIC_SUPABASE_URL=$SupabaseUrlSecret`:latest",
-  "SUPABASE_SERVICE_ROLE_KEY=$SupabaseServiceRoleSecret`:latest",
+  "DATABASE_URL=$DatabaseUrlSecret`:latest",
   "R2_ACCOUNT_ID=$R2AccountIdSecret`:latest",
   "R2_ACCESS_KEY_ID=$R2AccessKeySecret`:latest",
   "R2_SECRET_ACCESS_KEY=$R2SecretKeySecret`:latest"
@@ -130,52 +97,20 @@ $jobSecrets = @(
   --set-secrets=$jobSecrets `
   --project=$ProjectId 2>&1 | Out-Host
 
-& $gcloudCommand run jobs deploy $ChunkJobName `
-  --image=$immutableImage `
+# The control-plane service (infra/cloud-run/export-renderer/control-plane)
+# starts this Job with a per-job RENDER_JOB_ID override - it needs both
+# bindings below, not just roles/run.jobsExecutor, or the override role is
+# missing and job dispatch fails.
+& $gcloudCommand run jobs add-iam-policy-binding $JobName `
   --region=$Region `
-  --tasks=$ChunkTaskCapacity `
-  --parallelism=$ChunkParallelism `
-  --max-retries=2 `
-  --task-timeout=3600s `
-  --cpu=$RenderCpu `
-  --memory=$RenderMemory `
-  --service-account=$RuntimeServiceAccount `
-  --command=node `
-  --args='dist/render-chunk-job.js' `
-  --set-env-vars=$jobEnv `
-  --set-secrets=$jobSecrets `
+  --member="serviceAccount:$RuntimeServiceAccount" `
+  --role="roles/run.jobsExecutor" `
+  --project=$ProjectId 2>&1 | Out-Host
+& $gcloudCommand run jobs add-iam-policy-binding $JobName `
+  --region=$Region `
+  --member="serviceAccount:$RuntimeServiceAccount" `
+  --role="roles/run.jobsExecutorWithOverrides" `
   --project=$ProjectId 2>&1 | Out-Host
 
-& $gcloudCommand run jobs deploy $FinalizerJobName `
-  --image=$immutableImage `
-  --region=$Region `
-  --tasks=1 `
-  --parallelism=1 `
-  --max-retries=2 `
-  --task-timeout=3600s `
-  --cpu=$RenderCpu `
-  --memory=$RenderMemory `
-  --service-account=$RuntimeServiceAccount `
-  --command=node `
-  --args='dist/render-finalizer-job.js' `
-  --set-env-vars=$jobEnv `
-  --set-secrets=$jobSecrets `
-  --project=$ProjectId 2>&1 | Out-Host
-
-# The control-plane service starts jobs with a per-job RENDER_JOB_ID override.
-# Keep both executor bindings in deployment automation; without the override
-# role the queue consumer can leave render_jobs stuck in queued state.
-foreach ($jobToAuthorize in @($JobName, $ChunkJobName, $FinalizerJobName)) {
-  & $gcloudCommand run jobs add-iam-policy-binding $jobToAuthorize `
-    --region=$Region `
-    --member="serviceAccount:$RuntimeServiceAccount" `
-    --role="roles/run.jobsExecutor" `
-    --project=$ProjectId 2>&1 | Out-Host
-  & $gcloudCommand run jobs add-iam-policy-binding $jobToAuthorize `
-    --region=$Region `
-    --member="serviceAccount:$RuntimeServiceAccount" `
-    --role="roles/run.jobsExecutorWithOverrides" `
-    --project=$ProjectId 2>&1 | Out-Host
-}
-
-Write-Host "Deployed Service=$ServiceName and Jobs=$JobName,$ChunkJobName,$FinalizerJobName using $immutableImage"
+Write-Host "Deployed Job=$JobName using $immutableImage"
+Write-Host "Deploy the control plane separately: infra/cloud-run/export-renderer/control-plane/deploy.ps1"

@@ -9,7 +9,15 @@ FROM node:22-bookworm-slim AS builder
 WORKDIR /workspace
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm --filter @motionvideo/api build
+# .dockerignore excludes every package's dist/ (avoids copying stale local
+# build output), so each workspace dependency that now ships a real dist
+# build (see ARCHITECHTURE.md's packaging notes) must be rebuilt here before
+# @motionvideo/api's own tsc build can resolve them. render-native's
+# contracts subpath uses a non-"build"-named script (build:contracts) so it
+# needs its own line; motion-mcp's esbuild step inlines it (and motion-
+# compiler), so it must run after.
+RUN pnpm --filter @motionvideo/render-native run build:contracts
+RUN pnpm --filter "@motionvideo/api..." --if-present run build
 RUN pnpm --filter @motionvideo/api deploy --prod --legacy /app
 
 FROM node:22-bookworm-slim
@@ -22,4 +30,4 @@ ENV NODE_ENV=production
 
 EXPOSE 8080
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]

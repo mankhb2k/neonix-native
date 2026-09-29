@@ -1,6 +1,6 @@
 import { IsNumber, Max, Min } from "class-validator";
 
-const MIN_TOPUP_USD = 1;
+const MIN_TOPUP_USD = 10;
 const MAX_TOPUP_USD = 2000;
 
 export class CreateCheckoutDto {
