@@ -1,3 +1,6 @@
+import { getDefaultWorkspaceId } from "./workspaces";
+import { apiFetch, apiUrl } from "./client";
+
 export type Asset = {
   id: string;
   original_filename: string | null;
@@ -51,33 +54,43 @@ async function readError(response: Response): Promise<string> {
 }
 
 export async function listAssets(): Promise<Asset[]> {
-  const response = await apiFetch("/v1/assets", { cache: "no-store" });
+  const workspaceId = await getDefaultWorkspaceId();
+  const response = await apiFetch(`/v1/assets?workspaceId=${encodeURIComponent(workspaceId)}`, { cache: "no-store" });
   if (!response.ok) throw new Error(await readError(response));
-  const body = (await response.json()) as { assets: Asset[] };
-  return body.assets;
+  const body = (await response.json()) as { assets?: Array<Record<string, unknown>> };
+  return (body.assets ?? []).map(mapAsset);
 }
 
 export async function createAssetUpload(file: File, preview?: UploadPreview): Promise<UploadSession> {
-  const response = await apiFetch("/v1/assets", {
+  const workspaceId = await getDefaultWorkspaceId();
+  const response = await apiFetch("/v1/assets/upload-requests", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      name: file.name,
-      size: file.size,
+      workspaceId,
+      originalFilename: file.name,
+      byteSize: file.size,
       mimeType: file.type || "application/octet-stream",
-      preview: preview
-        ? {
-            size: preview.size,
-            mimeType: preview.mimeType,
-            width: preview.width,
-            height: preview.height,
-            durationMs: preview.durationMs,
-          }
-        : undefined,
+      kind: file.type.startsWith("image/")
+        ? "image"
+        : file.type.startsWith("video/")
+          ? "video"
+          : file.type.startsWith("audio/")
+            ? "audio"
+            : file.type.startsWith("font/")
+              ? "font"
+              : "other",
     }),
   });
   if (!response.ok) throw new Error(await readError(response));
-  return (await response.json()) as UploadSession;
+  const body = (await response.json()) as { asset?: { id?: string }; uploadUrl?: string; headers?: Record<string, string> };
+  if (!body.asset?.id || !body.uploadUrl) throw new Error("Upload session response is invalid");
+  return {
+    assetId: body.asset.id,
+    uploadUrl: body.uploadUrl,
+    method: "PUT",
+    headers: body.headers ?? {},
+  };
 }
 
 export async function uploadAssetBytes(session: UploadSession, file: File): Promise<void> {
@@ -107,10 +120,10 @@ export async function getAssetUsage(assetId: string): Promise<AssetUsageProject[
 }
 
 export async function completeAssetUpload(assetId: string): Promise<void> {
-  const response = await apiFetch("/v1/assets/upload/complete", {
+  const response = await apiFetch(`/v1/assets/${encodeURIComponent(assetId)}/complete`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ assetId }),
+    body: JSON.stringify({}),
   });
   if (!response.ok) throw new Error(await readError(response));
 }
@@ -125,4 +138,17 @@ export async function deleteAsset(assetId: string, options?: { replaceReferences
   });
   if (!response.ok) throw new Error(await readError(response));
 }
-import { apiFetch } from "./client";
+
+function mapAsset(raw: Record<string, unknown>): Asset {
+  const id = typeof raw.id === "string" ? raw.id : "";
+  const mimeType = typeof raw.mimeType === "string" ? raw.mimeType : "application/octet-stream";
+  return {
+    id,
+    original_filename: typeof raw.originalFilename === "string" ? raw.originalFilename : null,
+    mime_type: mimeType,
+    byte_size: typeof raw.byteSize === "number" ? raw.byteSize : 0,
+    status: raw.status === "ready" || raw.status === "failed" || raw.status === "deleted" ? raw.status : "uploading",
+    created_at: typeof raw.createdAt === "string" ? raw.createdAt : new Date().toISOString(),
+    download_url: id ? apiUrl(`/v1/assets/${encodeURIComponent(id)}/media`) : null,
+  };
+}

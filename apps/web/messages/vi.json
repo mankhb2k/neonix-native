@@ -256,6 +256,27 @@
     "storageNote": "Các file đã xuất được tính vào giới hạn dung lượng lưu trữ của không gian làm việc."
   },
   "ApiWorkspace": {
+    "apiErrors": {
+      "load": "Không thể tải API key.",
+      "create": "Không thể tạo API key.",
+      "revoke": "Không thể thu hồi API key này."
+    },
+    "apiEyebrow": "Quyền truy cập nhà phát triển",
+    "apiTitle": "API key",
+    "apiDescription": "Tạo key cho các công cụ của bạn để gọi Neonix API. Secret đầy đủ chỉ hiển thị một lần.",
+    "apiCreateTitle": "Tạo API key",
+    "apiCreateDescription": "Đặt tên để dễ nhận biết key sau này.",
+    "apiNamePlaceholder": "Ứng dụng production",
+    "apiCreateButton": "Tạo key",
+    "apiCopyTitle": "Sao chép API key mới",
+    "apiCopyDescription": "Lưu secret ở nơi an toàn. Bạn sẽ không thể xem lại.",
+    "apiCopyButton": "Sao chép API key",
+    "apiListTitle": "Key đang hoạt động",
+    "apiLoading": "Đang tải API key…",
+    "apiEmpty": "Bạn chưa có API key nào.",
+    "apiCreated": "tạo ngày {date}",
+    "apiRevoke": "Thu hồi",
+    "apiRevokeConfirm": "Thu hồi API key này? Các request đang dùng key sẽ không còn hoạt động.",
     "errors": {
       "fallback": "Chúng tôi không thể lưu email của bạn. Vui lòng thử lại."
     },

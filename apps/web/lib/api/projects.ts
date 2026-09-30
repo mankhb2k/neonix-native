@@ -1,5 +1,6 @@
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { apiFetch } from "./client";
+import { getDefaultWorkspaceId } from "./workspaces";
 
 export type SaveEditorProjectResult =
   | { ok: true; revisionNo: number }
@@ -13,10 +14,11 @@ export class CreateHtmlProjectError extends Error {
 }
 
 export async function createHtmlProject(input: { title?: string; html: string; idempotencyKey?: string }): Promise<{ projectId: string }> {
-  const response = await apiFetch("/v1/projects/html", {
+  const workspaceId = await getDefaultWorkspaceId();
+  const response = await apiFetch("/v1/projects/html-raw", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, workspaceId }),
   });
   const payload = await response.json().catch(() => null) as {
     project?: { id?: unknown };
@@ -38,10 +40,11 @@ export async function createHtmlProject(input: { title?: string; html: string; i
  * ARCHITECHTURE.md "Hai kiến trúc render độc lập".
  */
 export async function createHtmlProjectRaw(input: { title?: string; html: string }): Promise<{ projectId: string }> {
+  const workspaceId = await getDefaultWorkspaceId();
   const response = await apiFetch("/v1/projects/html-raw", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, workspaceId }),
   });
   const payload = await response.json().catch(() => null) as {
     project?: { id?: unknown };
@@ -65,40 +68,13 @@ export type NewProjectComposition = {
   background: string;
 };
 
-function blankMotionProtocolDocument(composition: NewProjectComposition): MotionProtocolV2 {
-  return {
-    format: "motion-protocol",
-    formatVersion: 2,
-    id: crypto.randomUUID(),
-    composition: {
-      width: composition.width,
-      height: composition.height,
-      fps: composition.fps,
-      background: composition.background,
-      colorSpace: "srgb",
-      view: {
-        projection: { kind: "orthographic", zoom: 1, near: 0.1, far: 1000 },
-        transform: {
-          translate: { x: 0, y: 0, z: 0 },
-          rotate: { x: 0, y: 0, z: 0 },
-        },
-      },
-    },
-    assets: [],
-    layers: [],
-    audio: { sampleRate: 48000, tracks: [] },
-  };
-}
-
 /** Kiến trúc A entry point: creates a blank, editable Neonix JSON V2 project. */
 export async function createBlankProject(input: { title?: string; composition: NewProjectComposition }): Promise<{ projectId: string }> {
+  const workspaceId = await getDefaultWorkspaceId();
   const response = await apiFetch("/v1/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      title: input.title,
-      document: blankMotionProtocolDocument(input.composition),
-    }),
+    body: JSON.stringify({ workspaceId, title: input.title }),
   });
   const payload = await response.json().catch(() => null) as {
     project?: { id?: unknown };
@@ -137,24 +113,25 @@ export async function saveEditorProject(input: {
   expectedRevisionNo: number;
 }): Promise<SaveEditorProjectResult> {
   const response = await apiFetch(
-    `/v1/editor/projects/${encodeURIComponent(input.projectRef)}`,
+    `/v1/projects/${encodeURIComponent(input.projectRef)}/revisions`,
     {
-      method: "PATCH",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        document: input.document,
-        expectedRevisionNo: input.expectedRevisionNo,
+        documentJson: input.document,
+        reason: "autosave",
       }),
     },
   );
 
   if (!response.ok) return { ok: false, status: response.status };
 
-  const saved = (await response.json()) as { revisionNo?: unknown };
-  if (typeof saved.revisionNo !== "number") {
+  const saved = (await response.json()) as { revision?: { revisionNo?: unknown } };
+  const revisionNo = saved.revision?.revisionNo;
+  if (typeof revisionNo !== "number") {
     return { ok: false, status: 502 };
   }
-  return { ok: true, revisionNo: saved.revisionNo };
+  return { ok: true, revisionNo };
 }
 
 export async function attachProjectAsset(input: {

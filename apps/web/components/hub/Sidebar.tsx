@@ -4,6 +4,7 @@ import {
   Boxes,
   Download,
   FolderKanban,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -15,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { dashboardHref } from "@/components/AppLink";
+import { getCurrentAccount } from "@/lib/api/session";
 import { getStorageUsage, type StorageUsage } from "@/lib/api/storage";
 
 const navItems = [
@@ -22,8 +24,7 @@ const navItems = [
   { key: "projects", href: "/dashboard/projects", icon: FolderKanban },
   { key: "assets", href: "/dashboard/assets", icon: Boxes },
   { key: "exports", href: "/dashboard/exports", icon: Download },
-  // { key: "usage", href: "/usage", icon: Gauge },
-  // { key: "billing", href: "/billing", icon: CreditCard },
+  { key: "api", href: "/dashboard/api", icon: KeyRound },
   { key: "topup", href: "/dashboard/topup", icon: Wallet },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
 ] as const;
@@ -71,8 +72,14 @@ export function Sidebar() {
     let mounted = true;
 
     async function loadAccount() {
-      // Keep a placeholder account until the profile API is wired in.
+      const current = await getCurrentAccount();
       if (!mounted) return;
+      if (current) {
+        setAccount({
+          name: current.name || current.email,
+          email: current.email,
+        });
+      }
     }
 
     async function loadStorage() {
@@ -125,10 +132,19 @@ export function Sidebar() {
           ))}
         </div>
 
+        <div className="mb-5 border-b border-[var(--hub-border)] pb-5">
+          <p className="mb-2 px-3 text-sm font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
+            {t("sections.connect")}
+          </p>
+          {navItems.slice(4, 5).map((item) => (
+            <NavItem key={item.key} item={item} pathname={pathname} />
+          ))}
+        </div>
+
         <p className="mb-2 px-3 text-sm font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
           {t("sections.account")}
         </p>
-        {navItems.slice(4).map((item) => (
+        {navItems.slice(5).map((item) => (
           <NavItem key={item.key} item={item} pathname={pathname} />
         ))}
       </nav>

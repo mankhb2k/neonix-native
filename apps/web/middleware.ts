@@ -44,11 +44,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response: NextResponse;
 
-  // APIs and protected-resource metadata belong to apps/api, never to a UI host.
-  if (
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/.well-known/oauth-protected-resource")
-  ) {
+  // API routes belong to apps/api, never to a UI host.
+  if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 

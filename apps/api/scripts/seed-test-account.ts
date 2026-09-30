@@ -11,9 +11,9 @@ import { db, pool } from "../src/db/client";
 import { user as userTable } from "../src/db/schema/auth";
 import { workspaces } from "../src/db/schema/identity";
 
-const SEED_EMAIL = "seed-test-account@neonix.local";
-const SEED_PASSWORD = "seed-test-account-password-1234";
-const SEED_NAME = "Seed Test Account";
+const SEED_EMAIL = process.env.SEED_EMAIL?.trim() || "seed-test-account@neonix.local";
+const SEED_PASSWORD = process.env.SEED_PASSWORD || "seed-test-account-password-1234";
+const SEED_NAME = process.env.SEED_NAME?.trim() || "Seed Test Account";
 
 async function main() {
   let userId: string;

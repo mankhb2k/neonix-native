@@ -474,7 +474,6 @@ pnpm --filter @motionvideo/render-native start
 Endpoints:
 
 - `GET /health` (also `/healthz` and `/readyz`)
-- `POST /v1/renders`
 - `POST /v1/render-jobs` → `202` with `statusUrl`
 - `GET /v1/render-jobs/:jobId` → persisted progress and artifact state
 - `DELETE /v1/render-jobs/:jobId` → cancellation and FFmpeg abort

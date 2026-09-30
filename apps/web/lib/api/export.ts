@@ -12,16 +12,15 @@ export type ExportError = {
 export async function exportMotionProject(
   project: MotionProtocolV2,
 ): Promise<{ jobId: string }> {
-  const res = await apiFetch("/v1/renders", {
+  const res = await apiFetch("/v1/render-jobs", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       projectId: project.id,
-      projectRevision: 0,
-      preset: "export-1080p",
-      document: project,
+      idempotencyKey: `web-${project.id}-${Date.now()}`,
+      presetJson: { preset: "export-1080p", document: project },
     }),
   });
 
@@ -36,8 +35,9 @@ export async function exportMotionProject(
     throw new Error(message);
   }
 
-  const json = (await res.json()) as { jobId: string };
-  return { jobId: json.jobId };
+  const json = (await res.json()) as { renderJob?: { id?: string } };
+  if (!json.renderJob?.id) throw new Error("Render job response is invalid");
+  return { jobId: json.renderJob.id };
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

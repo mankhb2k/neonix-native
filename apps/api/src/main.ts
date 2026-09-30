@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
 import express from "express";
 import { auth } from "./auth/auth";
@@ -56,6 +57,26 @@ async function bootstrap() {
   app.use(express.json());
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle("Neonix API")
+    .setDescription("Neonix API endpoints for projects, assets, rendering, billing, and API keys.")
+    .setVersion("1.0")
+    .addBearerAuth(
+      { type: "http", scheme: "bearer", bearerFormat: "Neonix API key" },
+      "api-key",
+    )
+    .addCookieAuth("better-auth.session_token", undefined, "session")
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup("docs", app, swaggerDocument, {
+    jsonDocumentUrl: "docs-json",
+    yamlDocumentUrl: "docs-yaml",
+    swaggerOptions: {
+      displayRequestDuration: true,
+      persistAuthorization: true,
+    },
+  });
 
   await app.listen(env.port);
   console.log(`[api] listening on :${env.port}`);

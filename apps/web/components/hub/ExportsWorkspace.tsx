@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { dashboardHref } from "@/components/AppLink";
 import { apiFetch } from "@/lib/api/client";
+import { getDefaultWorkspaceId } from "@/lib/api/workspaces";
 
 type ViewMode = "list" | "grid";
 type StatusFilter = "all" | "ready" | "processing" | "failed" | "cancelled";
@@ -31,7 +32,7 @@ type ExportJob = {
   createdAt: number;
 };
 
-const PROCESSING_STATUSES = new Set(["queued", "rendering", "encoding", "publishing", "finalizing"]);
+const PROCESSING_STATUSES = new Set(["queued", "planning", "rendering", "encoding", "muxing", "publishing", "finalizing"]);
 const FAILED_STATUSES = new Set(["failed"]);
 const CANCELLED_STATUSES = new Set(["cancelled"]);
 
@@ -54,7 +55,35 @@ function formatDate(timestamp: number, t: ReturnType<typeof useTranslations>): s
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(timestamp));
 }
 
-const KNOWN_STATUSES = ["queued", "rendering", "encoding", "publishing", "finalizing", "failed", "cancelled", "done"] as const;
+const KNOWN_STATUSES = ["queued", "planning", "rendering", "encoding", "muxing", "publishing", "finalizing", "failed", "cancelled", "done"] as const;
+
+type ApiRenderJob = {
+  id: string;
+  projectId: string;
+  status: string;
+  progress: number;
+  stage?: string | null;
+  errorCode?: string | null;
+  artifactPath?: string | null;
+  outputKey?: string | null;
+  metricsJson?: ExportJob["metrics"] | null;
+  createdAt: string;
+};
+
+function mapRenderJob(job: ApiRenderJob): ExportJob {
+  return {
+    jobId: job.id,
+    projectId: job.projectId,
+    status: job.status,
+    progress: Number(job.progress) || 0,
+    stage: job.stage ?? undefined,
+    error: job.errorCode ?? undefined,
+    artifactPath: job.artifactPath ?? undefined,
+    outputKey: job.outputKey ?? undefined,
+    metrics: job.metricsJson ?? undefined,
+    createdAt: Date.parse(job.createdAt),
+  };
+}
 
 function statusLabel(status: string, t: ReturnType<typeof useTranslations>): string {
   if ((KNOWN_STATUSES as readonly string[]).includes(status)) {
@@ -86,11 +115,12 @@ export function ExportsWorkspace() {
     if (options.initial) setLoading(true);
     else setRefreshing(true);
     try {
-      const response = await apiFetch("/v1/renders", { cache: "no-store" });
+      const workspaceId = await getDefaultWorkspaceId();
+      const response = await apiFetch(`/v1/render-jobs?workspaceId=${encodeURIComponent(workspaceId)}`, { cache: "no-store" });
       if (!response.ok) throw new Error(t("errors.loadingFormat", { status: response.status }));
-      const data = await response.json() as { jobs?: ExportJob[] };
+      const data = await response.json() as { renderJobs?: ApiRenderJob[] };
       setLoadError(null);
-      setJobs(Array.isArray(data.jobs) ? data.jobs : []);
+      setJobs(Array.isArray(data.renderJobs) ? data.renderJobs.map(mapRenderJob) : []);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : t("errors.loadFallback"));
     } finally {
@@ -209,7 +239,7 @@ export function ExportsWorkspace() {
                   <button type="button" disabled={downloadingJobId === job.jobId} className="shrink-0 rounded-lg border border-[var(--hub-border)] px-3 py-2 text-body font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)] disabled:opacity-60" onClick={async () => {
                     setDownloadingJobId(job.jobId);
                     try {
-                      const response = await apiFetch(`/v1/renders/${encodeURIComponent(job.jobId)}/download`, { cache: "no-store" });
+                      const response = await apiFetch(`/v1/render-jobs/${encodeURIComponent(job.jobId)}/download`, { cache: "no-store" });
                       if (!response.ok) throw new Error(t("errors.downloadUnavailable", { status: response.status }));
                       const data = await response.json() as { url?: string };
                       if (!data.url) throw new Error(t("errors.downloadUrlMissing"));

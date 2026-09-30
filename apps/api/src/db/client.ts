@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { env } from "../env";
 import * as assetsSchema from "./schema/assets";
+import * as apiKeysSchema from "./schema/api-keys";
 import * as authSchema from "./schema/auth";
 import * as fontsSchema from "./schema/fonts";
 import * as identitySchema from "./schema/identity";
@@ -19,6 +20,7 @@ export const pool = new Pool({ connectionString: env.databaseUrl });
 
 export const schema = {
   ...authSchema,
+  ...apiKeysSchema,
   ...identitySchema,
   ...projectsSchema,
   ...assetsSchema,

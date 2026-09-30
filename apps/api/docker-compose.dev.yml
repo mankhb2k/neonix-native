@@ -1,6 +1,28 @@
-# Local dev infra only (Postgres + Redis). Staging/production point
+# Local API and dev infrastructure. Staging/production point
 # DATABASE_URL/REDIS_URL at real Neon + a managed Redis instead of this file.
 services:
+  api:
+    # Published API image. Compose pulls the current Docker Hub tag on every `up`.
+    image: mankhb2k/neonix-api:latest
+    pull_policy: always
+    # For a local source build, comment `image`/`pull_policy` above and enable:
+    # build:
+    #   context: ../..
+    #   dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PORT: 8080
+      REDIS_URL: redis://redis:6379
+      BETTER_AUTH_URL: http://localhost:8080
+      WEB_APP_URL: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
   postgres:
     image: postgres:17-alpine
     environment:

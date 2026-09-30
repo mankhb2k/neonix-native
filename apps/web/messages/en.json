@@ -256,6 +256,27 @@
     "storageNote": "Exported files count toward your workspace storage limit."
   },
   "ApiWorkspace": {
+    "apiErrors": {
+      "load": "We could not load your API keys.",
+      "create": "We could not create your API key.",
+      "revoke": "We could not revoke that API key."
+    },
+    "apiEyebrow": "Developer access",
+    "apiTitle": "API keys",
+    "apiDescription": "Create keys for your tools and use them to call the Neonix API. The full secret is shown only once.",
+    "apiCreateTitle": "Create an API key",
+    "apiCreateDescription": "Give the key a name so you can recognize it later.",
+    "apiNamePlaceholder": "My production app",
+    "apiCreateButton": "Create key",
+    "apiCopyTitle": "Copy your new API key",
+    "apiCopyDescription": "Store this secret somewhere safe. You will not be able to view it again.",
+    "apiCopyButton": "Copy API key",
+    "apiListTitle": "Active keys",
+    "apiLoading": "Loading API keysâ€¦",
+    "apiEmpty": "You do not have any API keys yet.",
+    "apiCreated": "created {date}",
+    "apiRevoke": "Revoke",
+    "apiRevokeConfirm": "Revoke this API key? Existing requests using it will stop working.",
     "errors": {
       "fallback": "We could not save your email. Please try again."
     },

@@ -8,6 +8,7 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SiteNavButton } from "@/components/site/SiteNavButton";
 import { buttonClassName } from "@/components/ui";
 import { APP_NAME } from "@/lib/app-config";
+import { apiUrl } from "@/lib/api/client";
 import { dashboardUrl } from "@/lib/hosts";
 import { SITE_HEADER_HEIGHT, SITE_HEADER_SHELL_X } from "@/lib/site-shell";
 
@@ -21,6 +22,8 @@ export function SiteHeader({
 }) {
   const t = useTranslations("SiteHeader");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [devSigningIn, setDevSigningIn] = useState(false);
+  const [devSignInError, setDevSignInError] = useState<string | null>(null);
   const isDevelopment = process.env.NODE_ENV !== "production";
 
   useEffect(() => {
@@ -31,6 +34,29 @@ export function SiteHeader({
 
   const showDashboard = isDevelopment || isAuthenticated === true;
   const showAuthActions = isDevelopment || isAuthenticated === false;
+
+  async function openDevDashboard(): Promise<void> {
+    setDevSigningIn(true);
+    setDevSignInError(null);
+    try {
+      const response = await fetch(apiUrl("/api/auth/sign-in/email"), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: process.env.NEXT_PUBLIC_DEV_DEMO_EMAIL ?? "demo@gmail.com",
+          password: process.env.NEXT_PUBLIC_DEV_DEMO_PASSWORD ?? "demo123@",
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Demo sign-in failed (${response.status}).`);
+      }
+      window.location.assign(dashboardUrl("/dashboard"));
+    } catch (error) {
+      setDevSigningIn(false);
+      setDevSignInError(error instanceof Error ? error.message : "Demo sign-in failed.");
+    }
+  }
 
   return (
     <header className={headerOuterClass}>
@@ -74,9 +100,15 @@ export function SiteHeader({
           {showDashboard ? (
             <a
               href={dashboardUrl("/dashboard")}
+              onClick={(event) => {
+                if (!isDevelopment) return;
+                event.preventDefault();
+                if (!devSigningIn) void openDevDashboard();
+              }}
+              aria-busy={devSigningIn}
               className={buttonClassName({ variant: "secondary", size: "lg" })}
             >
-              {t("actions.dashboard")}
+              {devSigningIn ? "Signing in…" : t("actions.dashboard")}
             </a>
           ) : null}
           {showAuthActions ? (
@@ -104,6 +136,7 @@ export function SiteHeader({
             </>
           ) : null}
         </div>
+        {devSignInError ? <p className="mt-1 text-right text-xs text-red-600">{devSignInError}</p> : null}
         </div>
       </div>
     </header>

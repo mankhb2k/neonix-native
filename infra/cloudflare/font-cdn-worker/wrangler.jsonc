@@ -10,7 +10,7 @@
     }
   ],
   "vars": {
-    "FONT_CATALOG_URL": "https://api.neonix.video/v1/fonts"
+    "FONT_CATALOG_URL": "https://api.neonix.video/v1/system-fonts"
   },
   "r2_buckets": [
     {

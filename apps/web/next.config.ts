@@ -41,18 +41,6 @@ const nextConfig: NextConfig = {
       "node:crypto": "./lib/shims/node-crypto.ts",
     },
   },
-  // Glama.ai's domain-ownership challenge must be served at the literal path
-  // /.well-known/glama.json, but a route folder named "glama.json" isn't
-  // resolved by typescript-eslint's project service. Serve it from a
-  // normally-named route instead and rewrite the required path to it.
-  rewrites() {
-    return Promise.resolve([
-      {
-        source: "/.well-known/glama.json",
-        destination: "/.well-known/glama-connector",
-      },
-    ]);
-  },
   webpack: (config, { isServer, webpack }) => {
     // Webpack's persistent filesystem cache can become unreadable on Windows
     // ("invalid stored block lengths"), leaving `next dev` stuck at Starting.

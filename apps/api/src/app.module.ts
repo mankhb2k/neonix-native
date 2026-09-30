@@ -14,7 +14,7 @@ import { ProjectsModule } from "./projects/projects.module";
 import { RenderJobsModule } from "./render-jobs/render-jobs.module";
 import { RenderWorkerModule } from "./render-jobs/render-worker.module";
 import { SystemCatalogModule } from "./system-catalog/system-catalog.module";
-import { WaitlistModule } from "./waitlist/waitlist.module";
+import { ApiKeysModule } from "./api-keys/api-keys.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 
 @Module({
@@ -29,7 +29,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     RenderWorkerModule,
     AuditEventsModule,
     BillingModule,
-    WaitlistModule,
+    ApiKeysModule,
     ProfileModule,
     SystemCatalogModule,
     AccountModule,

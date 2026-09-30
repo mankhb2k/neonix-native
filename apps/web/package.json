@@ -19,7 +19,6 @@
     "e2e:media:phase1": "tsx scripts/phase1-media-e2e.ts",
     "benchmark:remote-determinism": "tsx scripts/compare-r2-mp4-determinism.ts",
     "export:html-motion-samples": "tsx scripts/export-html-motion-samples.ts",
-    "export:neonix-60s": "tsx scripts/export-neonix-60s.ts",
     "test:editor:watch": "vitest --config vitest.editor.config.ts",
     "test": "pnpm run test:editor",
     "test:watch": "pnpm run test:editor:watch",
