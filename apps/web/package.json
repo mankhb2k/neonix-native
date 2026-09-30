@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:fresh": "tsx scripts/dev-fresh.ts",
+    "prebuild": "pnpm --filter @motionvideo/motion-runtime --filter @motionvideo/motion-protocol --filter @motionvideo/html-compiler --filter @motionvideo/motion-compiler --filter @motionvideo/motion-mcp build",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
