@@ -64,7 +64,7 @@ export function NewProjectDialog() {
         variant="primary"
         size="lg"
         onClick={() => { setOpen(true); setError(null); }}
-        className="gap-2 px-4 text-body font-semibold"
+        className="gap-2 px-4 text-body font-semibold text-white"
       >
         <Plus className="size-4" />
         {t("trigger")}
