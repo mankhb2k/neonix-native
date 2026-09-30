@@ -12,8 +12,9 @@ tmp
 **/tmp
 coverage
 **/coverage
-apps/web/.env
-.env
+**/.env
+**/.env.*
+!**/.env.example
 *.log
 Dockerfile*
 docker-compose*.yml
