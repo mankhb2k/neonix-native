@@ -41,4 +41,4 @@ pnpm --filter @motionvideo/web e2e
 
 ## Visual comparison notes
 
-`apps/web/playground/native-stage` compares browser output with CanvasKit preview. Round fractional panel coordinates before pixel-level screenshot comparisons. Use the composition dimensions declared in `ComparePreviewLab.tsx` for fixtures, and compare both renderers at the same frame-aligned time.
+`apps/web/app/debug/native-stage` (route `/debug/native-stage`) compares browser output with CanvasKit preview. Round fractional panel coordinates before pixel-level screenshot comparisons. Use the composition dimensions declared in `ComparePreviewLab.tsx` for fixtures, and compare both renderers at the same frame-aligned time.

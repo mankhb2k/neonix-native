@@ -18,12 +18,108 @@ nhất.
 Neonix là một hệ thống tạo, chỉnh sửa và render video. Neonix có **hai kiến
 trúc render độc lập**, tách nhau ngay từ bước Author và không chia sẻ render
 core hay backend cho nhau. Xem mục "Hai kiến trúc render độc lập" ngay dưới
-đây trước khi đọc phần còn lại của tài liệu — phần lớn nội dung phía sau (từ
-"Render core and backend boundary" đến hết) mô tả **Kiến trúc A: JSON Native
-Render** duy nhất; **Kiến trúc B: HTML Frame Render** được mô tả riêng và có
-ranh giới của chính nó.
+đây trước khi đọc phần còn lại của tài liệu. **Kiến trúc A: HTML Frame Render**
+được mô tả trước, có ranh giới của chính nó; phần lớn nội dung phía sau (từ
+"Render core and backend boundary" đến hết) mô tả **Kiến trúc B: JSON Native
+Render** duy nhất.
 
-### Kiến trúc A — JSON Native Render (đường sản phẩm hiện tại)
+## Hai kiến trúc render độc lập
+
+Neonix có hai kiến trúc render tách biệt hoàn toàn, chọn ngay tại thời điểm
+tạo project (đường tương ứng trong UI: "Nhập HTML → render nhanh" cho Kiến
+trúc A, "Dự án mới" cho Kiến trúc B). Đây **không phải** hai backend của
+cùng một render core — chúng không chia sẻ Protocol, Compiler, Runtime,
+`PaintCommandBuffer`, hay export worker cho nhau.
+
+```text
+                    USER / AI
+                        │
+              chọn kiểu tạo project
+                        │
+        ┌───────────────┴───────────────┐
+        │                               │
+        ▼                               ▼
+"Nhập HTML → render nhanh"        "Dự án mới" (Editor)
+        │                               │
+        ▼                               ▼
+┌──────────────────────────┐      ┌───────────────────────┐
+│   KIẾN TRÚC A             │      │   KIẾN TRÚC B          │
+│   HTML Frame Render       │      │   JSON Native Render   │
+│                           │      │                        │
+│  HTML/CSS (bắt buộc,      │      │  HTML/CSS (tuỳ chọn)   │
+│    duy nhất input)        │      │    → MotionProtocolV2  │
+│  → Headless browser thật  │      │    → Compiler V2→V3    │
+│    (Playwright/Puppeteer  │      │    → RuntimeProjectV3  │
+│    hoặc service riêng)    │      │    → PaintCommandBuffer│
+│  → Chụp screenshot mỗi    │      │    → CanvasKit preview │
+│    frame theo fps         │      │      hoặc native Skia  │
+│  → FFmpeg ghép frame      │      │      export            │
+│    (+ audio nếu có)       │      │    → FFmpeg mux        │
+│                           │      │                        │
+│  Không editable, không    │      │  Editable, persistent  │
+│  có JSON project          │      │  JSON project          │
+└────────────┬──────────────┘      └───────────┬────────────┘
+             │                                 │
+             ▼                                 ▼
+            MP4                               MP4
+```
+
+| | Kiến trúc A — HTML Frame Render | Kiến trúc B — JSON Native Render |
+| --- | --- | --- |
+| Input | Chỉ HTML/CSS, không có JSON | Protocol V2 JSON do Editor tạo và chỉnh sửa. HTML/CSS chỉ vào được qua tính năng compiler độc lập (API compile), không phải qua project HTML |
+| Authoring format | Không có authoring format canonical; HTML là input một lần, không lưu lại thành project có thể mở lại chỉnh sửa | `MotionProtocolV2` — canonical, persistent, editable |
+| Render mechanism | Headless browser thật render trực tiếp DOM/CSS, chụp từng frame, không qua Runtime/PaintCommandBuffer | Compiler → Runtime → `PaintCommandBuffer` → CanvasKit (preview) / native Skia (export) |
+| Xác định (determinism) | Không có cam kết deterministic cấp Neonix — phụ thuộc trực tiếp vào engine render của trình duyệt headless đang dùng | Deterministic theo hợp đồng `PaintCommandBuffer` — cùng JSON luôn ra cùng pixel |
+| Chỉnh sửa sau khi tạo | Không — muốn đổi thì sửa HTML/CSS gốc và render lại từ đầu | Có — mọi layer/property độc lập trong Editor |
+| Ai dùng | Người chỉ cần "đưa HTML/CSS vào, lấy video ra", không quan tâm tới JSON hay chỉnh sửa lại | Người/agent cần một document có thể mở lại, chỉnh sửa, tái sử dụng qua Editor |
+| Package/service sở hữu | Một service độc lập, nằm ngoài render core hiện tại (ví dụ một worker Python/script riêng chạy headless browser) — **chưa triển khai**, xem "Trạng thái triển khai Kiến trúc A" | `html-compiler`, `motion-protocol`, `motion-compiler`, `motion-runtime`, `canvaskit-preview`, `render-native` (toàn bộ đã mô tả trong phần còn lại của tài liệu này) |
+| Chromium/headless browser trong đường sản phẩm | **Là cơ chế chính**, chấp nhận có chủ đích — đây là lý do kiến trúc này phải tách biệt hoàn toàn khỏi Kiến trúc B thay vì trở thành một nhánh fallback bên trong nó | **Cấm** (trừ ngoại lệ hẹp `layoutSnapshot` ở bước compile, xem quy tắc #13) |
+
+### Trạng thái triển khai Kiến trúc A
+
+Kiến trúc A **chưa được triển khai**. Quyết định đã chốt: input là HTML/CSS
+thuần, cơ chế là headless browser thật (Playwright/Puppeteer hoặc một script/
+service riêng, có thể viết bằng Python), output là MP4 trực tiếp — không đi
+qua `MotionProtocolV2`/`html-compiler`/`motion-compiler`/`motion-runtime`.
+Việc triển khai cụ thể (chọn thư viện headless browser, nơi host service,
+cách đồng bộ audio, cách báo tiến trình cho Web API) sẽ được quyết định và
+ghi lại khi bắt tay implement — tài liệu này chỉ khoá ranh giới kiến trúc:
+Kiến trúc A không được phép nằm trong hoặc phụ thuộc vào bất kỳ package nào
+liệt kê ở "Phân loại packages" của Kiến trúc B, và ngược lại.
+
+**Đã triển khai (chỉ phần lưu trữ, không phải cơ chế render)**: `apps/api`'s
+`ProjectsService`/`ProjectsController` (`src/projects/`) đã có sẵn phần
+project storage cho track này — tạo project với `source_format: 'html'`
+(`POST /v1/projects/html-raw`) và đọc/ghi đè một tài liệu HTML hiện tại, không
+versioning (`GET`/`PUT /v1/projects/:id/html`, bảng `project_html_documents`).
+Đây **không phải** là việc triển khai cơ chế render headless-browser mô tả ở
+trên — cơ chế render đó (nhận HTML/CSS thật, chạy trình duyệt headless, xuất
+MP4) vẫn **chưa được triển khai**.
+
+**Project HTML và project JSON V2 độc lập hoàn toàn ở tầng lưu trữ**: HTML
+nằm ở bảng `project_html_documents` (một bản duy nhất, ghi đè tại chỗ), JSON V2
+nằm ở `project_revisions`. Không có khoá ngoại, không có revision dùng chung,
+không có trạng thái "đồng bộ" giữa hai bên; một project chỉ thuộc đúng một
+track và không bao giờ đổi track. Các công cụ MCP chỉ làm việc với project
+HTML (Kiến trúc A) cùng asset/export; không có tool MCP nào đọc, vá hay mở
+editor cho project JSON V2.
+
+Việc biên dịch HTML → JSON V2 là một **tính năng compiler độc lập**, không
+phải một liên kết giữa hai loại project: `POST /v1/documents/compile`,
+`POST /v1/documents/validate` và `GET /v1/capabilities` là API không trạng
+thái, không gắn với project nào. Hành động "Convert JSON V2"
+(`POST /v1/projects/:id/convert-json`) chỉ dùng chính compiler đó trên HTML
+hiện tại rồi tạo một project JSON V2 **hoàn toàn mới**; nó không lưu lại project
+nguồn, không sửa project gốc và có thể gọi nhiều lần.
+
+> **Lưu ý phân biệt nhãn**: "Track A / Track B" ở đây (và trong code/comment
+> của `apps/api/src/projects/`) là quy ước đặt tên cho **project storage**,
+> gắn với "Kiến trúc A / Kiến trúc B" ở trên (mô tả **cơ chế render**) và giờ
+> trùng nhau: **Track A = project chỉ chứa HTML thuần, chưa compile** (đầu vào
+> của Kiến trúc A — HTML Frame Render); **Track B = project đã có JSON revision
+> đã compile** (đầu vào/đầu ra của Kiến trúc B — JSON Native Render).
+
+### Kiến trúc B — JSON Native Render (đường sản phẩm hiện tại)
 
 Toàn bộ đường đi của một project JSON được rút gọn thành:
 
@@ -31,17 +127,14 @@ Toàn bộ đường đi của một project JSON được rút gọn thành:
 
 ```text
                     ┌─────────────────────┐
-                    │       USER / AI     │
+                    │       USER          │
                     └──────────┬──────────┘
                                │
-                 tạo / sửa / điều khiển video
+                 tạo / sửa video trong Editor
                                │
-              ┌────────────────┼────────────────┐
-              │                │                 │
-              ▼                ▼                 ▼
-           Editor             MCP             AI Agent
-              │                │                 │
-              └────────────────┼─────────────────┘
+                               ▼
+                            Editor
+                               │
                                ▼
                     ┌─────────────────────┐
                     │ MotionProtocolV2    │
@@ -82,117 +175,29 @@ Toàn bộ đường đi của một project JSON được rút gọn thành:
                               USER
 ```
 
-## Hai kiến trúc render độc lập
-
-Neonix có hai kiến trúc render tách biệt hoàn toàn, chọn ngay tại thời điểm
-tạo project (đường tương ứng trong UI: "Dự án mới" cho Kiến trúc A, "Nhập
-HTML → render nhanh" cho Kiến trúc B). Đây **không phải** hai backend của
-cùng một render core — chúng không chia sẻ Protocol, Compiler, Runtime,
-`PaintCommandBuffer`, hay export worker cho nhau.
-
-```text
-                    USER / AI
-                        │
-              chọn kiểu tạo project
-                        │
-        ┌───────────────┴───────────────┐
-        │                               │
-        ▼                               ▼
-"Dự án mới" / MCP compile         "Nhập HTML → render nhanh"
-        │                               │
-        ▼                               ▼
-┌──────────────────────┐      ┌──────────────────────────┐
-│   KIẾN TRÚC A         │      │   KIẾN TRÚC B             │
-│   JSON Native Render  │      │   HTML Frame Render       │
-│                       │      │                           │
-│  HTML/CSS (tuỳ chọn)  │      │  HTML/CSS (bắt buộc,      │
-│    → MotionProtocolV2 │      │    duy nhất input)        │
-│    → Compiler V2→V3   │      │  → Headless browser thật  │
-│    → RuntimeProjectV3 │      │    (Playwright/Puppeteer  │
-│    → PaintCommandBuffer│     │    hoặc service riêng)    │
-│    → CanvasKit preview│      │  → Chụp screenshot mỗi    │
-│      hoặc native Skia │      │    frame theo fps         │
-│      export           │      │  → FFmpeg ghép frame      │
-│    → FFmpeg mux       │      │    (+ audio nếu có)       │
-│                       │      │                           │
-│  Editable, persistent │      │  Không editable, không    │
-│  JSON project         │      │  có JSON project          │
-└──────────┬────────────┘      └────────────┬──────────────┘
-           │                                │
-           ▼                                ▼
-          MP4                              MP4
-```
-
-| | Kiến trúc A — JSON Native Render | Kiến trúc B — HTML Frame Render |
-| --- | --- | --- |
-| Input | HTML/CSS (qua HTML Compiler) hoặc thao tác trực tiếp trên Protocol V2 qua Editor/MCP | Chỉ HTML/CSS, không có JSON |
-| Authoring format | `MotionProtocolV2` — canonical, persistent, editable | Không có authoring format canonical; HTML là input một lần, không lưu lại thành project có thể mở lại chỉnh sửa |
-| Render mechanism | Compiler → Runtime → `PaintCommandBuffer` → CanvasKit (preview) / native Skia (export) | Headless browser thật render trực tiếp DOM/CSS, chụp từng frame, không qua Runtime/PaintCommandBuffer |
-| Xác định (determinism) | Deterministic theo hợp đồng `PaintCommandBuffer` — cùng JSON luôn ra cùng pixel | Không có cam kết deterministic cấp Neonix — phụ thuộc trực tiếp vào engine render của trình duyệt headless đang dùng |
-| Chỉnh sửa sau khi tạo | Có — mọi layer/property độc lập trong Editor | Không — muốn đổi thì sửa HTML/CSS gốc và render lại từ đầu |
-| Ai dùng | Người/agent cần một document có thể mở lại, chỉnh sửa, tái sử dụng qua Editor/MCP | Người chỉ cần "đưa HTML/CSS vào, lấy video ra", không quan tâm tới JSON hay chỉnh sửa lại |
-| Package/service sở hữu | `html-compiler`, `motion-protocol`, `motion-compiler`, `motion-runtime`, `canvaskit-preview`, `render-native` (toàn bộ đã mô tả trong phần còn lại của tài liệu này) | Một service độc lập, nằm ngoài render core hiện tại (ví dụ một worker Python/script riêng chạy headless browser) — **chưa triển khai**, xem "Trạng thái triển khai Kiến trúc B" |
-| Chromium/headless browser trong đường sản phẩm | **Cấm** (trừ ngoại lệ hẹp `layoutSnapshot` ở bước compile, xem quy tắc #12) | **Là cơ chế chính**, chấp nhận có chủ đích — đây là lý do kiến trúc này phải tách biệt hoàn toàn khỏi Kiến trúc A thay vì trở thành một nhánh fallback bên trong nó |
-
 ### Vì sao tách thành hai kiến trúc thay vì một kiến trúc hai backend
 
-1. **Cam kết deterministic của Kiến trúc A không được phép bị pha loãng.**
+1. **Cam kết deterministic của Kiến trúc B không được phép bị pha loãng.**
    Toàn bộ lý do Neonix tự viết layout engine, dùng Skia/HarfBuzz trực tiếp
    thay vì mượn Chromium (xem "Công nghệ nền cho HTML Compiler và text
    runtime") là để tránh phụ thuộc cứng vào một tiến trình trình duyệt đang
-   chạy lúc tạo ra kết quả cuối. Nếu Kiến trúc B trở thành một "chế độ" hay
-   một fallback bên trong cùng export worker của Kiến trúc A, ranh giới đó
+   chạy lúc tạo ra kết quả cuối. Nếu Kiến trúc A trở thành một "chế độ" hay
+   một fallback bên trong cùng export worker của Kiến trúc B, ranh giới đó
    sẽ vỡ ngay lập tức — export worker sẽ phải biết cả hai đường, và một lỗi
    ở đường headless-browser (font thiếu, race condition load asset, phiên
    bản Chromium khác nhau giữa các lần chạy) có thể rò rỉ giả định sai vào
    đường native.
 2. **Hai đường có hợp đồng chất lượng khác nhau, không nên gộp chung một API.**
-   Kiến trúc A cam kết cùng JSON luôn ra cùng pixel (xem "Quy tắc đơn giản
-   hóa kiến trúc" #3). Kiến trúc B không có cam kết đó — chấp nhận đánh đổi
+   Kiến trúc B cam kết cùng JSON luôn ra cùng pixel (xem "Quy tắc đơn giản
+   hóa kiến trúc" #4). Kiến trúc A không có cam kết đó — chấp nhận đánh đổi
    deterministic lấy khả năng render bất kỳ HTML/CSS nào, kể cả phần
    `html-compiler` chưa hỗ trợ. Gộp chung nghĩa là làm yếu cam kết của Kiến
-   trúc A để phục vụ một nhóm dùng khác hẳn.
+   trúc B để phục vụ một nhóm dùng khác hẳn.
 3. **Không mâu thuẫn với vị trí sản phẩm hiện tại.** Trang so sánh Neonix vs
-   Remotion/HyperFrames vẫn đúng cho Kiến trúc A — đó vẫn là đường sản phẩm
-   chính, deterministic, không phụ thuộc Chromium lúc export. Kiến trúc B là
+   Remotion/HyperFrames vẫn đúng cho Kiến trúc B — đó vẫn là đường sản phẩm
+   chính, deterministic, không phụ thuộc Chromium lúc export. Kiến trúc A là
    một lối tắt UX riêng cho nhóm người dùng khác (xem bảng trên), không phải
-   một bản thay thế cho Kiến trúc A.
-
-### Trạng thái triển khai Kiến trúc B
-
-Kiến trúc B **chưa được triển khai**. Quyết định đã chốt: input là HTML/CSS
-thuần, cơ chế là headless browser thật (Playwright/Puppeteer hoặc một script/
-service riêng, có thể viết bằng Python), output là MP4 trực tiếp — không đi
-qua `MotionProtocolV2`/`html-compiler`/`motion-compiler`/`motion-runtime`.
-Việc triển khai cụ thể (chọn thư viện headless browser, nơi host service,
-cách đồng bộ audio, cách báo tiến trình cho Web API) sẽ được quyết định và
-ghi lại khi bắt tay implement — tài liệu này chỉ khoá ranh giới kiến trúc:
-Kiến trúc B không được phép nằm trong hoặc phụ thuộc vào bất kỳ package nào
-liệt kê ở "Phân loại packages" của Kiến trúc A, và ngược lại.
-
-**Đã triển khai (chỉ phần lưu trữ, không phải cơ chế render)**: `apps/api`'s
-`ProjectsService`/`ProjectsController` (`src/projects/`) đã có sẵn phần
-project storage cho track này — tạo project với `source_format: 'html'`
-(`POST /v1/projects/html-raw`), đọc/ghi đè một tài liệu HTML hiện tại không
-versioning (`GET`/`PUT /v1/projects/:id/html`, bảng `project_html_documents`),
-và cầu nối một chiều sang Kiến trúc A (`POST /v1/projects/:id/convert-json`,
-biên dịch qua `@motionvideo/html-compiler` rồi tạo ra một project Track B
-HOÀN TOÀN MỚI, không sửa/không liên kết ngược lại project gốc). Đây **không
-phải** là việc triển khai cơ chế render headless-browser mô tả ở trên — cơ
-chế render đó (nhận HTML/CSS thật, chạy trình duyệt headless, xuất MP4) vẫn
-**chưa được triển khai**. Cái đã xong chỉ là: một project có thể tồn tại ở
-dạng "chỉ có HTML, chưa compile" một cách độc lập với project JSON, tách
-biệt hoàn toàn khỏi Track B — không còn ràng buộc kiểu cũ nơi HTML "sống
-nhờ" vào một JSON revision (`project_html_revisions.protocol_revision_id`,
-đã bị xoá).
-
-> **Lưu ý phân biệt nhãn**: "Track A / Track B" ở đây (và trong code/comment
-> của `apps/api/src/projects/`) là quy ước đặt tên cho **project storage**,
-> tách biệt hoàn toàn với "Kiến trúc A / Kiến trúc B" ở trên (mô tả **cơ chế
-> render**). Hai bộ nhãn này ánh xạ ngược nhau một cách có chủ đích: **Track
-> A = project chỉ chứa HTML thuần, chưa compile** (tương ứng input của Kiến
-> trúc B); **Track B = project đã có JSON revision đã compile** (tương ứng
-> input/output của Kiến trúc A). Đừng nhầm hai bộ nhãn với nhau khi đọc code.
+   một bản thay thế cho Kiến trúc B.
 
 ## Render core and backend boundary
 
@@ -245,8 +250,8 @@ the browser UI preview; it never produces the exported MP4.
 
 ## HTML authoring boundary (one-way)
 
-> Phạm vi: mục này mô tả **Kiến trúc A (JSON Native Render)**. Trong Kiến
-> trúc B (HTML Frame Render), HTML/CSS không đi qua bước nào dưới đây — xem
+> Phạm vi: mục này mô tả **Kiến trúc B (JSON Native Render)**. Trong Kiến
+> trúc A (HTML Frame Render), HTML/CSS không đi qua bước nào dưới đây — xem
 > "Hai kiến trúc render độc lập" ở đầu tài liệu.
 
 HTML/CSS is an optional high-level authoring format for AI agents, MCP and
@@ -276,23 +281,25 @@ The direction is strictly one-way:
   rendering and export.
 - Runtime and renderers never read or compile HTML.
 - Neonix does not provide a Protocol V2 JSON -> HTML reverse compiler.
-- A Kiến trúc A project never stores an HTML authoring source of its own -
+- A Kiến trúc B project never stores an HTML authoring source of its own -
   once a JSON revision exists, that project is pure JSON going forward.
 
 For persistence, `project_revisions.document_json` is canonical, full stop.
-An earlier design also kept an "HTML authoring revision" as optional
-provenance attached to a Kiến trúc A project (`project_html_revisions`,
-linked to its JSON revision via `protocol_revision_id`) - that coupling was
-removed. HTML-as-storage now lives entirely on the Kiến trúc B side of the
-project (`projects.source_format = 'html'`, current document in
-`project_html_documents` - see "Hai kiến trúc render độc lập"): a single,
-un-versioned HTML document with no FK to `project_revisions` at all. The
-only sanctioned crossing point between the two is an explicit, one-shot
-"Convert JSON V2" action that compiles a Kiến trúc B project's current HTML
-and creates a **brand new, separate** Kiến trúc A project (its own id, its
-own revision 1) - it never mutates or links back to the source project, so
-a Kiến trúc B project can be converted more than once, and the two tracks
-never need to stay in sync with each other again afterward.
+Kiến trúc A projects (`projects.source_format = 'html'`) and Kiến trúc B
+projects (`'protocol-v2'`) are independent project types: HTML lives in
+`project_html_documents` (a single, un-versioned document with no FK to
+`project_revisions`), and nothing links the two tables. An earlier design
+kept an "HTML authoring revision" attached to a JSON revision
+(`project_html_revisions`, linked via `protocol_revision_id`) - that coupling
+was removed.
+
+The HTML compiler is a standalone capability, exposed as stateless API
+endpoints (compile, validate, capabilities) that are not bound to any stored
+project. The "Convert JSON V2" action simply runs that compiler on a Kiến trúc A
+project's current HTML and creates a **brand new, separate** Kiến trúc B project
+(its own id, its own revision 1). No reference to the source project is stored,
+so the two never need to stay in sync and the same HTML can be converted more
+than once.
 
 ## Công nghệ nền cho HTML Compiler và text runtime
 
@@ -494,7 +501,7 @@ audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/R
 
 > Phạm vi: toàn bộ mục này (sơ đồ phụ thuộc, bảng phân loại package, và các
 > tầng Author/Protocol/Compiler/Runtime/Playback & Render) mô tả **Kiến trúc
-> A** duy nhất. Kiến trúc B không có package nào trong sơ đồ dưới đây — xem
+> B** duy nhất. Kiến trúc A không có package nào trong sơ đồ dưới đây — xem
 > "Hai kiến trúc render độc lập".
 
 ### Sơ đồ phụ thuộc package
@@ -609,7 +616,7 @@ Legacy persistence và tính năng chunk-render vẫn tắt bằng feature flag
 | `@motionvideo/html-compiler` | Input compiler | HTML/CSS subset → Protocol V2 (tái dùng text-shaping utilities của `@motionvideo/motion-runtime` — `measureVisualRuntimeText` qua `prepareHtmlTextSizing()` — làm nguồn đo `height:auto` text box chính xác, thay heuristic đếm ký tự) | Runtime model và rendering |
 | `@motionvideo/asset-registry` | Asset contract | Font/SVG safety, asset identity và manifest/storage boundary | GPU textures, decoded media, Protocol semantics |
 | `@motionvideo/audio-analysis` | Offline media analysis | PCM decode, waveform/beat/energy/section analysis và clip mapping | Realtime audio clock, playback mixing |
-| `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts, Protocol V2 project operations, và project/runtime identity hash (tái dùng `computeProjectHash`/`computeRuntimeHash` từ `@motionvideo/render-native/contracts`) | UI state, transport, renderer state, native rendering |
+| `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts cho project HTML (Kiến trúc A), asset và export; helper patch Protocol V2 (không đăng ký thành tool MCP); project/runtime identity hash (tái dùng `computeProjectHash`/`computeRuntimeHash` từ `@motionvideo/render-native/contracts`) | UI state, transport, renderer state, native rendering |
 | `@motionvideo/motion-compiler` | Semantic compiler | Protocol V2 → RuntimeProjectV3, capability checks và lowering | UI, clock, media device, pixels |
 | `@motionvideo/motion-runtime` | Runtime semantics | Duration, timing, hierarchy, compiler-baked visual frame deltas, frame evaluation, paint/audio/video plans | Authoring mutation, clock, canvas, audio device |
 | `@motionvideo/editor-runtime` | Editor runtime session | Cache compile theo document generation, canonical layer sampling và frame evaluation cho editor | React, DOM, transport clock, renderer |
@@ -624,7 +631,7 @@ Legacy persistence và tính năng chunk-render vẫn tắt bằng feature flag
 
 #### Vai trò
 
-Editor, MCP và AI Agent tạo hoặc thay đổi authoring intent của người dùng.
+Editor tạo hoặc thay đổi authoring intent của người dùng cho project JSON V2 (Kiến trúc B). MCP và AI Agent chỉ làm việc với project HTML (Kiến trúc A).
 
 #### Luồng dữ liệu
 
@@ -664,7 +671,7 @@ Protocol chuẩn hóa authoring intent thành một project hợp lệ và canon
 #### Luồng dữ liệu
 
 ```text
-                 USER / AI / EDITOR / MCP
+                 USER / EDITOR       
                            │
                            │ authoring intent
                            ▼
@@ -1080,27 +1087,36 @@ trong [`render-native README`](packages/render-native/README.md).
 
 ## Quy tắc đơn giản hóa kiến trúc
 
-> Quy tắc 1-12 dưới đây áp dụng cho **Kiến trúc A (JSON Native Render)**.
-> Kiến trúc B (HTML Frame Render) có quy tắc riêng — xem #13.
+> Quy tắc 1 áp dụng cho **Kiến trúc A (HTML Frame Render)**; quy tắc 2-13
+> áp dụng cho **Kiến trúc B (JSON Native Render)**.
 
-1. Một project chỉ có một Protocol authoring format.
-2. Một compiler là nguồn chuyển đổi duy nhất từ V2 sang V3.
-3. Một RuntimeProjectV3 là nguồn semantics duy nhất cho preview và export.
-4. Preview và export chỉ khác backend render, không khác logic timeline.
+1. Kiến trúc A (HTML Frame Render) không bị ràng buộc bởi quy tắc #2-13 vì
+    nó không dùng Protocol/Compiler/Runtime/`PaintCommandBuffer` — nó có quy
+    tắc riêng của mình: input chỉ là HTML/CSS (không có JSON authoring
+    format), cơ chế render là headless browser thật cho từng frame, output
+    là MP4 trực tiếp, và project tạo qua đường này không editable/không mở
+    lại được trong Editor. Điều duy nhất bị cấm: package/service của Kiến
+    trúc A không được chia sẻ code render, export worker, hay Protocol V2
+    với bất kỳ package nào của Kiến trúc B — xem "Hai kiến trúc render độc
+    lập" ở đầu tài liệu.
+2. Một project chỉ có một Protocol authoring format.
+3. Một compiler là nguồn chuyển đổi duy nhất từ V2 sang V3.
+4. Một RuntimeProjectV3 là nguồn semantics duy nhất cho preview và export.
+5. Preview và export chỉ khác backend render, không khác logic timeline.
    Animation từ Protocol V2 được Compiler bake thành `visualTimeline` theo FPS;
    Runtime áp delta của frame trước khi tạo PaintCommandBuffer. Export worker
    không nhận Protocol V2 và không compile lại authoring document theo frame.
-5. Native VPS export là đường export chính; không có adapter bên thứ ba trong
+6. Native VPS export là đường export chính; không có adapter bên thứ ba trong
    đường chính.
-6. FFmpeg chỉ encode media; không được trở thành nơi chứa semantics của Neonix.
-7. Web API quản lý authentication, ownership, job lifecycle và artifact
+7. FFmpeg chỉ encode media; không được trở thành nơi chứa semantics của Neonix.
+8. Web API quản lý authentication, ownership, job lifecycle và artifact
    metadata; export worker chỉ nhận runtime project, render và trả artifact.
-8. Unsupported capability phải fail closed và trả diagnostic rõ ràng.
-9. Tối ưu chỉ được thêm sau khi có test chứng minh output vẫn đúng hình ảnh.
-10. Playback chỉ phục vụ Editor và không phải là nguồn frame/audio cho export.
-11. `/docs/preview/skia` phải kiểm tra trực tiếp Runtime và Skia Renderer bằng
+9. Unsupported capability phải fail closed và trả diagnostic rõ ràng.
+10. Tối ưu chỉ được thêm sau khi có test chứng minh output vẫn đúng hình ảnh.
+11. Playback chỉ phục vụ Editor và không phải là nguồn frame/audio cho export.
+12. `/docs/preview/skia` phải kiểm tra trực tiếp Runtime và Skia Renderer bằng
     frame/time xác định, không phụ thuộc clock realtime của Playback.
-12. Không package nào trong đường sản phẩm (compile, runtime, preview, export)
+13. Không package nào trong đường sản phẩm (compile, runtime, preview, export)
     được phụ thuộc **cứng** vào một tiến trình Chromium/trình duyệt đang chạy
     để tạo ra kết quả cuối — **trừ một ngoại lệ hẹp, có kiểm soát**: layout
     geometry (border-box/padding/border) ở bước compile HTML, tuỳ chọn qua
@@ -1110,17 +1126,8 @@ trong [`render-native README`](packages/render-native/README.md).
     dev-time (xem "Công nghệ nền cho HTML Compiler và text runtime"). Paint,
     cascade, HTML/SVG parsing và cấu trúc animation không nằm trong ngoại lệ
     này và vẫn cấm tuyệt đối. Quy tắc này áp dụng cho toàn bộ package của
-    Kiến trúc A; nó **không** áp dụng cho Kiến trúc B, vốn dùng headless
-    browser làm cơ chế chính có chủ đích (xem #13).
-13. Kiến trúc B (HTML Frame Render) không bị ràng buộc bởi quy tắc #1-12 vì
-    nó không dùng Protocol/Compiler/Runtime/`PaintCommandBuffer` — nó có quy
-    tắc riêng của mình: input chỉ là HTML/CSS (không có JSON authoring
-    format), cơ chế render là headless browser thật cho từng frame, output
-    là MP4 trực tiếp, và project tạo qua đường này không editable/không mở
-    lại được trong Editor. Điều duy nhất bị cấm: package/service của Kiến
-    trúc B không được chia sẻ code render, export worker, hay Protocol V2
-    với bất kỳ package nào của Kiến trúc A — xem "Hai kiến trúc render độc
-    lập" ở đầu tài liệu.
+    Kiến trúc B; nó **không** áp dụng cho Kiến trúc A, vốn dùng headless
+    browser làm cơ chế chính có chủ đích (xem #1).
 
 ## Luồng dữ liệu chuẩn
 
@@ -1158,8 +1165,8 @@ RuntimeProjectV3
 
 ## Tiêu chuẩn quyết định
 
-Checklist dưới đây áp dụng khi thêm capability cho **Kiến trúc A**. Kiến trúc
-B không có capability pipeline này — thêm hỗ trợ CSS/HTML mới cho nó nghĩa
+Checklist dưới đây áp dụng khi thêm capability cho **Kiến trúc B**. Kiến trúc
+A không có capability pipeline này — thêm hỗ trợ CSS/HTML mới cho nó nghĩa
 là dựa vào khả năng của headless browser đang dùng, không cần đi qua
 Protocol/Compiler/Runtime.
 
@@ -1179,21 +1186,21 @@ không được âm thầm tạo một video sai semantics.
 
 ## Kết luận ngắn gọn
 
-Kiến trúc A (JSON Native Render — toàn bộ nội dung phía trên, trừ mục "Hai
-kiến trúc render độc lập"):
-
-- Editor/MCP/AI Agent trả lời: **người dùng muốn tạo hoặc thay đổi project như thế nào?**
-- Protocol trả lời: **ý định đó được biểu diễn thành project canonical nào?**
-- Compiler trả lời: **project này có thể chạy như thế nào?**
-- Runtime trả lời: **ở frame/time này, project đang ở trạng thái nào?**
-- CanvasKit Preview trả lời: **replay `PaintCommandBuffer` lên CanvasKit/Skia như thế nào?**
-- FFmpeg trả lời: **đóng các frame/audio thành MP4 như thế nào?**
-
-Kiến trúc B (HTML Frame Render — xem "Hai kiến trúc render độc lập"):
+Kiến trúc A (HTML Frame Render — xem "Hai kiến trúc render độc lập"):
 
 - Headless browser trả lời câu hỏi duy nhất: **HTML/CSS này trông như thế
   nào ở mỗi frame, chụp lại y hệt như một trình duyệt thật sẽ vẽ nó?**
 - Không có Protocol, không có Compiler, không có Runtime, không có
   `PaintCommandBuffer` — vì vậy không có câu hỏi "project đang ở trạng thái
-  nào" hay "chỉnh sửa lại thế nào": kết quả của Kiến trúc B là một MP4 dùng
+  nào" hay "chỉnh sửa lại thế nào": kết quả của Kiến trúc A là một MP4 dùng
   một lần, không phải một document.
+
+Kiến trúc B (JSON Native Render — toàn bộ nội dung phía trên, trừ mục "Hai
+kiến trúc render độc lập"):
+
+- Editor trả lời: **người dùng muốn tạo hoặc thay đổi project như thế nào?**
+- Protocol trả lời: **ý định đó được biểu diễn thành project canonical nào?**
+- Compiler trả lời: **project này có thể chạy như thế nào?**
+- Runtime trả lời: **ở frame/time này, project đang ở trạng thái nào?**
+- CanvasKit Preview trả lời: **replay `PaintCommandBuffer` lên CanvasKit/Skia như thế nào?**
+- FFmpeg trả lời: **đóng các frame/audio thành MP4 như thế nào?**
