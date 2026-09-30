@@ -56,6 +56,19 @@ export class ApiKeysService {
     return { ...publicKey(row), token };
   }
 
+  async rename(userId: string, id: string, rawName: string) {
+    const name = rawName.trim();
+    if (!name) throw new ApiError(400, "API key name is required.");
+    if (name.length > 80) throw new ApiError(400, "API key name is too long.");
+    const [row] = await this.db
+      .update(apiKeys)
+      .set({ name })
+      .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId), isNull(apiKeys.revokedAt)))
+      .returning();
+    if (!row) throw new ApiError(404, "API key not found.");
+    return publicKey(row);
+  }
+
   async revoke(userId: string, id: string): Promise<void> {
     const result = await this.db
       .update(apiKeys)

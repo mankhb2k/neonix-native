@@ -9,19 +9,13 @@ import {
 } from "./annotations";
 import { REMOTE_TOOL_OUTPUT_SCHEMAS } from "./output-schemas";
 import { registerNeonixGuidance } from "./guidance";
-import { MotionProtocolV2PatchSchema } from "./patch";
 import { MCP_SERVER_VERSION } from "./version";
-import {
-  MCP_APP_RESOURCE_MIME_TYPE,
-  VIDEO_PREVIEW_RESOURCE_URI,
-  VIDEO_PREVIEW_UI_HTML,
-} from "./video-preview-ui";
 
 /**
- * Kiến trúc B raw HTML project (see ARCHITECHTURE.md "Hai kiến trúc render
+ * Kiến trúc A raw HTML project (see ARCHITECHTURE.md "Hai kiến trúc render
  * độc lập") blank starting point. Deliberately not imported from
- * @motionvideo/html-compiler — Kiến trúc B must not share code with Kiến
- * trúc A's compile pipeline, even a static template string. Must satisfy
+ * @motionvideo/html-compiler — Kiến trúc A must not share code with Kiến
+ * trúc B's compile pipeline, even a static template string. Must satisfy
  * apps/web's own copy of this template's validation rules (exactly one
  * neonix-document meta tag, no <script>, body declares matching px
  * width/height) — keep both in sync by hand if either changes.
@@ -70,22 +64,10 @@ export type RemoteMcpProjectApi = {
     projectId?: string;
     publicRef?: string;
     title?: string;
-    document?: Record<string, unknown>;
-    expectedRevisionNo?: number;
   }) => Promise<unknown>;
   deleteProject: (input: {
     projectId?: string;
     publicRef?: string;
-  }) => Promise<unknown>;
-  getProjectJson: (input: {
-    projectId?: string;
-    publicRef?: string;
-  }) => Promise<unknown>;
-  applyJsonPatch: (input: {
-    projectId?: string;
-    publicRef?: string;
-    expectedProtocolRevisionNo: number;
-    patch: Record<string, unknown>;
   }) => Promise<unknown>;
   getProjectHtml: (input: {
     projectId?: string;
@@ -95,18 +77,7 @@ export type RemoteMcpProjectApi = {
     projectId?: string;
     publicRef?: string;
     html: string;
-    expectedHtmlRevisionNo?: number;
-    expectedProtocolRevisionNo?: number;
     ensureBrowserPreviewStyle?: boolean;
-  }) => Promise<unknown>;
-  listHtmlRevisions: (input: {
-    projectId?: string;
-    publicRef?: string;
-  }) => Promise<unknown>;
-  getHtmlRevision: (input: {
-    projectId?: string;
-    publicRef?: string;
-    revisionNo: number;
   }) => Promise<unknown>;
   listAssets: (input: {
     workspaceId?: string;
@@ -138,26 +109,16 @@ export type RemoteMcpProjectApi = {
   createExport: (input: {
     projectId?: string;
     publicRef?: string;
-    protocolRevisionNo?: number;
     preset?: string;
     idempotencyKey?: string;
   }) => Promise<unknown>;
   getExport: (input: { jobId: string }) => Promise<unknown>;
   getExportDownloadUrl: (input: { jobId: string }) => Promise<unknown>;
   cancelExport: (input: { jobId: string }) => Promise<unknown>;
-  openEditor: (input: {
-    projectId?: string;
-    publicRef?: string;
-  }) => Promise<unknown>;
   openPreview: (input: {
     projectId?: string;
     publicRef?: string;
   }) => Promise<unknown>;
-  documentApi?: {
-    getCapabilities: () => Promise<unknown>;
-    validateDocument: (input: { html: string }) => Promise<unknown>;
-    compileDocument: (input: { html: string }) => Promise<unknown>;
-  };
 };
 
 type ToolResult = {
@@ -217,9 +178,8 @@ async function safely<T>(operation: () => Promise<T>): Promise<ToolResult> {
  * Registers Neonix's remote project tools without depending on Next.js,
  * a database, cookies, or a particular deployment runtime.
  *
- * Tools are registered in authoring-flow order (create -> discover/validate
- * -> browse -> preview -> edit -> JSON fallback -> export -> assets ->
- * destructive-last) purely so this file reads top-to-bottom the way an
+ * Tools are registered in authoring-flow order (create -> browse -> preview
+ * -> edit -> export -> assets -> destructive-last) purely so this file reads top-to-bottom the way an
  * agent actually uses it; MCP itself does not care about registration order.
  */
 export function createRemoteMcpServer(options: {
@@ -231,52 +191,12 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: MCP_SERVER_VERSION },
     {
       instructions:
-        "Neonix is an HTML-to-motion-video compiler with two independent, complete render tracks. create_project_html/update_project_html create and edit a Kiến trúc B raw HTML project — no compile, no Neonix JSON V2 revision, cannot be opened in the editor. html is optional on create - omit it (or pass an empty string) to scaffold and save the standard blank template, then call update_project_html to author real content; update_project_html only works before the project has ever been converted to JSON - once it has a JSON revision, this tool is rejected. Converting a Kiến trúc B project to an editable Neonix JSON V2 document (Kiến trúc A) requires the Neonix dashboard/web app - there is no MCP tool for it, by design; do not tell a caller you can convert one. For a project that already has a JSON revision (created directly as Neonix JSON V2 in the dashboard, or converted there from an HTML project), read it with get_project_json and edit it with apply_json_patch for small changes (never write raw HTML back into it - that one-way HTML-to-JSON relationship no longer applies once a project is JSON-based). create_export works for both tracks but through two different pipelines: a JSON project renders its saved Protocol V2 revision; a Kiến trúc B HTML project renders through a separate headless-browser pipeline that requires composition.fps and composition.durationMs in the project's own neonix-document meta tag (durationMs isn't required to create/edit the project, only to export it - add it with update_project_html first if create_export reports it missing). Either kind of export can take many minutes; create_export always returns a queued/rendering job immediately, never a finished video - poll it with get_export and only fetch the file with get_export_download_url once its status is done. Only call create_export when the user explicitly asks to render, export or download a video - never automatically after create_project_html or update_project_html. Call open_preview to show a project's current state regardless of which track it's on; call open_editor only for a project with a JSON revision.",
+        "Neonix is an HTML-to-video tool built on raw HTML projects (Kiến trúc A): a project stores HTML/CSS as-is, with no compile step, and is rendered frame by frame. create_project_html creates a project and update_project_html edits it; html is optional on create - omit it (or pass an empty string) to scaffold and save the standard blank template, then call update_project_html to author real content. Use get_project_html to read the current source. create_export renders the HTML through a headless-browser pipeline that requires composition.fps and composition.durationMs in the project's neonix-document meta tag (durationMs isn't required to create or edit the project, only to export it - add it with update_project_html first if create_export reports it missing). An export can take many minutes; create_export always returns a queued/rendering job immediately, never a finished video - poll it with get_export and only fetch the file with get_export_download_url once its status is done. Only call create_export when the user explicitly asks to render, export or download a video - never automatically after create_project_html or update_project_html. Call open_preview to show a project's current state.",
     },
   );
   registerNeonixGuidance(server);
 
-  server.registerResource(
-    "Neonix video preview",
-    VIDEO_PREVIEW_RESOURCE_URI,
-    {
-      mimeType: MCP_APP_RESOURCE_MIME_TYPE,
-      description:
-        "Inline video preview and export controls for Neonix render jobs.",
-    },
-    async () => ({
-      contents: [
-        {
-          uri: VIDEO_PREVIEW_RESOURCE_URI,
-          mimeType: MCP_APP_RESOURCE_MIME_TYPE,
-          text: VIDEO_PREVIEW_UI_HTML,
-          _meta: {
-            ui: {
-              prefersBorder: true,
-              csp: {
-                connectDomains: [],
-                resourceDomains: [
-                  "https://*.r2.cloudflarestorage.com",
-                  "https://media.neonix.video",
-                ],
-              },
-            },
-          },
-        },
-      ],
-    }),
-  );
-
   const uuid = z.string().uuid();
-  // Not the strict MotionProtocolV2Schema on purpose: the server migrates a
-  // few legacy field names (e.g. layer.tracks[].playback -> .animation)
-  // before validating, so a strict schema here would reject documents the
-  // handler still accepts.
-  const documentSchema = z
-    .record(z.string(), z.unknown())
-    .describe(
-      'A full Protocol V2 document to replace the current one: { format: "motion-protocol", formatVersion: 2, composition, layers, ... }. Prefer apply_json_patch for small changes. Read an existing document with get_project_json to see the exact shape.',
-    );
   const projectLocator = {
     project_id: uuid.optional().describe("Project UUID."),
     public_ref: z
@@ -304,7 +224,7 @@ export function createRemoteMcpServer(options: {
     "create_project_html",
     {
       title: "Create HTML project",
-      description: `Create a Neonix project that stores HTML/CSS as-is — no compile step, no Neonix JSON V2 revision. This is Kiến trúc B (see ARCHITECHTURE.md "Hai kiến trúc render độc lập"): the project cannot be opened in the JSON editor, but it is a complete project on its own, not one waiting to be finished — call create_export to render it once the user asks (that pipeline renders the HTML directly via a separate headless-browser path and requires composition.fps and composition.durationMs in the neonix-document meta tag; add durationMs with update_project_html first if create_export reports it missing). To convert it into an editable Neonix JSON V2 project (Kiến trúc A) instead, that requires the Neonix dashboard/web app — there is no MCP tool for that conversion. Validation here is deliberately light (not the full HTML compiler): exactly one meta[name="neonix-document"] with a valid composition, no <script> tags, and <body> (or its single top-level wrapping element) must declare width/height in px matching the composition exactly. Omit html (or pass an empty string) to scaffold from the standard blank template below, already saved for real - then call update_project_html to author real content (update_project_html only works before this project is ever converted; once it has a JSON revision, edit it with apply_json_patch or the editor instead). Template:\n\n${NEONIX_RAW_HTML_TEMPLATE}`,
+      description: `Create a Neonix project that stores HTML/CSS as-is — no compile step. This is Kiến trúc A (see ARCHITECHTURE.md "Hai kiến trúc render độc lập"): a complete project on its own, rendered frame by frame from the HTML — call create_export to render it once the user asks (that pipeline requires composition.fps and composition.durationMs in the neonix-document meta tag; add durationMs with update_project_html first if create_export reports it missing). Validation here is deliberately light: exactly one meta[name="neonix-document"] with a valid composition, no <script> tags, and <body> (or its single top-level wrapping element) must declare width/height in px matching the composition exactly. Omit html (or pass an empty string) to scaffold from the standard blank template below, already saved for real - then call update_project_html to author real content. Template:\n\n${NEONIX_RAW_HTML_TEMPLATE}`,
       inputSchema: {
         workspace_id: uuid
           .optional()
@@ -339,81 +259,17 @@ export function createRemoteMcpServer(options: {
         "Create HTML project",
       ),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project_html,
-      _meta: {
-        ui: { resourceUri: VIDEO_PREVIEW_RESOURCE_URI },
-        "openai/outputTemplate": VIDEO_PREVIEW_RESOURCE_URI,
-      },
     },
     (input) =>
       safely(() =>
         api.createProjectHtml({
           workspaceId: input.workspace_id,
           title: input.title,
-          html: input.html,
+          html: input.html?.trim() ? input.html : NEONIX_RAW_HTML_TEMPLATE,
           idempotencyKey: input.idempotency_key,
         }),
       ),
   );
-
-  if (api.documentApi) {
-    server.registerTool(
-      "get_capabilities",
-      {
-        title: "Get capabilities",
-        description:
-          "Return supported HTML tags, CSS properties, document metadata, Protocol version, allowed values for properties that reject most values (e.g. animation-timing-function only accepts linear, ease, ease-in, ease-out, ease-in-out, cubic-bezier() and steps() — not every CSS easing keyword), and constraints on how supported features combine (e.g. two concurrent animation-name entries on one element can't vary the same transform function).",
-        inputSchema: {},
-        annotations: withToolTitle(
-          READ_ONLY_TOOL_ANNOTATIONS,
-          "Get capabilities",
-        ),
-        outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_capabilities,
-      },
-      () => safely(() => api.documentApi!.getCapabilities()),
-    );
-
-    server.registerTool(
-      "validate_html",
-      {
-        title: "Validate HTML",
-        description:
-          "Validate a complete neonix-document HTML file and return composition and diagnostics.",
-        inputSchema: {
-          html: z
-            .string()
-            .min(1)
-            .describe(
-              "Complete neonix-document HTML source to validate, including CSS in the document.",
-            ),
-        },
-        annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Validate HTML"),
-        outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.validate_html,
-      },
-      (input) =>
-        safely(() => api.documentApi!.validateDocument({ html: input.html })),
-    );
-
-    server.registerTool(
-      "compile_html",
-      {
-        title: "Compile HTML",
-        description:
-          "Compile a complete neonix-document HTML file into Protocol V2 JSON.",
-        inputSchema: {
-          html: z
-            .string()
-            .min(1)
-            .describe(
-              "Complete neonix-document HTML source to compile, including CSS in the document.",
-            ),
-        },
-        annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Compile HTML"),
-        outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.compile_html,
-      },
-      (input) =>
-        safely(() => api.documentApi!.compileDocument({ html: input.html })),
-    );
-  }
 
   server.registerTool(
     "list_workspaces",
@@ -433,7 +289,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "List projects",
       description:
-        "List projects in an accessible workspace, newest updates first.",
+        "List the HTML projects in an accessible workspace, newest updates first.",
       inputSchema: {
         workspace_id: uuid
           .optional()
@@ -465,7 +321,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Get project",
       description:
-        "Read a project and its latest editor document revision. Provide project_id or public_ref.",
+        "Read a project's metadata (id, public_ref, workspace, title). Provide project_id or public_ref.",
       inputSchema: projectLocator,
       annotations: withToolTitle(READ_ONLY_TOOL_ANNOTATIONS, "Get project"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_project,
@@ -485,7 +341,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Open Neonix preview",
       description:
-        "Return the read-only Neonix preview URL for a project. Provide project_id or public_ref and show the URL to the user.",
+        "Return the read-only Neonix preview URL for an HTML project. Provide project_id or public_ref and show the URL to the user.",
       inputSchema: projectLocator,
       annotations: withToolTitle(
         READ_ONLY_TOOL_ANNOTATIONS,
@@ -504,34 +360,11 @@ export function createRemoteMcpServer(options: {
   );
 
   server.registerTool(
-    "open_editor",
-    {
-      title: "Open Neonix editor",
-      description:
-        "Return the authenticated user's Neonix editor URL for a project. Provide project_id or public_ref and show the URL to the user.",
-      inputSchema: projectLocator,
-      annotations: withToolTitle(
-        READ_ONLY_TOOL_ANNOTATIONS,
-        "Open Neonix editor",
-      ),
-      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.open_editor,
-    },
-    (input) =>
-      safely(async () => {
-        requireProjectLocator(input);
-        return api.openEditor({
-          projectId: input.project_id,
-          publicRef: input.public_ref,
-        });
-      }),
-  );
-
-  server.registerTool(
     "get_project_html",
     {
       title: "Get project HTML",
       description:
-        "Read the latest HTML authoring source attached to an existing project. Check htmlSyncStatus: 'stale' means a later JSON patch or edit changed the canonical Protocol V2 revision after this HTML was saved, so saving this HTML back would overwrite that change.",
+        "Read the current HTML source of a project.",
       inputSchema: projectLocator,
       annotations: withToolTitle(
         READ_ONLY_TOOL_ANNOTATIONS,
@@ -554,7 +387,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Update project HTML",
       description:
-        "Save a new HTML revision on a Kiến trúc B raw HTML project — no compile, no JSON revision. Only works before this project has ever been converted to Neonix JSON V2 (current_revision_no === 0); once it has a JSON revision, this tool is rejected — edit it with apply_json_patch or the editor instead. Validation is the same light rules as create_project_html (neonix-document meta, no <script>, body/wrapper px size match), not the full HTML compiler.",
+        "Save new HTML source on a Kiến trúc A raw HTML project — no compile step. Validation is the same light rules as create_project_html (neonix-document meta, no <script>, body/wrapper px size match).",
       inputSchema: {
         ...projectLocator,
         html: z
@@ -562,14 +395,6 @@ export function createRemoteMcpServer(options: {
           .min(1)
           .describe(
             "Complete neonix-document HTML source, including CSS in the document.",
-          ),
-        expected_html_revision_no: z
-          .number()
-          .int()
-          .min(0)
-          .optional()
-          .describe(
-            "Expected current HTML revision number; omit to skip the optimistic-concurrency check.",
           ),
       },
       annotations: withToolTitle(
@@ -585,117 +410,6 @@ export function createRemoteMcpServer(options: {
           projectId: input.project_id,
           publicRef: input.public_ref,
           html: input.html,
-          expectedHtmlRevisionNo: input.expected_html_revision_no,
-        });
-      }),
-  );
-
-  server.registerTool(
-    "list_html_revisions",
-    {
-      title: "List HTML revisions",
-      description: "List HTML authoring revisions attached to a project.",
-      inputSchema: projectLocator,
-      annotations: withToolTitle(
-        READ_ONLY_TOOL_ANNOTATIONS,
-        "List HTML revisions",
-      ),
-      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.list_html_revisions,
-    },
-    (input) =>
-      safely(async () => {
-        requireProjectLocator(input);
-        return api.listHtmlRevisions({
-          projectId: input.project_id,
-          publicRef: input.public_ref,
-        });
-      }),
-  );
-
-  server.registerTool(
-    "get_html_revision",
-    {
-      title: "Get HTML revision",
-      description:
-        "Read a specific HTML authoring revision and its linked Protocol V2 revision id.",
-      inputSchema: {
-        ...projectLocator,
-        revision_no: z
-          .number()
-          .int()
-          .min(1)
-          .describe("HTML revision number to read."),
-      },
-      annotations: withToolTitle(
-        READ_ONLY_TOOL_ANNOTATIONS,
-        "Get HTML revision",
-      ),
-      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_html_revision,
-    },
-    (input) =>
-      safely(async () => {
-        requireProjectLocator(input);
-        return api.getHtmlRevision({
-          projectId: input.project_id,
-          publicRef: input.public_ref,
-          revisionNo: input.revision_no,
-        });
-      }),
-  );
-
-  server.registerTool(
-    "get_project_json",
-    {
-      title: "Get project JSON",
-      description:
-        "Read the canonical Protocol V2 JSON revision. This is read-only and never converts JSON back to HTML.",
-      inputSchema: projectLocator,
-      annotations: withToolTitle(
-        READ_ONLY_TOOL_ANNOTATIONS,
-        "Get project JSON",
-      ),
-      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_project_json,
-    },
-    (input) =>
-      safely(async () => {
-        requireProjectLocator(input);
-        return api.getProjectJson({
-          projectId: input.project_id,
-          publicRef: input.public_ref,
-        });
-      }),
-  );
-
-  server.registerTool(
-    "apply_json_patch",
-    {
-      title: "Apply JSON patch",
-      description:
-        "Apply a small validated Protocol V2 patch when the requested change cannot be expressed in HTML. This creates a JSON revision and may make the HTML source stale.",
-      inputSchema: {
-        ...projectLocator,
-        expected_protocol_revision_no: z
-          .number()
-          .int()
-          .min(1)
-          .describe(
-            "Current Protocol V2 revision number the patch is based on; fails with a revision conflict if the project has moved past it.",
-          ),
-        patch: MotionProtocolV2PatchSchema.describe(
-          'A motion-protocol-patch document: { format: "motion-protocol-patch", formatVersion: 2, baseRevision, operations }. Each operation is one of setComposition, addLayer, updateLayer, removeLayer, trimLayer, or setValue, discriminated by its op field.',
-        ),
-      },
-      annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Apply JSON patch"),
-      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.apply_json_patch,
-    },
-    (input) =>
-      safely(async () => {
-        requireProjectLocator(input);
-        return api.applyJsonPatch({
-          projectId: input.project_id,
-          publicRef: input.public_ref,
-          expectedProtocolRevisionNo: input.expected_protocol_revision_no,
-          patch: input.patch,
         });
       }),
   );
@@ -705,7 +419,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Update project",
       description:
-        "Update a project title and/or append a new document revision. Use expected_revision_no to prevent overwriting a newer edit.",
+        "Rename a project.",
       inputSchema: {
         ...projectLocator,
         title: z
@@ -715,15 +429,6 @@ export function createRemoteMcpServer(options: {
           .max(200)
           .optional()
           .describe("New project title."),
-        document: documentSchema.optional(),
-        expected_revision_no: z
-          .number()
-          .int()
-          .min(0)
-          .optional()
-          .describe(
-            "Expected current document revision number; omit to skip the optimistic-concurrency check.",
-          ),
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Update project"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.update_project,
@@ -735,8 +440,6 @@ export function createRemoteMcpServer(options: {
           projectId: input.project_id,
           publicRef: input.public_ref,
           title: input.title,
-          document: input.document,
-          expectedRevisionNo: input.expected_revision_no,
         });
       }),
   );
@@ -746,17 +449,9 @@ export function createRemoteMcpServer(options: {
     {
       title: "Create export",
       description:
-        "Render a project and return a job to poll with get_export. For a Neonix JSON V2 project, renders the saved Protocol V2 revision (arbitrary unsaved JSON cannot be exported). For a Kiến trúc B raw HTML project (no JSON revision), renders the HTML directly via a separate headless-browser pipeline instead - that pipeline requires composition.fps and composition.durationMs in the project's own neonix-document meta tag (durationMs isn't required to create/edit the project, only to export it); add durationMs with update_project_html first if it's missing, then retry. Either kind of job can take many minutes - this call returns immediately with a queued/rendering job, never a finished video; only call this when the user explicitly asks to render, export or download a video, never automatically after create_project_html or update_project_html.",
+        "Render a Kiến trúc A raw HTML project and return a job to poll with get_export. The HTML is rendered directly via a headless-browser pipeline that requires composition.fps and composition.durationMs in the project's own neonix-document meta tag (durationMs isn't required to create/edit the project, only to export it); add durationMs with update_project_html first if it's missing, then retry. A job can take many minutes - this call returns immediately with a queued/rendering job, never a finished video; only call this when the user explicitly asks to render, export or download a video, never automatically after create_project_html or update_project_html.",
       inputSchema: {
         ...projectLocator,
-        protocol_revision_no: z
-          .number()
-          .int()
-          .min(1)
-          .optional()
-          .describe(
-            "Protocol V2 revision number to render; omit to use the project's current revision.",
-          ),
         preset: z
           .string()
           .optional()
@@ -773,12 +468,6 @@ export function createRemoteMcpServer(options: {
       },
       annotations: withToolTitle(ADDITIVE_TOOL_ANNOTATIONS, "Create export"),
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_export,
-      _meta: {
-        ui: {
-          resourceUri: VIDEO_PREVIEW_RESOURCE_URI,
-        },
-        "openai/outputTemplate": VIDEO_PREVIEW_RESOURCE_URI,
-      },
     },
     (input) =>
       safely(async () => {
@@ -786,7 +475,6 @@ export function createRemoteMcpServer(options: {
         return api.createExport({
           projectId: input.project_id,
           publicRef: input.public_ref,
-          protocolRevisionNo: input.protocol_revision_no,
           preset: input.preset,
           idempotencyKey: input.idempotency_key,
         });
@@ -990,7 +678,7 @@ export function createRemoteMcpServer(options: {
     {
       title: "Attach asset to project",
       description:
-        "Attach a ready workspace asset to an existing project so its asset reference can be used by Protocol V2 or HTML authoring.",
+        "Attach a ready workspace asset to an existing project so its asset reference can be used in HTML authoring.",
       inputSchema: {
         ...projectLocator,
         asset_id: uuid.describe("Ready workspace asset id to attach."),

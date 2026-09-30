@@ -1,34 +1,26 @@
 # `@motionvideo/motion-mcp`
 
-Transport-agnostic MCP operations for Atomic Protocol V2 and HTML authoring.
+Transport-agnostic MCP tools for raw HTML authoring (Kiến trúc A, see
+`ARCHITECHTURE.md` "Hai kiến trúc render độc lập").
 
-The package accepts only `format: "motion-protocol"` with
-`formatVersion: 2`. Its compile operation calls the canonical `compileProtocol`
-and returns `RuntimeProjectV3`; it never converts or executes an older project
-format.
+A Neonix MCP project is a raw HTML/CSS document stored as-is and rendered frame
+by frame. The hosted server exposes no tool that touches the JSON V2 track
+(compiler, Protocol V2 documents, JSON patches, the JSON editor).
 
 ```text
 create_project_html(HTML + CSS)
         |
-validate + compile → create project + linked revisions
-        |
-get_project_html → edit HTML → validate_html
+get_project_html → edit HTML
         |
 update_project_html
         |
-project_html_revision + linked project_revision
-        |
-Protocol V2 JSON → compileProtocol → RuntimeProjectV3
+open_preview / create_export
 ```
 
-`create_project_html` is the only public AI project-creation flow: it compiles
-the supplied source and atomically creates the project, canonical Protocol V2
-revision, and linked HTML authoring revision. HTML remains an authoring source
-attached to the project; the hosted MCP flow never converts JSON back to HTML.
-The low-level Protocol V2 create operation remains available to internal
-adapters for compatibility, but is not registered by the hosted MCP server.
-`get_project_json` is read-only and `apply_json_patch` is an explicit escape
-hatch for small changes that HTML cannot express.
+`create_project_html` is the only public AI project-creation flow. It applies
+light validation (one `neonix-document` meta with a valid composition, no
+`<script>`, body size matching the composition) and saves the HTML without
+compiling it.
 
 The Codex companion skill is available at
 `skills/neonix-html-authoring/SKILL.md`. Claude and other MCP clients receive
@@ -48,15 +40,9 @@ cancel_export
 ```
 
 Asset writes require editor access. URL imports are limited to public HTTP(S)
-hosts, supported media MIME types and the account upload quota. Export reads a
-saved Protocol V2 revision from the database; an unsaved arbitrary document
-cannot be exported through MCP. Completed artifacts are persisted to the
-private exports bucket and exposed only through a short-lived signed URL.
-
-V2 patch operations are intentionally flat while Group is not certified:
-`addLayer`, `updateLayer`, `removeLayer`, `trimLayer`, `setComposition`, and
-`setValue`. Every patch is validated against the strict V2 schema before it is
-returned.
+hosts, supported media MIME types and the account upload quota. Completed
+artifacts are persisted to the private exports bucket and exposed only through
+a short-lived signed URL.
 
 ## Remote server integration
 

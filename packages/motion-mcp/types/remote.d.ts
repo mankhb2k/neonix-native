@@ -29,28 +29,15 @@ export type RemoteMcpProjectApi = {
     projectId?: string;
     publicRef?: string;
     title?: string;
-    document?: Record<string, unknown>;
-    expectedRevisionNo?: number;
   }) => Promise<unknown>;
   deleteProject: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
-  getProjectJson: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
-  applyJsonPatch: (input: {
-    projectId?: string;
-    publicRef?: string;
-    expectedProtocolRevisionNo: number;
-    patch: Record<string, unknown>;
-  }) => Promise<unknown>;
   getProjectHtml: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
   updateProjectHtml: (input: {
     projectId?: string;
     publicRef?: string;
     html: string;
-    expectedHtmlRevisionNo?: number;
-    expectedProtocolRevisionNo?: number;
     ensureBrowserPreviewStyle?: boolean;
   }) => Promise<unknown>;
-  listHtmlRevisions: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
-  getHtmlRevision: (input: { projectId?: string; publicRef?: string; revisionNo: number }) => Promise<unknown>;
   listAssets: (input: { workspaceId?: string; projectId?: string; publicRef?: string }) => Promise<unknown>;
   requestAssetUpload: (input: {
     workspaceId?: string;
@@ -65,20 +52,13 @@ export type RemoteMcpProjectApi = {
   createExport: (input: {
     projectId?: string;
     publicRef?: string;
-    protocolRevisionNo?: number;
     preset?: string;
     idempotencyKey?: string;
   }) => Promise<unknown>;
   getExport: (input: { jobId: string }) => Promise<unknown>;
   getExportDownloadUrl: (input: { jobId: string }) => Promise<unknown>;
   cancelExport: (input: { jobId: string }) => Promise<unknown>;
-  openEditor: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
   openPreview: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
-  documentApi?: {
-    getCapabilities: () => Promise<unknown>;
-    validateDocument: (input: { html: string }) => Promise<unknown>;
-    compileDocument: (input: { html: string }) => Promise<unknown>;
-  };
 };
 
 export function createRemoteMcpServer(options: {

@@ -64,7 +64,7 @@ export type NodeBoxDeps = {
    * every CDP coverage gap visible during a deliberate "layout must be 100%
    * CDP, no fallback" test pass, not to change the default safety contract
    * (a missing measurement is always safe, never wrong - see
-   * ARCHITECHTURE.md rule 12).
+   * ARCHITECHTURE.md rule 13).
    */
   layoutSnapshotStrict: boolean | undefined;
 };

@@ -12,31 +12,24 @@ Neonix project from HTML/CSS.
 
 ## New project
 
-1. Call `get_capabilities` when supported HTML/CSS syntax is unknown.
-2. Create one complete `neonix-document` HTML string, including its style
-   blocks and `meta[name="neonix-document"]` manifest.
-3. Call `create_project_html` with the HTML, title, workspace and a stable
+1. Create one complete `neonix-document` HTML string, including its style
+   blocks and `meta[name="neonix-document"]` manifest, or omit `html` to
+   start from the standard blank template.
+2. Call `create_project_html` with the HTML, title, workspace and a stable
    `idempotency_key` when the request may be retried.
-4. Return the project identity and call `open_editor` when an editor link is
-   useful.
-5. Call `create_export` only when the user asks for a rendered export.
+3. Return the project identity and call `open_preview` to show the result.
+4. Call `create_export` only when the user asks for a rendered export.
 
 ## Existing project
 
 1. Call `get_project_html` before editing.
-2. Preserve the document manifest and supported CSS surface.
-3. Call `validate_html`, then `update_project_html` with the latest revision
-   numbers.
+2. Preserve the document manifest (one `neonix-document` meta, no
+   `<script>`, body size matching the composition).
+3. Call `update_project_html` with the latest revision number.
 4. On `REVISION_CONFLICT`, read the latest HTML and re-apply the requested
    change instead of overwriting it.
 
-## Source of truth and safety
+## Safety
 
-Protocol V2 JSON is canonical for runtime and export. HTML is the linked
-authoring source. Use `get_project_json` for inspection and
-`apply_json_patch` only when HTML cannot express the requested change; JSON
-patches can make the HTML source stale.
-
-Ask for confirmation before destructive operations. Treat compiler diagnostics
-as actionable feedback and return the error code/details to the user when a
-tool call fails.
+Ask for confirmation before destructive operations. Return the error
+code/details to the user when a tool call fails.

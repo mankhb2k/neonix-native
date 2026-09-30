@@ -1,9 +1,10 @@
 import type { RemoteMcpProjectApi } from "@motionvideo/motion-mcp/remote";
+import { HttpException } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { AssetsService } from "../assets/assets.service";
 import { ApiError } from "../common/api-error";
 import type { Database } from "../db/client";
-import { projectRevisions, projects } from "../db/schema/projects";
+import { projects } from "../db/schema/projects";
 import { renderJobs } from "../db/schema/render";
 import { ProjectsService } from "../projects/projects.service";
 import { RenderJobsService } from "../render-jobs/render-jobs.service";
@@ -16,6 +17,44 @@ export interface McpApiDeps {
   assets: AssetsService;
   renderJobs: RenderJobsService;
   webAppUrl: string;
+}
+
+// ApiError is a NestJS HttpException whose real message/code live inside its
+// response body; motion-mcp's toolError() only reads `.message` / `.code`, so
+// without this translation every failure would surface as a generic
+// "Http Exception" / TOOL_ERROR.
+const STATUS_CODES: Record<number, string> = {
+  400: "INVALID_INPUT",
+  403: "FORBIDDEN",
+  404: "NOT_FOUND",
+  409: "CONFLICT",
+  422: "INVALID_INPUT",
+};
+
+function translateError(error: unknown): unknown {
+  if (!(error instanceof HttpException)) return error;
+  const body = error.getResponse() as { error?: { message?: string; code?: string; details?: unknown } } | string;
+  const info = typeof body === "string" ? undefined : body.error;
+  const translated = new Error(info?.message ?? error.message) as Error & { code: string; details?: unknown };
+  translated.code = info?.code ?? STATUS_CODES[error.getStatus()] ?? "TOOL_ERROR";
+  if (info?.details !== undefined) translated.details = info.details;
+  return translated;
+}
+
+function withToolErrors(api: RemoteMcpProjectApi): RemoteMcpProjectApi {
+  const wrapped = Object.fromEntries(
+    Object.entries(api).map(([name, method]) => [
+      name,
+      async (...args: unknown[]) => {
+        try {
+          return await (method as (...input: unknown[]) => Promise<unknown>)(...args);
+        } catch (error) {
+          throw translateError(error);
+        }
+      },
+    ]),
+  );
+  return wrapped as unknown as RemoteMcpProjectApi;
 }
 
 function notImplemented(tool: string): never {
@@ -38,6 +77,22 @@ async function resolveProjectId(db: Database, input: { projectId?: string; publi
   throw new ApiError(400, "projectId or publicRef is required");
 }
 
+// MCP only serves HTML (Kiến trúc A) projects; a JSON V2 project is a
+// different, independent project type that the MCP tools never touch.
+async function resolveHtmlProject(
+  db: Database,
+  projectsService: ProjectsService,
+  userId: string,
+  input: { projectId?: string; publicRef?: string },
+) {
+  const projectId = await resolveProjectId(db, input);
+  const project = await projectsService.getForMember(userId, projectId);
+  if (project.sourceFormat !== "html") {
+    throw new ApiError(409, "Project is not an HTML project", "not_html_track");
+  }
+  return project;
+}
+
 async function resolveRenderJobId(db: Database, jobId: string): Promise<string> {
   const row = await db.query.renderJobs.findFirst({ where: eq(renderJobs.publicRef, jobId) });
   if (!row) throw new ApiError(404, "Render job not found");
@@ -57,16 +112,23 @@ async function resolveRenderJobId(db: Database, jobId: string): Promise<string> 
 export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpProjectApi {
   const { db, workspaces, projects: projectsService, assets: assetsService, renderJobs: renderJobsService, webAppUrl } = deps;
 
-  return {
+  async function resolveWorkspaceId(workspaceId?: string): Promise<string> {
+    if (workspaceId) return workspaceId;
+    const [first] = await workspaces.listForUser(userId);
+    if (!first) throw new ApiError(404, "No accessible workspace");
+    return first.id;
+  }
+
+  const api: RemoteMcpProjectApi = {
     async listWorkspaces() {
       const rows = await workspaces.listForUser(userId);
       return rows.map((w) => ({ id: w.id, name: w.name, role: w.role, created_at: w.createdAt.toISOString() }));
     },
 
     async listProjects(input) {
-      if (!input.workspaceId) throw new ApiError(400, "workspaceId is required");
-      const workspace = await workspaces.getForMember(userId, input.workspaceId);
-      const rows = await projectsService.list(userId, input.workspaceId);
+      const workspaceId = await resolveWorkspaceId(input.workspaceId);
+      const workspace = await workspaces.getForMember(userId, workspaceId);
+      const rows = (await projectsService.list(userId, workspaceId)).filter((project) => project.sourceFormat === "html");
       const limited = input.limit ? rows.slice(0, input.limit) : rows;
       return {
         workspace: { id: workspace.id, name: workspace.name, created_at: workspace.createdAt.toISOString() },
@@ -75,35 +137,19 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
     },
 
     async getProject(input) {
-      const projectId = await resolveProjectId(db, input);
-      const project = await projectsService.getForMember(userId, projectId);
-      return projectToJson(project);
+      return projectToJson(await resolveHtmlProject(db, projectsService, userId, input));
     },
 
     async updateProject(input) {
-      const projectId = await resolveProjectId(db, input);
-      let project = input.title !== undefined ? await projectsService.update(userId, projectId, input.title) : await projectsService.getForMember(userId, projectId);
-      let revision: Awaited<ReturnType<ProjectsService["createRevision"]>> | null = null;
-      if (input.document) {
-        revision = await projectsService.createRevision(userId, projectId, input.document, "mcp:update_project");
-        project = await projectsService.getForMember(userId, projectId);
-      }
-      return { project: projectToJson(project), revision: revision ? revisionToJson(revision) : null };
+      const current = await resolveHtmlProject(db, projectsService, userId, input);
+      const project = input.title !== undefined ? await projectsService.update(userId, current.id, input.title) : current;
+      return { project: projectToJson(project) };
     },
 
     async deleteProject(input) {
-      const projectId = await resolveProjectId(db, input);
-      await projectsService.softDelete(userId, projectId);
-      return { projectId, deleted: true };
-    },
-
-    async getProjectJson(input) {
-      const projectId = await resolveProjectId(db, input);
-      const project = await projectsService.getForMember(userId, projectId);
-      const revision = project.currentRevisionNo > 0
-        ? await projectsService.getRevision(userId, projectId, project.currentRevisionNo)
-        : null;
-      return { projectId, publicRef: project.publicRef, revision: revision ? revisionToJson(revision) : null };
+      const project = await resolveHtmlProject(db, projectsService, userId, input);
+      await projectsService.softDelete(userId, project.id);
+      return { projectId: project.id, deleted: true };
     },
 
     async listAssets(input) {
@@ -136,16 +182,10 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
     },
 
     async createExport(input) {
-      const projectId = await resolveProjectId(db, input);
-      const revision = input.protocolRevisionNo
-        ? await projectsService.getRevision(userId, projectId, input.protocolRevisionNo)
-        : undefined;
-      const { renderJob, idempotent } = await renderJobsService.create(userId, {
-        projectId,
-        revisionId: revision?.id,
-        idempotencyKey: input.idempotencyKey,
-      });
-      return { export: await renderJobToExportJson(db, renderJob!), created: !idempotent };
+      await resolveHtmlProject(db, projectsService, userId, input);
+      // The HTML frame-render pipeline (headless browser) is not built yet, and
+      // the JSON render queue only accepts projects that have a JSON revision.
+      notImplemented("create_export");
     },
 
     async getExport(input) {
@@ -154,8 +194,10 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
       return { export: await renderJobToExportJson(db, job) };
     },
 
-    async getExportDownloadUrl() {
-      notImplemented("get_export_download_url");
+    async getExportDownloadUrl(input) {
+      const id = await resolveRenderJobId(db, input.jobId);
+      const signed = await renderJobsService.getDownloadUrl(userId, id);
+      return { jobId: input.jobId, url: signed.url, expiresAt: signed.expiresAt.toISOString() };
     },
 
     async cancelExport(input) {
@@ -164,62 +206,59 @@ export function buildMcpProjectApi(deps: McpApiDeps, userId: string): RemoteMcpP
       return { export: await renderJobToExportJson(db, job) };
     },
 
-    async openEditor(input) {
-      const projectId = await resolveProjectId(db, input);
-      const project = await projectsService.getForMember(userId, projectId);
-      return { project_id: project.id, public_ref: project.publicRef, editor_url: `${webAppUrl}/dashboard/editor/${projectId}` };
-    },
-
     async openPreview(input) {
-      const projectId = await resolveProjectId(db, input);
-      const project = await projectsService.getForMember(userId, projectId);
-      return { project_id: project.id, public_ref: project.publicRef, preview_url: `${webAppUrl}/dashboard/editor/${projectId}?panel=preview` };
+      const project = await resolveHtmlProject(db, projectsService, userId, input);
+      return { project_id: project.id, public_ref: project.publicRef, preview_url: `${webAppUrl}/preview/${project.id}` };
     },
 
-    async createProjectHtml() {
-      notImplemented("create_project_html");
+    async createProjectHtml(input) {
+      const workspaceId = await resolveWorkspaceId(input.workspaceId);
+      const workspace = await workspaces.getForMember(userId, workspaceId);
+      const result = await projectsService.createHtmlProject(userId, {
+        workspaceId,
+        title: input.title,
+        html: input.html ?? "",
+        idempotencyKey: input.idempotencyKey,
+      });
+      return {
+        project: projectToJson(result.project),
+        workspace: { id: workspace.id, name: workspace.name, created_at: workspace.createdAt.toISOString() },
+        alreadyCreated: result.alreadyCreated,
+      };
     },
-    async getProjectHtml() {
-      notImplemented("get_project_html");
+
+    async getProjectHtml(input) {
+      const project = await resolveHtmlProject(db, projectsService, userId, input);
+      const result = await projectsService.getHtmlDocument(userId, project.id);
+      return { project: projectToJson(result.project), html: result.html };
     },
-    async updateProjectHtml() {
-      notImplemented("update_project_html");
+
+    async updateProjectHtml(input) {
+      const project = await resolveHtmlProject(db, projectsService, userId, input);
+      const result = await projectsService.updateHtmlDocument(userId, project.id, input.html);
+      return { project: projectToJson(result.project) };
     },
-    async listHtmlRevisions() {
-      notImplemented("list_html_revisions");
+
+    async attachAssetToProject(input) {
+      const project = await resolveHtmlProject(db, projectsService, userId, input);
+      await projectsService.attachAsset(userId, project.id, input.assetId);
+      return { projectId: project.id, assetId: input.assetId, attached: true };
     },
-    async getHtmlRevision() {
-      notImplemented("get_html_revision");
-    },
-    async applyJsonPatch() {
-      notImplemented("apply_json_patch");
-    },
+
     async importAsset() {
       notImplemented("import_asset");
     },
-    async attachAssetToProject() {
-      notImplemented("attach_asset_to_project");
-    },
   };
+
+  return withToolErrors(api);
 }
 
-function projectToJson(project: { id: string; publicRef: string; workspaceId: string; title: string; currentRevisionNo: number }) {
+function projectToJson(project: { id: string; publicRef: string; workspaceId: string; title: string }) {
   return {
     id: project.id,
     public_ref: project.publicRef,
     workspace_id: project.workspaceId,
     title: project.title,
-    current_revision_no: project.currentRevisionNo,
-  };
-}
-
-function revisionToJson(revision: { id: string; revisionNo: number; documentJson: unknown; contentHash: string; createdAt: Date }) {
-  return {
-    id: revision.id,
-    revision_no: revision.revisionNo,
-    document: revision.documentJson as Record<string, unknown>,
-    content_hash: revision.contentHash,
-    created_at: revision.createdAt.toISOString(),
   };
 }
 
@@ -239,11 +278,9 @@ async function renderJobToExportJson(
   db: Database,
   job: { publicRef: string; projectId: string; revisionId: string; status: string; progress: number; createdAt: Date; updatedAt: Date },
 ) {
-  const revision = await db.query.projectRevisions.findFirst({ where: eq(projectRevisions.id, job.revisionId) });
   return {
     jobId: job.publicRef,
     projectId: job.projectId,
-    protocolRevisionNo: revision?.revisionNo ?? 0,
     status: job.status,
     progress: job.progress,
     createdAt: job.createdAt.getTime(),
