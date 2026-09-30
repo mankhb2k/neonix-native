@@ -43,6 +43,36 @@
       "signUp": "Sign up"
     }
   },
+  "AuthPage": {
+    "eyebrow": "NEONIX WORKSPACE",
+    "panelTitle": "Turn your ideas into motion.",
+    "panelDescription": "Create editable motion projects, connect your tools, and render reliably from one workspace.",
+    "panelFooter": "Your projects, assets, and exports stay connected to your Neonix account.",
+    "loginTitle": "Welcome back",
+    "loginDescription": "Sign in to continue to your workspace.",
+    "registerTitle": "Create your account",
+    "registerDescription": "Start building motion projects with Neonix.",
+    "continueGoogle": "Continue with Google",
+    "or": "or",
+    "nameLabel": "Name",
+    "namePlaceholder": "Your name",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "At least 8 characters",
+    "loginButton": "Log in",
+    "registerButton": "Create account",
+    "submitting": "Please wait...",
+    "newAccount": "New to Neonix?",
+    "alreadyAccount": "Already have an account?",
+    "registerLink": "Create an account",
+    "loginLink": "Log in",
+    "terms": "By continuing, you agree to the Neonix terms and privacy policy.",
+    "errors": {
+      "generic": "We could not complete that request. Please check your details and try again.",
+      "google": "Google sign-in could not be started. Please try again."
+    }
+  },
   "WorkspaceHome": {
     "eyebrow": "Personal workspace",
     "title": "Projects",
@@ -259,6 +289,7 @@
     "apiErrors": {
       "load": "We could not load your API keys.",
       "create": "We could not create your API key.",
+      "rename": "We could not rename that API key.",
       "revoke": "We could not revoke that API key."
     },
     "apiEyebrow": "Developer access",
@@ -277,6 +308,27 @@
     "apiCreated": "created {date}",
     "apiRevoke": "Revoke",
     "apiRevokeConfirm": "Revoke this API key? Existing requests using it will stop working.",
+    "apiModalTitle": "Create new API key",
+    "apiModalDescription": "Give the key a name so you can recognize it later.",
+    "apiModalNameLabel": "Name of the API key",
+    "apiModalNamePlaceholder": "Name of the API key",
+    "apiModalCancel": "Cancel",
+    "apiModalSubmit": "Create API key",
+    "apiModalCreating": "Creating…",
+    "apiModalClose": "Close",
+    "apiSaveNotice": "Please save this API key somewhere safe and accessible. For security reasons, you will not be able to view it again through your account. If you lose this API key, you will need to generate a new one.",
+    "apiShareNotice": "Notice: Do not share your API key with others, or expose it in the browser or other client-side code.",
+    "apiCopy": "Copy",
+    "apiCopied": "Copied",
+    "apiColName": "Name",
+    "apiColTrackingId": "Tracking ID",
+    "apiColKey": "Key",
+    "apiColCreated": "Created",
+    "apiColLastUsed": "Last used",
+    "apiNever": "Never",
+    "apiRenameTitle": "Rename API key",
+    "apiRenameSubmit": "Save",
+    "apiEdit": "Rename",
     "errors": {
       "fallback": "We could not save your email. Please try again."
     },

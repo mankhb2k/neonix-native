@@ -37,6 +37,16 @@ export async function createApiKey(name?: string): Promise<CreatedApiKey> {
   return (await response.json()) as CreatedApiKey;
 }
 
+export async function renameApiKey(id: string, name: string): Promise<ApiKey> {
+  const response = await apiFetch(`/v1/api-keys/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) throw await readError(response, "Could not rename API key.");
+  return (await response.json()) as ApiKey;
+}
+
 export async function revokeApiKey(id: string): Promise<void> {
   const response = await apiFetch(`/v1/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!response.ok) throw await readError(response, "Could not revoke API key.");

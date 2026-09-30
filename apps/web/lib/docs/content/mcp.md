@@ -9,11 +9,11 @@ A standard bridge between an AI client and Neonix.
 
 ## What is MCP?
 
-Model Context Protocol lets a compatible AI client discover structured tools and call them with validated inputs. Instead of asking an agent to print a large JSON file in chat, Neonix lets it work with a real project through a controlled remote connection.
+Model Context Protocol lets a compatible AI client discover structured tools and call them with validated inputs. Instead of asking an agent to print a large HTML file in chat, Neonix lets it work with a real project through a controlled remote connection.
 
-Neonix remains responsible for authentication, workspace ownership, revisions, Neonix JSON V2 validation, preview, and export. The agent supplies intent; Neonix keeps the project safe and editable.
+Neonix remains responsible for authentication, workspace ownership, revisions, HTML validation, preview, and export. The agent supplies intent; Neonix keeps the project safe.
 
-`Streamable HTTP / OAuth / Neonix JSON V2 / Preview and export`
+`Streamable HTTP / OAuth / Raw HTML / Preview and export`
 
 ## Get started
 
@@ -58,37 +58,36 @@ The remote server exposes focused tools instead of one opaque generate call. Eac
 
 | Group | Description | Tools |
 | --- | --- | --- |
-| Workspace & projects | Find workspaces and projects, manage HTML revisions, and open the Neonix editor. | `list_workspaces`, `list_projects`, `get_project`, `delete_project`, `open_editor` |
-| HTML authoring | Use complete HTML/CSS as the high-level authoring source for a project. | `get_capabilities`, `validate_html`, `compile_html`, `create_project_html`, `get_project_html`, `update_project_html`, `list_html_revisions`, `get_html_revision` |
-| Neonix JSON | Inspect canonical Neonix JSON V2 and apply a small validated JSON patch when needed. | `get_project_json`, `apply_json_patch` |
+| Workspace & projects | Find workspaces and projects, rename them, open a preview, or delete them. | `list_workspaces`, `list_projects`, `get_project`, `update_project`, `open_preview`, `delete_project` |
+| HTML authoring | Store complete HTML/CSS as-is as the project source; it is rendered frame by frame. | `create_project_html`, `get_project_html`, `update_project_html` |
 | Assets | List, upload, import, attach, and safely remove workspace media assets. | `list_assets`, `request_asset_upload`, `complete_asset_upload`, `import_asset`, `attach_asset_to_project`, `delete_asset` |
-| Export jobs | Create an export from a saved revision, follow its status, and retrieve the result. | `create_export`, `get_export`, `get_export_download_url`, `cancel_export` |
+| Export jobs | Create an export from the project HTML, follow its status, and retrieve the result. | `create_export`, `get_export`, `get_export_download_url`, `cancel_export` |
 
 ## Recommended workflow
 
 Start high-level, keep the source and revision history clear.
 
-- **Create** — For an HTML-first request, call `get_capabilities`, prepare a complete `neonix-document`, then use `create_project_html`.
-- **Edit** — Read with `get_project_html`, preserve the document metadata, validate with `validate_html`, then save with `update_project_html`.
-- **Ship** — Open the editor with `open_editor`, create an export from a saved revision, and retrieve the signed download URL when ready.
+- **Create** — Prepare a complete `neonix-document` (or omit `html` to start from the blank template), then use `create_project_html`.
+- **Edit** — Read with `get_project_html`, preserve the document metadata, then save with `update_project_html`.
+- **Ship** — Show the result with `open_preview`, create an export, and retrieve the signed download URL when ready.
 
 ```text
-get_capabilities -> create_project_html -> open_editor
-get_project_html -> validate_html -> update_project_html
+create_project_html -> open_preview
+get_project_html -> update_project_html
 create_export -> get_export -> get_export_download_url
 ```
 
 ## Resources and prompts
 
 - `neonix://docs/workflows` — recommended create, edit, asset, and export flows.
-- `neonix://docs/html-authoring` — supported HTML/CSS boundary and Neonix JSON V2 rules.
+- `neonix://docs/html-authoring` — the HTML document contract and the rules checked when saving.
 
 Compatible hosts can attach the `create_html_project` and `edit_html_project` prompts and the resources above to give the agent the Neonix workflow before it calls a tool.
 
 ## Important boundaries
 
-- HTML is the preferred high-level authoring source for HTML requests; Neonix JSON V2 remains canonical.
-- Exports run from saved revisions, not unsaved arbitrary JSON supplied in a tool call.
+- HTML is the project source; it is stored as-is and rendered frame by frame, with no compile step.
+- Exports run from the saved project HTML, not from unsaved content supplied in a tool call.
 - Destructive actions such as `delete_project`, `delete_asset`, and `cancel_export` should be confirmed first.
 
 ## Continue

@@ -1,5 +1,5 @@
-import { HubFrame } from "@/components/hub/HubFrame";
-import { OverviewWorkspace } from "@/components/hub/OverviewWorkspace";
+import { HubFrame } from "./_components/HubFrame";
+import { OverviewWorkspace } from "./_components/OverviewWorkspace";
 
 export default function DashboardPage() {
   return (

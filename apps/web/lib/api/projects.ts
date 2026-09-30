@@ -1,6 +1,6 @@
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { apiFetch } from "./client";
 import { getDefaultWorkspaceId } from "./workspaces";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type SaveEditorProjectResult =
   | { ok: true; revisionNo: number }
@@ -36,7 +36,7 @@ export async function createHtmlProject(input: { title?: string; html: string; i
 }
 
 /**
- * Kiến trúc B entry point: stores HTML/CSS as-is, no compile step. See
+ * Kiến trúc A entry point: stores HTML/CSS as-is, no compile step. See
  * ARCHITECHTURE.md "Hai kiến trúc render độc lập".
  */
 export async function createHtmlProjectRaw(input: { title?: string; html: string }): Promise<{ projectId: string }> {
@@ -68,7 +68,7 @@ export type NewProjectComposition = {
   background: string;
 };
 
-/** Kiến trúc A entry point: creates a blank, editable Neonix JSON V2 project. */
+/** Kiến trúc B entry point: creates a blank, editable Neonix JSON V2 project. */
 export async function createBlankProject(input: { title?: string; composition: NewProjectComposition }): Promise<{ projectId: string }> {
   const workspaceId = await getDefaultWorkspaceId();
   const response = await apiFetch("/v1/projects", {
@@ -168,4 +168,63 @@ export async function removeProject(projectId: string): Promise<void> {
 
   const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
   throw new Error(body?.error?.message ?? `Unable to remove project (${response.status})`);
+}
+
+export type HtmlProjectDocument = {
+  project: { id: string; title: string; workspaceId: string };
+  html: string;
+  updatedAt: string;
+};
+
+/** Failure loading or saving an HTML project; `status` is the HTTP status (401 = signed out). */
+export class HtmlProjectError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string) {
+    super(message);
+    this.name = "HtmlProjectError";
+  }
+}
+
+async function readHtmlDocument(response: Response, fallback: string): Promise<HtmlProjectDocument> {
+  const payload = await response.json().catch(() => null) as {
+    project?: { id?: unknown; title?: unknown; workspaceId?: unknown };
+    html?: unknown;
+    updatedAt?: unknown;
+    error?: { message?: unknown; code?: unknown };
+  } | null;
+  if (!response.ok) {
+    throw new HtmlProjectError(
+      typeof payload?.error?.message === "string" ? payload.error.message : fallback,
+      response.status,
+      typeof payload?.error?.code === "string" ? payload.error.code : undefined,
+    );
+  }
+  if (typeof payload?.html !== "string" || typeof payload.project?.id !== "string") {
+    throw new HtmlProjectError(fallback, response.status);
+  }
+  return {
+    project: {
+      id: payload.project.id,
+      title: typeof payload.project.title === "string" ? payload.project.title : "Untitled project",
+      workspaceId: typeof payload.project.workspaceId === "string" ? payload.project.workspaceId : "",
+    },
+    html: payload.html,
+    updatedAt: typeof payload.updatedAt === "string" ? payload.updatedAt : "",
+  };
+}
+
+export async function getHtmlProject(projectId: string): Promise<HtmlProjectDocument> {
+  const response = await apiFetch(`/v1/projects/${encodeURIComponent(projectId)}/html`, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  return readHtmlDocument(response, "Unable to load this project");
+}
+
+export async function saveHtmlProject(projectId: string, html: string): Promise<HtmlProjectDocument> {
+  const response = await apiFetch(`/v1/projects/${encodeURIComponent(projectId)}/html`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ html }),
+  });
+  return readHtmlDocument(response, "Unable to save this project");
 }

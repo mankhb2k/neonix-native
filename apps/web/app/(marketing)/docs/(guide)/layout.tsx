@@ -1,4 +1,4 @@
-import { DocsSidebar } from "@/components/docs/DocsSidebar";
+import { DocsSidebar } from "../_components/DocsSidebar";
 import type { ReactNode } from "react";
 
 const gridClass =

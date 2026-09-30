@@ -1,6 +1,6 @@
+import { HubFrame } from "../_components/HubFrame";
+import { ApiWorkspace } from "./_components/ApiWorkspace";
 import type { Metadata } from "next";
-import { HubFrame } from "@/components/hub/HubFrame";
-import { ApiWorkspace } from "@/components/hub/ApiWorkspace";
 
 export const metadata: Metadata = {
   title: "API keys",

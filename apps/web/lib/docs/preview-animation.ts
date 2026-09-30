@@ -1,9 +1,9 @@
+import { sampleMotionProtocolAtTime } from "@motionvideo/motion-compiler";
 import type {
   MotionProtocolV2,
   V2AnimatableValue,
   V2Track,
 } from "@motionvideo/motion-protocol/v2";
-import { sampleMotionProtocolAtTime } from "@motionvideo/motion-compiler";
 
 type V2Layer = MotionProtocolV2["layers"][number];
 

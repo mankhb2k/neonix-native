@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/docs/DocsMarkdown", () => ({
+vi.mock("@/app/(marketing)/docs/_components/DocsMarkdown", () => ({
   DocsMarkdown: () => null,
 }));
 import {

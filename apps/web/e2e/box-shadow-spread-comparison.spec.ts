@@ -95,7 +95,7 @@ test("compares the three box-shadow spread geometry regimes against real Chrome"
   // Playwright's clip is viewport-relative, so a surface taller than the
   // viewport would still get cut off after scrollIntoViewIfNeeded.
   await page.setViewportSize({ width: 2200, height: 3200 });
-  await page.goto("/playground/native-stage", { waitUntil: "domcontentloaded" });
+  await page.goto("/debug/native-stage", { waitUntil: "domcontentloaded" });
 
   const groupPicker = page.getByTestId("radial-native-group-picker");
   const picker = page.getByTestId("radial-native-case-picker");

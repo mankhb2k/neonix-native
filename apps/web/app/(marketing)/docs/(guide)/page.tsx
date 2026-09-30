@@ -1,5 +1,5 @@
-import { DocsArticle } from "@/components/docs/DocsArticle";
 import { getDocsPage } from "@/lib/docs/docs";
+import { DocsArticle } from "../_components/DocsArticle";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { DocsArticle } from "@/components/docs/DocsArticle";
 import {
   DOCS_PAGE_SLUGS,
   getDocsBreadcrumb,
@@ -7,6 +6,7 @@ import {
   getDocsPage,
   type DocsPageSlug,
 } from "@/lib/docs/docs";
+import { DocsArticle } from "../../_components/DocsArticle";
 import type { Metadata } from "next";
 
 const SITE_URL = "https://www.neonix.video";

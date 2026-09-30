@@ -5,7 +5,7 @@ import { captureNativeSurface, measureColorBoxes, parseLayoutProbeColors, type B
 
 // Spike: does real-Chrome-measured layout geometry match what html-compiler's
 // own flex.ts/grid.ts compute? This does NOT touch compile.ts/flex.ts/grid.ts
-// - it only measures the two panels already wired up at /playground/native-stage
+// - it only measures the two panels already wired up at /debug/native-stage
 // (the real-Chrome iframe vs the native Skia canvas) for the existing "layout"
 // fixture group, and reports per-element pixel-geometry deltas so the result
 // can be evaluated before deciding whether Chrome-measured layout is worth
@@ -56,7 +56,7 @@ test("compares real-Chrome vs native Skia layout geometry per fixture (spike, no
   test.setTimeout(120_000);
   mkdirSync(REPORT_ROOT, { recursive: true });
   await page.setViewportSize({ width: 2200, height: 3000 });
-  await page.goto("/playground/native-stage", { waitUntil: "domcontentloaded" });
+  await page.goto("/debug/native-stage", { waitUntil: "domcontentloaded" });
 
   const groupPicker = page.getByTestId("radial-native-group-picker");
   const picker = page.getByTestId("radial-native-case-picker");

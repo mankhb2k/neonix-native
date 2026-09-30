@@ -43,6 +43,36 @@
       "signUp": "Đăng ký"
     }
   },
+  "AuthPage": {
+    "eyebrow": "KHÔNG GIAN NEONIX",
+    "panelTitle": "Biến ý tưởng thành chuyển động.",
+    "panelDescription": "Tạo dự án chuyển động có thể chỉnh sửa, kết nối công cụ và render ổn định trong một không gian làm việc.",
+    "panelFooter": "Dự án, tài nguyên và video xuất của bạn luôn được liên kết với tài khoản Neonix.",
+    "loginTitle": "Chào mừng trở lại",
+    "loginDescription": "Đăng nhập để tiếp tục vào không gian làm việc.",
+    "registerTitle": "Tạo tài khoản",
+    "registerDescription": "Bắt đầu xây dựng dự án chuyển động với Neonix.",
+    "continueGoogle": "Tiếp tục với Google",
+    "or": "hoặc",
+    "nameLabel": "Tên",
+    "namePlaceholder": "Tên của bạn",
+    "emailLabel": "Địa chỉ email",
+    "emailPlaceholder": "ban@vidu.com",
+    "passwordLabel": "Mật khẩu",
+    "passwordPlaceholder": "Ít nhất 8 ký tự",
+    "loginButton": "Đăng nhập",
+    "registerButton": "Tạo tài khoản",
+    "submitting": "Đang xử lý...",
+    "newAccount": "Bạn mới đến Neonix?",
+    "alreadyAccount": "Bạn đã có tài khoản?",
+    "registerLink": "Tạo tài khoản",
+    "loginLink": "Đăng nhập",
+    "terms": "Khi tiếp tục, bạn đồng ý với điều khoản và chính sách bảo mật của Neonix.",
+    "errors": {
+      "generic": "Không thể hoàn tất yêu cầu. Hãy kiểm tra thông tin và thử lại.",
+      "google": "Không thể bắt đầu đăng nhập Google. Vui lòng thử lại."
+    }
+  },
   "WorkspaceHome": {
     "eyebrow": "Không gian cá nhân",
     "title": "Dự án",
@@ -259,6 +289,7 @@
     "apiErrors": {
       "load": "Không thể tải API key.",
       "create": "Không thể tạo API key.",
+      "rename": "Không thể đổi tên API key này.",
       "revoke": "Không thể thu hồi API key này."
     },
     "apiEyebrow": "Quyền truy cập nhà phát triển",
@@ -277,6 +308,27 @@
     "apiCreated": "tạo ngày {date}",
     "apiRevoke": "Thu hồi",
     "apiRevokeConfirm": "Thu hồi API key này? Các request đang dùng key sẽ không còn hoạt động.",
+    "apiModalTitle": "Tạo API key mới",
+    "apiModalDescription": "Đặt tên để dễ nhận biết key sau này.",
+    "apiModalNameLabel": "Tên API key",
+    "apiModalNamePlaceholder": "Tên API key",
+    "apiModalCancel": "Hủy",
+    "apiModalSubmit": "Tạo API key",
+    "apiModalCreating": "Đang tạo…",
+    "apiModalClose": "Đóng",
+    "apiSaveNotice": "Hãy lưu API key này ở nơi an toàn và dễ truy cập. Vì lý do bảo mật, bạn sẽ không thể xem lại key trong tài khoản. Nếu làm mất, bạn cần tạo key mới.",
+    "apiShareNotice": "Lưu ý: Không chia sẻ API key cho người khác và không để lộ trong trình duyệt hoặc mã phía client.",
+    "apiCopy": "Sao chép",
+    "apiCopied": "Đã sao chép",
+    "apiColName": "Tên",
+    "apiColTrackingId": "Tracking ID",
+    "apiColKey": "Key",
+    "apiColCreated": "Ngày tạo",
+    "apiColLastUsed": "Dùng gần nhất",
+    "apiNever": "Chưa dùng",
+    "apiRenameTitle": "Đổi tên API key",
+    "apiRenameSubmit": "Lưu",
+    "apiEdit": "Đổi tên",
     "errors": {
       "fallback": "Chúng tôi không thể lưu email của bạn. Vui lòng thử lại."
     },

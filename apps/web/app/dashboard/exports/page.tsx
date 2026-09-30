@@ -1,5 +1,5 @@
-import { ExportsWorkspace } from "@/components/hub/ExportsWorkspace";
-import { HubFrame } from "@/components/hub/HubFrame";
+import { HubFrame } from "../_components/HubFrame";
+import { ExportsWorkspace } from "./_components/ExportsWorkspace";
 
 export default function DashboardExportsPage() {
   return (

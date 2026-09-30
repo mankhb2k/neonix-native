@@ -109,7 +109,7 @@ test("compares the six focused inset-glow mask fixtures at native resolution", a
   test.setTimeout(120_000);
   mkdirSync(REPORT_ROOT, { recursive: true });
   await page.setViewportSize({ width: 2200, height: 3000 });
-  await page.goto("/playground/native-stage", { waitUntil: "domcontentloaded" });
+  await page.goto("/debug/native-stage", { waitUntil: "domcontentloaded" });
 
   const picker = page.getByTestId("radial-native-case-picker");
   const browser = page.getByTestId("radial-native-browser-iframe");

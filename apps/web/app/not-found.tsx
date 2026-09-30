@@ -25,26 +25,13 @@ export default function NotFound() {
       </h1>
       <p className="mx-auto mt-4 max-w-md text-[var(--fg-secondary)]">
         The page you're looking for was moved, renamed, or never existed.
-        Here are a few places to go instead.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link href="/" className={buttonClassName({ variant: "primary", size: "lg" })}>
           Go to homepage
         </Link>
-        <Link
-          href="/html-to-video"
-          className={buttonClassName({ variant: "outline", size: "lg" })}
-        >
-          HTML to motion video
-        </Link>
         <Link href="/docs" className={buttonClassName({ variant: "outline", size: "lg" })}>
           Docs
-        </Link>
-        <Link
-          href="/support"
-          className={buttonClassName({ variant: "outline", size: "lg" })}
-        >
-          Support
         </Link>
       </div>
     </main>

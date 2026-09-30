@@ -26,7 +26,7 @@ html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; backgro
 test("runLayoutProbe measures real-browser border-box/padding/border matching hand-computed CSS math", async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 2200, height: 3000 });
-  await page.goto("/playground/native-stage", { waitUntil: "domcontentloaded" });
+  await page.goto("/debug/native-stage", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("radial-native-case-picker")).toBeEnabled({ timeout: 30_000 });
   await page.getByTestId("compare-mode-custom").click();
 

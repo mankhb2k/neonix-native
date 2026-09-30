@@ -1,4 +1,4 @@
-import { TemplatesGallery } from "@/components/site/templates/TemplatesGallery";
+import { TemplatesGallery } from "./_components/TemplatesGallery";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

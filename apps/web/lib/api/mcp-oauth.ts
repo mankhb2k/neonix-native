@@ -1,6 +1,6 @@
 // Talks directly to apps/api's Better Auth OAuth 2.1 provider for MCP
 // clients - see apps/api/src/auth/auth.ts's `mcp()` plugin and
-// app/mcp/sign-in, app/mcp/consent (the only callers). Cross-origin from
+// app/(auth)/mcp/sign-in, app/(auth)/mcp/consent (the only callers). Cross-origin from
 // apps/web, hence `credentials: "include"` on every call.
 
 import { apiFetch } from "./client";

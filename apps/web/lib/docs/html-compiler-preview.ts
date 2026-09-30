@@ -1,5 +1,5 @@
-import type { HtmlCompilerFontAsset, HtmlCompilerMediaAsset, HtmlCssComposition } from "@motionvideo/html-compiler";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS_GENERATED } from "./html-compiler-preview-font-assets";
+import type { HtmlCompilerFontAsset, HtmlCompilerMediaAsset, HtmlCssComposition } from "@motionvideo/html-compiler";
 
 export type HtmlCompilerPreviewTopic =
   | "New project"

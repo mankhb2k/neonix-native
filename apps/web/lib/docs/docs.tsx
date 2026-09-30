@@ -2,8 +2,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import GithubSlugger from "github-slugger";
 import { createElement } from "react";
-import { DocsMarkdown } from "@/components/docs/DocsMarkdown";
-import { DocsOverview } from "@/components/docs/DocsOverview";
+import { DocsMarkdown } from "@/app/(marketing)/docs/_components/DocsMarkdown";
+import { DocsOverview } from "@/app/(marketing)/docs/_components/DocsOverview";
 import { DOCS_ENTRIES, DOCS_NAV } from "@/lib/docs/docs-nav";
 import type { ReactNode } from "react";
 

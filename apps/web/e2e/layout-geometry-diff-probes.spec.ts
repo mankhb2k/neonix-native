@@ -12,7 +12,7 @@ import { captureNativeSurface, measureColorBoxes, parseLayoutProbeColors, type B
 // text-sizing.ts's own doc comment), and an absolutely-positioned child of a
 // transformed ancestor (CSS makes a transformed box a containing block for
 // absolute descendants). Each probe uses the existing "Custom HTML" mode at
-// /playground/native-stage (compare-mode-custom + compare-custom-textarea),
+// /debug/native-stage (compare-mode-custom + compare-custom-textarea),
 // not a registered fixture - these are throwaway probes, not a permanent
 // fixture library addition. Same measurement approach as
 // layout-geometry-diff.spec.ts (flood-fill by color, no compiler-internal
@@ -134,7 +134,7 @@ test("phase 0 spike: real-Chrome vs native Skia geometry on flex/grid/geometry e
   test.setTimeout(180_000);
   mkdirSync(REPORT_ROOT, { recursive: true });
   await page.setViewportSize({ width: 2200, height: 3000 });
-  await page.goto("/playground/native-stage", { waitUntil: "domcontentloaded" });
+  await page.goto("/debug/native-stage", { waitUntil: "domcontentloaded" });
 
   // domcontentloaded fires before React hydrates, so clicking a tab button
   // immediately can be a silent no-op (no listener attached yet). Wait for a

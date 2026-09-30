@@ -1,5 +1,5 @@
-import { HubFrame } from "@/components/hub/HubFrame";
-import { TopupWorkspace } from "@/components/hub/TopupWorkspace";
+import { HubFrame } from "../_components/HubFrame";
+import { TopupWorkspace } from "./_components/TopupWorkspace";
 
 export default function DashboardTopupPage() {
   return (

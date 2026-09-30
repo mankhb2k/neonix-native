@@ -38,3 +38,17 @@ export async function getCurrentAccount(): Promise<CurrentAccount | null> {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
+
+export async function signInWithDemoAccount(): Promise<void> {
+  const response = await apiFetch("/api/auth/sign-in/email", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email: process.env.NEXT_PUBLIC_DEV_DEMO_EMAIL ?? "demo@gmail.com",
+      password: process.env.NEXT_PUBLIC_DEV_DEMO_PASSWORD ?? "demo123@",
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Demo sign-in failed (${response.status}).`);
+  }
+}
