@@ -43,6 +43,14 @@ export const playgroundRateLimits = pgTable("playground_rate_limits", {
   primaryKey({ columns: [table.bucketKey, table.windowStart] }),
 ]);
 
+export const waitlistSignups = pgTable("api_waitlist_signups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("api_waitlist_signups_email_idx").on(table.email),
+]);
+
 export const walletLedger = pgTable("wallet_ledger", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")

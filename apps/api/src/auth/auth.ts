@@ -1,5 +1,7 @@
+import { mcp } from "@better-auth/mcp";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { jwt } from "better-auth/plugins";
 import { db, schema } from "../db/client";
 import { env } from "../env";
 import { provisionNewUser } from "./provision";
@@ -34,4 +36,22 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [
+    jwt(),
+    // Makes this server a standalone OAuth 2.1 authorization server for MCP
+    // clients (Claude Desktop, ChatGPT/Codex/Glama connectors, etc.),
+    // replacing the role Supabase's "OAuth Server" plays for apps/web's
+    // separate/older MCP endpoint today. loginPage/consentPage are full
+    // cross-origin URLs (apps/web, not apps/api - this server has no HTML
+    // pages of its own): the oauth-provider plugin does plain string
+    // concatenation for these, not path resolution, so an absolute URL
+    // here redirects the browser to the right host.
+    mcp({
+      loginPage: `${env.webAppUrl}/mcp/sign-in`,
+      consentPage: `${env.webAppUrl}/mcp/consent`,
+      resource: `${env.betterAuthUrl}/mcp`,
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+    }),
+  ],
 });

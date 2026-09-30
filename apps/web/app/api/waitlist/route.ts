@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 function normalizeEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -32,17 +33,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("api_waitlist_signups").insert({ email });
-
-    if (error?.code === "23505") {
-      return NextResponse.json({ message: "This email is already on the list." });
+    const response = await fetch(`${API_URL}/v1/waitlist`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const result = (await response.json()) as { message?: string; error?: { message?: string } };
+    if (!response.ok) {
+      return NextResponse.json(
+        { message: result.error?.message ?? "We could not save your email. Please try again." },
+        { status: response.status },
+      );
     }
-    if (error) {
-      return NextResponse.json({ message: "We could not save your email. Please try again." }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: "You are on the list. We will let you know when the API is ready." }, { status: 201 });
+    return NextResponse.json({ message: result.message }, { status: 201 });
   } catch {
     return NextResponse.json({ message: "We could not save your email. Please try again." }, { status: 500 });
   }

@@ -1,9 +1,12 @@
+import { requireMcpAuth } from "@better-auth/mcp";
 import { createRemoteMcpServer } from "@motionvideo/motion-mcp/remote";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { INestApplication } from "@nestjs/common";
 import { createServerAdapter } from "@whatwg-node/server";
 import type { Express } from "express";
+import type { JWTPayload } from "jose";
 import { AssetsService } from "../assets/assets.service";
+import { auth } from "../auth/auth";
 import type { Database } from "../db/client";
 import { DATABASE } from "../db/database.module";
 import { env } from "../env";
@@ -11,7 +14,7 @@ import { ProjectsService } from "../projects/projects.service";
 import { RenderJobsService } from "../render-jobs/render-jobs.service";
 import { WorkspacesService } from "../workspaces/workspaces.service";
 import { buildMcpProjectApi } from "./mcp-api";
-import { stubMcpPrincipal } from "./mcp-auth";
+import { mcpPrincipalFromClaims } from "./mcp-auth";
 
 // Mounted directly on the raw Express instance, same reasoning as Better
 // Auth's toNodeHandler mount in main.ts: the MCP SDK's Streamable HTTP
@@ -26,8 +29,8 @@ export function mountMcp(app: INestApplication, expressInstance: Express): void 
   const assets = app.get(AssetsService);
   const renderJobs = app.get(RenderJobsService);
 
-  const handler = createServerAdapter(async (request: Request) => {
-    const principal = stubMcpPrincipal();
+  const mcpHandler = async (request: Request, claims: JWTPayload): Promise<Response> => {
+    const principal = mcpPrincipalFromClaims(request, claims);
     const api = buildMcpProjectApi(
       { db, workspaces, projects, assets, renderJobs, webAppUrl: env.webAppUrl },
       principal.userId,
@@ -48,7 +51,13 @@ export function mountMcp(app: INestApplication, expressInstance: Express): void 
         extra: { userId: principal.userId },
       },
     });
-  });
+  };
 
-  expressInstance.use("/mcp", handler);
+  // Verifies the bearer access token against auth.ts's `mcp()` provider
+  // (issuer/JWKS/audience all default to the resolved baseURL + this
+  // `resource`) before every request reaches the MCP transport - replaces
+  // the former SEED_USER_ID stub now that Google login + the OAuth 2.1
+  // provider are wired up.
+  const protectedHandler = requireMcpAuth(auth, mcpHandler, { resource: `${env.betterAuthUrl}/mcp` });
+  expressInstance.use("/mcp", createServerAdapter(protectedHandler));
 }

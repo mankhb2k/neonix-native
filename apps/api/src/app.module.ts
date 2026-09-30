@@ -7,9 +7,12 @@ import { BillingModule } from "./billing/billing.module";
 import { DatabaseModule } from "./db/database.module";
 import { env } from "./env";
 import { FontsModule } from "./fonts/fonts.module";
+import { ProfileModule } from "./profile/profile.module";
 import { ProjectsModule } from "./projects/projects.module";
 import { RenderJobsModule } from "./render-jobs/render-jobs.module";
 import { RenderWorkerModule } from "./render-jobs/render-worker.module";
+import { SystemCatalogModule } from "./system-catalog/system-catalog.module";
+import { WaitlistModule } from "./waitlist/waitlist.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 
 @Module({
@@ -24,6 +27,9 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     RenderWorkerModule,
     AuditEventsModule,
     BillingModule,
+    WaitlistModule,
+    ProfileModule,
+    SystemCatalogModule,
   ],
   controllers: [AppController],
 })

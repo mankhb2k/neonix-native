@@ -69,7 +69,7 @@ export class AssetsService {
       expectedMimeType: input.mimeType,
     });
 
-    const presigned = await this.r2.presignPut(r2Key, input.mimeType, UPLOAD_URL_TTL_SECONDS);
+    const presigned = await this.r2.presignPut("R2_USER_ASSETS_BUCKET", r2Key, input.mimeType, UPLOAD_URL_TTL_SECONDS);
     return { asset, uploadUrl: presigned.url, headers: presigned.headers, expiresAt: presigned.expiresAt };
   }
 
@@ -86,7 +86,7 @@ export class AssetsService {
       throw new ApiError(409, `Asset is not awaiting upload (status: ${asset.status})`);
     }
 
-    const head = await this.r2.headObject(asset.r2Key);
+    const head = await this.r2.headObject("R2_USER_ASSETS_BUCKET", asset.r2Key);
     if (!head) throw new ApiError(422, "No object found at the asset's R2 key", "upload_not_found");
 
     const contentHash = contentHashOverride ?? `unverified:${head.sizeBytes}`;

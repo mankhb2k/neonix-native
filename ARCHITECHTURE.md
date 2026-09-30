@@ -170,6 +170,30 @@ ghi lại khi bắt tay implement — tài liệu này chỉ khoá ranh giới k
 Kiến trúc B không được phép nằm trong hoặc phụ thuộc vào bất kỳ package nào
 liệt kê ở "Phân loại packages" của Kiến trúc A, và ngược lại.
 
+**Đã triển khai (chỉ phần lưu trữ, không phải cơ chế render)**: `apps/api`'s
+`ProjectsService`/`ProjectsController` (`src/projects/`) đã có sẵn phần
+project storage cho track này — tạo project với `source_format: 'html'`
+(`POST /v1/projects/html-raw`), đọc/ghi đè một tài liệu HTML hiện tại không
+versioning (`GET`/`PUT /v1/projects/:id/html`, bảng `project_html_documents`),
+và cầu nối một chiều sang Kiến trúc A (`POST /v1/projects/:id/convert-json`,
+biên dịch qua `@motionvideo/html-compiler` rồi tạo ra một project Track B
+HOÀN TOÀN MỚI, không sửa/không liên kết ngược lại project gốc). Đây **không
+phải** là việc triển khai cơ chế render headless-browser mô tả ở trên — cơ
+chế render đó (nhận HTML/CSS thật, chạy trình duyệt headless, xuất MP4) vẫn
+**chưa được triển khai**. Cái đã xong chỉ là: một project có thể tồn tại ở
+dạng "chỉ có HTML, chưa compile" một cách độc lập với project JSON, tách
+biệt hoàn toàn khỏi Track B — không còn ràng buộc kiểu cũ nơi HTML "sống
+nhờ" vào một JSON revision (`project_html_revisions.protocol_revision_id`,
+đã bị xoá).
+
+> **Lưu ý phân biệt nhãn**: "Track A / Track B" ở đây (và trong code/comment
+> của `apps/api/src/projects/`) là quy ước đặt tên cho **project storage**,
+> tách biệt hoàn toàn với "Kiến trúc A / Kiến trúc B" ở trên (mô tả **cơ chế
+> render**). Hai bộ nhãn này ánh xạ ngược nhau một cách có chủ đích: **Track
+> A = project chỉ chứa HTML thuần, chưa compile** (tương ứng input của Kiến
+> trúc B); **Track B = project đã có JSON revision đã compile** (tương ứng
+> input/output của Kiến trúc A). Đừng nhầm hai bộ nhãn với nhau khi đọc code.
+
 ## Render core and backend boundary
 
 The visual render core is the `PaintCommandBuffer`. It is the backend-neutral
@@ -252,12 +276,23 @@ The direction is strictly one-way:
   rendering and export.
 - Runtime and renderers never read or compile HTML.
 - Neonix does not provide a Protocol V2 JSON -> HTML reverse compiler.
-- An HTML authoring revision is optional provenance linked to its canonical
-  JSON revision; it must never replace or override that JSON revision.
+- A Kiến trúc A project never stores an HTML authoring source of its own -
+  once a JSON revision exists, that project is pure JSON going forward.
 
-For persistence, `project_revisions.document_json` is canonical. HTML source
-is stored only as an authoring source and links to the JSON revision through
-`project_html_revisions.protocol_revision_id`.
+For persistence, `project_revisions.document_json` is canonical, full stop.
+An earlier design also kept an "HTML authoring revision" as optional
+provenance attached to a Kiến trúc A project (`project_html_revisions`,
+linked to its JSON revision via `protocol_revision_id`) - that coupling was
+removed. HTML-as-storage now lives entirely on the Kiến trúc B side of the
+project (`projects.source_format = 'html'`, current document in
+`project_html_documents` - see "Hai kiến trúc render độc lập"): a single,
+un-versioned HTML document with no FK to `project_revisions` at all. The
+only sanctioned crossing point between the two is an explicit, one-shot
+"Convert JSON V2" action that compiles a Kiến trúc B project's current HTML
+and creates a **brand new, separate** Kiến trúc A project (its own id, its
+own revision 1) - it never mutates or links back to the source project, so
+a Kiến trúc B project can be converted more than once, and the two tracks
+never need to stay in sync with each other again afterward.
 
 ## Công nghệ nền cho HTML Compiler và text runtime
 

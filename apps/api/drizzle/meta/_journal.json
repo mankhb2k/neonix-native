@@ -57,6 +57,41 @@
       "when": 1790668695918,
       "tag": "0007_public_mikhail_rasputin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790702598978,
+      "tag": "0008_perpetual_ultron",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790726256184,
+      "tag": "0009_sudden_may_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790730777318,
+      "tag": "0010_strong_phantom_reporter",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790738810343,
+      "tag": "0011_heavy_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790738826777,
+      "tag": "0012_slim_madrox",
+      "breakpoints": true
     }
   ]
 }

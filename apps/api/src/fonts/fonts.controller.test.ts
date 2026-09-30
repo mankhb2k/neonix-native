@@ -39,7 +39,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  for (const key of uploadedR2Keys) await r2.deleteObject(key).catch(() => undefined);
+  for (const key of uploadedR2Keys) await r2.deleteObject("R2_USER_ASSETS_BUCKET", key).catch(() => undefined);
   if (createdProjectIds.length > 0) await db.delete(projects).where(inArray(projects.id, createdProjectIds));
   if (createdFamilyIds.length > 0) await db.delete(userFontFamilies).where(inArray(userFontFamilies.id, createdFamilyIds));
   if (createdAssetIds.length > 0) await db.delete(assets).where(inArray(assets.id, createdAssetIds));

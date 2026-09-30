@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentUserGuard } from "../auth/current-user.guard";
 import { ApiError } from "../common/api-error";
+import { CreateHtmlProjectDto } from "./dto/create-html-project.dto";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { CreateRevisionDto } from "./dto/create-revision.dto";
+import { UpdateHtmlDocumentDto } from "./dto/update-html-document.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { ProjectsService } from "./projects.service";
 
@@ -21,6 +23,13 @@ export class ProjectsController {
   @Post()
   async create(@CurrentUser() userId: string, @Body() dto: CreateProjectDto) {
     return { project: await this.projects.create(userId, dto.workspaceId, dto.title) };
+  }
+
+  // Track A (raw HTML) project - see ProjectsService's "Track A" section.
+  @Post("html-raw")
+  async createHtmlProject(@CurrentUser() userId: string, @Body() dto: CreateHtmlProjectDto) {
+    const result = await this.projects.createHtmlProject(userId, dto);
+    return { project: result.project, alreadyCreated: result.alreadyCreated };
   }
 
   @Get(":id")
@@ -58,6 +67,31 @@ export class ProjectsController {
   async createRevision(@CurrentUser() userId: string, @Param("id") id: string, @Body() dto: CreateRevisionDto) {
     return {
       revision: await this.projects.createRevision(userId, id, dto.documentJson, dto.reason ?? "manual"),
+    };
+  }
+
+  // Track A (raw HTML) project - current document only, no revision history.
+  @Get(":id/html")
+  async getHtmlDocument(@CurrentUser() userId: string, @Param("id") id: string) {
+    const result = await this.projects.getHtmlDocument(userId, id);
+    return { project: result.project, html: result.html, updatedAt: result.updatedAt };
+  }
+
+  @Put(":id/html")
+  async updateHtmlDocument(@CurrentUser() userId: string, @Param("id") id: string, @Body() dto: UpdateHtmlDocumentDto) {
+    const result = await this.projects.updateHtmlDocument(userId, id, dto.html);
+    return { project: result.project, html: result.html, updatedAt: result.updatedAt };
+  }
+
+  // Bridges Track A -> Track B by creating a brand new, separate project.
+  @Post(":id/convert-json")
+  async convertToJsonProject(@CurrentUser() userId: string, @Param("id") id: string) {
+    const result = await this.projects.convertHtmlToJsonProject(userId, id);
+    return {
+      project: result.project,
+      revision: result.revision,
+      sourceProjectId: result.sourceProjectId,
+      diagnostics: result.diagnostics,
     };
   }
 }

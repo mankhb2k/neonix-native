@@ -1,18 +1,18 @@
 import type { RemoteMcpPrincipal } from "@motionvideo/motion-mcp/remote";
+import type { JWTPayload } from "jose";
 
-// TODO(auth): replace with a real Better Auth / OAuth resource-server check
-// (the MCP 2026-07-28 authorization profile - @better-auth/mcp) once that
-// cutover happens, same deferral as CurrentUserGuard (see
-// src/auth/current-user.guard.ts). Every MCP request is currently treated
-// as already authenticated as SEED_USER_ID - fine for the internal/test
-// deployment this is being built for first, not for real end-user traffic.
-export function stubMcpPrincipal(): RemoteMcpPrincipal {
-  const userId = process.env.SEED_USER_ID?.trim();
-  if (!userId) throw new Error("SEED_USER_ID is not configured");
-  return {
-    userId,
-    clientId: "internal-stub-client",
-    scopes: ["*"],
-    token: "stub-token",
-  };
+/**
+ * Maps a verified MCP access-token payload (from `requireMcpAuth`, see
+ * mount-mcp.ts) onto the principal shape `createRemoteMcpServer` expects.
+ * `sub`/`azp`/`scope` are the standard OAuth/OIDC claim names Better Auth's
+ * OAuth 2.1 provider (`@better-auth/mcp`) issues - see auth.ts's `mcp()`
+ * plugin config.
+ */
+export function mcpPrincipalFromClaims(request: Request, claims: JWTPayload): RemoteMcpPrincipal {
+  const userId = claims.sub?.trim();
+  if (!userId) throw new Error("Access token is missing a subject (user id) claim");
+  const clientId = typeof claims.azp === "string" && claims.azp ? claims.azp : "unknown-client";
+  const scopes = typeof claims.scope === "string" ? claims.scope.split(" ").filter(Boolean) : [];
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  return { userId, clientId, scopes, token, expiresAt: claims.exp };
 }

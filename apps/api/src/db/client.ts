@@ -6,8 +6,10 @@ import * as authSchema from "./schema/auth";
 import * as fontsSchema from "./schema/fonts";
 import * as identitySchema from "./schema/identity";
 import * as miscSchema from "./schema/misc";
+import * as oauthProviderSchema from "./schema/oauth-provider";
 import * as projectsSchema from "./schema/projects";
 import * as renderSchema from "./schema/render";
+import * as systemCatalogSchema from "./schema/system-catalog";
 
 // Plain TCP `pg` pool, not @neondatabase/serverless's HTTP driver - this
 // process is a persistent Docker server, not an edge/serverless function, so
@@ -22,7 +24,9 @@ export const schema = {
   ...assetsSchema,
   ...fontsSchema,
   ...miscSchema,
+  ...oauthProviderSchema,
   ...renderSchema,
+  ...systemCatalogSchema,
 };
 
 export const db = drizzle(pool, { schema });

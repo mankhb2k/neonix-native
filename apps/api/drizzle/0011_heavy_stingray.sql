@@ -1,0 +1,1 @@
+DROP TABLE "project_html_revisions" CASCADE;

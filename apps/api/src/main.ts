@@ -24,6 +24,18 @@ async function bootstrap() {
   });
   const expressInstance = app.getHttpAdapter().getInstance();
   expressInstance.all("/api/auth/*splat", toNodeHandler(auth));
+  // @better-auth/mcp's protected-resource metadata (RFC 9728) is served by an
+  // `onRequest` hook that matches the request's raw pathname against
+  // `/.well-known/oauth-protected-resource[/mcp]` with no basePath prefix
+  // awareness (unlike ordinary Better Auth endpoints, which Better Auth's
+  // own router prefixes with /api/auth automatically) - it only fires when
+  // reachable at the literal site root, so it needs its own mount here.
+  // Authorization-server metadata itself is unaffected: its issuer is
+  // `${BETTER_AUTH_URL}/api/auth`, so clients resolve it correctly under the
+  // normal mount above.
+  const mcpAuthHandler = toNodeHandler(auth);
+  expressInstance.all("/.well-known/oauth-protected-resource", mcpAuthHandler);
+  expressInstance.all("/.well-known/oauth-protected-resource/mcp", mcpAuthHandler);
   // Polar's webhook signature covers the exact raw bytes it sent - mounted
   // before express.json() for this one path, same reasoning as Better Auth
   // above. See billing/webhooks.controller.ts.

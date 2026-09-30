@@ -31,7 +31,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  for (const key of uploadedR2Keys) await r2.deleteObject(key).catch(() => undefined);
+  for (const key of uploadedR2Keys) await r2.deleteObject("R2_USER_ASSETS_BUCKET", key).catch(() => undefined);
   if (createdAssetIds.length > 0) await db.delete(assets).where(inArray(assets.id, createdAssetIds));
   await app.close();
 });
@@ -57,7 +57,7 @@ describe("assets routes (Nest, real Neon dev DB + real R2 bucket)", () => {
     expect(completeResponse.body.asset.status).toBe("ready");
     expect(completeResponse.body.asset.byteSize).toBe(fileContents.byteLength);
 
-    const roundTrip = await r2.getObject(asset.r2Key);
+    const roundTrip = await r2.getObject("R2_USER_ASSETS_BUCKET", asset.r2Key);
     expect(roundTrip?.toString("utf8")).toBe(fileContents.toString("utf8"));
 
     const getResponse = await request(app.getHttpServer()).get(`/v1/assets/${asset.id}`);
