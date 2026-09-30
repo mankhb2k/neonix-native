@@ -1,8 +1,8 @@
 import { bigint, boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-// Ported from Supabase's `system_catalog` schema (font_families, font_files,
+// Preserves the `system_catalog` schema (font_families, font_files,
 // system_assets) - real curated content (46 font families / 546 font files
-// as of this port), migrated row-for-row via scripts/migrate-system-catalog.ts,
+// as of this port),
 // not just a schema copy. R2 keys are unchanged: the actual font/asset bytes
 // stay in the same `neonix-system-fonts`/`neonix-system-assets` R2 buckets,
 // only this metadata catalog moves to Neon.

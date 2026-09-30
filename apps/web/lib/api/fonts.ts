@@ -32,14 +32,14 @@ async function readError(response: Response): Promise<string> {
 }
 
 export async function listFonts(): Promise<FontOption[]> {
-  const response = await fetch("/api/v1/fonts", { cache: "no-store" });
+  const response = await apiFetch("/v1/fonts", { cache: "no-store" });
   if (!response.ok) throw new Error(await readError(response));
   const body = (await response.json()) as { fonts: FontOption[] };
   return body.fonts;
 }
 
 export async function createFontUpload(file: File): Promise<FontUploadSession> {
-  const response = await fetch("/api/v1/fonts", {
+  const response = await apiFetch("/v1/fonts", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ name: file.name, size: file.size }),
@@ -49,7 +49,7 @@ export async function createFontUpload(file: File): Promise<FontUploadSession> {
 }
 
 export async function completeFontUpload(assetId: string): Promise<FontOption> {
-  const response = await fetch("/api/v1/fonts/upload/complete", {
+  const response = await apiFetch("/v1/fonts/upload/complete", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ assetId }),
@@ -69,6 +69,7 @@ export async function uploadFontBytes(session: FontUploadSession, file: File): P
 }
 
 export async function deleteFont(fontId: string): Promise<void> {
-  const response = await fetch(`/api/v1/fonts/${encodeURIComponent(fontId)}`, { method: "DELETE" });
+  const response = await apiFetch(`/v1/fonts/${encodeURIComponent(fontId)}`, { method: "DELETE" });
   if (!response.ok) throw new Error(await readError(response));
 }
+import { apiFetch } from "./client";

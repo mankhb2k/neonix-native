@@ -46,6 +46,13 @@ async function bootstrap() {
   // the global JSON parser would drain the stream first and every MCP
   // JSON-RPC request would arrive with an empty body.
   mountMcp(app, expressInstance);
+  // The public HTML compiler endpoints accept full documents up to 1MB
+  // (DocumentsService's own MAX_HTML_BYTES check) - bigger than
+  // express.json()'s 100kb default, so these two paths get their own
+  // parser mounted first (a body-parser no-ops once a prior one already
+  // parsed the request, so falling through to the general parser below is
+  // harmless - same pattern as the webhook/MCP raw-body mounts above).
+  expressInstance.use(["/v1/documents/compile", "/v1/documents/validate"], express.json({ limit: "1.5mb" }));
   app.use(express.json());
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

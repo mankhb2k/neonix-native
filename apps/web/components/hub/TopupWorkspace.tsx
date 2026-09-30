@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { UsFlagIcon, VnFlagIcon } from "@/components/hub/topup/CurrencyFlags";
 import { VietQrPlaceholder } from "@/components/hub/topup/VietQrPlaceholder";
 import { createTopupCheckout, getWalletBalance } from "@/lib/api/billing";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Currency = "USD" | "VND";
 
@@ -38,15 +37,8 @@ export function TopupWorkspace() {
   useEffect(() => {
     let mounted = true;
     async function loadAccount() {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (mounted && user?.email) setEmail(user.email);
-      } catch {
-        // Keep the placeholder when auth is unavailable during local boot.
-      }
+      // Keep the placeholder until the profile API is wired in.
+      if (!mounted) return;
     }
     void loadAccount();
     return () => {

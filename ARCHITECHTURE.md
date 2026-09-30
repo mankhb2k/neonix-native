@@ -597,7 +597,7 @@ CHÍNH bảng đó — hai nơi độc lập cùng ghi một bảng là nguồn 
 condition/bug khó soi. `render-chunk-job.ts`/`render-finalizer-job.ts`/
 `api/server.ts` (control-plane dispatcher) **chưa** được tách theo cùng cách —
 đây là việc còn lại (`render-chunk-job`/`render-finalizer-job` còn dùng
-Supabase cũ và tính năng chunk-render vẫn tắt bằng feature flag
+Legacy persistence và tính năng chunk-render vẫn tắt bằng feature flag
 `RENDER_CHUNK_EXECUTION_ENABLED=false` ở mọi môi trường).
 
 ## Phân loại packages

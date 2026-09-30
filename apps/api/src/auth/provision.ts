@@ -1,7 +1,7 @@
 import { db } from "../db/client";
 import { accountPlans, profiles, workspaceMembers, workspaces } from "../db/schema/identity";
 
-// Replaces Supabase's `handle_new_user()` trigger on `auth.users` insert plus
+// Replaces the former hosted-auth user provisioning trigger plus
 // `handle_new_workspace()` on the resulting workspace insert - both were
 // SQL/PLpgSQL triggers, now plain app code run from a Better Auth
 // `databaseHooks.user.create.after` hook. Defensive against double-firing

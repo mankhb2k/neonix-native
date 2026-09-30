@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query
 import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentUserGuard } from "../auth/current-user.guard";
 import { ApiError } from "../common/api-error";
+import { ApplyJsonPatchDto } from "./dto/apply-json-patch.dto";
+import { AttachAssetDto } from "./dto/attach-asset.dto";
 import { CreateHtmlProjectDto } from "./dto/create-html-project.dto";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { CreateRevisionDto } from "./dto/create-revision.dto";
@@ -68,6 +70,24 @@ export class ProjectsController {
     return {
       revision: await this.projects.createRevision(userId, id, dto.documentJson, dto.reason ?? "manual"),
     };
+  }
+
+  // Applies an incremental patch to the project's current JSON document
+  // instead of resending the whole thing - same optimistic-concurrency
+  // contract as create()/update() (expectedProtocolRevisionNo).
+  @Patch(":id/json")
+  async applyJsonPatch(@CurrentUser() userId: string, @Param("id") id: string, @Body() dto: ApplyJsonPatchDto) {
+    const result = await this.projects.applyJsonPatch(userId, id, dto.expectedProtocolRevisionNo, dto.patch);
+    return { revision: result.revision, diagnostics: result.diagnostics };
+  }
+
+  // Links an existing workspace asset into this project's asset list.
+  // Idempotent - attaching the same asset twice is a no-op.
+  @Post(":id/assets")
+  @HttpCode(200)
+  async attachAsset(@CurrentUser() userId: string, @Param("id") id: string, @Body() dto: AttachAssetDto) {
+    await this.projects.attachAsset(userId, id, dto.assetId);
+    return { ok: true };
   }
 
   // Track A (raw HTML) project - current document only, no revision history.

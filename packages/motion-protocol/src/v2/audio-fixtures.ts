@@ -5,7 +5,7 @@ import type { MotionProtocolV2 } from "./types";
 const MUSIC_ASSET: V2AudioAsset = {
   id: "music-mbb-island-tropical",
   kind: "audio",
-  uri: "/api/v1/docs/audio",
+  uri: "/preview/audio/Music-MBB-Island-Tropical_128k.mp3",
   mimeType: "audio/mpeg",
   duration: 124_551.837,
   sampleRate: 44100,
@@ -22,7 +22,7 @@ const VIDEO_AUDIO_ASSET: V2VideoAsset = {
   duration: 60_500,
   fps: 30,
   audio: {
-    uri: "/api/v1/docs/audio",
+    uri: "/preview/audio/Music-MBB-Island-Tropical_128k.mp3",
     mimeType: "audio/mpeg",
     duration: 60_500,
     sampleRate: 48000,

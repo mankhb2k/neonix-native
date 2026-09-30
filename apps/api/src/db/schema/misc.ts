@@ -15,11 +15,11 @@ import {
 import { user } from "./auth";
 import { workspaces } from "./identity";
 
-// Ported from supabase/migrations (Section F: Misc). Same text-vs-uuid
+// Preserves the legacy Misc schema contract. Same text-vs-uuid
 // user-id fix as the other schema files. wallet_ledger existed once already
-// in supabase/migrations/20260929000000_wallet_ledger.sql with a uuid
+// in the previous wallet-ledger definition with a uuid
 // user_id - this is the corrected apps/api version, text-typed to match
-// Better Auth's user.id; the supabase one is left as historical record only.
+// Better Auth's user.id; the legacy database type is historical only.
 
 export const auditEvents = pgTable("audit_events", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),

@@ -1,4 +1,5 @@
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import { apiFetch } from "./client";
 
 export type SaveEditorProjectResult =
   | { ok: true; revisionNo: number }
@@ -12,7 +13,7 @@ export class CreateHtmlProjectError extends Error {
 }
 
 export async function createHtmlProject(input: { title?: string; html: string; idempotencyKey?: string }): Promise<{ projectId: string }> {
-  const response = await fetch("/api/v1/projects/html", {
+  const response = await apiFetch("/v1/projects/html", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(input),
@@ -37,7 +38,7 @@ export async function createHtmlProject(input: { title?: string; html: string; i
  * ARCHITECHTURE.md "Hai kiến trúc render độc lập".
  */
 export async function createHtmlProjectRaw(input: { title?: string; html: string }): Promise<{ projectId: string }> {
-  const response = await fetch("/api/v1/projects/html-raw", {
+  const response = await apiFetch("/v1/projects/html-raw", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(input),
@@ -91,7 +92,7 @@ function blankMotionProtocolDocument(composition: NewProjectComposition): Motion
 
 /** Kiến trúc A entry point: creates a blank, editable Neonix JSON V2 project. */
 export async function createBlankProject(input: { title?: string; composition: NewProjectComposition }): Promise<{ projectId: string }> {
-  const response = await fetch("/api/v1/projects", {
+  const response = await apiFetch("/v1/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -113,7 +114,7 @@ export async function createBlankProject(input: { title?: string; composition: N
 
 /** The "Convert JSON V2" action — compiles a raw HTML project's HTML once. */
 export async function convertHtmlProjectToJson(projectId: string): Promise<{ revisionNo: number }> {
-  const response = await fetch(`/api/v1/projects/${encodeURIComponent(projectId)}/convert-json`, {
+  const response = await apiFetch(`/v1/projects/${encodeURIComponent(projectId)}/convert-json`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -135,8 +136,8 @@ export async function saveEditorProject(input: {
   document: MotionProtocolV2;
   expectedRevisionNo: number;
 }): Promise<SaveEditorProjectResult> {
-  const response = await fetch(
-    `/api/v1/editor/projects/${encodeURIComponent(input.projectRef)}`,
+  const response = await apiFetch(
+    `/v1/editor/projects/${encodeURIComponent(input.projectRef)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -160,8 +161,8 @@ export async function attachProjectAsset(input: {
   projectRef: string;
   assetId: string;
 }): Promise<void> {
-  const response = await fetch(
-    `/api/v1/projects/${encodeURIComponent(input.projectRef)}/assets`,
+  const response = await apiFetch(
+    `/v1/projects/${encodeURIComponent(input.projectRef)}/assets`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -182,7 +183,7 @@ export async function attachProjectAsset(input: {
 }
 
 export async function removeProject(projectId: string): Promise<void> {
-  const response = await fetch(`/api/v1/projects/${encodeURIComponent(projectId)}`, {
+  const response = await apiFetch(`/v1/projects/${encodeURIComponent(projectId)}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });

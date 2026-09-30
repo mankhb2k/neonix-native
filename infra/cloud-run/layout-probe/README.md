@@ -4,7 +4,7 @@ Measures real-browser layout geometry (border-box, padding, border - see
 `@motionvideo/html-compiler`'s `layout-probe.ts`) for an already-stamped HTML
 document, so `compileDocument(doc, { layoutSnapshot })` can use a
 real-Chromium-measured box instead of native flex/grid/geometry resolution
-for the nodes it covers. Stateless: no Supabase/R2 access, no callback -
+for the nodes it covers. Stateless: no database/R2 access, no callback -
 the caller (`apps/web/lib/server/layout-snapshot.ts`) gets the snapshot back
 in the same HTTP response.
 
@@ -49,7 +49,7 @@ instance per container, matches `probe-worker.ts`'s shared-browser design),
 CPU `1-2`, memory `1-2Gi` (Chromium needs meaningfully more than
 media-preparer's default), request timeout matched to
 `LAYOUT_SNAPSHOT_TIMEOUT_MS` on the caller side plus margin, a dedicated
-service account with only Secret Manager access (no R2/Supabase - this
+service account with only Secret Manager access (no R2/database - this
 service touches neither). Inject `INTERNAL_WORKER_TOKEN` at runtime; never
 bake it into the image.
 

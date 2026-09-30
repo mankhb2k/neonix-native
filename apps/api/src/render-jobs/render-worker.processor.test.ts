@@ -18,7 +18,7 @@ const createdProjectIds: string[] = [];
 // The real dispatch call is mocked - see cloud-run.service.ts's own
 // warning: calling it for real would trigger a real, billed Cloud Run
 // execution that's guaranteed to fail today (the deployed Cloud Run Job
-// still reads render_jobs from Supabase, not Neon - see project memory).
+// still has an external persistence dependency - see project memory).
 // This verifies the queue wiring itself: a job pushed onto Redis really
 // reaches the in-process worker, which really calls the mocked dispatch
 // with the right id, and really resolves once the row reaches `done`.

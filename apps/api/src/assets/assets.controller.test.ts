@@ -97,6 +97,62 @@ describe("assets routes (Nest, real Neon dev DB + real R2 bucket)", () => {
     expect(goneResponse.status).toBe(404);
   });
 
+  it("streams a real asset's bytes via /media, including Range support", async () => {
+    const fileContents = Buffer.from("0123456789abcdefghij", "utf8");
+    const requestResponse = await request(app.getHttpServer())
+      .post("/v1/assets/upload-requests")
+      .send({ workspaceId: seedWorkspaceId, mimeType: "text/plain", byteSize: fileContents.byteLength });
+    const asset = requestResponse.body.asset;
+    createdAssetIds.push(asset.id);
+    uploadedR2Keys.push(asset.r2Key);
+    await fetch(requestResponse.body.uploadUrl, { method: "PUT", headers: requestResponse.body.headers, body: fileContents });
+    await request(app.getHttpServer()).post(`/v1/assets/${asset.id}/complete`);
+
+    const full = await request(app.getHttpServer()).get(`/v1/assets/${asset.id}/media`);
+    expect(full.status).toBe(200);
+    // R2 reports back whatever Content-Type it stored for the upload, which
+    // may include a charset suffix (e.g. "text/plain; charset=utf-8") - the
+    // route correctly passes through whatever R2 says, so assert on the
+    // semantic type rather than a byte-exact string.
+    expect(full.headers["content-type"]).toMatch(/^text\/plain/);
+    expect(full.headers["content-length"]).toBe(String(fileContents.byteLength));
+    expect(full.text).toBe(fileContents.toString("utf8"));
+
+    const partial = await request(app.getHttpServer())
+      .get(`/v1/assets/${asset.id}/media`)
+      .set("Range", "bytes=0-4");
+    expect(partial.status).toBe(206);
+    expect(partial.headers["content-range"]).toBe(`bytes 0-4/${fileContents.byteLength}`);
+    expect(partial.text).toBe("01234");
+
+    const invalidRange = await request(app.getHttpServer())
+      .get(`/v1/assets/${asset.id}/media`)
+      .set("Range", `bytes=${fileContents.byteLength + 10}-${fileContents.byteLength + 20}`);
+    expect(invalidRange.status).toBe(416);
+  });
+
+  it("404s poster/audio variants before the media pipeline has populated them", async () => {
+    const requestResponse = await request(app.getHttpServer())
+      .post("/v1/assets/upload-requests")
+      .send({ workspaceId: seedWorkspaceId, mimeType: "video/mp4", byteSize: 4 });
+    const asset = requestResponse.body.asset;
+    createdAssetIds.push(asset.id);
+    uploadedR2Keys.push(asset.r2Key);
+    await fetch(requestResponse.body.uploadUrl, { method: "PUT", headers: requestResponse.body.headers, body: "test" });
+    await request(app.getHttpServer()).post(`/v1/assets/${asset.id}/complete`);
+
+    const poster = await request(app.getHttpServer()).get(`/v1/assets/${asset.id}/media?variant=poster`);
+    expect(poster.status).toBe(404);
+
+    const audio = await request(app.getHttpServer()).get(`/v1/assets/${asset.id}/media?variant=audio`);
+    expect(audio.status).toBe(404);
+  });
+
+  it("404s /media for another workspace's asset (viewer-role check)", async () => {
+    const response = await request(app.getHttpServer()).get("/v1/assets/00000000-0000-0000-0000-000000000000/media");
+    expect(response.status).toBe(404);
+  });
+
   describe("storage quota enforcement", () => {
     beforeAll(async () => {
       await db.update(accountPlans).set({ maxUploadBytes: 5 }).where(eq(accountPlans.id, seedUserId));

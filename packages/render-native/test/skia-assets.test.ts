@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { resolveLocalPreviewAssetPath } from "../src/render/skia-assets";
 
 describe("resolveLocalPreviewAssetPath", () => {
-  it("maps preview URLs and the docs audio endpoint to public assets", () => {
+  it("maps preview URLs to public assets", () => {
     expect(resolveLocalPreviewAssetPath("/preview/image/photo-landscape.jpg", "D:/repo/apps/web/public"))
       .toBe("D:\\repo\\apps\\web\\public\\preview\\image\\photo-landscape.jpg");
-    expect(resolveLocalPreviewAssetPath("/api/v1/docs/audio", "D:/repo/apps/web/public"))
+    expect(resolveLocalPreviewAssetPath("/preview/audio/Music-MBB-Island-Tropical_128k.mp3", "D:/repo/apps/web/public"))
       .toBe("D:\\repo\\apps\\web\\public\\preview\\audio\\Music-MBB-Island-Tropical_128k.mp3");
   });
 

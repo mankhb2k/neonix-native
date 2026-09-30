@@ -1,19 +1,23 @@
+import { createHash } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ilike, isNull, ne, sql } from "drizzle-orm";
 import { AuthzService } from "../authz/authz.service";
 import { ApiError } from "../common/api-error";
+import { isUniqueViolation } from "../common/pg-errors";
 import type { Database } from "../db/client";
 import { DATABASE } from "../db/database.module";
-import { assets } from "../db/schema/assets";
+import { assets, uploadSessions } from "../db/schema/assets";
 import { projectFontFamilies, userFontFaces, userFontFamilies } from "../db/schema/fonts";
 import { projects } from "../db/schema/projects";
-import { isUniqueViolation } from "../common/pg-errors";
+import { formatFromFilename, mimeTypeForFontFormat, parseUserFont, type ParsedFontMetadata } from "./font-metadata";
+import { R2Service } from "../r2/r2.service";
 
 @Injectable()
 export class FontsService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly authz: AuthzService,
+    private readonly r2: R2Service,
   ) {}
 
   private async loadFamilyForMember(userId: string, familyId: string) {
@@ -152,5 +156,153 @@ export class FontsService {
     await this.db
       .delete(projectFontFamilies)
       .where(and(eq(projectFontFamilies.projectId, projectId), eq(projectFontFamilies.fontFamilyId, fontFamilyId)));
+  }
+
+  // Finishes a font upload created via AssetsService.createUploadRequest
+  // (kind: "font"): downloads the just-uploaded bytes back from R2, parses
+  // real font-binary metadata (weight/style/family via fontkit - never
+  // trusts filename/caller-supplied metadata), dedupes by content hash,
+  // and auto-creates-or-reuses the font family by name. This is a
+  // materially different, richer contract than createFace() above (which
+  // requires the caller to already know weight/style/format) - matches the
+  // old apps/web one-shot upload UX exactly.
+  async completeFontUpload(userId: string, assetId: string) {
+    const asset = await this.db.query.assets.findFirst({ where: eq(assets.id, assetId) });
+    if (!asset) throw new ApiError(404, "Font upload not found");
+    const canEdit = await this.authz.hasWorkspaceRole(userId, asset.workspaceId, "editor");
+    if (!canEdit) throw new ApiError(404, "Font upload not found");
+    if (asset.kind !== "font") throw new ApiError(409, "Asset is not a font upload");
+    if (asset.status === "ready") throw new ApiError(409, "Font upload is already complete");
+    if (asset.status !== "uploading") throw new ApiError(409, "Font is not uploadable");
+
+    const head = await this.r2.headObject("R2_USER_ASSETS_BUCKET", asset.r2Key);
+    if (!head) throw new ApiError(400, "The font has not finished uploading to R2");
+    if (head.sizeBytes !== asset.byteSize) throw new ApiError(400, "Uploaded font size does not match the declared size");
+
+    const fileName = asset.originalFilename ?? "";
+    const format = formatFromFilename(fileName);
+    if (!format) throw new ApiError(400, "Only static .ttf, .woff, and .woff2 files are supported");
+
+    const buffer = await this.r2.getObject("R2_USER_ASSETS_BUCKET", asset.r2Key);
+    if (!buffer) throw new ApiError(502, "Unable to read uploaded font");
+    const contentHash = `sha256:${createHash("sha256").update(buffer).digest("hex")}`;
+
+    let metadata: ParsedFontMetadata;
+    try {
+      metadata = parseUserFont(buffer);
+    } catch (error) {
+      await this.discardFontUpload(asset.r2Key, assetId);
+      throw new ApiError(400, error instanceof Error ? error.message : "Invalid font");
+    }
+
+    const sameHash = await this.db.query.assets.findFirst({
+      where: and(
+        eq(assets.workspaceId, asset.workspaceId),
+        eq(assets.kind, "font"),
+        eq(assets.contentHash, contentHash),
+        isNull(assets.deletedAt),
+        eq(assets.status, "ready"),
+        ne(assets.id, assetId),
+      ),
+    });
+    if (sameHash) return this.rejectDuplicateFontUpload(asset.r2Key, assetId, "This font file already exists (same content)");
+
+    try {
+      const created = await this.db.transaction(async (tx) => {
+        let family = await tx.query.userFontFamilies.findFirst({
+          where: and(eq(userFontFamilies.workspaceId, asset.workspaceId), ilike(userFontFamilies.familyName, metadata.familyName)),
+        });
+        if (!family) {
+          const slug = `${metadata.familyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70)}-${assetId.slice(0, 8)}`;
+          [family] = await tx
+            .insert(userFontFamilies)
+            .values({ workspaceId: asset.workspaceId, createdBy: userId, slug, familyName: metadata.familyName })
+            .returning();
+        }
+
+        const sameFace = await tx.query.userFontFaces.findFirst({
+          where: and(eq(userFontFaces.fontFamilyId, family!.id), eq(userFontFaces.faceKey, metadata.faceKey)),
+        });
+        if (sameFace) throw new ApiError(409, "A font with this family, weight, and style already exists", "font_face_conflict");
+
+        await tx
+          .update(assets)
+          .set({
+            status: "ready",
+            contentHash,
+            mimeType: mimeTypeForFontFormat(format),
+            metadataJson: {
+              familyName: metadata.familyName,
+              subfamilyName: metadata.subfamilyName,
+              weight: metadata.weight,
+              style: metadata.style,
+            },
+          })
+          .where(eq(assets.id, assetId));
+
+        const [inserted] = await tx
+          .insert(userFontFaces)
+          .values({
+            fontFamilyId: family!.id,
+            assetId,
+            faceKey: metadata.faceKey,
+            version: metadata.version,
+            weight: metadata.weight,
+            style: metadata.style,
+            widthClass: metadata.widthClass,
+            format,
+            subfamilyName: metadata.subfamilyName,
+            postscriptName: metadata.postscriptName,
+            axesJson: metadata.axes,
+          })
+          .returning();
+
+        await tx
+          .update(uploadSessions)
+          .set({ status: "completed", completedAt: sql`now()`, updatedAt: sql`now()` })
+          .where(eq(uploadSessions.assetId, assetId));
+
+        return { face: inserted!, family: family! };
+      });
+
+      return {
+        id: `custom:${metadata.faceKey}:${assetId}`,
+        source: "custom" as const,
+        familyName: created.family.familyName,
+        subfamilyName: metadata.subfamilyName,
+        weight: metadata.weight,
+        style: metadata.style,
+        format,
+        fontAssetId: `asset-${assetId}`,
+        assetId,
+        filename: fileName,
+        byteSize: asset.byteSize,
+        uri: `/v1/assets/${assetId}/media`,
+        integrity: contentHash,
+      };
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return this.rejectDuplicateFontUpload(asset.r2Key, assetId, error.message, error.getStatus());
+      }
+      if (isUniqueViolation(error)) {
+        return this.rejectDuplicateFontUpload(asset.r2Key, assetId, "A font family or face with that name already exists");
+      }
+      throw error;
+    }
+  }
+
+  // On any rejection after the object already landed in R2 (parse failure,
+  // content-hash duplicate, family/face-name conflict), scrap the whole
+  // upload attempt rather than leaving an orphaned "uploading" asset row
+  // behind - matches the old apps/web route's cleanup exactly.
+  private async discardFontUpload(r2Key: string, assetId: string): Promise<void> {
+    await this.r2.deleteObject("R2_USER_ASSETS_BUCKET", r2Key).catch(() => undefined);
+    await this.db.delete(uploadSessions).where(eq(uploadSessions.assetId, assetId));
+    await this.db.delete(assets).where(eq(assets.id, assetId));
+  }
+
+  private async rejectDuplicateFontUpload(r2Key: string, assetId: string, message: string, status = 409): Promise<never> {
+    await this.discardFontUpload(r2Key, assetId);
+    throw new ApiError(status, message, "font_upload_conflict");
   }
 }

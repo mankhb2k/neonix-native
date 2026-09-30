@@ -6,7 +6,6 @@ import {
   isLocalHost,
   isMarketingHost,
 } from "./lib/hosts";
-import { updateSupabaseSession } from "./lib/supabase/middleware";
 
 function workspaceOrigin(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "https://app.neonix.video";
@@ -45,10 +44,9 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response: NextResponse;
 
-  // MCP uses bearer authentication at the route itself. Keep the endpoint and
-  // protected-resource metadata out of cookie session refresh and host rewrites.
+  // APIs and protected-resource metadata belong to apps/api, never to a UI host.
   if (
-    pathname === "/api/mcp" ||
+    pathname.startsWith("/api/") ||
     pathname.startsWith("/.well-known/oauth-protected-resource")
   ) {
     return NextResponse.next();
@@ -56,15 +54,13 @@ export async function middleware(request: NextRequest) {
 
   // API, authentication, and docs do not belong to either UI shell.
   if (
-    pathname.startsWith("/api/") ||
     pathname.startsWith("/docs") ||
     pathname === "/login" ||
     pathname === "/register" ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/oauth/")
   ) {
-    response = NextResponse.next();
-    return updateSupabaseSession(request, response);
+    return NextResponse.next();
   }
 
   // app.neonix.video is the isolated editor/preview workspace. It never hosts
@@ -80,27 +76,23 @@ export async function middleware(request: NextRequest) {
       } else {
         response = redirectTo(request, controlOrigin(), "/dashboard");
       }
-      return updateSupabaseSession(request, response);
+      return response;
     }
 
     if (pathname === "/") {
-      response = redirectTo(request, controlOrigin(), "/dashboard");
-      return updateSupabaseSession(request, response);
+      return redirectTo(request, controlOrigin(), "/dashboard");
     }
 
     if (isWorkspaceRoute(pathname)) {
       if (pathname.startsWith("/preview/")) {
-        response = redirectTo(request, controlOrigin(), pathname);
-        return updateSupabaseSession(request, response);
+        return redirectTo(request, controlOrigin(), pathname);
       }
       const url = request.nextUrl.clone();
       url.pathname = `${APP_ROUTE_PREFIX}${pathname}`;
-      response = NextResponse.rewrite(url);
-      return updateSupabaseSession(request, response);
+      return NextResponse.rewrite(url);
     }
 
-    response = redirectTo(request, controlOrigin(), "/dashboard");
-    return updateSupabaseSession(request, response);
+    return redirectTo(request, controlOrigin(), "/dashboard");
   }
 
   // Keep old /app editor links working during the domain migration. Control
@@ -112,19 +104,17 @@ export async function middleware(request: NextRequest) {
   ) {
     const cleanPath = removeInternalWorkspacePrefix(pathname);
     if (isWorkspaceRoute(cleanPath)) {
-      response = redirectTo(request, workspaceRouteOrigin(cleanPath), cleanPath);
-    } else if (cleanPath === "/") {
-      response = redirectTo(request, controlOrigin(), "/dashboard");
-    } else {
-      response = redirectTo(request, controlOrigin(), cleanPath);
+      return redirectTo(request, workspaceRouteOrigin(cleanPath), cleanPath);
     }
-    return updateSupabaseSession(request, response);
+    if (cleanPath === "/") {
+      return redirectTo(request, controlOrigin(), "/dashboard");
+    }
+    return redirectTo(request, controlOrigin(), cleanPath);
   }
 
   // localhost keeps internal /app/editor routes for development. The dashboard
   // itself has moved to /dashboard.
-  response = NextResponse.next();
-  return updateSupabaseSession(request, response);
+  return NextResponse.next();
 }
 
 export const config = {

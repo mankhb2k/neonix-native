@@ -61,7 +61,7 @@ returned.
 ## Remote server integration
 
 `createRemoteMcpServer` registers the remote project and authoring tools without
-depending on Next.js or Supabase. The web app supplies a small persistence
+depending on Next.js or a database. The web app supplies a small persistence
 adapter so RLS and deployment-specific authentication remain at the edge:
 
 ```ts
@@ -92,7 +92,7 @@ MCP protocol.
 Access control is identity-based only: every tool call runs as the
 authenticated `principal.userId`, and persistence-layer RLS scopes each
 operation to that user's own workspaces/projects. There is no separate
-operation-scope gate — Supabase Auth (the OAuth authorization server) only
+operation-scope gate — Better Auth (the OAuth authorization server) only
 issues `openid`/`profile`/`email`/`offline_access`, so a client-requested
 scope like `projects:write` can never actually be granted, and gating tool
 calls on it would lock out every legitimately authenticated caller.

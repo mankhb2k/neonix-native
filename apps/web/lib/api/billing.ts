@@ -5,7 +5,7 @@ export type WalletBalance = {
 
 export async function getWalletBalance(): Promise<WalletBalance | null> {
   try {
-    const response = await fetch("/api/v1/billing/balance", { cache: "no-store" });
+    const response = await apiFetch("/v1/billing/balance", { cache: "no-store" });
     if (!response.ok) return null;
 
     const body: unknown = await response.json();
@@ -23,7 +23,7 @@ export async function getWalletBalance(): Promise<WalletBalance | null> {
 
 export async function createTopupCheckout(amountUsd: number): Promise<{ checkoutUrl: string } | null> {
   try {
-    const response = await fetch("/api/v1/billing/checkout", {
+    const response = await apiFetch("/v1/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amountUsd }),
@@ -42,3 +42,4 @@ export async function createTopupCheckout(amountUsd: number): Promise<{ checkout
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
+import { apiFetch } from "./client";

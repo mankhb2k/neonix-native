@@ -84,7 +84,7 @@ RUN pnpm --filter @motionvideo/render-worker deploy --prod --legacy /app
 RUN pnpm exec esbuild \
   packages/render-worker/src/render-job.ts \
   --bundle --platform=node --format=esm --outdir=/app/dist \
-  --external:@aws-sdk/client-s3 --external:google-auth-library --external:@supabase/supabase-js --external:sharp --external:zod --external:pg
+  --external:@aws-sdk/client-s3 --external:google-auth-library --external:sharp --external:zod --external:pg
 
 FROM node:22-bookworm-slim
 

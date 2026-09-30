@@ -30,7 +30,7 @@ export class WorkspacesService {
     return workspace;
   }
 
-  // Original Supabase grants only ever let `authenticated` update the
+  // Original hosted-database grants only ever let authenticated users update the
   // `name` column (`grant update (name) to authenticated`), independent of
   // the RLS policy's broader USING/WITH CHECK clause - replicated here by
   // only ever accepting `name` as input in the DTO, never the rest of the row.

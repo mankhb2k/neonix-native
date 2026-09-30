@@ -17,7 +17,7 @@ import { assets } from "./assets";
 import { projects } from "./projects";
 import { workspaces } from "./identity";
 
-// Ported from supabase/migrations (Section D: User Fonts). Same
+// Preserves the legacy User Fonts schema contract. Same
 // text-vs-uuid user-id fix as the other schema files. Cross-table
 // consistency checks (validate_user_font_asset, validate_project_user_font_family)
 // were Postgres triggers - reimplemented as Express-side checks in Phase 3,

@@ -40,7 +40,7 @@ export const auth = betterAuth({
     jwt(),
     // Makes this server a standalone OAuth 2.1 authorization server for MCP
     // clients (Claude Desktop, ChatGPT/Codex/Glama connectors, etc.),
-    // replacing the role Supabase's "OAuth Server" plays for apps/web's
+    // replacing the role the former hosted OAuth server played for the web
     // separate/older MCP endpoint today. loginPage/consentPage are full
     // cross-origin URLs (apps/web, not apps/api - this server has no HTML
     // pages of its own): the oauth-provider plugin does plain string

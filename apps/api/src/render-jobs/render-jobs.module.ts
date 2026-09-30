@@ -1,6 +1,7 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { AuthzModule } from "../authz/authz.module";
+import { R2Module } from "../r2/r2.module";
 import { RenderJobsController } from "./render-jobs.controller";
 import { RenderJobsService } from "./render-jobs.service";
 
@@ -10,7 +11,7 @@ import { RenderJobsService } from "./render-jobs.service";
 // billed Cloud Run endpoint). The real app wires both modules together in
 // AppModule.
 @Module({
-  imports: [AuthzModule, BullModule.registerQueue({ name: "render-jobs" })],
+  imports: [AuthzModule, R2Module, BullModule.registerQueue({ name: "render-jobs" })],
   controllers: [RenderJobsController],
   providers: [RenderJobsService],
 })

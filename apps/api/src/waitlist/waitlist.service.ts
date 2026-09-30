@@ -19,7 +19,7 @@ function normalizeEmail(value: string): string {
 export class WaitlistService {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  /** Returns `alreadySignedUp: true` instead of throwing on a duplicate email - matches the friendly (not error) UX the old Supabase route had. */
+  /** Returns `alreadySignedUp: true` instead of throwing on a duplicate email. */
   async join(rawEmail: string): Promise<{ alreadySignedUp: boolean }> {
     const email = normalizeEmail(rawEmail);
     try {

@@ -2,7 +2,7 @@ import type { HtmlCompilerFontAsset } from "@motionvideo/html-compiler";
 
 /**
  * Deterministic built-in font catalog for the Track A -> Track B convert-json
- * bridge. Ported from apps/web/lib/server/html-compiler-font-assets.ts.
+ * bridge. Kept local to the API compiler boundary.
  * User-uploaded font catalogs can be added here when project asset
  * resolution is wired into the API; keeping the catalog explicit prevents
  * runtime font fallback from changing the compiled Protocol V2 layout.

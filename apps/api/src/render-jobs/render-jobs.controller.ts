@@ -45,4 +45,10 @@ export class RenderJobsController {
   async cancel(@CurrentUser() userId: string, @Param("id") id: string) {
     return { renderJob: await this.renderJobs.cancel(userId, id) };
   }
+
+  // Presigned, short-lived download URL for the finished MP4.
+  @Get(":id/download")
+  async download(@CurrentUser() userId: string, @Param("id") id: string) {
+    return this.renderJobs.getDownloadUrl(userId, id);
+  }
 }

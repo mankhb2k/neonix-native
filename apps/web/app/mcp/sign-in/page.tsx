@@ -5,11 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { continueMcpOAuth } from "@/lib/api/mcp-oauth";
 
-// Talks directly to apps/api's Better Auth instance - deliberately separate
-// from apps/web's own login (still Supabase Auth, lib/supabase/*). Only
-// this page and app/mcp/consent use it.
+// Signs MCP users in through the Better Auth server hosted by apps/api.
 const mcpAuthClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080",
+  fetchOptions: { credentials: "include" },
 });
 
 // Standalone login page for the MCP OAuth 2.1 authorization flow (apps/api's

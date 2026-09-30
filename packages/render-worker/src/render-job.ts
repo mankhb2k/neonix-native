@@ -23,9 +23,8 @@ import { renderRuntimeProjectV3, verifyRenderOutput } from "@motionvideo/render-
 // job records - see that package's own README for why this split exists
 // (render-native was doing all three jobs at once before this refactor).
 //
-// Ported off @supabase/supabase-js onto plain `pg` against Neon - render-
-// worker's OTHER entrypoints (render-chunk-job, render-finalizer-job) still
-// use Supabase deliberately: that chunked-render feature is confirmed
+// Uses plain `pg` against the API database - the worker's other legacy
+// entrypoints are outside the active render path. The chunked-render feature is
 // unshipped/unused in every environment (RENDER_CHUNK_EXECUTION_ENABLED is
 // false everywhere), so porting it wasn't part of this move.
 
@@ -124,11 +123,10 @@ async function publishArtifact(filePath: string, finalKey: string): Promise<{ by
   }
 }
 
-// Replaces the Supabase `.update().eq().eq().select()` chain - same
+// Replaces the previous chained update/select calls - same
 // lease-guarded write (only succeeds if `worker` still holds the lease).
 // jsonb-typed patch values (metrics_json etc.) must be JSON-encoded and cast
-// explicitly; `pg` doesn't auto-serialize objects into jsonb params the way
-// supabase-js's PostgREST layer did.
+// explicitly; `pg` does not auto-serialize objects into jsonb params.
 export async function updateJob(
   database: Pool,
   jobId: string,

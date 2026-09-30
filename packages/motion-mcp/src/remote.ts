@@ -215,7 +215,7 @@ async function safely<T>(operation: () => Promise<T>): Promise<ToolResult> {
 
 /**
  * Registers Neonix's remote project tools without depending on Next.js,
- * Supabase, cookies, or a particular deployment runtime.
+ * a database, cookies, or a particular deployment runtime.
  *
  * Tools are registered in authoring-flow order (create -> discover/validate
  * -> browse -> preview -> edit -> JSON fallback -> export -> assets ->

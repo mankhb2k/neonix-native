@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CurrentUserGuard } from "../auth/current-user.guard";
@@ -58,6 +60,21 @@ async function uploadRealAsset(kind: "font" | "image", mimeType: string, content
   await request(app.getHttpServer()).post(`/v1/assets/${asset.id}/complete`);
   return asset.id as string;
 }
+
+// Uploads real bytes but does NOT call the generic /complete - the font
+// auto-parse tests below call /v1/fonts/upload/complete themselves instead.
+async function uploadFontBytes(contents: Buffer, originalFilename: string, mimeType = "font/ttf") {
+  const requestResponse = await request(app.getHttpServer())
+    .post("/v1/assets/upload-requests")
+    .send({ workspaceId: seedWorkspaceId, mimeType, byteSize: contents.byteLength, kind: "font", originalFilename });
+  const { asset, uploadUrl, headers } = requestResponse.body;
+  createdAssetIds.push(asset.id);
+  uploadedR2Keys.push(asset.r2Key);
+  await fetch(uploadUrl, { method: "PUT", headers, body: contents });
+  return asset.id as string;
+}
+
+const REAL_FONT_PATH = path.resolve(__dirname, "../../../../apps/web/public/preview/font/Albert_Sans/AlbertSans-100.ttf");
 
 describe("fonts routes (Nest, real Neon dev DB + real R2 asset)", () => {
   it("creates a font family, attaches a real font asset as a face, and lists it", async () => {
@@ -138,5 +155,75 @@ describe("fonts routes (Nest, real Neon dev DB + real R2 asset)", () => {
       .delete("/v1/fonts/project-links")
       .send({ projectId, fontFamilyId: familyId });
     expect(deleteResponse.status).toBe(204);
+  });
+
+  describe("font upload auto-parse (real fontkit binary parsing)", () => {
+    // Every test here uploads the SAME real font file's bytes (content-hash
+    // dedup is exactly what's being tested), so each test must clean up its
+    // own auto-created family immediately - not rely on the file's shared
+    // afterAll - or a later test's "fresh" upload collides with an earlier
+    // test's still-`ready` asset of identical content.
+    // Deletes the auto-created family AND the given (still-`ready`) asset
+    // row(s) - leaving the asset behind would make the NEXT test's "fresh"
+    // upload of the same file bytes collide with this test's content-hash,
+    // since the dedup check only cares about `assets.content_hash`, not
+    // which font family/face it ended up under.
+    async function cleanupAutoCreatedFont(assetIds: string[]) {
+      const family = await db.query.userFontFamilies.findFirst({
+        where: and(eq(userFontFamilies.workspaceId, seedWorkspaceId), eq(userFontFamilies.familyName, "Albert Sans")),
+      });
+      if (family) await db.delete(userFontFamilies).where(eq(userFontFamilies.id, family.id));
+      if (assetIds.length > 0) await db.delete(assets).where(inArray(assets.id, assetIds));
+    }
+
+    it("auto-parses a real font upload, creating the family and face automatically", async () => {
+      const contents = readFileSync(REAL_FONT_PATH);
+      const assetId = await uploadFontBytes(contents, "AlbertSans-100.ttf");
+      try {
+        const response = await request(app.getHttpServer()).post("/v1/fonts/upload/complete").send({ assetId });
+        expect(response.status).toBe(201);
+        expect(response.body.font.familyName).toBe("Albert Sans");
+        expect(response.body.font.weight).toBe(100);
+        expect(response.body.font.style).toBe("normal");
+        expect(response.body.font.format).toBe("ttf");
+        expect(response.body.font.source).toBe("custom");
+        expect(response.body.font.uri).toBe(`/v1/assets/${assetId}/media`);
+        expect(response.body.font.integrity).toMatch(/^sha256:[a-f0-9]{64}$/);
+
+        const asset = await request(app.getHttpServer()).get(`/v1/assets/${assetId}`);
+        expect(asset.body.asset.status).toBe("ready");
+      } finally {
+        await cleanupAutoCreatedFont([assetId]);
+      }
+    });
+
+    it("rejects and discards a duplicate upload of the exact same font content", async () => {
+      const contents = readFileSync(REAL_FONT_PATH);
+      const first = await uploadFontBytes(contents, "AlbertSans-100-first.ttf");
+      try {
+        const firstComplete = await request(app.getHttpServer()).post("/v1/fonts/upload/complete").send({ assetId: first });
+        expect(firstComplete.status).toBe(201);
+
+        const second = await uploadFontBytes(contents, "AlbertSans-100-second.ttf");
+        const secondComplete = await request(app.getHttpServer()).post("/v1/fonts/upload/complete").send({ assetId: second });
+        expect(secondComplete.status).toBe(409);
+        expect(secondComplete.body.error.code).toBe("font_upload_conflict");
+
+        // Discarded, not left dangling in "uploading" status.
+        const discardedAsset = await db.query.assets.findFirst({ where: eq(assets.id, second) });
+        expect(discardedAsset).toBeUndefined();
+      } finally {
+        await cleanupAutoCreatedFont([first]);
+      }
+    });
+
+    it("rejects and discards an upload that isn't a real font binary", async () => {
+      const assetId = await uploadFontBytes(Buffer.from("not a real font file"), "fake.ttf");
+      const response = await request(app.getHttpServer()).post("/v1/fonts/upload/complete").send({ assetId });
+      expect(response.status).toBe(400);
+
+      const discardedAsset = await db.query.assets.findFirst({ where: eq(assets.id, assetId) });
+      expect(discardedAsset).toBeUndefined();
+    });
   });
 });

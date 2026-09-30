@@ -6,15 +6,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 
 const currentDirectory = process.cwd();
-const appEnv = loadEnvConfig(
-  currentDirectory,
-  process.env.NODE_ENV !== "production",
-  undefined,
-  true,
-);
-const publicSupabaseUrl = appEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_URL;
-const publicSupabasePublishableKey =
-  appEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+// Loads apps/web's own .env* files into process.env - side effect only,
+// the return value isn't otherwise needed.
+loadEnvConfig(currentDirectory, process.env.NODE_ENV !== "production", undefined, true);
 
 const nodeCryptoShim = path.join(process.cwd(), "lib/shims/node-crypto.ts");
 
@@ -24,13 +18,6 @@ const browserCryptoExternal =
 const nextConfig: NextConfig = {
   // Allow isolated browser smoke runs to use a fresh build directory.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
-  // Explicitly expose the Web app's public Supabase variables to the browser
-  // bundle. The app reads them from apps/web/.env* in local development and
-  // from the Web project's environment in Vercel.
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: publicSupabaseUrl,
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publicSupabasePublishableKey,
-  },
   // Keep production builds independent from the standalone lint command.
   eslint: {
     ignoreDuringBuilds: true,
@@ -67,19 +54,6 @@ const nextConfig: NextConfig = {
     ]);
   },
   webpack: (config, { isServer, webpack }) => {
-    // Explicitly define the public Supabase values for both dev and production
-    // bundles when running from the nested Web app workspace.
-    config.plugins.push(
-      new webpack.DefinePlugin({
-        "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
-          publicSupabaseUrl ?? "",
-        ),
-        "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-          publicSupabasePublishableKey ?? "",
-        ),
-      }),
-    );
-
     // Webpack's persistent filesystem cache can become unreadable on Windows
     // ("invalid stored block lengths"), leaving `next dev` stuck at Starting.
     // Keep the development server deterministic; production builds retain the

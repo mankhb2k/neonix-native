@@ -70,18 +70,18 @@ download URL. The renderer owns only the render execution:
 
 ```text
 Web API / MCP
-  -> Supabase render_jobs + PGMQ { jobId }
+  -> API render_jobs + queue message { jobId }
   -> queue worker
   -> Cloud Run control service
   -> Cloud Run Job with RENDER_JOB_ID
-  -> Supabase manifest
+  -> API runtime manifest
   -> Native Skia CPU -> MP4 verification
   -> R2 publication -> render_jobs = done
 ```
 
 The control service submits the Cloud Run Job using its configured project,
 region, and job name. The queue message does not carry the runtime document;
-the Job reads the persisted manifest from Supabase. This keeps retries,
+the Job reads the persisted manifest from the API database. This keeps retries,
 leases, cancellation, and idempotency in the control plane while the renderer
 remains stateless apart from its temporary `/tmp` workspace.
 
@@ -491,7 +491,7 @@ to the final key. Configure an R2 lifecycle rule for that prefix as a second
 line of defense against abandoned uploads.
 The transfer never materializes the complete MP4 as a Node `Buffer`.
 
-The production queue source of truth is Supabase `render_jobs`; the PGMQ
+The production queue source of truth is the API database `render_jobs`; the queue
 message contains only `{ jobId }`. The queue consumer claims a database lease,
 renews its heartbeat while polling the renderer, retries transient failures,
 recovers stale leases, and checks cancellation before dispatch. Local file
@@ -570,7 +570,7 @@ frames, one AAC audio stream, and 10.000 s duration. The encoder submitted all
 `tmp/render-native` by default. Media preparation reads the origin from the
 configured R2 user-assets bucket, reuses the browser-generated
 `{assetId}/poster.webp`, and writes `{assetId}/audio.m4a` when an audio stream
-exists. The worker does not generate posters and never writes Supabase
+exists. The worker does not generate posters and never writes the API database
 directly; it reports the result to the Web API callback.
 
 Media preparation request:

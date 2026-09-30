@@ -1,12 +1,19 @@
 import { createHash } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 import { compileDocument, stampNodeIds } from "@motionvideo/html-compiler";
+// Deliberately imported from the "/patch" subpath, not the package root -
+// see packages/motion-mcp/src/patch.ts's own comment on why (avoids `tsc`
+// having to type-check that package's much larger barrel-exported surface
+// as raw source, which reliably OOMs even at an 8GB heap).
+import { applyMotionProtocolV2Patch } from "@motionvideo/motion-mcp/patch";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { AuthzService } from "../authz/authz.service";
 import { ApiError } from "../common/api-error";
 import { isUniqueViolation } from "../common/pg-errors";
 import type { Database } from "../db/client";
 import { DATABASE } from "../db/database.module";
+import { assets, projectAssets } from "../db/schema/assets";
 import { projectHtmlDocuments, projectRevisions, projects } from "../db/schema/projects";
 import { QuotasService } from "../quotas/quotas.service";
 import { HTML_COMPILER_FONT_ASSETS } from "./html-compiler-font-assets";
@@ -213,6 +220,78 @@ export class ProjectsService {
 
       return inserted;
     });
+  }
+
+  // Applies an incremental patch (add/update/remove layer, trim, setValue,
+  // etc. - see @motionvideo/motion-mcp's V2PatchOpSchema) to the project's
+  // CURRENT document instead of requiring the caller to resend the whole
+  // JSON, with the same optimistic-concurrency check as `update()`. This is
+  // what the editor's incremental-save path and the MCP `apply_json_patch`
+  // tool both call.
+  async applyJsonPatch(userId: string, projectId: string, expectedProtocolRevisionNo: number, patch: unknown) {
+    const project = await this.loadForMember(userId, projectId);
+    if (!project || project.deletedAt) throw new ApiError(404, "Project not found");
+    const canEdit = await this.authz.hasWorkspaceRole(userId, project.workspaceId, "editor");
+    if (!canEdit) throw new ApiError(403, "Editor role required");
+    if (project.currentRevisionNo !== expectedProtocolRevisionNo) {
+      throw new ApiError(409, "Project revision conflict", "revision_conflict");
+    }
+
+    const latest = await this.db.query.projectRevisions.findFirst({
+      where: and(eq(projectRevisions.projectId, project.id), eq(projectRevisions.revisionNo, project.currentRevisionNo)),
+    });
+    if (!latest) throw new ApiError(404, "Project has no source revision");
+
+    const result = applyMotionProtocolV2Patch(latest.documentJson as unknown as MotionProtocolV2, patch);
+    if (!result.project || result.diagnostics.some((item) => item.severity === "error")) {
+      throw new ApiError(422, "JSON patch could not be applied", "invalid_patch", result.diagnostics);
+    }
+    const documentJson = result.project as unknown as Record<string, unknown>;
+    const sourceSchemaVersion = result.project.formatVersion;
+
+    return this.db.transaction(async (tx) => {
+      const nextRevisionNo = project.currentRevisionNo + 1;
+      const [inserted] = await tx
+        .insert(projectRevisions)
+        .values({
+          projectId: project.id,
+          revisionNo: nextRevisionNo,
+          documentJson,
+          contentHash: contentHashOf(documentJson),
+          sourceSchemaVersion,
+          reason: "mcp",
+          createdBy: userId,
+        })
+        .returning();
+
+      await tx
+        .update(projects)
+        .set({ currentRevisionNo: nextRevisionNo, lastActivityAt: sql`now()`, updatedAt: sql`now()` })
+        .where(eq(projects.id, project.id));
+
+      return { revision: inserted!, diagnostics: result.diagnostics };
+    });
+  }
+
+  // Links an asset into a project's `project_assets` join table (the asset
+  // must be a live, non-deleted asset in the SAME workspace as the
+  // project). Idempotent - attaching the same asset twice is a no-op, not
+  // an error, matching the original `upsert(..., ignoreDuplicates: true)`.
+  async attachAsset(userId: string, projectId: string, assetId: string) {
+    const project = await this.loadForMember(userId, projectId);
+    if (!project || project.deletedAt) throw new ApiError(404, "Project not found");
+    const canEdit = await this.authz.hasWorkspaceRole(userId, project.workspaceId, "editor");
+    if (!canEdit) throw new ApiError(403, "Editor role required");
+
+    const asset = await this.db.query.assets.findFirst({
+      where: and(eq(assets.id, assetId), eq(assets.workspaceId, project.workspaceId), isNull(assets.deletedAt)),
+    });
+    if (!asset) throw new ApiError(404, "Asset not found");
+
+    await this.db
+      .insert(projectAssets)
+      .values({ projectId: project.id, assetId: asset.id, attachedBy: userId })
+      .onConflictDoNothing();
   }
 
   // ── Track A (raw HTML) projects ──────────────────────────────────────

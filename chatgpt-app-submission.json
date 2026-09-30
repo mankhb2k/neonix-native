@@ -272,14 +272,14 @@
   "name": "Neonix",
   "description": "Neonix turns HTML and CSS into structured motion-video projects. Create a composition, edit its HTML with an AI assistant, validate supported tags and styles, compile the result into Neonix Protocol V2, manage media assets, review revisions, apply precise JSON adjustments, and export saved compositions as video.",
   "website_url": "https://www.neonix.video/",
-  "mcp_server_url": "https://www.neonix.video/api/mcp",
+  "mcp_server_url": "https://api.neonix.video/mcp",
   "documentation_url": "https://www.neonix.video/docs",
   "support_url": "https://www.neonix.video/support",
   "privacy_policy_url": "https://www.neonix.video/privacy",
   "terms_of_service_url": "https://www.neonix.video/terms",
   "authentication": {
     "type": "oauth2",
-    "authorization_server": "https://wroefbhcrrqvrdcbkhib.supabase.co/auth/v1",
+    "authorization_server": "https://api.neonix.video/api/auth",
     "scopes": [
       "openid",
       "email",

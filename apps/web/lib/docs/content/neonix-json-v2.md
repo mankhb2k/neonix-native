@@ -372,10 +372,10 @@ The CSS endpoint resolves the requested family, weight and style to the matching
 
 ## Get every available font
 
-Call `GET /api/v1/fonts` without authentication to list all public system fonts:
+Call `GET https://api.neonix.video/v1/fonts` without authentication to list all public system fonts:
 
 ```bash
-curl https://www.neonix.video/api/v1/fonts
+curl https://api.neonix.video/v1/fonts
 ```
 
 The signed-in editor also includes workspace fonts in its private font picker. Use the public catalog and CDN only for system fonts; workspace fonts remain private to the current workspace and should not be copied into public HTML.
@@ -1180,7 +1180,7 @@ The public CDN supports browser GET/HEAD. CORS should allow the HTML page origin
 Use the public catalog endpoint to retrieve every enabled system font without authentication:
 
 ```bash
-curl https://www.neonix.video/api/v1/fonts
+curl https://api.neonix.video/v1/fonts
 ```
 
 The public response contains system fonts only. Workspace fonts are available inside the signed-in editor and are intentionally not exposed in this public guide. The public catalog is the source of truth for system fonts; the CDN is the delivery path for a known system-font object.

@@ -1,15 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { AuthzService } from "../authz/authz.service";
 import { ApiError } from "../common/api-error";
+import { parseRangeRequest } from "../common/http-range";
 import type { Database } from "../db/client";
 import { DATABASE } from "../db/database.module";
-import { assets, uploadSessions } from "../db/schema/assets";
+import { assets, assetVariants, projectAssets, uploadSessions } from "../db/schema/assets";
+import { projects } from "../db/schema/projects";
 import { QuotasService } from "../quotas/quotas.service";
 import { defaultObjectKey, R2Service } from "../r2/r2.service";
 
 const UPLOAD_URL_TTL_SECONDS = 15 * 60;
+const MEDIA_VARIANTS = ["original", "poster", "audio"] as const;
+export type MediaVariant = (typeof MEDIA_VARIANTS)[number];
+
+export function isMediaVariant(value: unknown): value is MediaVariant {
+  return typeof value === "string" && (MEDIA_VARIANTS as readonly string[]).includes(value);
+}
 
 @Injectable()
 export class AssetsService {
@@ -119,6 +127,79 @@ export class AssetsService {
     const canView = await this.authz.hasWorkspaceRole(userId, asset.workspaceId, "viewer");
     if (!canView) throw new ApiError(404, "Asset not found");
     return asset;
+  }
+
+  // Which non-deleted projects (in the asset's own workspace) currently
+  // reference this asset via `project_assets`.
+  async getUsage(userId: string, assetId: string) {
+    const asset = await this.getForMember(userId, assetId);
+    const links = await this.db.query.projectAssets.findMany({ where: eq(projectAssets.assetId, asset.id) });
+    if (links.length === 0) return { assetId: asset.id, projects: [] };
+
+    const projectIds = [...new Set(links.map((link) => link.projectId))];
+    const rows = await this.db.query.projects.findMany({
+      where: and(inArray(projects.id, projectIds), isNull(projects.deletedAt)),
+      orderBy: projects.title,
+    });
+    return {
+      assetId: asset.id,
+      projects: rows.map((project) => ({ id: project.id, title: project.title, publicRef: project.publicRef })),
+    };
+  }
+
+  // Streams the asset's real bytes (not just metadata) - `original` is the
+  // asset's own uploaded file; `poster`/`audio` are derivatives that only
+  // exist once the media processing pipeline (not ported yet, see project
+  // memory) has actually populated `assets.previewKey`/`asset_variants` for
+  // it, so those variants 404 with a clear reason until then rather than
+  // fabricating a placeholder. HTTP Range is supported for partial
+  // video/audio playback, same as system-assets/system-fonts.
+  async streamMedia(
+    userId: string,
+    assetId: string,
+    variant: MediaVariant,
+    range: string | undefined,
+  ): Promise<
+    | { outcome: "invalid-range"; totalSize: number }
+    | { outcome: "ok"; body: NodeJS.ReadableStream; contentType: string; status: number; contentLength: number; contentRange?: string }
+  > {
+    const asset = await this.getForMember(userId, assetId);
+    if (asset.status !== "ready") throw new ApiError(404, "Asset not found");
+
+    let key: string;
+    let fallbackMimeType: string;
+    if (variant === "original") {
+      key = asset.r2Key;
+      fallbackMimeType = asset.mimeType;
+    } else if (variant === "poster") {
+      if (!asset.previewKey) throw new ApiError(404, "Poster is not ready");
+      key = asset.previewKey;
+      fallbackMimeType = "image/webp";
+    } else {
+      const audio = await this.db.query.assetVariants.findFirst({
+        where: and(eq(assetVariants.assetId, asset.id), eq(assetVariants.variantKind, "audio")),
+      });
+      if (!audio) throw new ApiError(404, "Audio derivative is not ready");
+      key = audio.r2Key;
+      fallbackMimeType = audio.mimeType;
+    }
+
+    const head = await this.r2.headObject("R2_USER_ASSETS_BUCKET", key);
+    if (!head) throw new ApiError(404, "Asset object not found");
+
+    const parsedRange = parseRangeRequest(range, head.sizeBytes);
+    if (parsedRange.outcome === "invalid") return { outcome: "invalid-range", totalSize: parsedRange.totalSize };
+
+    const object = await this.r2.getObjectStream("R2_USER_ASSETS_BUCKET", key, parsedRange.requestedRange);
+    if (!object) throw new ApiError(404, "Asset body is empty");
+    return {
+      outcome: "ok",
+      body: object.body,
+      contentType: head.contentType ?? fallbackMimeType,
+      status: parsedRange.status,
+      contentLength: parsedRange.contentLength,
+      contentRange: parsedRange.contentRange,
+    };
   }
 
   // NOTE: the original `delete_asset_with_system_fallback` also rewrites

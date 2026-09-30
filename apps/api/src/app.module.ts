@@ -1,10 +1,12 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
+import { AccountModule } from "./account/account.module";
 import { AppController } from "./app.controller";
 import { AssetsModule } from "./assets/assets.module";
 import { AuditEventsModule } from "./audit-events/audit-events.module";
 import { BillingModule } from "./billing/billing.module";
 import { DatabaseModule } from "./db/database.module";
+import { DocumentsModule } from "./documents/documents.module";
 import { env } from "./env";
 import { FontsModule } from "./fonts/fonts.module";
 import { ProfileModule } from "./profile/profile.module";
@@ -30,6 +32,8 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     WaitlistModule,
     ProfileModule,
     SystemCatalogModule,
+    AccountModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
 })

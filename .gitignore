@@ -16,7 +16,6 @@ out
 **/.dev.vars
 coverage
 .vercel
-supabase/.temp
 tmp
 apps/web/scripts/.html-compiler-golden/
 *.exe

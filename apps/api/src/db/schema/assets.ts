@@ -17,7 +17,7 @@ import { user } from "./auth";
 import { projects } from "./projects";
 import { workspaces } from "./identity";
 
-// Ported from supabase/migrations (Section C: Assets & Media). Same
+// Preserves the legacy Assets & Media schema contract. Same
 // text-vs-uuid user-id fix as identity.ts/projects.ts.
 
 export const assets = pgTable("assets", {

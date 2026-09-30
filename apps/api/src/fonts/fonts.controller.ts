@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, UseGuards 
 import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentUserGuard } from "../auth/current-user.guard";
 import { ApiError } from "../common/api-error";
+import { CompleteFontUploadDto } from "./dto/complete-font-upload.dto";
 import { CreateFontFaceDto } from "./dto/create-font-face.dto";
 import { CreateFontFamilyDto } from "./dto/create-font-family.dto";
 import { ProjectFontLinkDto } from "./dto/project-font-link.dto";
@@ -11,6 +12,15 @@ import { FontsService } from "./fonts.service";
 @Controller("v1/fonts")
 export class FontsController {
   constructor(private readonly fonts: FontsService) {}
+
+  // Auto-parses the just-uploaded font binary (fontkit) and auto-creates or
+  // reuses the family by name - a richer, one-shot alternative to
+  // families/:id/faces below (which requires the caller to already know
+  // weight/style/format).
+  @Post("upload/complete")
+  async completeFontUpload(@CurrentUser() userId: string, @Body() dto: CompleteFontUploadDto) {
+    return { font: await this.fonts.completeFontUpload(userId, dto.assetId) };
+  }
 
   @Get("families")
   async listFamilies(@CurrentUser() userId: string, @Query("workspaceId") workspaceId?: string) {

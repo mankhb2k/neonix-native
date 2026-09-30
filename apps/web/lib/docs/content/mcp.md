@@ -22,7 +22,7 @@ No local renderer or package is required. Connect to the URL, sign in with your 
 Hosted MCP endpoint:
 
 ```text
-https://www.neonix.video/api/mcp
+https://api.neonix.video/mcp
 ```
 
 1. **Use a remote MCP client** — Choose a host that supports Streamable HTTP MCP connections.
@@ -114,7 +114,7 @@ Connect ChatGPT to Neonix for editable motion video projects. Use the hosted MCP
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 | Availability | ChatGPT Plus, Pro, Team, Enterprise, or Edu |
 
@@ -151,7 +151,7 @@ Connect Claude to Neonix for editable motion video projects. Use the hosted MCP 
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 
 ## Setup flow
@@ -177,7 +177,7 @@ Connect Grok to Neonix for editable motion video projects. Use the hosted MCP se
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 | Availability | Grok paid tiers |
 
@@ -203,7 +203,7 @@ Connect Claude Code to Neonix for editable motion video projects. Use the hosted
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 | Config scope | Local by default; add `--scope user` to share across every project |
 
@@ -212,7 +212,7 @@ Connect Claude Code to Neonix for editable motion video projects. Use the hosted
 1. **Add the server** — Run:
 
    ```bash
-   claude mcp add --transport http neonix https://www.neonix.video/api/mcp
+   claude mcp add --transport http neonix https://api.neonix.video/mcp
    ```
 
 2. **Authorize** — Inside a Claude Code session, run `/mcp`, select **neonix**, and follow the browser prompt to sign in and approve workspace access. Claude Code handles OAuth dynamic client registration and token refresh automatically, so there's no client ID or secret to configure.
@@ -236,7 +236,7 @@ Connect Codex to Neonix for editable motion video projects. Use the hosted MCP s
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 | Config file | `~/.codex/config.toml` (or `.codex/config.toml` for a trusted project) |
 
@@ -245,7 +245,7 @@ Connect Codex to Neonix for editable motion video projects. Use the hosted MCP s
 1. **Add the server** — Run:
 
    ```bash
-   codex mcp add neonix --url https://www.neonix.video/api/mcp
+   codex mcp add neonix --url https://api.neonix.video/mcp
    ```
 
    Codex writes a matching `[mcp_servers.neonix]` table to `config.toml`. Skip `--bearer-token-env-var` — Neonix authenticates over OAuth, not a static token.
@@ -268,7 +268,7 @@ Connect Cursor to Neonix for editable motion video projects. Use the hosted MCP 
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 | Config file | `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project) |
 | Requires | Cursor v0.48.0 or later |
@@ -282,7 +282,7 @@ Connect Cursor to Neonix for editable motion video projects. Use the hosted MCP 
    {
      "mcpServers": {
        "neonix": {
-         "url": "https://www.neonix.video/api/mcp"
+         "url": "https://api.neonix.video/mcp"
        }
      }
    }
@@ -306,7 +306,7 @@ Connect Google Antigravity to Neonix for editable motion video projects. Antigra
 
 | Field | Value |
 | --- | --- |
-| MCP endpoint | `https://www.neonix.video/api/mcp` |
+| MCP endpoint | `https://api.neonix.video/mcp` |
 | Auth | OAuth 2.1 — no API key or client ID needed |
 | Config file | `~/.gemini/config/mcp_config.json` |
 
@@ -319,7 +319,7 @@ Connect Google Antigravity to Neonix for editable motion video projects. Antigra
    {
      "mcpServers": {
        "neonix": {
-         "serverUrl": "https://www.neonix.video/api/mcp"
+         "serverUrl": "https://api.neonix.video/mcp"
        }
      }
    }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { dashboardHref } from "@/components/AppLink";
+import { apiFetch } from "@/lib/api/client";
 
 type ViewMode = "list" | "grid";
 type StatusFilter = "all" | "ready" | "processing" | "failed" | "cancelled";
@@ -85,7 +86,7 @@ export function ExportsWorkspace() {
     if (options.initial) setLoading(true);
     else setRefreshing(true);
     try {
-      const response = await globalThis.fetch("/api/v1/renders", { cache: "no-store" });
+      const response = await apiFetch("/v1/renders", { cache: "no-store" });
       if (!response.ok) throw new Error(t("errors.loadingFormat", { status: response.status }));
       const data = await response.json() as { jobs?: ExportJob[] };
       setLoadError(null);
@@ -208,7 +209,7 @@ export function ExportsWorkspace() {
                   <button type="button" disabled={downloadingJobId === job.jobId} className="shrink-0 rounded-lg border border-[var(--hub-border)] px-3 py-2 text-body font-medium text-[var(--fg-primary)] hover:bg-[var(--hub-hover)] disabled:opacity-60" onClick={async () => {
                     setDownloadingJobId(job.jobId);
                     try {
-                      const response = await globalThis.fetch(`/api/v1/renders/${encodeURIComponent(job.jobId)}/download`, { cache: "no-store" });
+                      const response = await apiFetch(`/v1/renders/${encodeURIComponent(job.jobId)}/download`, { cache: "no-store" });
                       if (!response.ok) throw new Error(t("errors.downloadUnavailable", { status: response.status }));
                       const data = await response.json() as { url?: string };
                       if (!data.url) throw new Error(t("errors.downloadUrlMissing"));

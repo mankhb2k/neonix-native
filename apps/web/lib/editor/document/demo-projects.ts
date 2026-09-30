@@ -222,40 +222,10 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
         width: 1920,
         height: 1080,
       },
-      {
-        id: "three-kingdoms-score",
-        kind: "audio",
-        uri: "/api/v1/docs/audio",
-        mimeType: "audio/mpeg",
-        duration: 60,
-        sampleRate: 48000,
-        channels: 2,
-      },
     ],
     audio: {
       sampleRate: 48000,
-      tracks: [
-        {
-          id: "music",
-          gainDb: -10,
-          pan: 0,
-          muted: false,
-          clips: [
-            {
-              id: "three-kingdoms-score-clip",
-              assetId: "three-kingdoms-score",
-              timing: { start: 0, duration: 60 },
-              trim: { start: 0, end: 60 },
-              playbackRate: 1,
-              enabled: true,
-              gainDb: 0,
-              pan: 0,
-              fadeIn: { duration: 2, curve: "equal-power" },
-              fadeOut: { duration: 3, curve: "equal-power" },
-            },
-          ],
-        },
-      ],
+      tracks: [],
     },
     composition: {
       width: 1920,

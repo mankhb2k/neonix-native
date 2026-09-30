@@ -8,7 +8,7 @@ export type WorkspaceRole = "owner" | "editor" | "viewer";
 
 const ROLE_RANK: Record<WorkspaceRole, number> = { viewer: 0, editor: 1, owner: 2 };
 
-// Replaces Supabase's `has_workspace_role(workspace_id, minimum_role)` SQL
+// Replaces the former database `has_workspace_role(workspace_id, minimum_role)` helper
 // function - there it existed purely to be called from RLS policies; here
 // it's the same owner ⊇ editor ⊇ viewer hierarchy check as plain app code,
 // called explicitly from each route instead of implicitly by Postgres.

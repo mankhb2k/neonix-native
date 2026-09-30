@@ -10,15 +10,18 @@ import type { Database } from "../db/client";
 import { DATABASE } from "../db/database.module";
 import { projectRevisions, projects } from "../db/schema/projects";
 import { renderJobs } from "../db/schema/render";
+import { R2Service } from "../r2/r2.service";
 import type { RenderJobPayload } from "./render-worker.processor";
 
 const TERMINAL_STATUSES = new Set(["done", "failed", "cancelled"]);
+const DOWNLOAD_URL_TTL_SECONDS = 60;
 
 @Injectable()
 export class RenderJobsService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly authz: AuthzService,
+    private readonly r2: R2Service,
     @InjectQueue("render-jobs") private readonly queue: Queue<RenderJobPayload>,
   ) {}
 
@@ -103,5 +106,19 @@ export class RenderJobsService {
       .where(eq(renderJobs.id, job.id))
       .returning();
     return updated;
+  }
+
+  // Presigned, short-lived (60s) GET url for the finished MP4. No on-demand
+  // resync against the Cloud Run provider here (unlike the old apps/web
+  // route's `syncRenderJob`) - the BullMQ worker already keeps `status`/
+  // `outputKey` current asynchronously, so `render_jobs` is the live source
+  // of truth for a read like this.
+  async getDownloadUrl(userId: string, id: string) {
+    const job = await this.getForMember(userId, id);
+    if (job.status !== "done") throw new ApiError(409, `Render job is not finished yet: ${job.status}`, "not_ready");
+    if (!job.outputKey) throw new ApiError(404, "Render job has no output file");
+
+    const signed = await this.r2.presignGet("R2_USER_EXPORTS_BUCKET", job.outputKey, DOWNLOAD_URL_TTL_SECONDS);
+    return { url: signed.url, expiresAt: signed.expiresAt, ttlSeconds: DOWNLOAD_URL_TTL_SECONDS };
   }
 }

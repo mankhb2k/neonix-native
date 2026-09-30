@@ -9,8 +9,7 @@ import { SystemCatalogModule } from "./system-catalog.module";
 
 const seedUserId = process.env.SEED_USER_ID!;
 
-// Real rows migrated from Supabase's system_catalog schema (see
-// scripts/migrate-system-catalog.ts) - stable ids/sizes, safe to assert on.
+// Stable system-catalog rows with fixed ids/sizes, safe to assert on.
 const SMALL_FONT_FILE_ID = "31e31ff2-0d6e-4ea8-ba8e-6b518f780408"; // Urbanist-100.ttf
 const SMALL_FONT_FILE_SIZE = 43188;
 const SVG_PLACEHOLDER_ID = "system:svg-placeholder";

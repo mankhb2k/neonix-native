@@ -4,7 +4,7 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
-import { fetchBakedLayoutSnapshot, fetchPlaygroundFixture, type BakedLayoutSnapshot } from "@/lib/api/playground";
+import { fetchPlaygroundFixture } from "@/lib/api/playground";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS } from "@/lib/docs/html-compiler-preview";
 import {
   htmlPlaygroundCaseGroups,
@@ -81,7 +81,6 @@ export function ComparePreviewLab({
   const [layout, setLayout] = useState<LayoutMode>(defaultLayout);
   const [sideBySideScale, setSideBySideScale] = useState(1);
   const [fixtureHtml, setFixtureHtml] = useState<string | null>(null);
-  const [layoutSnapshotEntry, setLayoutSnapshotEntry] = useState<BakedLayoutSnapshot | null>(null);
   const [customHtml, setCustomHtml] = useState(DEFAULT_CUSTOM_HTML);
   const [selectedGroup, setSelectedGroup] = useState<GroupFilter>(
     REPEAT_CASES[0].group,
@@ -139,27 +138,6 @@ export function ComparePreviewLab({
     };
   }, [inputMode, selectedCase]);
 
-  // CDP-measured geometry is only baked for a subset of fixtures (the whole
-  // "layout" group plus any one-off addition - see
-  // scripts/html-compiler-layout-snapshot-bake.mts), never all of them. No
-  // group check here: fetchBakedLayoutSnapshot returns null on a 404 (same
-  // safe-miss contract as layoutSnapshot itself), so trying it unconditionally
-  // and falling back to plain native compile on a miss is simpler than
-  // keeping this component's fixture-group allowlist in sync by hand.
-  useEffect(() => {
-    if (inputMode !== "fixture") {
-      setLayoutSnapshotEntry(null);
-      return undefined;
-    }
-    let cancelled = false;
-    void fetchBakedLayoutSnapshot(activeCase.id).then((entry) => {
-      if (!cancelled) setLayoutSnapshotEntry(entry);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [inputMode, activeCase]);
-
   useEffect(() => {
     setPlaying(false);
     setTime(0);
@@ -193,21 +171,11 @@ export function ComparePreviewLab({
 
   const compilation = useMemo(() => {
     if (!html) return null;
-    if (layoutSnapshotEntry) {
-      return compileDocument(
-        { html: layoutSnapshotEntry.stampedHtml },
-        {
-          fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS,
-          mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS,
-          layoutSnapshot: layoutSnapshotEntry.snapshot,
-        },
-      );
-    }
     return compileDocument(
       { html },
       { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS },
     );
-  }, [html, layoutSnapshotEntry]);
+  }, [html]);
   const protocol = compilation?.protocol ?? null;
   const duration = Math.max(
     0.1,
@@ -446,7 +414,7 @@ export function ComparePreviewLab({
             ref={nativePanelRef}
             className={layout === "side-by-side" ? "min-w-0" : "w-[1920px] shrink-0"}
             title="CanvasKit renderer output"
-            badge={`Neonix JSON V2 · Runtime V3 · CanvasKit · ${layoutSnapshotEntry ? "CDP layout" : "native layout"} · 1920×1080`}
+            badge="Neonix JSON V2 · Runtime V3 · CanvasKit · native layout · 1920×1080"
           >
             <PreviewFrame layout={layout} scale={sideBySideScale}>
               {protocol && !loading ? (

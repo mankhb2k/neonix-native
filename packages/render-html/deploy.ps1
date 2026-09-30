@@ -78,4 +78,4 @@ if (-not $InternalWorkerTokenSecret) { throw "InternalWorkerTokenSecret is requi
   --project=$ProjectId 2>&1 | Out-Host
 
 Write-Host "Deployed Service=$ServiceName using $immutableImage"
-Write-Host "Point apps/web's HTML render dispatch (apps/web/lib/server/render/html-render-worker.ts) at this service's URL once it's wired to call it over HTTP instead of a local subprocess."
+Write-Host "Point the HTML render dispatch at this service's URL once it's wired to call it over HTTP instead of a local subprocess."

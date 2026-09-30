@@ -1,14 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import { ApiError } from "../common/api-error";
+import { parseRangeRequest } from "../common/http-range";
 import type { Database } from "../db/client";
 import { DATABASE } from "../db/database.module";
 import { systemAssets, systemFontFamilies, systemFontFiles } from "../db/schema/system-catalog";
 import { R2Service } from "../r2/r2.service";
 
-// Ported from apps/web's system-fonts/system-fonts-file/system-assets routes
-// (see lib/server/system-assets.ts, app/api/v1/fonts, app/api/v1/system-fonts,
-// app/api/v1/system-assets). Font bytes are served publicly straight from R2
+// Font bytes are served publicly straight from R2
 // by the separate fonts.neonix.video Cloudflare Worker - this API only
 // proxies bytes for the authenticated per-file route and for system_assets
 // (a handful of fallback placeholders with no dedicated CDN).
@@ -127,34 +126,18 @@ export class SystemCatalogService {
     const head = await this.r2.headObject("R2_SYSTEM_ASSETS_BUCKET", asset.r2Key);
     if (!head) throw new ApiError(404, "System asset object not found");
 
-    let requestedRange = range;
-    let status = 200;
-    let contentLength = head.sizeBytes;
-    let contentRange: string | undefined;
-    if (range) {
-      const match = /^bytes=(\d*)-(\d*)$/i.exec(range.trim());
-      if (!match) return { outcome: "invalid-range", totalSize: head.sizeBytes };
-      const start = match[1] ? Number(match[1]) : Math.max(0, head.sizeBytes - Number(match[2] || 0));
-      const end = match[2] ? Number(match[2]) : head.sizeBytes - 1;
-      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= head.sizeBytes) {
-        return { outcome: "invalid-range", totalSize: head.sizeBytes };
-      }
-      const boundedEnd = Math.min(end, head.sizeBytes - 1);
-      requestedRange = `bytes=${start}-${boundedEnd}`;
-      contentLength = boundedEnd - start + 1;
-      contentRange = `bytes ${start}-${boundedEnd}/${head.sizeBytes}`;
-      status = 206;
-    }
+    const parsedRange = parseRangeRequest(range, head.sizeBytes);
+    if (parsedRange.outcome === "invalid") return { outcome: "invalid-range", totalSize: parsedRange.totalSize };
 
-    const object = await this.r2.getObjectStream("R2_SYSTEM_ASSETS_BUCKET", asset.r2Key, requestedRange);
+    const object = await this.r2.getObjectStream("R2_SYSTEM_ASSETS_BUCKET", asset.r2Key, parsedRange.requestedRange);
     if (!object) throw new ApiError(404, "System asset body is empty");
     return {
       outcome: "ok",
       body: object.body,
       contentType: head.contentType ?? asset.mimeType,
-      status,
-      contentLength,
-      contentRange,
+      status: parsedRange.status,
+      contentLength: parsedRange.contentLength,
+      contentRange: parsedRange.contentRange,
     };
   }
 }

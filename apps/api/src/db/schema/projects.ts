@@ -13,7 +13,7 @@ import {
 import { user } from "./auth";
 import { workspaces } from "./identity";
 
-// Ported from supabase/migrations (Section B: Projects & Revisions). Same
+// Preserves the legacy Projects & Revisions schema contract. Same
 // text-vs-uuid user-id fix as identity.ts. `public_ref`/`gen_random_bytes`
 // need the pgcrypto extension enabled on the database (see the extension
 // statement prepended to this section's migration - gen_random_uuid() is a

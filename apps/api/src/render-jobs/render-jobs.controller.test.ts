@@ -124,4 +124,42 @@ describe("render-jobs routes (Nest, real Neon dev DB + real BullMQ enqueue)", ()
     const cancelAgain = await request(app.getHttpServer()).post(`/v1/render-jobs/${created.body.renderJob.id}/cancel`);
     expect(cancelAgain.status).toBe(409);
   });
+
+  describe("download URL", () => {
+    // Immediate per-test hard-delete (cascades to render_jobs) rather than
+    // the shared createdProjectIds+afterAll batch - keeps this describe
+    // block's contribution to the shared workspace's active-project quota
+    // minimal while other project-creating test files run in parallel.
+    it("409s a render job that hasn't finished yet", async () => {
+      const projectId = await createProjectWithRevision();
+      try {
+        const created = await request(app.getHttpServer()).post("/v1/render-jobs").send({ projectId });
+        const response = await request(app.getHttpServer()).get(`/v1/render-jobs/${created.body.renderJob.id}/download`);
+        expect(response.status).toBe(409);
+        expect(response.body.error.code).toBe("not_ready");
+      } finally {
+        await db.delete(projects).where(eq(projects.id, projectId));
+      }
+    });
+
+    it("returns a presigned download URL once the job is done", async () => {
+      const projectId = await createProjectWithRevision();
+      try {
+        const created = await request(app.getHttpServer()).post("/v1/render-jobs").send({ projectId });
+        await db
+          .update(renderJobs)
+          .set({ status: "done", outputKey: `test/renders/${created.body.renderJob.id}.mp4` })
+          .where(eq(renderJobs.id, created.body.renderJob.id));
+
+        const response = await request(app.getHttpServer()).get(`/v1/render-jobs/${created.body.renderJob.id}/download`);
+        expect(response.status).toBe(200);
+        expect(typeof response.body.url).toBe("string");
+        expect(response.body.url).toContain(created.body.renderJob.id);
+        expect(response.body.ttlSeconds).toBe(60);
+        expect(new Date(response.body.expiresAt).getTime()).toBeGreaterThan(Date.now());
+      } finally {
+        await db.delete(projects).where(eq(projects.id, projectId));
+      }
+    });
+  });
 });

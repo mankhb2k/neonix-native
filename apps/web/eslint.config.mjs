@@ -45,19 +45,11 @@ const clientServerImportPaths = [
     name: "server-only",
     message: "Client modules must not import server-only markers or server modules.",
   },
-  {
-    name: "@/lib/supabase/server",
-    message: "Client modules must use the browser Supabase client.",
-  },
-  {
-    name: "@/lib/mcp/server",
-    message: "The MCP server is server-only and must not enter the client bundle.",
-  },
 ];
 
 const clientServerImportPatterns = [
   {
-    group: ["@/lib/server/**", "@/app/api/**"],
+    group: ["@/lib/server/**"],
     message: "Client modules must not import server-only application code.",
   },
 ];
@@ -371,12 +363,6 @@ export default tseslint.config(
     rules: appLayerRestrictions,
   },
   {
-    files: ["app/api/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-globals": "off",
-    },
-  },
-  {
     files: [
       "app/app/editor/**/*.{ts,tsx}",
       "components/editor/**/*.{ts,tsx}",
@@ -408,7 +394,6 @@ export default tseslint.config(
   },
   {
     files: ["lib/editor/**/*.{ts,tsx}"],
-    ignores: ["lib/editor/document/project-repository.ts"],
     rules: {
       "no-restricted-imports": [
         "error",

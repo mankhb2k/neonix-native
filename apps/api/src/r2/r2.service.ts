@@ -9,7 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Ported from apps/web/lib/server/r2.ts - same object-key conventions and
+// Shared object-key conventions and
 // presign behavior. One S3Client, shared across every R2 bucket in this
 // Cloudflare account (same account/credentials); each method takes an
 // explicit `bucket` argument rather than a service-wide default, since
@@ -58,6 +58,11 @@ export function avatarObjectKey(userId: string, avatarId: string, mimeType: stri
 export type PresignPutResult = {
   url: string;
   headers: Record<string, string>;
+  expiresAt: Date;
+};
+
+export type PresignGetResult = {
+  url: string;
   expiresAt: Date;
 };
 
@@ -143,5 +148,14 @@ export class R2Service {
       expiresIn: expiresInSeconds,
     });
     return { url, headers: { "content-type": contentType }, expiresAt: new Date(Date.now() + expiresInSeconds * 1000) };
+  }
+
+  async presignGet(bucketEnvVar: string, key: string, expiresInSeconds: number): Promise<PresignGetResult> {
+    const client = this.ensureClient();
+    const bucket = this.bucketFromEnv(bucketEnvVar);
+    const url = await getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: key }), {
+      expiresIn: expiresInSeconds,
+    });
+    return { url, expiresAt: new Date(Date.now() + expiresInSeconds * 1000) };
   }
 }

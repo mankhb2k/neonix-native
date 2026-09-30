@@ -4,7 +4,6 @@ import { HubFrame } from "@/components/hub/HubFrame";
 import { ImportHtmlDialog } from "@/components/hub/ImportHtmlDialog";
 import { NewProjectDialog } from "@/components/hub/NewProjectDialog";
 import { ProjectGrid, type ProjectCardData } from "@/components/hub/ProjectGrid";
-import { listProjects } from "@/lib/editor/document/project-repository";
 
 const FREE_PROJECT_LIMIT = 10;
 
@@ -84,33 +83,8 @@ export async function HubShell() {
     },
   ];
 
-  let projects = fallbackProjects;
-  try {
-    const rows = await listProjects(50);
-    if (rows.length > 0) {
-      projects = rows.map((project, index) => {
-        const isRawHtml = project.sourceFormat === "html" && project.revisionNo === 0;
-        return {
-          projectId: project.projectId,
-          title: project.title,
-          href: isRawHtml ? `/preview/html/${project.projectId}` : `/editor/${project.projectId}`,
-          layers: t("layers", { count: project.layerCount }),
-          duration: formatDuration(project.durationMs),
-          updatedAt: project.updatedAt,
-          isRawHtml,
-          accent: [
-            "from-cyan-400/25 via-slate-900 to-violet-500/20",
-            "from-cyan-300/20 via-slate-900 to-slate-900",
-            "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
-            "from-amber-300/20 via-slate-900 to-cyan-500/15",
-          ][index % 4],
-        };
-      });
-    }
-  } catch {
-    // DevDemoAuth bootstraps the browser session after the initial render.
-    // Keep the static cards for that first unauthenticated response.
-  }
+  // Show local demo cards until project listing is wired to the API.
+  const projects = fallbackProjects;
 
   return (
     <HubFrame>

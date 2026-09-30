@@ -10,6 +10,7 @@ import { getMcpOAuthClient, submitMcpOAuthConsent } from "@/lib/api/mcp-oauth";
 // "deliberately separate from apps/web's own login" note.
 const mcpAuthClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080",
+  fetchOptions: { credentials: "include" },
 });
 
 // Standalone consent page for the MCP OAuth 2.1 authorization flow -

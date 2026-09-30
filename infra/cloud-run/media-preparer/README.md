@@ -6,7 +6,7 @@ Skia, composition rendering, or render-job state.
 
 The service reads the origin object from R2, probes it, creates `poster.webp`
 and/or `audio.m4a`, uploads derivatives to the asset prefix, and calls the
-Neonix callback. Supabase remains the source of truth; this service is stateless
+Neonix callback. The API database remains the source of truth; this service is stateless
 apart from its ephemeral scratch directory.
 
 ## Local run
@@ -41,4 +41,4 @@ allow-list values at runtime; never bake them into the image.
 
 The current Web dispatcher already targets `POST /v1/media/prepare`, so the
 standalone service can replace the renderer's media endpoint without changing
-the Supabase callback contract.
+the API callback contract.

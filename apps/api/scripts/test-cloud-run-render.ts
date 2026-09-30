@@ -1,5 +1,5 @@
 // One-off connectivity check against the real, already-deployed Cloud Run
-// export renderer (unrelated to the Supabase->Neon migration - this service
+// export renderer (this service
 // already runs independently of apps/web/apps/api). Dispatches a minimal
 // stub RuntimeProjectV3 (empty scene, no assets) and polls until done/failed.
 //

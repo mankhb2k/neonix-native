@@ -13,9 +13,7 @@ not add a second document store or history policy.
 ## Boundaries
 
 - `document/` contains V2 document loading and temporary development fixtures.
-- `document/project-repository.ts` is the server-only Supabase boundary for
-  project list/load/autosave; the browser never talks to Supabase tables
-  directly for editor source revisions.
+- `document/` contains document fixtures and browser-side loading helpers.
 - `library/` contains browser/resource adapters; pure placement and interaction
   policies belong to `@motionvideo/editor-core`.
 - `inspector/` contains UI-specific measurement and binding; alignment, anchor,

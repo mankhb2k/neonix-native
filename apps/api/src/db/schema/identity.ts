@@ -12,11 +12,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
-// Ported from supabase/migrations (Section A: Identity & Workspace), with
+// Preserves the legacy Identity & Workspace schema contract, with
 // every former `... uuid references auth.users(id)` column retyped to
 // `text references "user"(id)` to match Better Auth's id format. RLS is
 // dropped everywhere - Express enforces authorization instead (see
-// project_backend_migration_off_supabase memory for why). Triggers that
+// the backend migration notes explaining why). Triggers that
 // derived/enforced values (apply_account_plan_limits, enforce_*_quota,
 // enforce_last_owner_guard, etc.) are NOT reimplemented as DB triggers here -
 // they become explicit application-code checks in Phase 3, alongside the

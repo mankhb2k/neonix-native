@@ -98,10 +98,7 @@ export function resolveLocalPreviewAssetPath(
     );
   }
 
-  const relativePath =
-    pathname === "/api/v1/docs/audio"
-      ? "preview/audio/Music-MBB-Island-Tropical_128k.mp3"
-      : pathname.replace(/^\/+/, "");
+  const relativePath = pathname.replace(/^\/+/, "");
   const candidate = resolve(assetRoot, relativePath);
   if (!pathInside(assetRoot, candidate)) {
     throw new ExportRendererError(

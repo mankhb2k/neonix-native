@@ -7,7 +7,6 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Avatar } from "@/components/ui";
 import { removeAvatar, uploadAvatar } from "@/lib/api/avatar";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AccountState = {
   avatarPath: string | null;
@@ -38,51 +37,11 @@ export function SettingsWorkspace() {
     let mounted = true;
 
     async function loadAccount() {
+      // Show the signed-out state until the profile API is wired in.
       setLoadingAccount(true);
-      setAccountError(null);
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        const user = userData.user;
-
-        if (!mounted) return;
-        if (!user) {
-          setAccount(null);
-          return;
-        }
-
-        if (userError) throw userError;
-        const { data: identityData, error: identityError } = await supabase.auth.getUserIdentities();
-        if (identityError) throw identityError;
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("avatar_url, avatar_path")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (profileError) throw profileError;
-
-        const metadataName =
-          typeof user.user_metadata?.full_name === "string"
-            ? user.user_metadata.full_name.trim()
-            : "";
-        setAccount({
-          avatarPath: typeof profile?.avatar_path === "string" ? profile.avatar_path : null,
-          avatarUrl:
-            typeof profile?.avatar_url === "string"
-              ? profile.avatar_url
-              : typeof user.user_metadata?.avatar_url === "string"
-                ? user.user_metadata.avatar_url
-                : null,
-          email: user.email ?? "",
-          name: metadataName || user.email?.split("@")[0] || "Your account",
-          providers: (identityData?.identities ?? []).map((identity) => identity.provider),
-        });
-      } catch (error) {
-        if (!mounted) return;
-        setAccountError(error instanceof Error ? error.message : "Unable to load your account.");
-      } finally {
-        if (mounted) setLoadingAccount(false);
-      }
+      if (!mounted) return;
+      setAccount(null);
+      setLoadingAccount(false);
     }
 
     void loadAccount();
@@ -145,33 +104,13 @@ export function SettingsWorkspace() {
       return;
     }
 
+    // Keep the failure path explicit until password updates are wired in.
     setSavingPassword(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-        ...(hasPasswordProvider ? { current_password: currentPassword } : {}),
-      });
-      if (error) throw error;
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setAccount((current) =>
-        current && !current.providers.includes("email")
-          ? { ...current, providers: [...current.providers, "email"] }
-          : current,
-      );
-      setPasswordMessage("Your password has been updated.");
-    } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : "Unable to update your password.");
-    } finally {
-      setSavingPassword(false);
-    }
+    setPasswordError("Password change is temporarily unavailable.");
+    setSavingPassword(false);
   }
 
-  async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+  function handleSignOut() {
     window.location.assign("/login?next=%2Fsettings");
   }
 

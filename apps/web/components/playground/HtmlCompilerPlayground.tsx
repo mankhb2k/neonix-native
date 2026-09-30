@@ -14,7 +14,6 @@ import {
 import { dashboardUrl, previewUrl } from "@/lib/hosts";
 import { HTML_PLAYGROUND_CASES } from "@/lib/playground/html-playground-cases";
 import { publicRendererMessage } from "@/lib/public-renderer-message";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
@@ -189,14 +188,9 @@ export function HtmlCompilerPlayground() {
     if (!canExport || isExporting) return;
     setIsExporting(true);
     setExportError(null);
-    const supabase = createSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.assign(`/login?next=${encodeURIComponent(EXPORT_RETURN_PATH)}`);
-      return;
-    }
-    await runExport(html);
-  }, [canExport, isExporting, html, runExport]);
+    // Send visitors to the current sign-in entry point.
+    window.location.assign(`/login?next=${encodeURIComponent(EXPORT_RETURN_PATH)}`);
+  }, [canExport, isExporting]);
 
   useEffect(() => {
     // Coming back from the login redirect the Export button sends an
@@ -209,12 +203,8 @@ export function HtmlCompilerPlayground() {
     const source = stored?.html ?? html;
     const conversionStatus = stored?.conversion.status ?? conversion.status;
     if (conversionStatus !== "success") return;
-    void (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await runExport(source);
-    })();
+    // The frontend has no session UI yet, so there is no export to resume.
+    void source;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

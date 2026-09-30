@@ -6,7 +6,7 @@ export type StorageUsage = {
 
 export async function getStorageUsage(): Promise<StorageUsage | null> {
   try {
-    const response = await fetch("/api/v1/account/storage", {
+    const response = await apiFetch("/v1/account/storage", {
       cache: "no-store",
     });
     if (!response.ok) return null;
@@ -34,3 +34,4 @@ export async function getStorageUsage(): Promise<StorageUsage | null> {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
+import { apiFetch } from "./client";

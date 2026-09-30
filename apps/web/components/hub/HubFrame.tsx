@@ -1,11 +1,9 @@
-import { DevDemoAuth } from "@/components/auth/DevDemoAuth";
 import { Sidebar } from "@/components/hub/Sidebar";
 import type { ReactNode } from "react";
 
 export function HubFrame({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-screen bg-[var(--hub-content-bg)] text-[var(--fg-primary)]">
-      <DevDemoAuth />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[var(--hub-sidebar-w)_minmax(0,1fr)]">
         <Sidebar />
         <div className="min-h-screen min-w-0 lg:col-start-2 lg:row-start-1">

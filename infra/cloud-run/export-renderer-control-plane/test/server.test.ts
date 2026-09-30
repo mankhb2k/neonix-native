@@ -62,7 +62,7 @@ describe("export-renderer control plane", () => {
             sourceKey: "asset-1/origin.mp4",
             sourceMimeType: "video/mp4",
             sourceIntegrity: "r2:1:asset-1/origin.mp4",
-            callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+            callbackUrl: "https://api.example.test/internal/media-jobs/callback",
           }),
         });
         expect(response.status).toBe(202);

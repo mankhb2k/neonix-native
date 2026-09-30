@@ -16,7 +16,7 @@ import { user } from "./auth";
 import { projectRevisions, projects } from "./projects";
 import { workspaces } from "./identity";
 
-// Ported from supabase/migrations (Section E: Render Pipeline). Same
+// Preserves the legacy Render Pipeline schema contract. Same
 // text-vs-uuid user-id fix as the other schema files.
 //
 // Deliberately NOT ported (per the consolidated migration research, all

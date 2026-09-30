@@ -1,15 +1,14 @@
 import { Injectable } from "@nestjs/common";
 
-// Same contract as apps/web/lib/server/render/queue-worker-client.ts's
+// Same contract as the queue worker client's
 // `runCloudRunQueuedRender` (the non-chunked path): POST just {jobId} to the
 // Cloud Run Service, which triggers a Cloud Run Job execution. The Job task
 // itself (render-job.ts) reads render_jobs by RENDER_JOB_ID from whatever
 // DATABASE_URL it's deployed with - the state machine lives entirely there,
 // not in this dispatch call.
 //
-// NOTE: as of this port, the deployed Cloud Run Job still reads from
-// Supabase, not Neon (see project memory) - calling this against a
-// Neon-only render_jobs row will dispatch a real (billed) Cloud Run
+// The deployed Cloud Run Job reads the same API database - calling this
+// against a missing render_jobs row will dispatch a real (billed) Cloud Run
 // execution that fails to find the job. Do not call this from an automated
 // test; see render-worker's own test, which mocks this service instead.
 @Injectable()

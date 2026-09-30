@@ -82,7 +82,7 @@ Run. Rendering is CPU/memory heavy and can take several minutes per clip (see
 `--timeout` are starting points; tune them against a real render of your
 typical clip length before relying on this in production.
 
-Not yet wired up: `apps/web/lib/server/render/html-render-worker.ts` still
+Not yet wired up: the local render dispatcher still
 spawns this script as a local subprocess rather than calling this HTTP
 service. Pointing it at a deployed instance of this service (over HTTP,
 behind `INTERNAL_WORKER_TOKEN`) instead is a natural next step once this

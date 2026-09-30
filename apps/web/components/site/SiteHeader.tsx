@@ -10,7 +10,6 @@ import { buttonClassName } from "@/components/ui";
 import { APP_NAME } from "@/lib/app-config";
 import { dashboardUrl } from "@/lib/hosts";
 import { SITE_HEADER_HEIGHT, SITE_HEADER_SHELL_X } from "@/lib/site-shell";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const headerOuterClass =
   "sticky top-0 z-20 border-b border-[var(--border-subtle,#e4e4e7)] bg-[color-mix(in_srgb,var(--bg-site)_90%,transparent)] backdrop-blur";
@@ -25,27 +24,9 @@ export function SiteHeader({
   const isDevelopment = process.env.NODE_ENV !== "production";
 
   useEffect(() => {
-    if (isDevelopment) return undefined;
-
-    let supabase;
-    try {
-      supabase = createSupabaseBrowserClient();
-    } catch {
-      setIsAuthenticated(false);
-      return undefined;
-    }
-
-    void supabase.auth
-      .getSession()
-      .then(({ data }) => setIsAuthenticated(Boolean(data.session)));
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session));
-    });
-
-    return () => subscription.unsubscribe();
+    if (isDevelopment) return;
+    // Show signed-out navigation until account actions are connected to apps/api.
+    setIsAuthenticated(false);
   }, [isDevelopment]);
 
   const showDashboard = isDevelopment || isAuthenticated === true;

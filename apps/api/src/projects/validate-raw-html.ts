@@ -13,7 +13,7 @@
  *    width/height, its single top-level wrapping element - declares a
  *    width/height in px matching the composition exactly.
  *
- * Ported verbatim from apps/web/lib/server/validate-raw-html.ts.
+ * API-local raw HTML validation.
  */
 
 export type RawHtmlValidationError = {

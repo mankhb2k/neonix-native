@@ -18,7 +18,7 @@ Neonix is an HTML-to-motion-video compiler: it turns HTML and CSS into a real, e
 In Claude, go to **Customize > Connectors**, click **+**, choose **Add custom connector**, and paste in the hosted endpoint:
 
 ```text
-https://www.neonix.video/api/mcp
+https://api.neonix.video/mcp
 ```
 
 Leave the OAuth Client ID/Secret fields empty — Neonix registers automatically, so Claude detects authentication on its own. Sign in and approve workspace access when prompted.

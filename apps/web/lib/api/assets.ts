@@ -51,14 +51,14 @@ async function readError(response: Response): Promise<string> {
 }
 
 export async function listAssets(): Promise<Asset[]> {
-  const response = await fetch("/api/v1/assets", { cache: "no-store" });
+  const response = await apiFetch("/v1/assets", { cache: "no-store" });
   if (!response.ok) throw new Error(await readError(response));
   const body = (await response.json()) as { assets: Asset[] };
   return body.assets;
 }
 
 export async function createAssetUpload(file: File, preview?: UploadPreview): Promise<UploadSession> {
-  const response = await fetch("/api/v1/assets", {
+  const response = await apiFetch("/v1/assets", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -100,14 +100,14 @@ export async function uploadAssetPreview(session: UploadSession, preview: Blob):
 }
 
 export async function getAssetUsage(assetId: string): Promise<AssetUsageProject[]> {
-  const response = await fetch(`/api/v1/assets/${encodeURIComponent(assetId)}/usage`, { cache: "no-store" });
+  const response = await apiFetch(`/v1/assets/${encodeURIComponent(assetId)}/usage`, { cache: "no-store" });
   if (!response.ok) throw new Error(await readError(response));
   const body = (await response.json()) as { projects?: AssetUsageProject[] };
   return Array.isArray(body.projects) ? body.projects : [];
 }
 
 export async function completeAssetUpload(assetId: string): Promise<void> {
-  const response = await fetch("/api/v1/assets/upload/complete", {
+  const response = await apiFetch("/v1/assets/upload/complete", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ assetId }),
@@ -116,7 +116,7 @@ export async function completeAssetUpload(assetId: string): Promise<void> {
 }
 
 export async function deleteAsset(assetId: string, options?: { replaceReferences?: boolean }): Promise<void> {
-  const response = await fetch(`/api/v1/assets/${encodeURIComponent(assetId)}`, {
+  const response = await apiFetch(`/v1/assets/${encodeURIComponent(assetId)}`, {
     method: "DELETE",
     ...(options ? {
       headers: { "content-type": "application/json" },
@@ -125,3 +125,4 @@ export async function deleteAsset(assetId: string, options?: { replaceReferences
   });
   if (!response.ok) throw new Error(await readError(response));
 }
+import { apiFetch } from "./client";

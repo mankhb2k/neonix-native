@@ -15,7 +15,7 @@ export class BillingService {
   ) {}
 
   // Balance is derived by summing the ledger, never stored as a mutable
-  // counter - matches the original Supabase `wallet_balance_cents()` design.
+  // counter - preserves the previous wallet-balance semantics.
   async getBalanceCents(userId: string): Promise<number> {
     const [row] = await this.db
       .select({ sum: sql<string>`coalesce(sum(${walletLedger.amountCents}), 0)` })

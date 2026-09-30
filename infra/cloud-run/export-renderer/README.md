@@ -38,7 +38,7 @@ builds/deploys the Job); there is no longer one shared image serving both
 roles.
 
 The Job claims its lease through **Neon** (`DATABASE_URL`, plain `pg`, not
-Supabase - see `packages/render-worker`), reads the immutable
+the API database - see `packages/render-worker`), reads the immutable
 `render_jobs.runtime_json`, renders to `/tmp/neonix-export`, verifies
 frame/audio topology with `ffprobe` (`render-native`'s `verifyRenderOutput`),
 uploads to R2 using a temporary key, verifies the final key, updates the row,

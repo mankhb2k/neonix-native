@@ -21,7 +21,7 @@ describe("media worker", () => {
       sourceKey: "video/origin.mp4",
       sourceMimeType: "video/mp4",
       sourceIntegrity: "r2:12:asset-1/origin.mp4",
-      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+      callbackUrl: "https://api.example.test/internal/media-jobs/callback",
     }, {
       store,
       probe: async () => ({
@@ -56,7 +56,7 @@ describe("media worker", () => {
       sourceKey: "video/origin.mp4",
       sourceMimeType: "video/mp4",
       sourceIntegrity: "r2:12:asset-browser/origin.mp4",
-      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+      callbackUrl: "https://api.example.test/internal/media-jobs/callback",
     }, {
       store,
       probe: async () => ({ assetId: "asset-browser", status: "processing", streams: [{ streamId: "video", kind: "video" }, { streamId: "audio", kind: "audio" }], derivatives: [], updatedAt: "", version: 0 }),
@@ -79,7 +79,7 @@ describe("media worker", () => {
       sourceKey: "video/origin.mp4",
       sourceMimeType: "video/mp4",
       sourceIntegrity: "r2:12:asset-2/origin.mp4",
-      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+      callbackUrl: "https://api.example.test/internal/media-jobs/callback",
     }, {
       store,
       probe: async () => ({ assetId: "asset-2", status: "processing", streams: [{ streamId: "video", kind: "video", width: 1, height: 1 }], derivatives: [], updatedAt: "", version: 0 }),
@@ -100,7 +100,7 @@ describe("media worker", () => {
       sourceKey: "video/origin.mp4",
       sourceMimeType: "video/mp4",
       sourceIntegrity: "r2:12:asset-missing-poster/origin.mp4",
-      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+      callbackUrl: "https://api.example.test/internal/media-jobs/callback",
     }, {
       store,
       probe: async () => ({ assetId: "asset-missing-poster", status: "processing", streams: [{ streamId: "video", kind: "video" }, { streamId: "audio", kind: "audio" }], derivatives: [], updatedAt: "", version: 0 }),
@@ -128,7 +128,7 @@ describe("media worker", () => {
       mediaKind: "audio",
       derivativePrefix: "audio",
       sourceIntegrity: "r2:12:audio/origin.mp3",
-      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+      callbackUrl: "https://api.example.test/internal/media-jobs/callback",
     }, {
       store: {
         async getObject(key) { return key === "audio/origin.mp3" ? Buffer.from("origin-audio") : objects.get(key) ?? null; },
@@ -155,7 +155,7 @@ describe("media worker", () => {
       sourceKey: "video/origin.mp4",
       sourceMimeType: "video/mp4",
       sourceIntegrity: "r2:12:asset-3/origin.mp4",
-      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+      callbackUrl: "https://api.example.test/internal/media-jobs/callback",
     }, {
       store,
       probe: async () => { throw new Error("ffprobe failed"); },

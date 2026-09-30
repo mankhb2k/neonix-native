@@ -3,7 +3,7 @@
 // app/mcp/sign-in, app/mcp/consent (the only callers). Cross-origin from
 // apps/web, hence `credentials: "include"` on every call.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+import { apiFetch } from "./client";
 
 type OAuthErrorBody = { error_description?: string; error?: string };
 
@@ -22,9 +22,8 @@ export type ContinueOAuthResult = {
 
 /** Resumes the OAuth2 authorization flow after the user just signed in. */
 export async function continueMcpOAuth(oauthQuery: string): Promise<ContinueOAuthResult> {
-  const response = await fetch(`${API_URL}/api/auth/oauth2/continue`, {
+  const response = await apiFetch("/api/auth/oauth2/continue", {
     method: "POST",
-    credentials: "include",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ oauth_query: oauthQuery }),
   });
@@ -39,9 +38,7 @@ export type McpOAuthClientInfo = {
 
 /** Publicly visible display fields for the client the user is about to authorize. */
 export async function getMcpOAuthClient(clientId: string): Promise<McpOAuthClientInfo> {
-  const response = await fetch(`${API_URL}/api/auth/oauth2/public-client?client_id=${encodeURIComponent(clientId)}`, {
-    credentials: "include",
-  });
+  const response = await apiFetch(`/api/auth/oauth2/public-client?client_id=${encodeURIComponent(clientId)}`);
   if (!response.ok) throw new Error(await readErrorMessage(response, "Could not load application details."));
   const body = (await response.json()) as { client_name?: string; name?: string };
   return { name: body.client_name ?? body.name ?? clientId };
@@ -53,9 +50,8 @@ export type SubmitConsentResult = {
 
 /** Records the user's accept/deny decision and returns where to send the browser next. */
 export async function submitMcpOAuthConsent(accept: boolean, oauthQuery: string): Promise<SubmitConsentResult> {
-  const response = await fetch(`${API_URL}/api/auth/oauth2/consent`, {
+  const response = await apiFetch("/api/auth/oauth2/consent", {
     method: "POST",
-    credentials: "include",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ accept, oauth_query: oauthQuery }),
   });

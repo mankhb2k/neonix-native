@@ -1,3 +1,13 @@
+// Also published as its own subpath export (`@motionvideo/motion-mcp/patch`)
+// for consumers that need only this pure patch-apply function, not the rest
+// of this package's barrel (`src/index.ts` re-exports `./mcp`/`./server`/
+// `./output-schemas`/etc. too) - those are large enough that a consumer
+// resolving `"@motionvideo/motion-mcp"`'s raw TypeScript source (this
+// package has no compiled "." export/dist for its main entry - only
+// `./remote` is prebuilt) can OOM `tsc` entirely on unrelated code just to
+// reach this one function. Confirmed for real: apps/api hit this exact OOM
+// (both `tsc --noEmit` locally and the Docker build, even with an 8GB
+// heap) importing `applyMotionProtocolV2Patch` from the root package.
 import { z } from "zod";
 import {
   MotionProtocolV2Schema,
