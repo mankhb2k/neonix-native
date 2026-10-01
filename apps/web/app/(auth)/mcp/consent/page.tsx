@@ -1,12 +1,15 @@
 import { Suspense } from "react";
 import { ConsentContent } from "./_components/ConsentContent";
 
+export const metadata = {
+  title: "Authorize access",
+  description: "Allow an application to access your Neonix account.",
+};
+
 export default function McpConsentPage() {
   return (
-    <main style={{ maxWidth: 480, margin: "4rem auto", padding: "0 1rem" }}>
-      <Suspense fallback={<p>{"Loading…"}</p>}>
-        <ConsentContent />
-      </Suspense>
-    </main>
+    <Suspense fallback={null}>
+      <ConsentContent />
+    </Suspense>
   );
 }

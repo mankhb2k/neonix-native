@@ -1,12 +1,15 @@
 import { Suspense } from "react";
-import { SignInContent } from "./_components/SignInContent";
+import { AuthForm } from "../../_components/AuthForm";
+
+export const metadata = {
+  title: "Connect to Neonix",
+  description: "Sign in to connect an application to your Neonix account.",
+};
 
 export default function McpSignInPage() {
   return (
-    <main style={{ maxWidth: 480, margin: "4rem auto", padding: "0 1rem" }}>
-      <Suspense fallback={<p>{"Loading…"}</p>}>
-        <SignInContent />
-      </Suspense>
-    </main>
+    <Suspense fallback={null}>
+      <AuthForm mode="login" oauth />
+    </Suspense>
   );
 }

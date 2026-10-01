@@ -44,6 +44,18 @@
     }
   },
   "AuthPage": {
+    "loading": "Đang tải…",
+    "redirectingSignIn": "Đang chuyển tới trang đăng nhập…",
+    "consentTitle": "Cho phép truy cập",
+    "consentDescription": "<strong>{client}</strong> muốn truy cập tài khoản Neonix của bạn.",
+    "consentSignedInAs": "Đã đăng nhập với {user}",
+    "consentPermissions": "Ứng dụng sẽ được phép",
+    "allow": "Cho phép",
+    "deny": "Từ chối",
+    "consentFooter": "Bạn có thể thu hồi quyền truy cập bất cứ lúc nào trong cài đặt tài khoản.",
+    "scopes": {"openid": "Xác minh danh tính của bạn","profile": "Xem tên và ảnh đại diện","email": "Xem địa chỉ email","offline_access": "Duy trì kết nối cho đến khi bạn thu hồi"},
+    "oauthTitle": "Kết nối với Neonix",
+    "oauthDescription": "Đăng nhập để cho phép ứng dụng này truy cập tài khoản Neonix của bạn.",
     "eyebrow": "KHÔNG GIAN NEONIX",
     "panelTitle": "Biến ý tưởng thành chuyển động.",
     "panelDescription": "Tạo dự án chuyển động có thể chỉnh sửa, kết nối công cụ và render ổn định trong một không gian làm việc.",

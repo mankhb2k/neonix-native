@@ -44,6 +44,18 @@
     }
   },
   "AuthPage": {
+    "loading": "Loading…",
+    "redirectingSignIn": "Redirecting to sign in…",
+    "consentTitle": "Authorize access",
+    "consentDescription": "<strong>{client}</strong> wants to access your Neonix account.",
+    "consentSignedInAs": "Signed in as {user}",
+    "consentPermissions": "This will allow it to",
+    "allow": "Allow",
+    "deny": "Deny",
+    "consentFooter": "You can revoke access at any time from your account settings.",
+    "scopes": {"openid": "Verify your identity","profile": "View your name and avatar","email": "View your email address","offline_access": "Stay connected until you revoke access"},
+    "oauthTitle": "Connect to Neonix",
+    "oauthDescription": "Sign in to let this application access your Neonix account.",
     "eyebrow": "NEONIX WORKSPACE",
     "panelTitle": "Turn your ideas into motion.",
     "panelDescription": "Create editable motion projects, connect your tools, and render reliably from one workspace.",

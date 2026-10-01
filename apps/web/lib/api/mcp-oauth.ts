@@ -25,7 +25,10 @@ export async function continueMcpOAuth(oauthQuery: string): Promise<ContinueOAut
   const response = await apiFetch("/api/auth/oauth2/continue", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ oauth_query: oauthQuery }),
+    // The provider rejects the call ("Missing parameters") unless one of
+    // selected/created/postLogin is true; `selected` re-runs authorize with the
+    // stored query now that the browser has a session.
+    body: JSON.stringify({ selected: true, oauth_query: oauthQuery }),
   });
   if (!response.ok) throw new Error(await readErrorMessage(response, "Could not continue sign-in."));
   const body = (await response.json()) as { redirect_uri: string };
