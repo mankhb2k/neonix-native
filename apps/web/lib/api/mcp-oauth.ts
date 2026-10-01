@@ -35,6 +35,24 @@ export async function continueMcpOAuth(oauthQuery: string): Promise<ContinueOAut
   return { redirectUri: body.redirect_uri };
 }
 
+/**
+ * Starts Google sign-in with the signed authorize query attached. The provider
+ * remembers it across the Google round-trip, so once the callback creates the
+ * session it resumes authorization itself and lands the browser on the consent
+ * page. Without `oauth_query` the callback just returns to `callbackURL`.
+ */
+export async function startMcpGoogleSignIn(oauthQuery: string, callbackURL: string): Promise<string> {
+  const response = await apiFetch("/api/auth/sign-in/social", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ provider: "google", callbackURL, oauth_query: oauthQuery }),
+  });
+  if (!response.ok) throw new Error(await readErrorMessage(response, "Could not start Google sign-in."));
+  const body = (await response.json()) as { url?: string };
+  if (!body.url) throw new Error("Google sign-in did not return a redirect URL.");
+  return body.url;
+}
+
 export type McpOAuthClientInfo = {
   name: string;
 };

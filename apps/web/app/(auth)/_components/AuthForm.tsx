@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { FormEvent, useEffect, useState } from "react";
 import { AuthShell } from "./AuthShell";
 import { authClient } from "@/lib/api/auth-client";
-import { continueMcpOAuth } from "@/lib/api/mcp-oauth";
+import { continueMcpOAuth, startMcpGoogleSignIn } from "@/lib/api/mcp-oauth";
 
 type AuthMode = "login" | "register";
 
@@ -91,11 +91,16 @@ export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: bool
     setSubmitting(true);
     setError(null);
     try {
+      if (oauth) {
+        window.location.href = await startMcpGoogleSignIn(
+          oauthQuery,
+          `${window.location.origin}${window.location.pathname}?${oauthQuery}`,
+        );
+        return;
+      }
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: oauth
-          ? `${window.location.origin}${window.location.pathname}?${oauthQuery}`
-          : `${window.location.origin}${nextPath}`,
+        callbackURL: `${window.location.origin}${nextPath}`,
       });
       if (result.error) throw new Error(result.error.message || t("errors.google"));
     } catch (caught) {
