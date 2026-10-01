@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",
-    "better-auth": "^1.7.6",
+    "@better-auth/oauth-provider": "1.7.6",
     "@motionvideo/canvaskit-preview": "workspace:*",
     "@motionvideo/editor-core": "workspace:*",
     "@motionvideo/editor-runtime": "workspace:*",
@@ -41,6 +41,7 @@
     "@motionvideo/playback-engine": "workspace:*",
     "@motionvideo/render-native": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
+    "better-auth": "^1.7.6",
     "canvaskit-wasm": "0.42.0",
     "clsx": "^2.1.1",
     "github-slugger": "^2.0.0",

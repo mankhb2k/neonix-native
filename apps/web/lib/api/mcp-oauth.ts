@@ -16,43 +16,6 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
   }
 }
 
-export type ContinueOAuthResult = {
-  redirectUri: string;
-};
-
-/** Resumes the OAuth2 authorization flow after the user just signed in. */
-export async function continueMcpOAuth(oauthQuery: string): Promise<ContinueOAuthResult> {
-  const response = await apiFetch("/api/auth/oauth2/continue", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    // The provider rejects the call ("Missing parameters") unless one of
-    // selected/created/postLogin is true; `selected` re-runs authorize with the
-    // stored query now that the browser has a session.
-    body: JSON.stringify({ selected: true, oauth_query: oauthQuery }),
-  });
-  if (!response.ok) throw new Error(await readErrorMessage(response, "Could not continue sign-in."));
-  const body = (await response.json()) as { redirect_uri: string };
-  return { redirectUri: body.redirect_uri };
-}
-
-/**
- * Starts Google sign-in with the signed authorize query attached. The provider
- * remembers it across the Google round-trip, so once the callback creates the
- * session it resumes authorization itself and lands the browser on the consent
- * page. Without `oauth_query` the callback just returns to `callbackURL`.
- */
-export async function startMcpGoogleSignIn(oauthQuery: string, callbackURL: string): Promise<string> {
-  const response = await apiFetch("/api/auth/sign-in/social", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ provider: "google", callbackURL, oauth_query: oauthQuery }),
-  });
-  if (!response.ok) throw new Error(await readErrorMessage(response, "Could not start Google sign-in."));
-  const body = (await response.json()) as { url?: string };
-  if (!body.url) throw new Error("Google sign-in did not return a redirect URL.");
-  return body.url;
-}
-
 export type McpOAuthClientInfo = {
   name: string;
 };

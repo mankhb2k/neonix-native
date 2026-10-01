@@ -47,7 +47,7 @@
     "loading": "Loading…",
     "redirectingSignIn": "Redirecting to sign in…",
     "consentTitle": "Authorize access",
-    "consentDescription": "<strong>{client}</strong> wants to access your Neonix account.",
+    "consentDescription": "{client} wants to access your Neonix account.",
     "consentSignedInAs": "Signed in as {user}",
     "consentPermissions": "This will allow it to",
     "allow": "Allow",

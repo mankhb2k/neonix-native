@@ -37,7 +37,11 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    jwt(),
+    // jwt() signs OAuth id/access tokens for the mcp() provider below. By
+    // default it also signs a JWT on every /get-session and returns it in a
+    // `set-auth-jwt` header - nothing here reads it, and it makes plain session
+    // reads fail with an empty 500 if the jwks keys can't be loaded/decrypted.
+    jwt({ disableSettingJwtHeader: true }),
     // Makes this server a standalone OAuth 2.1 authorization server for MCP
     // clients (Claude Desktop, ChatGPT/Codex/Glama connectors, etc.),
     // replacing the role the former hosted OAuth server played for the web

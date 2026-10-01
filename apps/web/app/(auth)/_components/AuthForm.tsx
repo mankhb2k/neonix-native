@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { FormEvent, useEffect, useState } from "react";
-import { AuthShell } from "./AuthShell";
+import { FormEvent, useState } from "react";
 import { authClient } from "@/lib/api/auth-client";
-import { continueMcpOAuth, startMcpGoogleSignIn } from "@/lib/api/mcp-oauth";
+import { mcpAuthClient } from "@/lib/api/mcp-auth-client";
+import { AuthShell } from "./AuthShell";
 
 type AuthMode = "login" | "register";
 
@@ -25,9 +25,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 /**
- * `oauth` turns the login form into the MCP OAuth sign-in step: after any
- * sign-in (or an already-existing session) the signed authorize query in the
- * URL is handed back to apps/api, which then sends the browser to consent.
+ * `oauth` turns the login form into the MCP OAuth sign-in step: sign-in goes
+ * through `mcpAuthClient`, and the provider then redirects to the consent page.
  */
 export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: boolean }) {
   const t = useTranslations("AuthPage");
@@ -40,27 +39,9 @@ export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: bool
   const [submitting, setSubmitting] = useState(false);
   const nextPath = safeNext(searchParams.get("next"));
   const isRegister = mode === "register";
-  const oauthQuery = searchParams.toString();
-  const { data: session, isPending: sessionPending } = authClient.useSession();
-  const [continuing, setContinuing] = useState(false);
-
-  async function continueOAuth() {
-    setContinuing(true);
-    try {
-      const { redirectUri } = await continueMcpOAuth(oauthQuery);
-      window.location.href = redirectUri;
-    } catch (caught) {
-      setError(getErrorMessage(caught, t("errors.generic")));
-      setContinuing(false);
-      setSubmitting(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!oauth || sessionPending || !session || continuing) return;
-    void continueOAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oauth, sessionPending, session]);
+  // MCP sign-in resumes the OAuth flow through the provider's own client plugin
+  // (see lib/api/mcp-auth-client.ts); regular pages use the plain auth client.
+  const client = oauth ? mcpAuthClient : authClient;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,16 +50,15 @@ export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: bool
 
     try {
       const result = isRegister
-        ? await authClient.signUp.email({ name: name.trim(), email: email.trim(), password, callbackURL: nextPath })
-        : await authClient.signIn.email({ email: email.trim(), password, callbackURL: nextPath });
+        ? await client.signUp.email({ name: name.trim(), email: email.trim(), password, callbackURL: nextPath })
+        : await client.signIn.email({ email: email.trim(), password, callbackURL: oauth ? window.location.href : nextPath });
 
       if (result.error) {
         throw new Error(result.error.message || t("errors.generic"));
       }
-      if (oauth) {
-        await continueOAuth();
-        return;
-      }
+      // In the MCP flow the provider already answered with a redirect to the
+      // consent page, which the client follows on its own.
+      if (oauth) return;
       router.push(nextPath);
       router.refresh();
     } catch (caught) {
@@ -91,16 +71,9 @@ export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: bool
     setSubmitting(true);
     setError(null);
     try {
-      if (oauth) {
-        window.location.href = await startMcpGoogleSignIn(
-          oauthQuery,
-          `${window.location.origin}${window.location.pathname}?${oauthQuery}`,
-        );
-        return;
-      }
-      const result = await authClient.signIn.social({
+      const result = await client.signIn.social({
         provider: "google",
-        callbackURL: `${window.location.origin}${nextPath}`,
+        callbackURL: oauth ? window.location.href : `${window.location.origin}${nextPath}`,
       });
       if (result.error) throw new Error(result.error.message || t("errors.google"));
     } catch (caught) {
@@ -115,7 +88,7 @@ export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: bool
             <h1 className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-[var(--fg-primary)]">{t(oauth ? "oauthTitle" : isRegister ? "registerTitle" : "loginTitle")}</h1>
             <p className="mt-3 text-sm leading-6 text-[var(--fg-secondary)]">{t(oauth ? "oauthDescription" : isRegister ? "registerDescription" : "loginDescription")}</p>
 
-            <button type="button" onClick={() => void continueWithGoogle()} disabled={submitting || continuing} className="mt-8 inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-sm font-semibold text-[var(--fg-primary)] transition hover:border-[#65c4ed] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="button" onClick={() => void continueWithGoogle()} disabled={submitting} className="mt-8 inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-sm font-semibold text-[var(--fg-primary)] transition hover:border-[#65c4ed] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-60">
               <span className="grid size-6 place-items-center rounded-full bg-white text-sm font-bold text-[#4285f4] shadow-sm">G</span>
               {t("continueGoogle")}
             </button>
@@ -127,7 +100,7 @@ export function AuthForm({ mode, oauth = false }: { mode: AuthMode; oauth?: bool
               <label className="block"><span className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">{t("emailLabel")}</span><input id="auth-email" required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="h-12 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 text-sm text-[var(--fg-primary)] outline-none transition hover:border-[#65c4ed] focus:border-[#65c4ed] focus:ring-2 focus:ring-[#65c4ed]/20" placeholder={t("emailPlaceholder")} /></label>
               <label className="block"><span className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">{t("passwordLabel")}</span><input required minLength={8} type="password" autoComplete={isRegister ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 text-sm text-[var(--fg-primary)] outline-none transition hover:border-[#65c4ed] focus:border-[#65c4ed] focus:ring-2 focus:ring-[#65c4ed]/20" placeholder={t("passwordPlaceholder")} /></label>
               {error ? <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm leading-5 text-red-700">{error}</p> : null}
-              <button type="submit" disabled={submitting || continuing} className="h-12 w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-on)] shadow-sm transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60">{submitting || continuing ? t("submitting") : t(isRegister ? "registerButton" : "loginButton")}</button>
+              <button type="submit" disabled={submitting} className="h-12 w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-on)] shadow-sm transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60">{submitting ? t("submitting") : t(isRegister ? "registerButton" : "loginButton")}</button>
             </form>
 
             {oauth ? null : <p className="mt-7 text-center text-sm text-[var(--fg-secondary)]">{t(isRegister ? "alreadyAccount" : "newAccount")} <Link href={isRegister ? "/login" : "/register"} className="font-semibold text-[var(--accent-text)] underline-offset-4 hover:underline">{t(isRegister ? "loginLink" : "registerLink")}</Link></p>}

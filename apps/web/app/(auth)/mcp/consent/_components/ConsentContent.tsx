@@ -1,19 +1,11 @@
 "use client";
 
-import { createAuthClient } from "better-auth/react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AuthShell } from "../../../_components/AuthShell";
+import { useEffect, useState } from "react";
+import { mcpAuthClient } from "@/lib/api/mcp-auth-client";
 import { getMcpOAuthClient, submitMcpOAuthConsent } from "@/lib/api/mcp-oauth";
-
-// Talks directly to apps/api's Better Auth instance - see
-// app/(auth)/mcp/sign-in/_components/SignInContent.tsx's header comment for the same
-// "deliberately separate from apps/web's own login" note.
-const mcpAuthClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080",
-  fetchOptions: { credentials: "include" },
-});
+import { AuthShell } from "../../../_components/AuthShell";
 
 // Standalone consent page for the MCP OAuth 2.1 authorization flow -
 // apps/api's Better Auth `mcp()` plugin redirects here once the browser has
@@ -73,10 +65,7 @@ export function ConsentContent() {
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent-text)]">{t("eyebrow")}</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-[var(--fg-primary)]">{t("consentTitle")}</h1>
       <p className="mt-3 text-sm leading-6 text-[var(--fg-secondary)]">
-        {t.rich("consentDescription", {
-          client: clientName ?? clientId,
-          strong: (chunks) => <strong className="font-semibold text-[var(--fg-primary)]">{chunks}</strong>,
-        })}
+        {t("consentDescription", { client: clientName ?? clientId })}
       </p>
       <p className="mt-2 text-sm text-[var(--fg-muted)]">{t("consentSignedInAs", { user: session.user.email })}</p>
 
