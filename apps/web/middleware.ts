@@ -55,7 +55,12 @@ export async function middleware(request: NextRequest) {
     pathname === "/login" ||
     pathname === "/register" ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/oauth/")
+    pathname.startsWith("/oauth/") ||
+    // MCP OAuth sign-in/consent pages: apps/api redirects here (on whichever
+    // host WEB_APP_URL points to) and the signed query must reach the page
+    // untouched - redirecting to /dashboard would skip the consent step.
+    pathname === "/mcp/sign-in" ||
+    pathname === "/mcp/consent"
   ) {
     return NextResponse.next();
   }
